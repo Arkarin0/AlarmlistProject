@@ -1,0 +1,11 @@
+{
+  "tools": {
+    "dotnet": "9.0.302",
+    "vs": {
+      "version": "17.3"
+    }
+  },
+  "msbuild-sdks": {
+    "Arkarin0.DotNet.Arcade.Sdk" : "1.0.0-Preview"
+  }
+}

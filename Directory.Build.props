@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+ 	<PropertyGroup>
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+	</PropertyGroup>
+
+	<Import Project="Sdk.props" Sdk="Arkarin0.DotNet.Arcade.Sdk" />
+  <Import Project="eng\targets\Settings.props"/>
+
+<PropertyGroup>
+  <TargetFrameworks>net8</TargetFrameworks>
+</PropertyGroup>
+ 
+</Project>

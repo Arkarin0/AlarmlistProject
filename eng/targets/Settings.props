@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+	<Import Project="..\Versions.props"/>
+  <Import Project="UnitTests.props" Condition="$(IsUnitTestProject)"/>
+
+    <!--Shared Nuget and Project properties.-->
+	<PropertyGroup>
+		<Authors>Arkarin0</Authors>
+		<Company>Arkarin0</Company>
+		<NeutralLanguage>en</NeutralLanguage>
+		<PackageTags>$(PackageTags);$(TargetFrameworks);</PackageTags>
+		<Copyright>Copyright ©  2025 by Arkarin0.</Copyright>
+	</PropertyGroup>
+
+	<PropertyGroup>
+
+	</PropertyGroup>
+
+</Project>

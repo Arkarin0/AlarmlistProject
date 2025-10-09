@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+	<ItemGroup>
+    <Compile Include="$(RepoRoot)\src\shared\Unittesting\TestHelper.cs" Link="TestHelper.cs" />
+    <!--Handle Configuration Specific LoggerConfig files.-->
+		<Compile Update="TestHelper.*.cs">
+			<!--Make this File a subfile of the LoggerConfig.json file-->
+			<DependentUpon>TestHelper.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  
+
+</Project>
