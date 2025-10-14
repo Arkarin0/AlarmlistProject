@@ -1,12 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
  
   </PropertyGroup>
 	
 	<ItemGroup>
-		<Package Include="CommandLineParser" Version="$(CommandLineParserVersion)"/>
+		<Package Include="CommandLineParser" Version="$(CommandLineParserVersion)" />
 	</ItemGroup>
+	
+	<ItemGroup>
+	  <Folder Include="Properties\" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Alarmlist.Compiler.UnitTests" />
+  </ItemGroup>
 	
 </Project>
