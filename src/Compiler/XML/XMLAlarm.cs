@@ -13,12 +13,15 @@ namespace Alarmlist.Compiler.XML
     public class XMLAlarm
     {
         [XmlAttribute]
+        public Guid Id { get; set; }
+
+        [XmlElement]
         public string Code { get; set; }
 
-        [XmlAttribute]
+        [XmlElement]
         public string Name { get; set; }
 
-        [XmlAttribute]
+        [XmlElement]
         public string Category { get; set; }
 
         [XmlElement]

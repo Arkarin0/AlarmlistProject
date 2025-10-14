@@ -8,6 +8,8 @@ namespace Alarmlist.Compiler
 {
    public class AlarmData
     {
+        public Guid ID { get; set; } = Guid.NewGuid();
+
         public string Code { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;

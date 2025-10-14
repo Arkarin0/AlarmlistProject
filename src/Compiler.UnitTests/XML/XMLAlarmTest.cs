@@ -16,6 +16,7 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             var expected = new XMLAlarm()
             {
+                Id = Guid.Parse("FB5DD68C-6DD5-458D-9505-CDA9369EDA4D"),
                 Code = "1",
                 Name = "N1",
                 Description = "D1",
@@ -24,7 +25,10 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             string source =
  @"
-<Alarm Code=""1"" Name=""N1"" Category=""Cat1"">
+<Alarm Id=""FB5DD68C-6DD5-458D-9505-CDA9369EDA4D"">
+    <Code>1</Code>
+	<Name>N1</Name>
+    <Category>Cat1</Category>
     <Description>D1</Description>
 </Alarm>
 ";
@@ -44,6 +48,7 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             var expected = new XMLAlarm()
             {
+                Id = Guid.Parse("FB5DD68C-6DD5-458D-9505-CDA9369EDA4D"),
                 Code = "1",
                 Name = "N1",
                 Description = "D1",
@@ -58,7 +63,9 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             string source =
  @"
-<Alarm Code=""1"" Name=""N1"">
+<Alarm Id=""FB5DD68C-6DD5-458D-9505-CDA9369EDA4D"">
+    <Code>1</Code>
+	<Name>N1</Name>
     <Description>D1</Description>
     <Solutions>
         <Solution>

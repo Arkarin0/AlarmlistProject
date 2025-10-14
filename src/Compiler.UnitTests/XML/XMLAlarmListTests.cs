@@ -60,8 +60,14 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             string source =
 @"<Alarmlist>
-    <Alarm Code=""1"" Name=""N1""/>
-    <ImportAlarm Code= ""2"" Name=""N2"" TemplateID=""T2""/>
+    <Alarm>
+	    <Code>1</Code>
+	    <Name>N1</Name>
+    </Alarm>
+    <ImportAlarm TemplateID=""T2"">
+	    <Code>2</Code>
+	    <Name>N2</Name>
+    </ImportAlarm>
     <ImportTemplate file=""anyFile.xml"" />
 </Alarmlist>";
 
@@ -91,7 +97,10 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             string source =
 @"<Alarmlist>
-    <Alarm Code=""1"" Name=""N1""/>
+    <Alarm>
+	    <Code>1</Code>
+	    <Name>N1</Name>
+    </Alarm>
 </Alarmlist>";
 
 
@@ -119,7 +128,10 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             string source =
 @"<Alarmlist>
-    <ImportAlarm Code=""1"" Name=""N1"" TemplateID=""11""/>
+    <ImportAlarm TemplateID=""11"">
+	    <Code>1</Code>
+	    <Name>N1</Name>
+    </ImportAlarm>
 </Alarmlist>";
 
 
@@ -175,9 +187,18 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             string source =
 @"<Alarmlist>
-    <Alarm Code=""1"" Name=""N1""/>
-    <Alarm Code=""2"" Name=""N2""/>
-    <Alarm Code=""3"" Name=""N3""/>
+        <Alarm>
+	    <Code>1</Code>
+	    <Name>N1</Name>
+    </Alarm>
+        <Alarm>
+	    <Code>2</Code>
+	    <Name>N2</Name>
+    </Alarm>
+        <Alarm>
+	    <Code>3</Code>
+	    <Name>N3</Name>
+    </Alarm>
 </Alarmlist>";
 
 
@@ -217,9 +238,18 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             string source =
 @"<Alarmlist>
-    <ImportAlarm Code=""1"" Name=""N1""/>
-    <ImportAlarm Code=""2"" Name=""N2""/>
-    <ImportAlarm Code=""3"" Name=""N3""/>
+    <ImportAlarm>
+	    <Code>1</Code>
+	    <Name>N1</Name>
+    </ImportAlarm>
+    <ImportAlarm>
+	    <Code>2</Code>
+	    <Name>N2</Name>
+    </ImportAlarm>
+    <ImportAlarm>
+	    <Code>3</Code>
+	    <Name>N3</Name>
+    </ImportAlarm>
 </Alarmlist>";
 
 
@@ -253,7 +283,10 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             string source =
 @"<Alarmlist xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:noNamespaceSchemaLocation=""..\..\..\..\..\xml\schemas\Alarms.xsd"">        
-    <ImportAlarm Code=""1"" Name=""N1""/>
+    <ImportAlarm>
+	    <Code>1</Code>
+	    <Name>N1</Name>
+    </ImportAlarm>
 </Alarmlist>";
 
 

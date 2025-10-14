@@ -26,10 +26,22 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             string source =
 @"<Alarmlist>
-    <Alarm Code=""1"" Name=""N1""/>
-    <Alarm Code=""2"" Name=""N2""/>
-    <ImportAlarm Code=""3"" Name=""N3"" TemplateID=""13""/>
-    <ImportAlarm Code=""4"" Name=""N3"" TemplateID=""14""/>
+    <Alarm>
+	    <Code>1</Code>
+	    <Name>N1</Name>
+    </Alarm>
+    <Alarm>
+	    <Code>2</Code>
+	    <Name>N2</Name>
+    </Alarm>
+    <ImportAlarm TemplateID=""13"">
+        <Code>3</Code>
+	    <Name>N3</Name>
+    </ImportAlarm>
+    <ImportAlarm TemplateID=""14"">
+        <Code>4</Code>
+	    <Name>N4</Name>
+    </ImportAlarm>
 </Alarmlist>";
 
             //action
