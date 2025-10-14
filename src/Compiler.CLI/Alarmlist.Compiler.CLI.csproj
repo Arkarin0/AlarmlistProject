@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+ 
+  </PropertyGroup>
+	
+	<ItemGroup>
+		<Package Include="CommandLineParser" Version="$(CommandLineParserVersion)" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <ProjectReference Include="..\Compiler\Alarmlist.Compiler.csproj" />
+	</ItemGroup>
+	
+</Project>

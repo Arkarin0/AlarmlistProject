@@ -1,0 +1,5 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Compiler.CLI\Alarmlist.Compiler.CLI.csproj" />
+  </ItemGroup>
+</Project>

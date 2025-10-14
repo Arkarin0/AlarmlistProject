@@ -2,5 +2,7 @@
   <Folder Name="/Compiler/">
     <Project Path="src/Compiler.UnitTests/Alarmlist.Compiler.UnitTests.csproj" />
     <Project Path="src/Compiler/Alarmlist.Compiler.csproj" />
+    <Project Path="src/Compiler.CLI.UnitTests/Alarmlist.Compiler.CLI.UnitTests.csproj" />
+    <Project Path="src/Compiler.CLI/Alarmlist.Compiler.CLI.csproj" />
   </Folder>
 </Solution>
