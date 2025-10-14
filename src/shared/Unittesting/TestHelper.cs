@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -104,7 +104,7 @@ namespace WMSDetector.Tests
         }
         public static IEnumerable<ArgumentOutOfRangeException> ActionsThrowsArgumentOutOfRangeException(string propertyName, params Action[] actions)
         {
-            var unexpectedErrors = new Stack<Tuple<int, object,Exception>>();
+            var unexpectedErrors = new Stack<Tuple<int, string,Exception>>();
             var expectedErrors = new Stack<ArgumentOutOfRangeException>();
             int count = actions.Count();
             
@@ -119,11 +119,11 @@ namespace WMSDetector.Tests
                 }
                 catch (Exception ex)
                 {
-                    unexpectedErrors.Push(new Tuple<int, object, Exception>(i,action,ex));
+                    unexpectedErrors.Push(new Tuple<int, string, Exception>(i,propertyName,ex));
                 }
             }
 
-            if (unexpectedErrors.Count > 0) throw new Xunit.Sdk.AllException(count, unexpectedErrors.ToArray());
+            if (unexpectedErrors.Count > 0) throw Xunit.Sdk.AllException.ForFailures(count, unexpectedErrors.ToArray());
             
             
 
@@ -166,7 +166,7 @@ namespace WMSDetector.Tests
         {
             var list = RaisePropertyChangedEvent(obj, changevalue);
             var actual = GetPropertieNames(list);
-            if (!actual.Contains(propertyName)) throw new Xunit.Sdk.PropertyChangedException(propertyName);
+            if (!actual.Contains(propertyName)) throw Xunit.Sdk.PropertyChangedException.ForUnsetProperty(propertyName);
             //Assert.True(actual.Contains(propertyName), $"The PropertyChangedEvent for the Property {propertyName} was not raised.");
             //Assert.Contains(propertyName, actual);
 
@@ -184,7 +184,7 @@ namespace WMSDetector.Tests
             //}
 
             //Assert.All(propertyNames, item => Assert.Contains(item, actual));
-            Assert.All(propertyNames, propertyName => { if (!actual.Contains(propertyName)) throw new Xunit.Sdk.PropertyChangedException(propertyName); });
+            Assert.All(propertyNames, propertyName => { if (!actual.Contains(propertyName)) throw Xunit.Sdk.PropertyChangedException.ForUnsetProperty(propertyName); });
 
             return list;
         }
@@ -211,10 +211,10 @@ namespace WMSDetector.Tests
             detach(ev);
 
             if (raisedEvent == null) 
-                throw new Xunit.Sdk.RaisesException(typeof(EventArgs));
+                throw Xunit.Sdk.RaisesException.ForNoEvent(typeof(EventArgs));
             
             if(raisedEvent.Arguments!= null && !raisedEvent.Arguments.GetType().Equals(typeof(EventArgs)))
-                throw new Xunit.Sdk.RaisesException(typeof(EventArgs),raisedEvent.Arguments.GetType());
+                throw Xunit.Sdk.RaisesException.ForIncorrectType(typeof(EventArgs),raisedEvent.Arguments.GetType());
 
             return raisedEvent;
         }
@@ -245,10 +245,10 @@ namespace WMSDetector.Tests
             detach(ev);
 
             if (!wasRaised)
-                throw new Xunit.Sdk.RaisesException(typeof(T));
+                throw Xunit.Sdk.RaisesException.ForNoEvent(typeof(T));
 
             if (args != null && !args.GetType().Equals(typeof(T)))
-                throw new Xunit.Sdk.RaisesException(typeof(T), args.GetType());
+                throw Xunit.Sdk.RaisesException.ForIncorrectType(typeof(T), args.GetType());
 
             return ev;
         }
@@ -279,33 +279,13 @@ namespace WMSDetector.Tests
             detach(ev);
 
             if (!wasRaised)
-                throw new Xunit.Sdk.RaisesException(typeof(T));
+                throw Xunit.Sdk.RaisesException.ForNoEvent(typeof(T));
 
             if (args != null && !typeof(T).IsAssignableFrom(args.GetType()))
-                throw new Xunit.Sdk.RaisesException(typeof(T), args.GetType());
+                throw Xunit.Sdk.RaisesException.ForIncorrectType(typeof(T), args.GetType());
 
             return (sender,args);
         }
-
-        public static void AssertDelegateCommandIsInitilaized(WMSEngine.ComponentModel.Commands.DelegateCommand command, bool canExecute)
-        {
-            Assert.NotNull(command);
-            AssertDelegateCommadCanExecute(command, canExecute);
-        }
-
-        public static void AssertDelegateCommadCanExecute(WMSEngine.ComponentModel.Commands.DelegateCommand command, bool expected)
-        {
-            Assert.Equal(expected, command.CanExecute());
-        }
-
-        public static void AssertDelegateCommadCanExecuteChangedWasCalled(WMSEngine.ComponentModel.Commands.DelegateCommand command, Action trigger)
-        {
-            RaisesEvent(
-                attach: arg => command.CanExecuteChanged += arg,
-                detach: arg => command.CanExecuteChanged += arg,
-                trigger);
-        }
-
 
         public static void AssertWasCalled(Action<Action> attach, Action detach, Action action)
         {
