@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <Compile Remove="XML\**" />
+    <EmbeddedResource Remove="XML\**" />
+    <None Remove="XML\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Compiler\Alarmlist.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -6,8 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
-using Alarmlist.Compiler.UnitTests.XML;
-using Alarmlist.Compiler.XML;
+using Alarmlist.Syntax;
 using Xunit;
 
 namespace Alarmlist.Compiler.Test
@@ -89,48 +88,48 @@ namespace Alarmlist.Compiler.Test
             return stream;
         }
 
-        public static IEnumerable<XMLAlarm> ToXMLAlarmList(this AlarmList source)
-        {
-            return source.Select(x => new XMLAlarm()
-            {
-                Code = x.Code,
-                Name = x.Name,
-                Description = x.Description,
-                Category = x.Category,
-                Solutions = new XMLSolutionList()
-                {
-                    Items = new List<XMLAlarmSolution>(x.SolutionList.Select(sol=> new XML.XMLAlarmSolution()
-                    {
-                        Cause = sol.Cause,
-                        Solutions= sol.Solutions
-                    }))
-                }
-            });
-        }
+        //public static IEnumerable<XMLAlarm> ToXMLAlarmList(this AlarmList source)
+        //{
+        //    return source.Select(x => new XMLAlarm()
+        //    {
+        //        Code = x.Code,
+        //        Name = x.Name,
+        //        Description = x.Description,
+        //        Category = x.Category,
+        //        Solutions = new XMLSolutionList()
+        //        {
+        //            Items = new List<XMLAlarmSolution>(x.SolutionList.Select(sol=> new XML.XMLAlarmSolution()
+        //            {
+        //                Cause = sol.Cause,
+        //                Solutions= sol.Solutions
+        //            }))
+        //        }
+        //    });
+        //}
 
-        public static void Equal( XMLAlarmTemplate left, XMLAlarmTemplate right)
-        {
-            Assert.Equal(left.File, right.File);
-            Assert.Equal(left.Children, right.Children, ErrordataComparer);
-        }
+        //public static void Equal( XMLAlarmTemplate left, XMLAlarmTemplate right)
+        //{
+        //    Assert.Equal(left.File, right.File);
+        //    Assert.Equal(left.Children, right.Children, ErrordataComparer);
+        //}
 
-        public static XMLAlarmSolution XMLErrorSolution( string cause, params string[] solutions )
-        {
-            return new XMLAlarmSolution()
-            {
-                Cause = cause,
-                Solutions = new List<string>(solutions)
-            };
-        }
+        //public static XMLAlarmSolution XMLErrorSolution( string cause, params string[] solutions )
+        //{
+        //    return new XMLAlarmSolution()
+        //    {
+        //        Cause = cause,
+        //        Solutions = new List<string>(solutions)
+        //    };
+        //}
 
-        public static AlarmSolution ErrorSolution(string cause, params string[] solutions)
-        {
-            return new AlarmSolution()
-            {
-                Cause = cause,
-                Solutions = new List<string>(solutions)
-            };
-        }
+        //public static AlarmSolution ErrorSolution(string cause, params string[] solutions)
+        //{
+        //    return new AlarmSolution()
+        //    {
+        //        Cause = cause,
+        //        Solutions = new List<string>(solutions)
+        //    };
+        //}
 
         
     }
