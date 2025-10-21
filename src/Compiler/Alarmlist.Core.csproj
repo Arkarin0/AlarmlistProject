@@ -1,9 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
- 
+    <RootNamespace>Alarmlist</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="XML\**" />
+    <EmbeddedResource Remove="XML\**" />
+    <None Remove="XML\**" />
+  </ItemGroup>
 	
 	<ItemGroup>
 		<Package Include="CommandLineParser" Version="$(CommandLineParserVersion)" />
@@ -14,7 +20,7 @@
 	</ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Alarmlist.Compiler.UnitTests" />
+    <InternalsVisibleTo Include="Alarmlist.Core.UnitTests" />
   </ItemGroup>
 	
 </Project>

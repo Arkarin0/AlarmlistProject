@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Alarmlist.Compiler.Test;
 using Alarmlist.Compiler.XML;
+using Alarmlist.Syntax;
 
 namespace Alarmlist.Compiler.UnitTests.XML
 {
@@ -307,10 +308,10 @@ namespace Alarmlist.Compiler.UnitTests.XML
         {
             var expected = new AlarmList()
             {
-                new AlarmData(){Code="1", Name="N1", Category="Cat1", Description= "D1"},
-                new AlarmData(){Code="2", Name="N2", Category="Cat2", Description= "D2"},
-                new AlarmData(){Code="3", Name="N3", Category="Cat3", Description= "D3"},
-                new AlarmData{Code="4",
+                new Alarm(){Code="1", Name="N1", Category="Cat1", Description= "D1"},
+                new Alarm(){Code="2", Name="N2", Category="Cat2", Description= "D2"},
+                new Alarm(){Code="3", Name="N3", Category="Cat3", Description= "D3"},
+                new Alarm{Code="4",
                     SolutionList = new AlarmSolutionList()
                     {
                         TestHelper.ErrorSolution("Cause1", "Sol1", "Sol2")
@@ -324,7 +325,7 @@ namespace Alarmlist.Compiler.UnitTests.XML
             var datalist = xmlList.ToErrorDataList();
             
             //prepare result for assert
-            var list = new List<(AlarmData, AlarmData)>();
+            var list = new List<(Alarm, Alarm)>();
             for (int i = 0; i < expected.Count; i++)
             {
                 list.Add((expected.ElementAtOrDefault(i), datalist.ElementAtOrDefault(i)));
@@ -350,15 +351,15 @@ namespace Alarmlist.Compiler.UnitTests.XML
             var expected = new AlarmList()
             {
                 //base error
-                new AlarmData(){Code="1", Name="N1", Category="Cat1", Description= "D1", SolutionList = error1SolutionList},
+                new Alarm(){Code="1", Name="N1", Category="Cat1", Description= "D1", SolutionList = error1SolutionList},
                 
                 //resulting overrides
-                new AlarmData(){Code="2", Name="overwritten", Category="Cat1", Description= "D1", SolutionList = error1SolutionList},
-                new AlarmData(){Code="3", Name="N1", Category="overwritten", Description= "D1", SolutionList = error1SolutionList},
-                new AlarmData(){Code="4", Name="N1", Category="Cat1", Description= "overwritten", SolutionList = error1SolutionList},
+                new Alarm(){Code="2", Name="overwritten", Category="Cat1", Description= "D1", SolutionList = error1SolutionList},
+                new Alarm(){Code="3", Name="N1", Category="overwritten", Description= "D1", SolutionList = error1SolutionList},
+                new Alarm(){Code="4", Name="N1", Category="Cat1", Description= "overwritten", SolutionList = error1SolutionList},
                 //test solutions
-                new AlarmData(){Code="5", Name="N1", Category="Cat1", Description= "D1", SolutionList= new AlarmSolutionList()}, //empty solutionlist
-                new AlarmData(){Code="6", Name="N1", Category="Cat1", Description= "D1", SolutionList= new AlarmSolutionList() //inherite + add solutions
+                new Alarm(){Code="5", Name="N1", Category="Cat1", Description= "D1", SolutionList= new AlarmSolutionList()}, //empty solutionlist
+                new Alarm(){Code="6", Name="N1", Category="Cat1", Description= "D1", SolutionList= new AlarmSolutionList() //inherite + add solutions
                 {
                     TestHelper.ErrorSolution("Cause1", "Cas1Sol1","Cas1Sol2"),
                     TestHelper.ErrorSolution("Cause2", "Cas2Sol1","Cas2Sol2")
@@ -397,7 +398,7 @@ namespace Alarmlist.Compiler.UnitTests.XML
             var datalist = xmlList.ToErrorDataList();
 
             //prepare result for assert
-            var list = new List<(AlarmData, AlarmData)>();
+            var list = new List<(Alarm, Alarm)>();
             for (int i = 0; i < expected.Count; i++)
             {
                 list.Add((expected.ElementAtOrDefault(i), datalist.ElementAtOrDefault(i)));
@@ -433,9 +434,9 @@ namespace Alarmlist.Compiler.UnitTests.XML
                 //write import template file.
                 var listforExport = new AlarmList()
                 {
-                    new AlarmData(){Code="T1", Name=$"{i}N1"},
-                    new AlarmData(){Code="T2", Name=$"{i}N2"},
-                    new AlarmData(){Code="T3", Name=$"{i}N3"}
+                    new Alarm(){Code="T1", Name=$"{i}N1"},
+                    new Alarm(){Code="T2", Name=$"{i}N2"},
+                    new Alarm(){Code="T3", Name=$"{i}N3"}
                 };
                 //
                 var xmlList = new XMLAlarmList();
@@ -461,7 +462,7 @@ namespace Alarmlist.Compiler.UnitTests.XML
                     var id = template.Children.ElementAt(ii).Code;
                     var name = listforExport.ElementAt(ii).Name;
 
-                    expected.Add(new AlarmData() { Code = id, Name = name });
+                    expected.Add(new Alarm() { Code = id, Name = name });
                 }
             }
 
@@ -483,9 +484,9 @@ namespace Alarmlist.Compiler.UnitTests.XML
             //write import template file.
             var listforExport = new AlarmList()
                 {
-                    new AlarmData(){Code="T1", Name=$"ExportN1"},
-                    new AlarmData(){Code="T2", Name=$"ExportN2"},
-                    new AlarmData(){Code="T3", Name=$"ExportN3"}
+                    new Alarm(){Code="T1", Name=$"ExportN1"},
+                    new Alarm(){Code="T2", Name=$"ExportN2"},
+                    new Alarm(){Code="T3", Name=$"ExportN3"}
                 };
             //
             var xmlList = new XMLAlarmList();
@@ -523,12 +524,12 @@ namespace Alarmlist.Compiler.UnitTests.XML
             //generated expected list=
             expected = new AlarmList()
             {
-                new AlarmData(){Code="1c1", Name=$"ExportN1"},
-                new AlarmData(){Code="1c2", Name=$"ExportN2"},
-                new AlarmData(){Code="1c3", Name=$"ExportN3"},
-                new AlarmData(){Code="2c1", Name=$"ExportN1"},
-                new AlarmData(){Code="2c2", Name=$"ExportN2"},
-                new AlarmData(){Code="2c3", Name=$"ExportN3"}
+                new Alarm(){Code="1c1", Name=$"ExportN1"},
+                new Alarm(){Code="1c2", Name=$"ExportN2"},
+                new Alarm(){Code="1c3", Name=$"ExportN3"},
+                new Alarm(){Code="2c1", Name=$"ExportN1"},
+                new Alarm(){Code="2c2", Name=$"ExportN2"},
+                new Alarm(){Code="2c3", Name=$"ExportN3"}
             };
 
 
@@ -553,10 +554,10 @@ namespace Alarmlist.Compiler.UnitTests.XML
 
             var expected = new AlarmList()
             {
-                new AlarmData(){Code="1", Name="N1", Description= "D1"},
-                new AlarmData(){Code="2", Name="N1",Description= "D2"},
-                new AlarmData(){Code="3", Name="N1",Description= "D3"},
-                new AlarmData(){Code="4", Name="N4",Description= "D2"}
+                new Alarm(){Code="1", Name="N1", Description= "D1"},
+                new Alarm(){Code="2", Name="N1",Description= "D2"},
+                new Alarm(){Code="3", Name="N1",Description= "D3"},
+                new Alarm(){Code="4", Name="N4",Description= "D2"}
             };
 
             var xmlList = new XMLAlarmList();

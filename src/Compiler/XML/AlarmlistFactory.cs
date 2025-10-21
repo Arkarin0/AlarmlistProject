@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Alarmlist.Compiler.XML;
+using Alarmlist.Syntax;
 
 namespace Alarmlist.Compiler
 {

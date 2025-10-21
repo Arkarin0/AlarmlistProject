@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/Compiler/">
-    <Project Path="src/Compiler.UnitTests/Alarmlist.Compiler.UnitTests.csproj" />
-    <Project Path="src/Compiler/Alarmlist.Compiler.csproj" />
+    <Project Path="src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj" />
+    <Project Path="src/Compiler/Alarmlist.Core.csproj" />
   </Folder>
 </Solution>

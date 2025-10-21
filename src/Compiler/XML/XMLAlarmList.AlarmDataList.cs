@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Alarmlist.Compiler.XML;
+using Alarmlist.Syntax;
 
 namespace Alarmlist.Compiler.XML
 {
@@ -179,7 +180,7 @@ namespace Alarmlist.Compiler.XML
 
             //export the flat list to actual data
             var list = new AlarmList();
-            list.AddRange(flat.Select(x => new AlarmData()
+            list.AddRange(flat.Select(x => new Alarm()
             {
                 Code = x.ID,
                 Name = x.Name,
@@ -221,7 +222,7 @@ namespace Alarmlist.Compiler.XML
             private XMLSolutionList _solutions;
 
 
-            public MergedAlarm(AlarmData alarm, string sourceFile) : this(alarm.Code, alarm.Name, alarm.Description, null, alarm.Category, null)
+            public MergedAlarm(Alarm alarm, string sourceFile) : this(alarm.Code, alarm.Name, alarm.Description, null, alarm.Category, null)
             {
                 this.SourceFile = sourceFile;
                 this._solutions = new XMLSolutionList() 

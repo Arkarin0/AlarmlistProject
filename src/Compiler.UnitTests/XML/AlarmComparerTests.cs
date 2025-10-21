@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Alarmlist.Compiler.XML;
+using Alarmlist.Syntax;
 using Xunit;
 
 namespace Alarmlist.Compiler.UnitTests.XML
@@ -12,7 +13,7 @@ namespace Alarmlist.Compiler.UnitTests.XML
     {
         public static IEnumerable<object[]> GetExpectedComparerImplementations()
         {
-            yield return new object[] { typeof(IEqualityComparer<AlarmData>) };
+            yield return new object[] { typeof(IEqualityComparer<Alarm>) };
             yield return new object[] { typeof(IEqualityComparer<AlarmSolution>) };
             yield return new object[] { typeof(IEqualityComparer<XMLAlarm>) };
             yield return new object[] { typeof(IEqualityComparer<XMLImportAlarm>) };
