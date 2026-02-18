@@ -17,7 +17,7 @@ namespace Alarmlist.Diagnostics.Tests
         {
             var alarm = AlarmlistFactory.Alarm();
             
-            Alarm.SetReference(alarm, alarm);
+            AlarmSyntaxNode.SetReference(alarm, alarm);
 
             //Assert.Same(reference, alarm.Reference);
             Assert.Fail("notIMplemented");

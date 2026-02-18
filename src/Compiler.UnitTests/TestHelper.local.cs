@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Alarmlist.Compiler.Test
 {
-    internal static class TestHelper
+    internal partial class TestHelper
     {
         public static AlarmComparer ErrordataComparer { get; } = new AlarmComparer();
 
@@ -86,6 +86,17 @@ namespace Alarmlist.Compiler.Test
             
             stream.Position = 0;
             return stream;
+        }
+
+        public static AlarmSyntaxNode CreateAlarmSyntaxNode(string postfix)
+        {
+            return new AlarmSyntaxNode()
+            {
+                Name = $"AlarmName{postfix}",
+                Code = $"AlarmCode{postfix}",
+                Description = $"AlarmDescription{postfix}",
+                Category = $"AlarmCategory{postfix}"
+            };
         }
 
         //public static IEnumerable<XMLAlarm> ToXMLAlarmList(this AlarmList source)

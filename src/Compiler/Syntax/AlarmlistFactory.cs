@@ -10,7 +10,7 @@ namespace Alarmlist.Core
 {
    public partial class AlarmlistFactory
     {
-        public static Alarm Alarm() => new();
-        public static Alarm Alarm(Guid id) => new(id);
+        public static AlarmSyntaxNode Alarm() => new();
+        public static AlarmSyntaxNode Alarm(Guid id) => new(id);
     }
 }

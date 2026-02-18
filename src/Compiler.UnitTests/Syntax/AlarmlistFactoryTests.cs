@@ -16,9 +16,9 @@ namespace Alarmlist.Syntax.Tests
         public void AlarmDoesNotHavePublicContructors()
         {
 
-            bool hasPulicContructors = typeof(Alarm).GetConstructors().Where(x=> x.IsPublic).Any();
+            bool hasPublicContructors = typeof(AlarmSyntaxNode).GetConstructors().Where(x=> x.IsPublic).Any();
 
-            Assert.False(hasPulicContructors);
+            Assert.False(hasPublicContructors);
         }
 
         [Fact]
