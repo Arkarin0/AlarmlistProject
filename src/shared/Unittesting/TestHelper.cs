@@ -7,9 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace WMSDetector.Tests
+namespace Alarmlist.Compiler.Test
 {
-    public partial class TestHelper
+    internal partial class TestHelper
     {
         //public static string GetParameternameOfFunction(System.Reflection.MethodInfo method, int index)
         //{

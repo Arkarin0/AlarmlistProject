@@ -18,7 +18,7 @@ namespace Alarmlist.Syntax.Tests
             var alarm = AlarmlistFactory.Alarm();
             var reference = AlarmlistFactory.Alarm();
 
-            Alarm.SetReference(alarm, reference);
+            AlarmSyntaxNode.SetReference(alarm, reference);
 
             Assert.Same(reference, alarm.Reference);
         }
@@ -29,8 +29,8 @@ namespace Alarmlist.Syntax.Tests
             var alarm = AlarmlistFactory.Alarm();
             var reference = AlarmlistFactory.Alarm();
 
-            Alarm.SetReference(alarm, reference);
-            Alarm.RemoveReference(alarm);
+            AlarmSyntaxNode.SetReference(alarm, reference);
+            AlarmSyntaxNode.RemoveReference(alarm);
 
             Assert.Null(alarm.Reference);
         }
@@ -41,7 +41,7 @@ namespace Alarmlist.Syntax.Tests
             var alarm = AlarmlistFactory.Alarm();
             var reference = AlarmlistFactory.Alarm();
 
-            Alarm.SetReference(alarm, reference);
+            AlarmSyntaxNode.SetReference(alarm, reference);
 
             Assert.NotEqual(alarm.ID, alarm.Reference.ID);
         }
@@ -52,7 +52,7 @@ namespace Alarmlist.Syntax.Tests
             var alarm = AlarmlistFactory.Alarm();
             var reference = AlarmlistFactory.Alarm();
 
-            Alarm.SetReference(alarm, alarm);
+            AlarmSyntaxNode.SetReference(alarm, alarm);
 
             Assert.NotEqual(reference.ID, alarm.Reference.ID);
         }
