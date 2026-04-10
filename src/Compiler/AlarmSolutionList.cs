@@ -1,28 +1,28 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Alarmlist.Syntax;
+//using System;
+//using System.Collections.Generic;
+//using System.Linq;
+//using System.Text;
+//using System.Threading.Tasks;
+//using Alarmlist.Syntax;
 
-namespace Alarmlist.Compiler
-{
-    /// <summary>
-    /// A list of <see cref="AlarmSolution"/> items.
-    /// </summary>
-    /// <seealso cref="List{ErrorSolution}" />
-    public class AlarmSolutionList : List<AlarmSolution>
-    {
-        public AlarmSolutionList()
-        {
-        }
+//namespace Alarmlist.Compiler
+//{
+//    /// <summary>
+//    /// A list of <see cref="AlarmSolution"/> items.
+//    /// </summary>
+//    /// <seealso cref="List{AlarmSolution}" />
+//    public class AlarmSolutionList : List<AlarmSolution>
+//    {
+//        public AlarmSolutionList()
+//        {
+//        }
 
-        public AlarmSolutionList(IEnumerable<AlarmSolution> collection) : base(collection)
-        {
-        }
+//        public AlarmSolutionList(IEnumerable<AlarmSolution> collection) : base(collection)
+//        {
+//        }
 
-        public AlarmSolutionList(int capacity) : base(capacity)
-        {
-        }
-    }
-}
+//        public AlarmSolutionList(int capacity) : base(capacity)
+//        {
+//        }
+//    }
+//}

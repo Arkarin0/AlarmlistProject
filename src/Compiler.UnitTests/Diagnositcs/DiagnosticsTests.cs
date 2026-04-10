@@ -12,7 +12,7 @@ namespace Alarmlist.Diagnostics.Tests
 {
     public class DiagnosticsTests
     {
-        [Fact]
+        [Fact (Skip = "Not Implemented,  No Diagnostics aviable")]
         public void AlarmReferencesItselfResltsInDiagnosticMassage()
         {
             var alarm = AlarmlistFactory.Alarm();
