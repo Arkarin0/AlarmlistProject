@@ -56,5 +56,44 @@ namespace Alarmlist.Syntax.Tests
 
             Assert.NotEqual(reference.ID, alarm.Reference.ID);
         }
+
+        [Fact]
+        public void InstanceUsesReferencedPropertiesAsItsOwnProperties()
+        {
+            var alarm = AlarmlistFactory.Alarm();
+            var reference = AlarmlistFactory.Alarm();
+            TestHelper.FillData(reference, 1);
+
+            AlarmSyntaxNode.SetReference(alarm, reference);
+
+            Assert.Equal(alarm, reference, TestHelper.comparer);
+        }
+
+        [Fact]
+        public void InstanceUsesReferencedPropertiesAndLocalProperties()
+        {
+            var alarm = AlarmlistFactory.Alarm();
+            alarm.Name = "AlarmLocal";
+            var reference = AlarmlistFactory.Alarm();
+            TestHelper.FillData(reference, 1);
+
+            AlarmSyntaxNode.SetReference(alarm, reference);
+
+            Assert.Equal(alarm.Description, reference.Description);
+            Assert.NotEqual(alarm.Name, reference.Name);
+        }
+
+        [Fact]
+        public void InstanceUsesNoReferencedPropertiesAndLocalOnlyProperties()
+        {
+            var alarm = AlarmlistFactory.Alarm();
+            TestHelper.FillData(alarm, 1);
+            var reference = AlarmlistFactory.Alarm();
+            TestHelper.FillData(reference, 2);
+
+            AlarmSyntaxNode.SetReference(alarm, reference);
+
+            Assert.NotEqual(alarm, reference, TestHelper.comparer);
+        }
     }
 }

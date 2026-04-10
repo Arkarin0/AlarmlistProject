@@ -13,6 +13,8 @@ namespace Alarmlist.Compiler.Test
 {
     internal partial class TestHelper
     {
+        public static AlarmComparer comparer = new AlarmComparer();
+
         public static void AssertAlarmEquals(AlarmSyntaxNode expected, Alarm actual)
         {
             Assert.Equal(expected.Name, actual.Name);
@@ -21,9 +23,17 @@ namespace Alarmlist.Compiler.Test
             Assert.Equal(expected.Category, actual.Category);
         }
 
+        public static void FillData(AlarmSyntaxNode alarm, int number)
+        {
+            alarm.Name = $"Test Alarm {number}";
+            alarm.Description = $"This is a test alarm. {number}";
+            alarm.Code = $"TA-{number}";
+            alarm.Category = $"Test Category {number}";
+        }
 
-       
 
-        
+
+
+
     }
 }

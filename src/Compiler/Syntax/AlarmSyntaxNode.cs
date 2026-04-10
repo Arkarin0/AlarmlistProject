@@ -9,10 +9,34 @@ namespace Alarmlist.Syntax
 {
     public class AlarmSyntaxNode
     {
-        public string Name { get; set; }
-        public string Code { get; set; }
-        public string Description { get; set; }
-        public string Category { get; set; }
+        private string _Name;
+        public string Name
+        {
+            get { return _Name ?? Reference?.Name; }
+            set { _Name = value; }
+        }
+
+        private string _Code;
+        public string Code
+        {
+            get { return _Code ?? Reference?.Code; }
+            set { _Code = value; }
+        }
+
+        private string _Description;
+        public string Description
+        {
+            get { return _Description ?? Reference?.Description; }
+            set { _Description = value; }
+        }
+
+        private string _Category;
+        public string Category
+        {
+            get { return _Category ?? Reference?.Category; }
+            set { _Category = value; }
+        }
+
 
         AlarmSyntaxNode _refence;
 
