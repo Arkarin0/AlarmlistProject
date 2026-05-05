@@ -20,25 +20,5 @@ namespace Alarmlist.Syntax.Tests
 
             Assert.False(hasPublicContructors);
         }
-
-        [Fact]
-        public void CreateDefaultAlarmDoesNotHaveEmptyID()
-        {
-
-            var actual = AlarmlistFactory.Alarm();
-
-            Assert.NotNull(actual);
-            Assert.NotEqual(Guid.Empty, actual.ID);
-        }
-
-        [Fact]
-        public void CreateDefaultAlarmWithPredifinedGUID()
-        {
-            var expected = Guid.NewGuid();
-
-            var actual = AlarmlistFactory.Alarm(expected);
-
-            Assert.Equal(expected,actual.ID);
-        }
     }
 }

@@ -36,14 +36,14 @@ namespace Alarmlist.Syntax.Tests
         }
 
         [Fact]
-        public void IDIsNotinheritedFromTheReferencedInstance()
+        public void FQNIsNotinheritedFromTheReferencedInstance()
         {
             var alarm = AlarmlistFactory.Alarm();
             var reference = AlarmlistFactory.Alarm();
 
             AlarmSyntaxNode.SetReference(alarm, reference);
 
-            Assert.NotEqual(alarm.ID, alarm.Reference.ID);
+            Assert.NotEqual(alarm.FullyQualifiedName, alarm.Reference.FullyQualifiedName);
         }
 
         [Fact]
@@ -54,7 +54,7 @@ namespace Alarmlist.Syntax.Tests
 
             AlarmSyntaxNode.SetReference(alarm, alarm);
 
-            Assert.NotEqual(reference.ID, alarm.Reference.ID);
+            Assert.NotEqual(reference.FullyQualifiedName, alarm.Reference.FullyQualifiedName);
         }
 
         [Fact]
