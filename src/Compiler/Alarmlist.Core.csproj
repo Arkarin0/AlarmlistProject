@@ -5,12 +5,6 @@
     <RootNamespace>Alarmlist</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="XML\**" />
-    <EmbeddedResource Remove="XML\**" />
-    <None Remove="XML\**" />
-  </ItemGroup>
-	
 	<ItemGroup>
 		<Package Include="CommandLineParser" Version="$(CommandLineParserVersion)" />
 	</ItemGroup>
