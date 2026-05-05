@@ -40,16 +40,8 @@ namespace Alarmlist.Syntax
 
         AlarmSyntaxNode _refence;
 
-        internal AlarmSyntaxNode() : this(Guid.NewGuid())
-        {
+        public string FullyQualifiedName { get; set; }
 
-        }
-        internal AlarmSyntaxNode(Guid id)
-        {
-            this.ID = id;
-        }
-
-        public Guid ID { get; init; }
         public AlarmSyntaxNode Reference => _refence;
 
        

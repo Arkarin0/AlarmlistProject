@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 using System.Xml.Serialization;
 using Alarmlist.Syntax;
 using Xunit;
@@ -92,6 +93,7 @@ namespace Alarmlist.Compiler.Test
         {
             return new AlarmSyntaxNode()
             {
+                FullyQualifiedName = $"AlarmNamespace.AlarmName{postfix}",
                 Name = $"AlarmName{postfix}",
                 Code = $"AlarmCode{postfix}",
                 Description = $"AlarmDescription{postfix}",
