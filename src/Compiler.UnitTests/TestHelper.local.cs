@@ -140,6 +140,16 @@ namespace Alarmlist.Compiler.Test
             return tree;
         }
 
+        public static void AssertContains(AlarmSyntaxTree obj, AlarmSyntaxTree expected)
+        {
+            //check all expected alarms are in obj, but obj can have more alarms than expected            
+            Assert.All(expected.Alarms, expectedAlarm =>
+            {
+                Assert.Contains(obj.Alarms, actualAlarm => ErrordataComparer.Equals(expectedAlarm, actualAlarm));
+            });
+            
+        }
+
         //public static IEnumerable<XMLAlarm> ToXMLAlarmList(this AlarmList source)
         //{
         //    return source.Select(x => new XMLAlarm()
