@@ -43,10 +43,31 @@ namespace Alarmlist.Compiler.Test
             var settings = new XmlWriterSettings()
             {
                 Encoding = Encoding.UTF8,
+                OmitXmlDeclaration = true,
+                Indent = true,
             };
             using (var writer = XmlWriter.Create(sb,settings))
             {
                 serializer.Serialize(writer,item);
+            }
+
+            return sb.ToString();
+        }
+        public static string ExportToXMLString(Action<XmlWriter> writeAction)
+        {
+            var sb = new StringBuilder();
+            var settings = new XmlWriterSettings()
+            {
+                Encoding = Encoding.UTF8,
+                OmitXmlDeclaration = true,
+                Indent = true,
+                NewLineHandling = NewLineHandling.Entitize,
+                
+            };
+            using (var writer = XmlWriter.Create(sb, settings))
+            {
+                writeAction(writer);
+                writer.Flush();
             }
 
             return sb.ToString();
@@ -101,6 +122,24 @@ namespace Alarmlist.Compiler.Test
             };
         }
 
+        public static AlarmSyntaxTree CreateAlarmSyntaxTree(string postfix)
+        {
+            var tree = new AlarmSyntaxTree();
+            tree.Alarms.Add(CreateAlarmSyntaxNode(postfix));
+            return tree;
+        }
+
+        public static AlarmSyntaxTree CreateAlarmSyntaxTreeByItemCounts(int alarmCount=0)
+        {
+            var tree = new AlarmSyntaxTree();
+            for (int  i = 0;  i < alarmCount;  i++)
+            {
+                tree.Alarms.Add(CreateAlarmSyntaxNode(i.ToString()));
+            }
+            
+            return tree;
+        }
+
         //public static IEnumerable<XMLAlarm> ToXMLAlarmList(this AlarmList source)
         //{
         //    return source.Select(x => new XMLAlarm()
@@ -144,6 +183,14 @@ namespace Alarmlist.Compiler.Test
         //    };
         //}
 
-        
+        public static void AssertXmlEqual(string expected, string actual)
+        {
+            var expectedXml = XElement.Parse(expected);
+            var actualXml = XElement.Parse(actual);
+
+            Assert.True(XNode.DeepEquals(expectedXml, actualXml));
+        }
+
+
     }
 }
