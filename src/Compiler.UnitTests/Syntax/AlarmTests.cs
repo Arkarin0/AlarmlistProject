@@ -39,7 +39,7 @@ namespace Alarmlist.Syntax.Tests
         public void FQNIsNotinheritedFromTheReferencedInstance()
         {
             var alarm = AlarmlistFactory.Alarm();
-            var reference = AlarmlistFactory.Alarm();
+            var reference = AlarmlistFactory.Alarm("refAlarm1");
 
             AlarmSyntaxNode.SetReference(alarm, reference);
 
@@ -49,12 +49,12 @@ namespace Alarmlist.Syntax.Tests
         [Fact]
         public void ReferencingItselfDoesNotCauseACyclicRaceSituation()
         {
-            var alarm = AlarmlistFactory.Alarm();
-            var reference = AlarmlistFactory.Alarm();
+            var alarm = AlarmlistFactory.Alarm("alarm1");
+            var reference = AlarmlistFactory.Alarm("refAlarm2");
 
             AlarmSyntaxNode.SetReference(alarm, alarm);
 
-            Assert.NotEqual(reference.FullyQualifiedName, alarm.Reference.FullyQualifiedName);
+            Assert.Null(alarm.Reference);            
         }
 
         [Fact]

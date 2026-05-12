@@ -45,10 +45,11 @@ namespace Alarmlist.Syntax
         public AlarmSyntaxNode Reference => _refence;
 
        
+        internal AlarmSyntaxNode() { }
 
         public static void SetReference(AlarmSyntaxNode alarm, AlarmSyntaxNode reference)
         {
-            alarm._refence = reference;
+            if (alarm != reference) alarm._refence = reference;
         }
         public static void RemoveReference(AlarmSyntaxNode alarm)
         {

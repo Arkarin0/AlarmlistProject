@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\Compiler\Alarmlist.Core.csproj" />
-    <PackageReference Include="Moq" Version="4.8.3"/>
+    <PackageReference Include="Moq" Version="4.8.3" />
   </ItemGroup>
 </Project>

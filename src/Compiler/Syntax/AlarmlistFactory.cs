@@ -11,5 +11,7 @@ namespace Alarmlist.Core
    public partial class AlarmlistFactory
     {
         public static AlarmSyntaxNode Alarm() => new();
+
+        public static AlarmSyntaxNode Alarm(string fullyQualifiedName) => new() { FullyQualifiedName = fullyQualifiedName };
     }
 }
