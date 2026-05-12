@@ -11,13 +11,13 @@ using Alarmlist.Text;
 using Moq;
 using Alarmlist.Compiler.Test;
 
-namespace Alarmlist.Syntax.Tests
+namespace Alarmlist.Core.UnitTests.Binding
 {
-    public class SyntaxTreeGeneratorSingleFileTests
+    public class BinderSingleFileTests
     {
-        public static Core.UnitTests.Fakes.SyntaxTreeGeneratorMock CreateInstance()
+        public static Fakes.BinderMock CreateInstance()
         {
-            return SyntaxTreeGeneratorTests.CreateInstance();
+            return BinderTests.CreateInstance();
         }
 
         public static SourceText CreateSourceText()
@@ -26,9 +26,9 @@ namespace Alarmlist.Syntax.Tests
             return mock.Object;
         }
 
-        public static SourceText CreateSourceText(Syntax.AlarmSyntaxTree alarmSyntaxTree)
+        public static SourceText CreateSourceText(AlarmSyntaxTree alarmSyntaxTree)
         {
-            var mock = new Core.UnitTests.Fakes.SourceTextMock(alarmSyntaxTree);
+            var mock = new Fakes.SourceTextMock(alarmSyntaxTree);
                         
             return mock;
         }
