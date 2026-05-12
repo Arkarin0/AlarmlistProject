@@ -5,13 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Alarmlist.Binding;
 using Alarmlist.Text;
 
 namespace Alarmlist.Core.UnitTests.Fakes
 {
-    public class SyntaxTreeGeneratorMock: Syntax.SyntaxTreeGenerator
+    public class BinderMock: Binder
     {
-        public SyntaxTreeGeneratorMock(): base()
+        public BinderMock(): base()
         { }
 
         public ICollection<SourceText> GetSourceTexts()

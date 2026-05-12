@@ -1,5 +1,4 @@
 using Xunit;
-using Alarmlist.Syntax;
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
@@ -9,14 +8,15 @@ using System.Text;
 using System.Threading.Tasks;
 using Alarmlist.Text;
 using Moq;
+using Alarmlist.Binding;
 
-namespace Alarmlist.Syntax.Tests
+namespace Alarmlist.Core.UnitTests.Binding
 {
-    public class SyntaxTreeGeneratorTests
+    public class BinderTests
     {
-        public static Core.UnitTests.Fakes.SyntaxTreeGeneratorMock CreateInstance()
+        public static Fakes.BinderMock CreateInstance()
         {
-            return new Core.UnitTests.Fakes.SyntaxTreeGeneratorMock();
+            return new Fakes.BinderMock();
         }
 
         public static SourceText CreateSourceText()
@@ -34,7 +34,7 @@ namespace Alarmlist.Syntax.Tests
         [Fact()]
         public void UpdateDoesNotReturnNullAfterInstanceCreation()
         {
-            var generator = new SyntaxTreeGenerator();
+            var generator = new Binder();
             var result = generator.Update();
             Assert.NotNull(result);
         }

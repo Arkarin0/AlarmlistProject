@@ -5,17 +5,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Alarmlist.Syntax;
 using Alarmlist.Text;
 
-namespace Alarmlist.Syntax
+namespace Alarmlist.Binding
 {
-    public class SyntaxTreeGenerator
+    public class Binder
     {
         protected readonly AlarmSyntaxTree syntaxTree;
 
         protected readonly List<SourceText> sourceTexts;
 
-        public SyntaxTreeGenerator() {
+        public Binder() {
             syntaxTree = new AlarmSyntaxTree();
             sourceTexts = new List<SourceText>();
         }
