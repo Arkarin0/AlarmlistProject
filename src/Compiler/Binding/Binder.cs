@@ -23,6 +23,13 @@ namespace Alarmlist.Binding
 
         public AlarmSyntaxTree Update()
         {
+            syntaxTree.Alarms.Clear();
+
+            foreach (var item in sourceTexts)
+            {
+                item.Alarms.ToList().ForEach(alarm => syntaxTree.Alarms.Add(alarm));
+            }
+
             return syntaxTree;
         }
 
