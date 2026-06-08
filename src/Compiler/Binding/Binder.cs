@@ -27,7 +27,11 @@ namespace Alarmlist.Binding
 
             foreach (var item in sourceTexts)
             {
-                item.Alarms.ToList().ForEach(alarm => syntaxTree.Alarms.Add(alarm));
+                var sourceTree = item.Read();
+                if (sourceTree == null)
+                    continue;
+
+                sourceTree.Alarms.ToList().ForEach(alarm => syntaxTree.Alarms.Add(alarm));
             }
 
             return syntaxTree;
