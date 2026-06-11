@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Alarmlist.Text;
 using Moq;
 using Alarmlist.Compiler.Test;
+using Alarmlist.Diagnostics;
 
 namespace Alarmlist.Core.UnitTests.Binding
 {
@@ -43,14 +44,16 @@ namespace Alarmlist.Core.UnitTests.Binding
             var src = CreateSourceText(expected);
 
             obj.AddSourceText(src);
-            var actual = obj.Update();
+            var result = obj.Bind();
+            var actual = result.SyntaxTree;
 
 
+            Assert.True(result.Success);
             TestHelper.AssertContains(actual, expected);
         }
 
         [Fact()]
-        public void UpdateResolvesSingleReferenceChainTest()
+        public void BindResolvesSingleReferenceChainTest()
         {
             var obj = CreateInstance();
             var tree = new AlarmSyntaxTree();
@@ -65,8 +68,10 @@ namespace Alarmlist.Core.UnitTests.Binding
             tree.Alarms.Add(childAlarm);
             obj.AddSourceText(CreateSourceText(tree));
 
-            var actual = obj.Update();
+            var result = obj.Bind();
+            var actual = result.SyntaxTree;
 
+            Assert.True(result.Success);
             Assert.Same(baseAlarm, middleAlarm.Reference);
             Assert.Same(middleAlarm, childAlarm.Reference);
             Assert.Equal(baseAlarm.Name, childAlarm.Name);
@@ -77,7 +82,7 @@ namespace Alarmlist.Core.UnitTests.Binding
         }
 
         [Fact()]
-        public void UpdateKeepsLocalValuesWhenReferenceProvidesDefaultsTest()
+        public void BindKeepsLocalValuesWhenReferenceProvidesDefaultsTest()
         {
             var obj = CreateInstance();
             var tree = new AlarmSyntaxTree();
@@ -90,14 +95,15 @@ namespace Alarmlist.Core.UnitTests.Binding
             tree.Alarms.Add(childAlarm);
             obj.AddSourceText(CreateSourceText(tree));
 
-            obj.Update();
+            var result = obj.Bind();
 
+            Assert.True(result.Success);
             Assert.Equal("Local alarm name", childAlarm.Name);
             Assert.Equal(baseAlarm.Code, childAlarm.Code);
         }
 
         [Fact()]
-        public void UpdateThrowsWhenReferenceIsMissingTest()
+        public void BindReportsDiagnosticWhenReferenceIsMissingTest()
         {
             var obj = CreateInstance();
             var tree = new AlarmSyntaxTree();
@@ -107,11 +113,33 @@ namespace Alarmlist.Core.UnitTests.Binding
             tree.Alarms.Add(childAlarm);
             obj.AddSourceText(CreateSourceText(tree));
 
-            Assert.Throws<InvalidOperationException>(() => obj.Update());
+            var result = obj.Bind();
+
+            Assert.False(result.Success);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == DiagnosticWellKnownIds.MissingReference);
+            Assert.Null(childAlarm.Reference);
         }
 
         [Fact()]
-        public void UpdateThrowsWhenAlarmReferencesItselfTest()
+        public void BindReportsDiagnosticWhenAlarmNameIsDuplicatedTest()
+        {
+            var obj = CreateInstance();
+            var tree = new AlarmSyntaxTree();
+            var firstAlarm = Alarmlist.Core.AlarmlistFactory.Alarm("AlarmNamespace.AlarmNameA");
+            var secondAlarm = Alarmlist.Core.AlarmlistFactory.Alarm(firstAlarm.FullyQualifiedName);
+
+            tree.Alarms.Add(firstAlarm);
+            tree.Alarms.Add(secondAlarm);
+            obj.AddSourceText(CreateSourceText(tree));
+
+            var result = obj.Bind();
+
+            Assert.False(result.Success);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == DiagnosticWellKnownIds.DuplicateAlarmName);
+        }
+
+        [Fact()]
+        public void BindReportsDiagnosticWhenAlarmReferencesItselfTest()
         {
             var obj = CreateInstance();
             var tree = new AlarmSyntaxTree();
@@ -121,11 +149,15 @@ namespace Alarmlist.Core.UnitTests.Binding
             tree.Alarms.Add(alarm);
             obj.AddSourceText(CreateSourceText(tree));
 
-            Assert.Throws<InvalidOperationException>(() => obj.Update());
+            var result = obj.Bind();
+
+            Assert.False(result.Success);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == DiagnosticWellKnownIds.SelfReference);
+            Assert.Null(alarm.Reference);
         }
 
         [Fact()]
-        public void UpdateThrowsWhenReferenceChainContainsCycleTest()
+        public void BindReportsDiagnosticWhenReferenceChainContainsCycleTest()
         {
             var obj = CreateInstance();
             var tree = new AlarmSyntaxTree();
@@ -141,7 +173,13 @@ namespace Alarmlist.Core.UnitTests.Binding
             tree.Alarms.Add(thirdAlarm);
             obj.AddSourceText(CreateSourceText(tree));
 
-            Assert.Throws<InvalidOperationException>(() => obj.Update());
+            var result = obj.Bind();
+
+            Assert.False(result.Success);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == DiagnosticWellKnownIds.CircularReference);
+            Assert.Null(firstAlarm.Reference);
+            Assert.Null(secondAlarm.Reference);
+            Assert.Null(thirdAlarm.Reference);
         }
 
     }

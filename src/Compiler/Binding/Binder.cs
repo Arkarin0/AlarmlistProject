@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Alarmlist.Diagnostics;
 using Alarmlist.Syntax;
 using Alarmlist.Text;
 
@@ -21,8 +22,9 @@ namespace Alarmlist.Binding
             sourceTexts = new List<SourceText>();
         }
 
-        public AlarmSyntaxTree Update()
+        public BindingResult Bind()
         {
+            var diagnostics = new DiagnosticBag();
             syntaxTree.Alarms.Clear();
 
             foreach (var item in sourceTexts)
@@ -34,12 +36,12 @@ namespace Alarmlist.Binding
                 sourceTree.Alarms.ToList().ForEach(alarm => syntaxTree.Alarms.Add(alarm));
             }
 
-            ResolveReferences(syntaxTree);
+            ResolveReferences(syntaxTree, diagnostics);
 
-            return syntaxTree;
+            return new BindingResult(syntaxTree, diagnostics);
         }
 
-        private static void ResolveReferences(AlarmSyntaxTree tree)
+        private static void ResolveReferences(AlarmSyntaxTree tree, DiagnosticBag diagnostics)
         {
             var alarmsByName = new Dictionary<string, AlarmSyntaxNode>(StringComparer.Ordinal);
 
@@ -51,7 +53,10 @@ namespace Alarmlist.Binding
                     continue;
 
                 if (alarmsByName.ContainsKey(alarm.FullyQualifiedName))
-                    throw new InvalidOperationException($"Duplicate alarm name '{alarm.FullyQualifiedName}'.");
+                {
+                    diagnostics.ReportDuplicateAlarmName(alarm.FullyQualifiedName);
+                    continue;
+                }
 
                 alarmsByName.Add(alarm.FullyQualifiedName, alarm);
             }
@@ -62,38 +67,50 @@ namespace Alarmlist.Binding
                     continue;
 
                 if (alarm.ReferenceName == alarm.FullyQualifiedName)
-                    throw new InvalidOperationException($"Alarm '{alarm.FullyQualifiedName}' references itself.");
+                {
+                    diagnostics.ReportSelfReference(alarm.FullyQualifiedName);
+                    continue;
+                }
 
                 if (!alarmsByName.TryGetValue(alarm.ReferenceName, out var reference))
-                    throw new InvalidOperationException($"Alarm '{alarm.FullyQualifiedName}' references missing alarm '{alarm.ReferenceName}'.");
+                {
+                    diagnostics.ReportMissingReference(alarm.FullyQualifiedName, alarm.ReferenceName);
+                    continue;
+                }
 
                 AlarmSyntaxNode.SetReference(alarm, reference);
             }
 
-            DetectReferenceCycles(tree);
+            DetectReferenceCycles(tree, diagnostics);
         }
 
-        private static void DetectReferenceCycles(AlarmSyntaxTree tree)
+        private static void DetectReferenceCycles(AlarmSyntaxTree tree, DiagnosticBag diagnostics)
         {
             var states = new Dictionary<AlarmSyntaxNode, int>();
             var path = new Stack<AlarmSyntaxNode>();
 
             foreach (var alarm in tree.Alarms)
-                Visit(alarm, states, path);
+                Visit(alarm, states, path, diagnostics);
         }
 
-        private static void Visit(AlarmSyntaxNode alarm, Dictionary<AlarmSyntaxNode, int> states, Stack<AlarmSyntaxNode> path)
+        private static void Visit(AlarmSyntaxNode alarm, Dictionary<AlarmSyntaxNode, int> states, Stack<AlarmSyntaxNode> path, DiagnosticBag diagnostics)
         {
             if (states.TryGetValue(alarm, out var state))
             {
                 if (state == 1)
                 {
-                    var trace = path.Reverse()
+                    var cycle = path.Reverse()
                         .SkipWhile(item => !object.ReferenceEquals(item, alarm))
+                        .ToList();
+                    var trace = cycle
                         .Select(GetDisplayName)
-                        .Concat(new[] { GetDisplayName(alarm) });
+                        .Concat(new[] { GetDisplayName(alarm) })
+                        .ToList();
 
-                    throw new InvalidOperationException($"Circular alarm reference detected: {string.Join(" -> ", trace)}.");
+                    diagnostics.ReportCircularReference(trace);
+
+                    foreach (var item in cycle)
+                        AlarmSyntaxNode.ClearResolvedReference(item);
                 }
 
                 return;
@@ -103,7 +120,7 @@ namespace Alarmlist.Binding
             path.Push(alarm);
 
             if (alarm.Reference != null)
-                Visit(alarm.Reference, states, path);
+                Visit(alarm.Reference, states, path, diagnostics);
 
             path.Pop();
             states[alarm] = 2;
