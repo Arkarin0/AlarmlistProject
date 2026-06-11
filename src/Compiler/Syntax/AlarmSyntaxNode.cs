@@ -43,6 +43,13 @@ namespace Alarmlist.Syntax
 
         public string FullyQualifiedName { get; set; }
 
+        public TestProcedureSyntax TestProcedure { get; } = new TestProcedureSyntax();
+
+        public TestProcedureSyntax ResolvedTestProcedures
+        {
+            get { return TestProcedure.ResolveFrom(Reference?.ResolvedTestProcedures); }
+        }
+
         public string ReferenceName
         {
             get { return _referenceName; }

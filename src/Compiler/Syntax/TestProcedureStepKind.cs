@@ -2,7 +2,11 @@
 
 namespace Alarmlist.Syntax
 {
-    public sealed class Clear : IReferenceableCollectionItem, ITestProcedureItem
+    public enum TestProcedureStepKind
     {
+        Instruction,
+        Hint,
+        Warning,
+        Note
     }
 }

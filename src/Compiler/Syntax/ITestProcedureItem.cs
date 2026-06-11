@@ -2,7 +2,7 @@
 
 namespace Alarmlist.Syntax
 {
-    public sealed class Clear : IReferenceableCollectionItem, ITestProcedureItem
+    public interface ITestProcedureItem : IReferenceableCollectionItem
     {
     }
 }

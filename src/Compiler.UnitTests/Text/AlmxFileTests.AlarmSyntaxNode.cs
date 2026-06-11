@@ -26,10 +26,55 @@ namespace Alarmlist.Text.Tests
                 !changeNodeOrder ? new XElement("Name", alarm.Name) : new XElement("Code", alarm.Code),
                 !changeNodeOrder ? new XElement("Code", alarm.Code) : new XElement("Name", alarm.Name),
                 new XElement("Category", alarm.Category),
-                new XElement("Description", alarm.Description)
+                new XElement("Description", alarm.Description),
+                GetExpectedTestProcedureNode(alarm.TestProcedure)
             );
 
             return xml.ToString(SaveOptions.None);
+        }
+
+        private static XElement GetExpectedTestProcedureNode(TestProcedureSyntax testProcedure)
+        {
+            return new XElement(AlmxFile.WellKnownNodeNames.TestProcedure,
+                GetExpectedTestProcedureSectionNode(AlmxFile.WellKnownNodeNames.TestProcedureInstructions, testProcedure.Instructions),
+                GetExpectedTestProcedureSectionNode(AlmxFile.WellKnownNodeNames.TestProcedureReset, testProcedure.Reset)
+            );
+        }
+
+        private static XElement GetExpectedTestProcedureSectionNode(string sectionName, IEnumerable<ITestProcedureItem> items)
+        {
+            return new XElement(sectionName,
+                from item in items
+                select GetExpectedTestProcedureItemNode(item)
+            );
+        }
+
+        private static XElement GetExpectedTestProcedureItemNode(ITestProcedureItem item)
+        {
+            if (item is Clear)
+                return new XElement(AlmxFile.WellKnownNodeNames.Clear);
+
+            var step = (TestProcedureStepSyntax)item;
+
+            return new XElement(GetExpectedTestProcedureStepNodeName(step.Kind), step.Text);
+        }
+
+        private static string GetExpectedTestProcedureStepNodeName(TestProcedureStepKind kind)
+        {
+            switch (kind)
+            {
+                case TestProcedureStepKind.Hint:
+                    return AlmxFile.WellKnownNodeNames.TestProcedureHint;
+
+                case TestProcedureStepKind.Warning:
+                    return AlmxFile.WellKnownNodeNames.TestProcedureWarning;
+
+                case TestProcedureStepKind.Note:
+                    return AlmxFile.WellKnownNodeNames.TestProcedureNote;
+
+                default:
+                    return AlmxFile.WellKnownNodeNames.TestProcedureStep;
+            }
         }
 
         [Fact()]
@@ -83,6 +128,60 @@ namespace Alarmlist.Text.Tests
 
             Assert.True(result);
             Assert.Equal(alarm.ReferenceName, actual.ReferenceName);
+        }
+
+        [Fact()]
+        public void WriteAlarmSyntaxNodeWritesTestProcedureStepsTest()
+        {
+            var alarm = TestHelper.CreateAlarmSyntaxNode("1");
+            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Open cabinet."));
+            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Voltage present."));
+            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Hint, "Expected value is 24V."));
+            alarm.TestProcedure.Reset.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Note, "Alarm clears after reset."));
+            alarm.TestProcedure.Reset.Add(new Clear());
+            var result = false;
+
+            var actual = TestHelper.ExportToXMLString((writer) => result = AlmxFile.WriteAlarmSyntaxNode(alarm, writer));
+            var expected = GetExpectedXMLStringForAlarmSyntaxNode(alarm);
+
+            Assert.True(result);
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact()]
+        public void ReadAlarmSyntaxNodeReadsTestProcedureStepsTest()
+        {
+            var alarm = TestHelper.CreateAlarmSyntaxNode("1");
+            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Open cabinet."));
+            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Voltage present."));
+            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Hint, "Expected value is 24V."));
+            alarm.TestProcedure.Reset.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Note, "Alarm clears after reset."));
+            alarm.TestProcedure.Reset.Add(new Clear());
+            var input = GetExpectedXMLStringForAlarmSyntaxNode(alarm);
+            AlarmSyntaxNode actual = null;
+            var result = false;
+
+            using (XmlReader handler = XmlReader.Create(TestHelper.TextToStream(input)))
+            {
+                result = AlmxFile.ReadAlarmSyntaxNode(handler, out actual);
+            }
+
+            Assert.True(result);
+            Assert.Equal(3, actual.TestProcedure.Instructions.Count);
+            Assert.Equal(2, actual.TestProcedure.Reset.Count);
+            AssertStep(TestProcedureStepKind.Instruction, "Open cabinet.", actual.TestProcedure.Instructions[0]);
+            AssertStep(TestProcedureStepKind.Warning, "Voltage present.", actual.TestProcedure.Instructions[1]);
+            AssertStep(TestProcedureStepKind.Hint, "Expected value is 24V.", actual.TestProcedure.Instructions[2]);
+            AssertStep(TestProcedureStepKind.Note, "Alarm clears after reset.", actual.TestProcedure.Reset[0]);
+            Assert.IsType<Clear>(actual.TestProcedure.Reset[1]);
+        }
+
+        private static void AssertStep(TestProcedureStepKind expectedKind, string expectedText, ITestProcedureItem actual)
+        {
+            var step = Assert.IsType<TestProcedureStepSyntax>(actual);
+
+            Assert.Equal(expectedKind, step.Kind);
+            Assert.Equal(expectedText, step.Text);
         }
 
         [Fact()]
