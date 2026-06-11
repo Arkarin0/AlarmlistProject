@@ -32,11 +32,12 @@ namespace Alarmlist.Core.UnitTests.Binding
         }
 
         [Fact()]
-        public void UpdateDoesNotReturnNullAfterInstanceCreation()
+        public void BindDoesNotReturnNullAfterInstanceCreation()
         {
             var generator = new Binder();
-            var result = generator.Update();
+            var result = generator.Bind();
             Assert.NotNull(result);
+            Assert.NotNull(result.SyntaxTree);
         }
 
 

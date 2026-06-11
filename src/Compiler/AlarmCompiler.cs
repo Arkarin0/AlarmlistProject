@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Alarmlist.Binding;
 using Alarmlist.Core;
+using Alarmlist.Diagnostics;
 using Alarmlist.Text;
 
 namespace Alarmlist.Compiler
@@ -16,17 +17,21 @@ namespace Alarmlist.Compiler
     {
         public AlarmCompiler() { }
 
-        public AlarmList Compile(IEnumerable<SourceText> sourceTexts)
+        public CompilationResult Compile(IEnumerable<SourceText> sourceTexts)
         {
             if (sourceTexts == null)
                 throw new ArgumentNullException(nameof(sourceTexts));
 
             var binder = new Binder();
             binder.AddSourceTexts(sourceTexts);
-            return Compile(binder.Update());
+            var bindingResult = binder.Bind();
+            var compilationResult = Compile(bindingResult.SyntaxTree);
+            var diagnostics = bindingResult.Diagnostics.Concat(compilationResult.Diagnostics);
+
+            return new CompilationResult(compilationResult.AlarmList, diagnostics);
         }
 
-        public AlarmList CompileFiles(IEnumerable<string> filePaths)
+        public CompilationResult CompileFiles(IEnumerable<string> filePaths)
         {
             if (filePaths == null)
                 throw new ArgumentNullException(nameof(filePaths));
@@ -45,7 +50,7 @@ namespace Alarmlist.Compiler
             return Compile(sources);
         }
 
-        public AlarmList Compile(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree)
+        public CompilationResult Compile(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree)
         {
             if (syntaxTree == null)
                 throw new ArgumentNullException(nameof(syntaxTree));
@@ -56,7 +61,7 @@ namespace Alarmlist.Compiler
                 var alarm = AlarmlistFactory.CreateAlarmFromSyntaxNode(alarmSyntax);
                 alarmList.Add(alarm);
             }
-            return alarmList;
+            return new CompilationResult(alarmList, Enumerable.Empty<Diagnostic>());
         }
     }
 }

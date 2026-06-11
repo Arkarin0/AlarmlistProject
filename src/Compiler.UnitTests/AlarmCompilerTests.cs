@@ -30,8 +30,10 @@ namespace Alarmlist.Compiler.Tests
 
             var compiler = new AlarmCompiler();
 
-            var actual = compiler.Compile(syntaxTree);
+            var result = compiler.Compile(syntaxTree);
+            var actual = result.AlarmList;
 
+            Assert.True(result.Success);
             for (int i = 0; i < count; i++)
                 TestHelper.AssertAlarmEquals(expected[i], actual[i]);
         }
