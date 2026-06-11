@@ -24,6 +24,29 @@ namespace Alarmlist.Syntax.Tests
         }
 
         [Fact]
+        public void SetReferenceUpdatesReferenceName()
+        {
+            var alarm = AlarmlistFactory.Alarm("alarm1");
+            var reference = AlarmlistFactory.Alarm("refAlarm1");
+
+            AlarmSyntaxNode.SetReference(alarm, reference);
+
+            Assert.Equal(reference.FullyQualifiedName, alarm.ReferenceName);
+        }
+
+        [Fact]
+        public void ChangingReferenceNameClearsResolvedReference()
+        {
+            var alarm = AlarmlistFactory.Alarm("alarm1");
+            var reference = AlarmlistFactory.Alarm("refAlarm1");
+
+            AlarmSyntaxNode.SetReference(alarm, reference);
+            alarm.ReferenceName = "refAlarm2";
+
+            Assert.Null(alarm.Reference);
+        }
+
+        [Fact]
         public void RemoveReferenceResultsInNullRefecedInstance()
         {
             var alarm = AlarmlistFactory.Alarm();

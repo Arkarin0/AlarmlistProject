@@ -24,6 +24,7 @@ namespace Alarmlist.Text
         {
             writer.WriteStartElement(WellKnownNodeNames.Alarm);
             writer.WriteElementString(nameof(alarm.FullyQualifiedName), alarm.FullyQualifiedName);
+            writer.WriteElementString(nameof(alarm.ReferenceName), alarm.ReferenceName);
             writer.WriteElementString(nameof(alarm.Name), alarm.Name);
             writer.WriteElementString(nameof(alarm.Code), alarm.Code);
             writer.WriteElementString(nameof(alarm.Category), alarm.Category);
@@ -69,6 +70,10 @@ namespace Alarmlist.Text
                 {
                     case nameof(AlarmSyntaxNode.FullyQualifiedName):
                         result.FullyQualifiedName = reader.ReadElementContentAsString();
+                        break;
+
+                    case nameof(AlarmSyntaxNode.ReferenceName):
+                        result.ReferenceName = reader.ReadElementContentAsString();
                         break;
 
                     case nameof(AlarmSyntaxNode.Name):
