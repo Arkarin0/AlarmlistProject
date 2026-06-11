@@ -118,5 +118,43 @@ namespace Alarmlist.Syntax.Tests
 
             Assert.NotEqual(alarm, reference, TestHelper.comparer);
         }
+
+        [Fact]
+        public void ResolvedTestProceduresReturnsInheritedStepsBeforeLocalSteps()
+        {
+            var alarm = AlarmlistFactory.Alarm("alarm1");
+            var reference = AlarmlistFactory.Alarm("refAlarm1");
+            var inheritedStep = new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Inherited instruction");
+            var localStep = new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Local warning");
+            reference.TestProcedure.Instructions.Add(inheritedStep);
+            alarm.TestProcedure.Instructions.Add(localStep);
+
+            AlarmSyntaxNode.SetReference(alarm, reference);
+
+            var actual = alarm.ResolvedTestProcedures;
+
+            Assert.Equal(new ITestProcedureItem[] { inheritedStep, localStep }, actual.Instructions);
+        }
+
+        [Fact]
+        public void ResolvedTestProceduresResolvesResetAndInstructionsIndependently()
+        {
+            var alarm = AlarmlistFactory.Alarm("alarm1");
+            var reference = AlarmlistFactory.Alarm("refAlarm1");
+            var inheritedInstruction = new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Inherited instruction");
+            var inheritedReset = new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Inherited reset");
+            var localReset = new TestProcedureStepSyntax(TestProcedureStepKind.Note, "Local reset note");
+            reference.TestProcedure.Instructions.Add(inheritedInstruction);
+            reference.TestProcedure.Reset.Add(inheritedReset);
+            alarm.TestProcedure.Instructions.Add(new Clear());
+            alarm.TestProcedure.Reset.Add(localReset);
+
+            AlarmSyntaxNode.SetReference(alarm, reference);
+
+            var actual = alarm.ResolvedTestProcedures;
+
+            Assert.Empty(actual.Instructions);
+            Assert.Equal(new ITestProcedureItem[] { inheritedReset, localReset }, actual.Reset);
+        }
     }
 }

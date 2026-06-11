@@ -18,6 +18,14 @@ namespace Alarmlist.Text
         {
             public const string Alarm = "Alarm";
             public const string Alarmlist = "Alarmlist";
+            public const string Clear = "Clear";
+            public const string TestProcedureHint = "Hint";
+            public const string TestProcedureInstructions = "Instructions";
+            public const string TestProcedureNote = "Note";
+            public const string TestProcedureReset = "Reset";
+            public const string TestProcedureStep = "Step";
+            public const string TestProcedure = "TestProcedure";
+            public const string TestProcedureWarning = "Warning";
         }
 
         public static bool WriteAlarmSyntaxNode(Syntax.AlarmSyntaxNode alarm, XmlWriter writer)
@@ -29,8 +37,38 @@ namespace Alarmlist.Text
             writer.WriteElementString(nameof(alarm.Code), alarm.Code);
             writer.WriteElementString(nameof(alarm.Category), alarm.Category);
             writer.WriteElementString(nameof(alarm.Description), alarm.Description);
+            WriteTestProcedureNode(alarm.TestProcedure, writer);
             writer.WriteEndElement();
             return true;
+        }
+
+        public static bool WriteTestProcedureNode(TestProcedureSyntax testProcedure, XmlWriter writer)
+        {
+            writer.WriteStartElement(WellKnownNodeNames.TestProcedure);
+            WriteTestProcedureSectionNode(WellKnownNodeNames.TestProcedureInstructions, testProcedure.Instructions, writer);
+            WriteTestProcedureSectionNode(WellKnownNodeNames.TestProcedureReset, testProcedure.Reset, writer);
+            writer.WriteEndElement();
+            return true;
+        }
+
+        private static void WriteTestProcedureSectionNode(string sectionName, IEnumerable<ITestProcedureItem> items, XmlWriter writer)
+        {
+            writer.WriteStartElement(sectionName);
+
+            foreach (var item in items)
+            {
+                if (item is Clear)
+                {
+                    writer.WriteStartElement(WellKnownNodeNames.Clear);
+                    writer.WriteEndElement();
+                    continue;
+                }
+
+                if (item is TestProcedureStepSyntax step)
+                    writer.WriteElementString(GetElementName(step.Kind), step.Text);
+            }
+
+            writer.WriteEndElement();
         }
 
         public static bool ReadAlarmSyntaxNode(XmlReader reader, out Syntax.AlarmSyntaxNode alarm)
@@ -92,6 +130,10 @@ namespace Alarmlist.Text
                         result.Description = reader.ReadElementContentAsString();
                         break;
 
+                    case WellKnownNodeNames.TestProcedure:
+                        ReadTestProcedureNode(reader, result.TestProcedure);
+                        break;
+
                     default:
                         // Critical for forward compatibility
                         reader.Skip();
@@ -103,6 +145,143 @@ namespace Alarmlist.Text
 
             alarm = result;
             return true;
+        }
+
+        public static bool ReadTestProcedureNode(XmlReader reader, TestProcedureSyntax testProcedure)
+        {
+            if (reader == null)
+                throw new ArgumentNullException(nameof(reader));
+
+            if (testProcedure == null)
+                throw new ArgumentNullException(nameof(testProcedure));
+
+            reader.MoveToContent();
+
+            if (reader.NodeType != XmlNodeType.Element)
+                return false;
+
+            if (reader.LocalName != WellKnownNodeNames.TestProcedure)
+                return false;
+
+            bool isEmptyElement = reader.IsEmptyElement;
+
+            reader.ReadStartElement();
+
+            if (isEmptyElement)
+                return true;
+
+            while (reader.NodeType != XmlNodeType.EndElement)
+            {
+                if (reader.NodeType != XmlNodeType.Element)
+                {
+                    reader.Read();
+                    continue;
+                }
+
+                switch (reader.LocalName)
+                {
+                    case WellKnownNodeNames.TestProcedureInstructions:
+                        ReadTestProcedureSectionNode(reader, testProcedure.Instructions);
+                        break;
+
+                    case WellKnownNodeNames.TestProcedureReset:
+                        ReadTestProcedureSectionNode(reader, testProcedure.Reset);
+                        break;
+
+                    default:
+                        reader.Skip();
+                        break;
+                }
+            }
+
+            reader.ReadEndElement();
+            return true;
+        }
+
+        private static bool ReadTestProcedureSectionNode(XmlReader reader, ReferenceableCollection<ITestProcedureItem> items)
+        {
+            reader.MoveToContent();
+
+            if (reader.NodeType != XmlNodeType.Element)
+                return false;
+
+            bool isEmptyElement = reader.IsEmptyElement;
+
+            reader.ReadStartElement();
+
+            if (isEmptyElement)
+                return true;
+
+            while (reader.NodeType != XmlNodeType.EndElement)
+            {
+                if (reader.NodeType != XmlNodeType.Element)
+                {
+                    reader.Read();
+                    continue;
+                }
+
+                if (reader.LocalName == WellKnownNodeNames.Clear)
+                {
+                    items.Add(new Clear());
+                    reader.Skip();
+                    continue;
+                }
+
+                if (TryGetStepKind(reader.LocalName, out var kind))
+                {
+                    items.Add(new TestProcedureStepSyntax(kind, reader.ReadElementContentAsString()));
+                    continue;
+                }
+
+                reader.Skip();
+            }
+
+            reader.ReadEndElement();
+            return true;
+        }
+
+        private static string GetElementName(TestProcedureStepKind kind)
+        {
+            switch (kind)
+            {
+                case TestProcedureStepKind.Hint:
+                    return WellKnownNodeNames.TestProcedureHint;
+
+                case TestProcedureStepKind.Warning:
+                    return WellKnownNodeNames.TestProcedureWarning;
+
+                case TestProcedureStepKind.Note:
+                    return WellKnownNodeNames.TestProcedureNote;
+
+                default:
+                    return WellKnownNodeNames.TestProcedureStep;
+            }
+        }
+
+        private static bool TryGetStepKind(string elementName, out TestProcedureStepKind kind)
+        {
+            switch (elementName)
+            {
+                case WellKnownNodeNames.TestProcedureStep:
+                    kind = TestProcedureStepKind.Instruction;
+                    return true;
+
+                case WellKnownNodeNames.TestProcedureHint:
+                    kind = TestProcedureStepKind.Hint;
+                    return true;
+
+                case WellKnownNodeNames.TestProcedureWarning:
+                    kind = TestProcedureStepKind.Warning;
+                    return true;
+
+                case WellKnownNodeNames.TestProcedureNote:
+                    kind = TestProcedureStepKind.Note;
+                    return true;
+
+                default:
+                    kind = TestProcedureStepKind.Instruction;
+                    return false;
+            }
         }
 
         public static bool WriteAlarmlistNode(Syntax.AlarmSyntaxTree value, XmlWriter writer)
