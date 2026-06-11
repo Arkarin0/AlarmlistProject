@@ -22,6 +22,7 @@ namespace Alarmlist.Text.Tests
         {
             var xml = new XElement(AlmxFile.WellKnownNodeNames.Alarm,
                 new XElement("FullyQualifiedName", alarm.FullyQualifiedName),
+                new XElement("ReferenceName", alarm.ReferenceName),
                 !changeNodeOrder ? new XElement("Name", alarm.Name) : new XElement("Code", alarm.Code),
                 !changeNodeOrder ? new XElement("Code", alarm.Code) : new XElement("Name", alarm.Name),
                 new XElement("Category", alarm.Category),
@@ -64,6 +65,24 @@ namespace Alarmlist.Text.Tests
 
             Assert.True(result);
             Assert.Equal(expected, actual, TestHelper.comparer);
+        }
+
+        [Fact()]
+        public void ReadAlarmSyntaxNodeReadsReferenceNameTest()
+        {
+            var alarm = TestHelper.CreateAlarmSyntaxNode("1");
+            alarm.ReferenceName = "AlarmNamespace.AlarmName0";
+            var input = GetExpectedXMLStringForAlarmSyntaxNode(alarm);
+            AlarmSyntaxNode actual = null;
+            var result = false;
+
+            using (XmlReader handler = XmlReader.Create(TestHelper.TextToStream(input)))
+            {
+                result = AlmxFile.ReadAlarmSyntaxNode(handler, out actual);
+            }
+
+            Assert.True(result);
+            Assert.Equal(alarm.ReferenceName, actual.ReferenceName);
         }
 
         [Fact()]
