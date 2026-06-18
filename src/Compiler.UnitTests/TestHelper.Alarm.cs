@@ -21,6 +21,8 @@ namespace Alarmlist.Compiler.Test
             Assert.Equal(expected.Description, actual.Description);
             Assert.Equal(expected.Code, actual.Code);
             Assert.Equal(expected.Category, actual.Category);
+            Assert.Equal(expected.FullyQualifiedName, actual.FullyQualifiedName);
+            Assert.NotNull(actual.TestProcedure);
         }
 
         public static void FillData(AlarmSyntaxNode alarm, int number)

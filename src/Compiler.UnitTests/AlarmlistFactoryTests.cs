@@ -23,6 +23,22 @@ namespace Alarmlist.Tests
             TestHelper.AssertAlarmEquals(expected, actual);
         }
 
+        [Fact]
+        public void CreateAlarmFromSyntaxNodeDoesNotEmitClearInstructions()
+        {
+            var reference = AlarmlistFactory.Alarm("Reference");
+            reference.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Inherited instruction"));
+            var alarm = AlarmlistFactory.Alarm("Alarm");
+            alarm.TestProcedure.Instructions.Add(new Clear());
+            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Local warning"));
+            AlarmSyntaxNode.SetReference(alarm, reference);
+
+            var actual = AlarmlistFactory.CreateAlarmFromSyntaxNode(alarm);
+
+            Assert.Single(actual.TestProcedure.Instructions);
+            Assert.Equal("Local warning", actual.TestProcedure.Instructions.Single().Text);
+        }
+
         
     }
 }
