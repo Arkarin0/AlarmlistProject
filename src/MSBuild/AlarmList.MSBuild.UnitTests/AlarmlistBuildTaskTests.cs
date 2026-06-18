@@ -1,8 +1,11 @@
 using Xunit;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using Alarmlist.Compiler;
+using Alarmlist.Diagnostics;
 using Alarmlist.MSBuild;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
@@ -77,6 +80,32 @@ namespace AlarmList.MSBuild.UnitTests
 
             Assert.False(success);
             Assert.NotEmpty(buildErrors);
+        }
+
+        [Fact]
+        public void ExecuteLogsEveryDiagnosticDescriptor()
+        {
+            var diagnostics = CreateDiagnosticsForAllDescriptors().ToArray();
+            var task = new AlarmlistBuildTask(_ => new CompilationResult(new CompiledAlarmList(), diagnostics))
+            {
+                OutputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")),
+                Compile = new ITaskItem[] { new TaskItem("PlantA.almx") },
+                BuildEngine = buildEngine.Object
+            };
+
+            var success = task.Execute();
+
+            Assert.False(success);
+            foreach (var diagnostic in diagnostics)
+                Assert.Contains(buildErrors, error => error.Code == diagnostic.Id);
+        }
+
+        private static IEnumerable<Diagnostic> CreateDiagnosticsForAllDescriptors()
+        {
+            yield return new Diagnostic(DiagnosticDescriptors.DuplicateAlarmName, "Plant.Alarm");
+            yield return new Diagnostic(DiagnosticDescriptors.MissingReference, "Plant.Alarm", "Plant.Missing");
+            yield return new Diagnostic(DiagnosticDescriptors.SelfReference, "Plant.Alarm");
+            yield return new Diagnostic(DiagnosticDescriptors.CircularReference, "Plant.A -> Plant.B -> Plant.A");
         }
     }
 }

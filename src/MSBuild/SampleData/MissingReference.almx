@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Sample.Plant.Reference.MissingReference</FullyQualifiedName>
+    <ReferenceName>Sample.Plant.Reference.DoesNotExist</ReferenceName>
+    <Name>Missing reference alarm</Name>
+    <Code>R-404</Code>
+    <Category>Reference</Category>
+    <Description>This alarm intentionally references a missing alarm for integration tests.</Description>
+    <TestProcedure>
+      <Instructions>
+        <Step>This file should never compile successfully.</Step>
+      </Instructions>
+      <Reset />
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>

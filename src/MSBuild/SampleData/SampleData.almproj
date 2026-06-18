@@ -4,6 +4,8 @@
     <AlarmlistMSBuildAssembly Condition="'$(AlarmlistMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\..\..\artifacts\bin\AlarmList.MSBuild\$(Configuration)\net8\AlarmList.MSBuild.dll</AlarmlistMSBuildAssembly>
     <OutputPath Condition="'$(OutputPath)' == ''">$(MSBuildProjectDirectory)\bin\</OutputPath>
     <CompiledAlarmlistFileName Condition="'$(CompiledAlarmlistFileName)' == ''">SampleData.Alarmlist.xml</CompiledAlarmlistFileName>
+    <IncludeConditionalAlarms Condition="'$(IncludeConditionalAlarms)' == ''">false</IncludeConditionalAlarms>
+    <IncludeMissingReferenceAlarm Condition="'$(IncludeMissingReferenceAlarm)' == ''">false</IncludeMissingReferenceAlarm>
   </PropertyGroup>
 
   <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistBuildTask"
@@ -12,6 +14,8 @@
   <ItemGroup>    
     <Compile Include="$(MSBuildProjectDirectory)\PartA.almx" />
     <Compile Include="$(MSBuildProjectDirectory)\PartB.almx" />
+    <Compile Include="$(MSBuildProjectDirectory)\Conditional.almx" Condition="'$(IncludeConditionalAlarms)' == 'true'" />
+    <Compile Include="$(MSBuildProjectDirectory)\MissingReference.almx" Condition="'$(IncludeMissingReferenceAlarm)' == 'true'" />
   </ItemGroup>
 
   <Target Name="Build">
