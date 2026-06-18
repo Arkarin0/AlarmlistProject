@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Sample.Plant.Fire.SmokeDetected.Panel</FullyQualifiedName>
+    <ReferenceName>Sample.Plant.Fire.SmokeDetected</ReferenceName>
+    <Name>Panel smoke alarm</Name>
+    <Code>F-002</Code>
+    <Description>Smoke alarm reported by the control panel.</Description>
+    <TestProcedure>
+      <Instructions>
+        <Hint>Use the referenced smoke detector alarm as the base procedure.</Hint>
+        <Step>Confirm the panel zone and detector address.</Step>
+      </Instructions>
+      <Reset>
+        <Step>Reset the panel after the detector has returned to normal.</Step>
+      </Reset>
+    </TestProcedure>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Sample.Plant.Utility.AirPressureLow</FullyQualifiedName>
+    <Name>Air pressure low</Name>
+    <Code>U-001</Code>
+    <Category>Utility</Category>
+    <Description>The compressed air supply pressure is below the configured threshold.</Description>
+    <TestProcedure>
+      <Instructions>
+        <Step>Check compressor availability.</Step>
+        <Step>Inspect the main supply valve.</Step>
+      </Instructions>
+      <Reset>
+        <Step>Restore supply pressure and acknowledge the alarm.</Step>
+      </Reset>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>

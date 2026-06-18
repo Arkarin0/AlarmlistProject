@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Sample.Plant.Fire.SmokeDetected</FullyQualifiedName>
+    <Name>Smoke detected</Name>
+    <Code>F-001</Code>
+    <Category>Fire</Category>
+    <Description>Smoke was detected in the production hall.</Description>
+    <TestProcedure>
+      <Instructions>
+        <Step>Inspect the affected detector and surrounding area.</Step>
+        <Warning>Follow the site evacuation procedure before entering the area.</Warning>
+      </Instructions>
+      <Reset>
+        <Step>Clear the detector state after the alarm cause has been resolved.</Step>
+      </Reset>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>

@@ -3,4 +3,9 @@
     <Project Path="src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj" />
     <Project Path="src/Compiler/Alarmlist.Core.csproj" />
   </Folder>
+  <Folder Name="/MSBuild/">
+    <Project Path="src/MSBuild/AlarmList.MSBuild.IntegrationTests/AlarmList.MSBuild.IntegrationTests.csproj" />
+    <Project Path="src/MSBuild/AlarmList.MSBuild.UnitTests/AlarmList.MSBuild.UnitTests.csproj" />
+    <Project Path="src/MSBuild/AlarmList.MSBuild/AlarmList.MSBuild.csproj" Id="ddfdcdac-d5db-420d-98ae-62788e6329ec" />
+  </Folder>
 </Solution>

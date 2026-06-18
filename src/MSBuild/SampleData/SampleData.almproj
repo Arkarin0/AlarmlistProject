@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <AlarmlistMSBuildAssembly Condition="'$(AlarmlistMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\..\..\artifacts\bin\AlarmList.MSBuild\$(Configuration)\net8\AlarmList.MSBuild.dll</AlarmlistMSBuildAssembly>
+    <OutputPath Condition="'$(OutputPath)' == ''">$(MSBuildProjectDirectory)\bin\</OutputPath>
+    <CompiledAlarmlistFileName Condition="'$(CompiledAlarmlistFileName)' == ''">SampleData.Alarmlist.xml</CompiledAlarmlistFileName>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistBuildTask"
+             AssemblyFile="$(AlarmlistMSBuildAssembly)" />
+
+  <ItemGroup>    
+    <Compile Include="$(MSBuildProjectDirectory)\PartA.almx" />
+    <Compile Include="$(MSBuildProjectDirectory)\PartB.almx" />
+  </ItemGroup>
+
+  <Target Name="Build">
+    <AlarmlistBuildTask OutputDirectory="$(OutputPath)"
+                        OutputFileName="$(CompiledAlarmlistFileName)"
+                        Compile="@(Compile)">
+      <Output TaskParameter="OutputFile" PropertyName="CompiledAlarmlistFile" />
+    </AlarmlistBuildTask>
+  </Target>
+</Project>
