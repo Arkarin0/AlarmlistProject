@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Sample.Plant.Conditional.EnabledAlarm</FullyQualifiedName>
+    <Name>Conditional alarm</Name>
+    <Code>C-001</Code>
+    <Category>Conditional</Category>
+    <Description>This alarm is compiled only when IncludeConditionalAlarms is true.</Description>
+    <TestProcedure>
+      <Instructions>
+        <Step>Confirm the conditional input is enabled.</Step>
+      </Instructions>
+      <Reset>
+        <Step>Disable the conditional input and acknowledge the alarm.</Step>
+      </Reset>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>
