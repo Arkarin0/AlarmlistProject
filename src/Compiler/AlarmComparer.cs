@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,13 +23,14 @@ namespace Alarmlist.Compiler
 
         public int GetHashCode(AlarmSyntaxNode obj)
         {
-            return HashCode.Combine(
-                obj.Name,
-                obj.Description,
-                obj.Code,
-                obj.Category
-                //obj.SolutionList
-                );
+            unchecked
+            {
+                var hash = 17;
+                hash = hash * 31 + (obj.Name?.GetHashCode() ?? 0);
+                hash = hash * 31 + (obj.Description?.GetHashCode() ?? 0);
+                hash = hash * 31 + (obj.Code?.GetHashCode() ?? 0);
+                return hash * 31 + (obj.Category?.GetHashCode() ?? 0);
+            }
         }
 
 
@@ -50,6 +50,15 @@ namespace Alarmlist.Compiler
             return true;
         }
 
-        public int GetHashCode([DisallowNull] AlarmSyntaxTree obj) => HashCode.Combine(obj.Alarms);
+        public int GetHashCode(AlarmSyntaxTree obj)
+        {
+            unchecked
+            {
+                var hash = 17;
+                foreach (var alarm in obj.Alarms)
+                    hash = hash * 31 + GetHashCode(alarm);
+                return hash;
+            }
+        }
     }
 }

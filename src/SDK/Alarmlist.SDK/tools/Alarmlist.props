@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <EnableDefaultCompileItems Condition="'$(EnableDefaultCompileItems)' == ''">true</EnableDefaultCompileItems>
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**;**/bin/**;**/obj/**;**/.*/**</DefaultItemExcludes>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(EnableDefaultCompileItems)' == 'true'">
+    <Compile Include="**/*.almx" Exclude="$(DefaultItemExcludes)" />
+  </ItemGroup>
+</Project>

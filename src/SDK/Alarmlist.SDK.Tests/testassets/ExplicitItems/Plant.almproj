@@ -1,0 +1,14 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OutputPath>custom output</OutputPath>
+    <CompiledAlarmlistFileName>alarms.xml</CompiledAlarmlistFileName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="PartA.almx;sources/PartB.almx" />
+    <Compile Include="Conditional.almx" Condition="'$(IncludeConditional)' == 'true'" />
+  </ItemGroup>
+  <Target Name="RecordOutput" AfterTargets="Build">
+    <WriteLinesToFile File="output.txt" Lines="$(CompiledAlarmlistFile)" Overwrite="true" />
+  </Target>
+</Project>

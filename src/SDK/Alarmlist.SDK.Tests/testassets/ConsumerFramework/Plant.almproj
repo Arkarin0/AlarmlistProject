@@ -1,0 +1,5 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <Target Name="RecordTaskAssembly" AfterTargets="Build">
+    <WriteLinesToFile File="runtime.txt" Lines="$(_AlarmlistTaskFramework)" Overwrite="true" />
+  </Target>
+</Project>

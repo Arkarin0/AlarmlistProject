@@ -1,7 +1,9 @@
 <Project>
   <PropertyGroup>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
-    <AlarmlistMSBuildAssembly Condition="'$(AlarmlistMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\..\..\artifacts\bin\AlarmList.MSBuild\$(Configuration)\net8\AlarmList.MSBuild.dll</AlarmlistMSBuildAssembly>
+    <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_AlarmlistTaskFramework>
+    <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_AlarmlistTaskFramework>
+    <AlarmlistMSBuildAssembly Condition="'$(AlarmlistMSBuildAssembly)' == ''">$(MSBuildThisFileDirectory)..\..\..\artifacts\bin\AlarmList.MSBuild\$(Configuration)\$(_AlarmlistTaskFramework)\AlarmList.MSBuild.dll</AlarmlistMSBuildAssembly>
     <OutputPath Condition="'$(OutputPath)' == ''">$(MSBuildProjectDirectory)\bin\</OutputPath>
     <CompiledAlarmlistFileName Condition="'$(CompiledAlarmlistFileName)' == ''">SampleData.Alarmlist.xml</CompiledAlarmlistFileName>
     <IncludeConditionalAlarms Condition="'$(IncludeConditionalAlarms)' == ''">false</IncludeConditionalAlarms>

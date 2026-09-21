@@ -1,0 +1,40 @@
+<Project>
+  <PropertyGroup>
+    <AssemblyName Condition="'$(AssemblyName)' == ''">$(MSBuildProjectName)</AssemblyName>
+    <CompiledAlarmlistFileName Condition="'$(CompiledAlarmlistFileName)' == ''">$(AssemblyName).Alarmlist.xml</CompiledAlarmlistFileName>
+    <CompiledAlarmlistFile>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(OutputPath)', '$(CompiledAlarmlistFileName)'))</CompiledAlarmlistFile>
+    <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_AlarmlistTaskFramework>
+    <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_AlarmlistTaskFramework>
+    <AlarmlistTasksAssembly Condition="'$(AlarmlistTasksAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/$(_AlarmlistTaskFramework)/AlarmList.MSBuild.dll</AlarmlistTasksAssembly>
+    <BuildDependsOn>BeforeBuild;CoreBuild;AfterBuild;$(BuildDependsOn)</BuildDependsOn>
+    <CleanDependsOn>BeforeClean;CoreClean;AfterClean;$(CleanDependsOn)</CleanDependsOn>
+  </PropertyGroup>
+
+  <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistBuildTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
+
+  <Target Name="Build" DependsOnTargets="$(BuildDependsOn)" Returns="$(CompiledAlarmlistFile)" />
+  <Target Name="BeforeBuild" />
+  <Target Name="AfterBuild" />
+  <Target Name="CoreBuild" DependsOnTargets="Compile" />
+  <Target Name="Compile" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Error Condition="'@(Compile)' == ''" Text="No ALMX files were provided to the Alarmlist compiler." />
+    <Error Condition="!Exists('$(AlarmlistTasksAssembly)')" Text="Alarmlist task assembly was not found: $(AlarmlistTasksAssembly). Rebuild or restore the Alarmlist.MSBuild.SDK package." />
+    <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Compile="@(Compile)">
+      <Output TaskParameter="OutputFile" PropertyName="CompiledAlarmlistFile" />
+    </AlarmlistBuildTask>
+    <ItemGroup>
+      <FileWrites Include="$(CompiledAlarmlistFile)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="Clean" DependsOnTargets="$(CleanDependsOn)" />
+  <Target Name="BeforeClean" />
+  <Target Name="AfterClean" />
+  <Target Name="CoreClean">
+    <Delete Files="$(CompiledAlarmlistFile)" />
+  </Target>
+  <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
+  <!-- ALMX projects have no managed package references. The SDK is resolved at evaluation time. -->
+  <Target Name="Restore" />
+  <Target Name="GetTargetPath" Returns="$(CompiledAlarmlistFile)" />
+</Project>

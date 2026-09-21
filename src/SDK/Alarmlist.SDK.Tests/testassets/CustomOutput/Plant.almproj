@@ -1,0 +1,8 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup>
+    <BaseOutputPath>generated/</BaseOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="MissingReference.almx" />
+  </ItemGroup>
+</Project>

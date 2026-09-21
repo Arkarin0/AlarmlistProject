@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>Alarmlist.MSBuild.SDK</PackageId>
+    <Description>MSBuild SDK for compiling ALMX source files into an XML alarmlist.</Description>
+    <PackageTags>MSBuild;SDK;Alarmlist</PackageTags>
+    <PackageType>MSBuildSdk</PackageType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackageAlarmlistTasks</TargetsForTfmSpecificContentInPackage>
+    <!-- An MSBuild SDK ships tools, not framework-specific library assets. -->
+    <NoWarn>$(NoWarn);NU5100;NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../MSBuild/AlarmList.MSBuild/AlarmList.MSBuild.csproj" PrivateAssets="all" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="sdk/**/*" Pack="true" PackagePath="sdk/%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="tools/**/*" Pack="true" PackagePath="tools/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <Target Name="GetSdkPackagePath" Returns="@(_AlarmlistSdkPackage)">
+    <ItemGroup>
+      <_AlarmlistSdkPackage Include="$(PackageOutputPath)$(PackageId).$(PackageVersion).nupkg" PackageVersion="$(PackageVersion)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="PackageAlarmlistTasks" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <!-- Bundle dependencies: NuGet SDK resolution does not restore package dependencies.
+           MSBuild itself supplies Microsoft.Build.* assemblies. -->
+      <TfmSpecificPackageFile Include="@(ReferenceCopyLocalPaths)"
+                              Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('Microsoft.Build'))"
+                              PackagePath="tasks/$(TargetFramework)/" />
+    </ItemGroup>
+  </Target>
+</Project>

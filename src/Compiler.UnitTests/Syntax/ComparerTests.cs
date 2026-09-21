@@ -68,6 +68,17 @@ namespace Alarmlist.Syntax.Tests
 
         #endregion
 
+        [Fact]
+        public void EqualSyntaxTreesHaveEqualHashCodes()
+        {
+            var comparer = new AlarmComparer();
+            var x = TestHelper.CreateAlarmSyntaxTree("1");
+            var y = TestHelper.CreateAlarmSyntaxTree("1");
+
+            Assert.True(comparer.Equals(x, y));
+            Assert.Equal(comparer.GetHashCode(x), comparer.GetHashCode(y));
+        }
+
         #region AlarmSyntaxTree
 
         [Fact]

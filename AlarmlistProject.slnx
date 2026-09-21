@@ -8,4 +8,8 @@
     <Project Path="src/MSBuild/AlarmList.MSBuild.UnitTests/AlarmList.MSBuild.UnitTests.csproj" />
     <Project Path="src/MSBuild/AlarmList.MSBuild/AlarmList.MSBuild.csproj" Id="ddfdcdac-d5db-420d-98ae-62788e6329ec" />
   </Folder>
+  <Folder Name="/SDK/">
+    <Project Path="src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj" />
+    <Project Path="src/SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" />
+  </Folder>
 </Solution>

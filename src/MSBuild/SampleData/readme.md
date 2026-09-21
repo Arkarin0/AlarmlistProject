@@ -17,3 +17,7 @@ dotnet msbuild .\SampleData.almproj /t:Build
 ```
 
 The compiled output is written to `bin\SampleData.Alarmlist.xml`.
+
+This sample invokes the task directly. For SDK-style projects, default source
+globbing, and packaged task resolution, see the
+[Alarmlist.MSBuild.SDK guide](../../SDK/Alarmlist.SDK/README.md).

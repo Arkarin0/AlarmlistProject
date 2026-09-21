@@ -8,7 +8,9 @@
   <Import Project="eng\targets\Settings.props"/>
 
 <PropertyGroup>
-  <TargetFrameworks>net8</TargetFrameworks>
+  <TargetFrameworks Condition="'$(TargetFrameworks)' == ''">net472;net8.0</TargetFrameworks>
+  <!-- Use the same language version for the desktop and .NET 8 builds. -->
+  <LangVersion>12.0</LangVersion>
 </PropertyGroup>
  
 </Project>

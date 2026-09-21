@@ -7,14 +7,22 @@ using System.Xml.Linq;
 
 namespace Alarmlist.MSBuild.IntegrationTests
 {
-    public class AlarmlistTaskTests
+    public class AlarmlistTaskTests : IDisposable
     {
+        private readonly string _outputDirectory = Path.Combine(Path.GetTempPath(), "AlarmlistTaskTests", Guid.NewGuid().ToString("N"));
+
+        public void Dispose()
+        {
+            if (Directory.Exists(_outputDirectory))
+                Directory.Delete(_outputDirectory, true);
+        }
+
         [Fact]
         public void TestBuildTargetWithSampledata()
         {
             var rootDir = FindSampleDataDirectory();
             var projectFilePath = Path.Combine(rootDir, "SampleData.almproj");
-            var outputFile = Path.Combine(rootDir, "bin", "SampleData.Alarmlist.xml");
+            var outputFile = Path.Combine(_outputDirectory, "SampleData.Alarmlist.xml");
             BuildProject(rootDir, projectFilePath, outputFile);
 
             var document = XDocument.Load(outputFile);
@@ -30,7 +38,7 @@ namespace Alarmlist.MSBuild.IntegrationTests
         {
             var rootDir = FindSampleDataDirectory();
             var projectFilePath = Path.Combine(rootDir, "SampleData.almproj");
-            var outputFile = Path.Combine(rootDir, "bin", "SampleData.Alarmlist.xml");
+            var outputFile = Path.Combine(_outputDirectory, "SampleData.Alarmlist.xml");
             BuildProject(rootDir, projectFilePath, outputFile);
 
             var document = XDocument.Load(outputFile);
@@ -52,7 +60,7 @@ namespace Alarmlist.MSBuild.IntegrationTests
         {
             var rootDir = FindSampleDataDirectory();
             var projectFilePath = Path.Combine(rootDir, "SampleData.almproj");
-            var outputFile = Path.Combine(rootDir, "bin", "SampleData.Alarmlist.xml");
+            var outputFile = Path.Combine(_outputDirectory, "SampleData.Alarmlist.xml");
             BuildProject(rootDir, projectFilePath, outputFile, "/p:IncludeConditionalAlarms=true");
 
             var document = XDocument.Load(outputFile);
@@ -67,7 +75,7 @@ namespace Alarmlist.MSBuild.IntegrationTests
         {
             var rootDir = FindSampleDataDirectory();
             var projectFilePath = Path.Combine(rootDir, "SampleData.almproj");
-            var outputFile = Path.Combine(rootDir, "bin", "SampleData.Alarmlist.xml");
+            var outputFile = Path.Combine(_outputDirectory, "SampleData.Alarmlist.xml");
 
             var result = RunBuildProject(rootDir, projectFilePath, outputFile, "/p:IncludeMissingReferenceAlarm=true");
 
@@ -94,7 +102,8 @@ namespace Alarmlist.MSBuild.IntegrationTests
             {
                 $"msbuild \"{projectFilePath}\"",
                 "/t:Build",
-                "/p:Configuration=Debug",
+                $"/p:AlarmlistMSBuildAssembly=\"{typeof(AlarmlistBuildTask).Assembly.Location}\"",
+                $"/p:OutputPath=\"{Path.GetDirectoryName(outputFile)}\"",
                 "/v:minimal"
             }.Concat(additionalArguments));
 

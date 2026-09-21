@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <DefaultItemExcludes>$(DefaultItemExcludes);testassets/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- These package tests use their own fixture rather than the compiler's shared helpers. -->
+    <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
+    <ProjectReference Include="../Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" ReferenceOutputAssembly="false">
+      <!-- Build the complete package on the command line. Visual Studio (and
+           BuildProjectReferences=false) instead queries GetTargetPath, which
+           requires a framework-specific inner build of Microsoft.NET.Sdk. -->
+      <SkipGetTargetFrameworkProperties Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">true</SkipGetTargetFrameworkProperties>
+      <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
+    </ProjectReference>
+    <Content Include="testassets/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../MSBuild/SampleData/PartA.almx" Link="testassets/boilerplate/PartA.almx" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../MSBuild/SampleData/PartB.almx" Link="testassets/boilerplate/sources/PartB.almx" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../MSBuild/SampleData/Conditional.almx" Link="testassets/ExplicitItems/Conditional.almx" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../MSBuild/SampleData/MissingReference.almx" Link="testassets/Diagnostics/MissingReference.almx" CopyToOutputDirectory="PreserveNewest" />
+    <AssemblyMetadata Include="LogOutputDir" Value="$(ArtifactsLogDir)SDKTests/$(TargetFramework)/" />
+    <AssemblyMetadata Include="SdkTestsProjectPath" Value="$(MSBuildProjectFullPath)" />
+  </ItemGroup>
+
+  <!-- Like Arcade's SDK tests, prepare complete sample repositories in the test output.
+       The fixture can then run without looking up source files in the repository. -->
+  <Target Name="GenerateTestConfiguration" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="../Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj"
+             Targets="GetSdkPackagePath" Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_SdkPackage" />
+    </MSBuild>
+    <PropertyGroup>
+      <_TestGlobalJson>{ "msbuild-sdks": { "Alarmlist.MSBuild.SDK": "%(_SdkPackage.PackageVersion)" } }</_TestGlobalJson>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(TargetDir)testassets/boilerplate/global.json" Lines="$(_TestGlobalJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <Copy SourceFiles="@(_SdkPackage)" DestinationFolder="$(TargetDir)testassets/boilerplate/feed" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

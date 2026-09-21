@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Created/modified by Arkarin0 under one ore more license(s). -->
+<Project>
+  <Import Project="Microsoft.Common.targets" />
+  <Import Project="ProjectLayout.props" />
+
+  <Import Project="Alarmlist.targets"/>
+
+</Project>
