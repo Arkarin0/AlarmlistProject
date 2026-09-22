@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<Package Include="CommandLineParser" Version="$(CommandLineParserVersion)" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Folder Include="Properties\" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Alarmlist.VisualStudio.UnitTests" />
+    <InternalsVisibleTo Include="Alarmlist.VisualStudio.IntegrationTests" />
+  </ItemGroup>
+	
+</Project>

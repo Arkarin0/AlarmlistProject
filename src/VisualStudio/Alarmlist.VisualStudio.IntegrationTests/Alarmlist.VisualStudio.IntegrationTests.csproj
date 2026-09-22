@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+  </PropertyGroup>
+
+	<ItemGroup>
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <Folder Include="Properties\" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Alarmlist.Core.UnitTests" />
+  </ItemGroup>
+	
+</Project>

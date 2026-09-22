@@ -12,4 +12,9 @@
     <Project Path="src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj" />
     <Project Path="src/SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" />
   </Folder>
+  <Folder Name="/Visual Stuidio/">
+    <Project Path="src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj" />
+    <Project Path="src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj" />
+    <Project Path="src/VisualStudio/Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" />
+  </Folder>
 </Solution>
