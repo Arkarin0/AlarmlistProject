@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="ConfigurationGeneral" DisplayName="Alarmlist" PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" Label="Configuration" />
+  </Rule.DataSource>
+  <StringProperty Name="OutputPath" DisplayName="Output directory" Description="Directory for the compiled alarm list." />
+  <StringProperty Name="CompiledAlarmlistFileName" DisplayName="Output filename" Description="Filename of the compiled XML alarm list." />
+  <BoolProperty Name="EnableDefaultCompileItems" DisplayName="Include ALMX files automatically"
+                Description="Include ALMX files in this project and its subdirectories, except excluded directories.">
+    <BoolProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </BoolProperty.DataSource>
+  </BoolProperty>
+  <StringProperty Name="ProjectGuid" Visible="False">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" Label="Globals" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <BoolProperty Name="ShowAllFiles" Visible="False">
+    <BoolProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
+    </BoolProperty.DataSource>
+  </BoolProperty>
+</Rule>

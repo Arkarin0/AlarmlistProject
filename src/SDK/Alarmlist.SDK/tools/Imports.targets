@@ -5,5 +5,6 @@
   <Import Project="ProjectLayout.props" />
 
   <Import Project="Alarmlist.targets"/>
+  <Import Project="Alarmlist.DesignTime.targets" />
 
 </Project>

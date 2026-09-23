@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="ConfigurationGeneralBrowseObject" DisplayName="General" PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+  </Rule.DataSource>
+  <StringProperty Name="FileName" DisplayName="Project file" ReadOnly="True">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" PersistedName="MSBuildProjectFile" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="FullPath" DisplayName="Full path" ReadOnly="True">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" PersistedName="MSBuildProjectFullPath" />
+    </StringProperty.DataSource>
+  </StringProperty>
+</Rule>

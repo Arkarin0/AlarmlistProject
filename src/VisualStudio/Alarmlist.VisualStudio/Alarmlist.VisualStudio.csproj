@@ -1,21 +1,55 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
+    <!-- In-process VSSDK/CPS components run in Visual Studio's .NET Framework host. -->
+    <TargetFrameworks />
+    <TargetFramework>net472</TargetFramework>
     <OutputType>Library</OutputType>
     <UseWPF>true</UseWPF>
+    <IsPackable>false</IsPackable>
+    <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <UseCodebase>true</UseCodebase>
+    <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+    <IncludeDebugSymbolsInVSIXContainer>true</IncludeDebugSymbolsInVSIXContainer>
+    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>true</CopyOutputSymbolsToOutputDirectory>
+    <DeployExtension Condition="'$(DeployExtension)' == '' and '$(BuildingInsideVisualStudio)' == 'true'">true</DeployExtension>
+    <DeployExtension Condition="'$(DeployExtension)' == ''">false</DeployExtension>
+    <VSSDKTargetPlatformRegRootSuffix Condition="'$(VSSDKTargetPlatformRegRootSuffix)' == ''">AlarmlistExp</VSSDKTargetPlatformRegRootSuffix>
+    <DefaultItemExcludes>$(DefaultItemExcludes);Templates/**</DefaultItemExcludes>
+    <StartAction>Program</StartAction>
+    <StartProgram>$(DevEnvDir)devenv.exe</StartProgram>
+    <StartArguments>/RootSuffix $(VSSDKTargetPlatformRegRootSuffix)</StartArguments>
   </PropertyGroup>
 
-	<ItemGroup>
-		<Package Include="CommandLineParser" Version="$(CommandLineParserVersion)" />
-	</ItemGroup>
-	
-	<ItemGroup>
-	  <Folder Include="Properties\" />
-	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.9.37000" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.SDK" Version="17.9.380" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" PrivateAssets="all" GeneratePathProperty="true" />
+    <Reference Include="System.ComponentModel.Composition" />
+    <ProjectReference Include="../../SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" ReferenceOutputAssembly="false">
+      <SkipGetTargetFrameworkProperties Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">true</SkipGetTargetFrameworkProperties>
+      <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
+    </ProjectReference>
+    <None Include="Templates/**/*" />
+    <Content Include="Alarmlist.XmlEditor.pkgdef" IncludeInVSIX="true" />
+    <!-- These SDK transitive dependencies are supplied by the VS host and are unused here. -->
+    <SuppressFromVsix Include="Microsoft.VisualStudio.Linux.ConnectionManager.Store.dll;System.Text.Encodings.Web.dll" />
+  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Alarmlist.VisualStudio.UnitTests" />
     <InternalsVisibleTo Include="Alarmlist.VisualStudio.IntegrationTests" />
   </ItemGroup>
-	
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <!-- Visual Studio evaluates the project before NuGet generates its package imports.
+       Allow that evaluation and restore without relying on a machine-wide VSSDK. -->
+  <Import Project="$(PkgMicrosoft_VSSDK_BuildTools)/tools/VSSDK/Microsoft.VsSDK.targets"
+          Condition="Exists('$(PkgMicrosoft_VSSDK_BuildTools)/tools/VSSDK/Microsoft.VsSDK.targets')" />
+  <Import Project="../../../eng/targets/VisualStudioTemplates.targets" />
+  <Target Name="EnsureAlarmlistVssdkBuildTools" BeforeTargets="PrepareForBuild"
+          Condition="!Exists('$(PkgMicrosoft_VSSDK_BuildTools)/tools/VSSDK/Microsoft.VsSDK.targets')">
+    <Error Text="Microsoft.VSSDK.BuildTools has not been restored. Restore NuGet packages for Alarmlist.VisualStudio.csproj, then reload the project and build again." />
+  </Target>
 </Project>

@@ -1,18 +1,29 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Library</OutputType>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
-
-	<ItemGroup>
-	</ItemGroup>
-	
-	<ItemGroup>
-	  <Folder Include="Properties\" />
-	</ItemGroup>
-
   <ItemGroup>
-    <InternalsVisibleTo Include="Alarmlist.Core.UnitTests" />
+    <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" />
+    <Compile Include="../../SDK/Alarmlist.SDK.Tests/Utilities/TestApp.cs" Link="Utilities/TestApp.cs" />
+    <Content Include="../../SDK/Alarmlist.SDK.Tests/testassets/boilerplate/*" Link="testassets/boilerplate/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <AssemblyMetadata Include="LogOutputDir" Value="$(ArtifactsLogDir)VisualStudioTests/$(TargetFramework)/" />
+    <AssemblyMetadata Include="ExtensionProjectPath" Value="$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj'))" />
   </ItemGroup>
-	
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+  <Target Name="PrepareVisualStudioTestAssets" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_ExtensionAssembly" />
+    </MSBuild>
+    <MSBuild Projects="../../SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" Targets="GetSdkPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_SdkPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_ExtensionAssembly->'%(RootDir)%(Directory)Alarmlist.VisualStudio.vsix')" DestinationFolder="$(TargetDir)testassets" />
+    <Copy SourceFiles="@(_SdkPackage)" DestinationFolder="$(TargetDir)testassets/boilerplate/feed" />
+  </Target>
 </Project>

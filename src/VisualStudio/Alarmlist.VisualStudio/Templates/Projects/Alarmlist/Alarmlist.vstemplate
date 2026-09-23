@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Alarmlist Project</Name>
+    <Description>Compile ALMX alarm definitions into a resolved XML alarm list. Requires the Alarmlist.MSBuild.SDK package feed.</Description>
+    <ProjectType>Alarmlist</ProjectType>
+    <DefaultName>Alarmlist</DefaultName>
+    <ProvideDefaultName>true</ProvideDefaultName>
+    <CreateNewFolder>true</CreateNewFolder>
+    <CreateInPlace>true</CreateInPlace>
+    <SortOrder>100</SortOrder>
+    <LanguageTag>Alarmlist</LanguageTag>
+    <PlatformTag>Windows</PlatformTag>
+    <ProjectTypeTag>Alarmlist</ProjectTypeTag>
+  </TemplateData>
+  <TemplateContent>
+    <Project File="Alarmlist.almproj" ReplaceParameters="true" TargetFileName="$safeprojectname$.almproj">
+      <ProjectItem ReplaceParameters="true" TargetFileName="Alarms.almx" OpenInEditor="true">Alarms.almx</ProjectItem>
+    </Project>
+  </TemplateContent>
+</VSTemplate>

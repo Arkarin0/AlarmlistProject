@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="Folder" DisplayName="Folder" PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFileFolderItems" ItemType="Folder" HasConfigurationCondition="False" />
+  </Rule.DataSource>
+  <StringProperty Name="Identity" Visible="False" ReadOnly="True" />
+  <StringProperty Name="FullPath" DisplayName="Full path" ReadOnly="True" />
+  <StringProperty Name="FolderName" DisplayName="Folder name" ReadOnly="True" />
+</Rule>

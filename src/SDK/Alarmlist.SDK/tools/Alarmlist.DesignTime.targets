@@ -1,0 +1,27 @@
+<Project>
+  <!-- These describe the project to CPS; compilation remains in Alarmlist.targets. -->
+  <ItemGroup>
+    <ProjectCapability Include="Alarmlist" />
+    <ProjectCapability Include="DeclaredSourceItems" />
+    <ProjectCapability Include="UserSourceItems" />
+    <ProjectCapability Include="SourceItemsFromImports" />
+    <ProjectCapability Include="UseFileGlobs" />
+    <ProjectCapability Include="OpenProjectFile" />
+    <ProjectCapability Include="HandlesOwnReload" />
+    <ProjectCapability Include="ProjectConfigurationsDeclaredAsItems" />
+  </ItemGroup>
+  <ItemGroup Label="ProjectConfigurations" Condition="'@(ProjectConfiguration)' == ''">
+    <ProjectConfiguration Include="Debug|AnyCPU" Configuration="Debug" Platform="AnyCPU" />
+    <ProjectConfiguration Include="Release|AnyCPU" Configuration="Release" Platform="AnyCPU" />
+  </ItemGroup>
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/ProjectItemsSchema.xaml" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/General.xaml" Context="Project" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/GeneralBrowseObject.xaml" Context="BrowseObject" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/GeneralFile.xaml" Context="File" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/Compile.xaml" Context="File;BrowseObject" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/None.xaml" Context="File;BrowseObject" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/Folder.xaml" Context="File;BrowseObject" />
+  </ItemGroup>
+  <Import Project="$(MSBuildProjectFullPath).user" Condition="Exists('$(MSBuildProjectFullPath).user')" />
+</Project>

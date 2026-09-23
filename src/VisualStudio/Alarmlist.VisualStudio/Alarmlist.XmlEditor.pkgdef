@@ -1,0 +1,3 @@
+// Use Visual Studio's existing XML editor until the ALMX designer is implemented.
+[$RootKey$\Editors\{FA3CD31E-987B-443A-9B81-186104E8DAC1}\Extensions]
+"almx"=dword:00000028

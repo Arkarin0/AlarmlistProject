@@ -10,7 +10,12 @@
 		<PackageVersion Include="System.IO.Compression" Version="4.3.0" />
 		<PackageVersion Include="System.ComponentModel.Primitives" Version="4.3.0" />
 
-    <!-- Arcade -->    
+    <!-- Visual Studio integration -->
+    <PackageVersion Include="Microsoft.VisualStudio.SDK" Version="17.9.37000" />
+    <PackageVersion Include="Microsoft.VisualStudio.ProjectSystem.SDK" Version="17.9.380" />
+    <PackageVersion Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" />
+
+    <!-- Arcade -->
     <PackageVersion Include="Microsoft.Build" Version="15.7.179" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="15.7.179" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="2.1.1" />

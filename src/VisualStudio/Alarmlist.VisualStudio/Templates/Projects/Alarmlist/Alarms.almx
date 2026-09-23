@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>$safeprojectname$.Example</FullyQualifiedName>
+    <Name>Example alarm</Name>
+    <Code>A-001</Code>
+    <Category>General</Category>
+    <Description>Replace this alarm with your own definition.</Description>
+  </Alarm>
+</Alarmlist>

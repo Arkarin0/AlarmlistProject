@@ -1,0 +1,9 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <Target Name="ReportProjectModel">
+    <WriteLinesToFile File="capabilities.txt" Lines="@(ProjectCapability)" Overwrite="true" />
+    <WriteLinesToFile File="configurations.txt" Lines="@(ProjectConfiguration)" Overwrite="true" />
+    <WriteLinesToFile File="schemas.txt" Lines="@(PropertyPageSchema)" Overwrite="true" />
+    <WriteLinesToFile File="sources.txt" Lines="@(Compile)" Overwrite="true" />
+    <WriteLinesToFile File="framework.txt" Lines="Framework=$(TargetFramework)" Overwrite="true" />
+  </Target>
+</Project>

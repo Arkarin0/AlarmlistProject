@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
     <EnableDefaultCompileItems Condition="'$(EnableDefaultCompileItems)' == ''">true</EnableDefaultCompileItems>
     <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**;**/bin/**;**/obj/**;**/.*/**</DefaultItemExcludes>
   </PropertyGroup>

@@ -6,6 +6,9 @@
     <PackageType>MSBuildSdk</PackageType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/Arkarin0/AlarmlistProject</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Arkarin0/AlarmlistProject</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <DevelopmentDependency>true</DevelopmentDependency>
     <IsPackable>true</IsPackable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>

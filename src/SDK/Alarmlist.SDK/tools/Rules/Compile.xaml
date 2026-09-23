@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="Compile" DisplayName="Alarm list" PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" ItemType="Compile" HasConfigurationCondition="False" />
+  </Rule.DataSource>
+  <StringProperty Name="Identity" DisplayName="File name" ReadOnly="True">
+    <StringProperty.DataSource><DataSource Persistence="Intrinsic" ItemType="Compile" PersistedName="Identity" /></StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="FullPath" DisplayName="Full path" ReadOnly="True">
+    <StringProperty.DataSource><DataSource Persistence="Intrinsic" ItemType="Compile" PersistedName="FullPath" /></StringProperty.DataSource>
+  </StringProperty>
+  <BoolProperty Name="Visible" Visible="False" />
+  <StringProperty Name="Link" Visible="False" />
+  <StringProperty Name="DependentUpon" Visible="False" />
+</Rule>

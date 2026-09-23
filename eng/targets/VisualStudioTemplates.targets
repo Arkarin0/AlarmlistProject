@@ -1,0 +1,38 @@
+<Project>
+  <!-- VSSDK may overwrite shorter manifests without truncating their old contents. -->
+  <Target Name="ClearAlarmlistTemplateManifests" BeforeTargets="GenerateTemplatesManifest">
+    <ItemGroup>
+      <_AlarmlistOldTemplateManifest Include="$(TemplateOutputDirectory)/TemplateManifests/*.vstman" />
+    </ItemGroup>
+    <Delete Files="@(_AlarmlistOldTemplateManifest);$(CreateTemplateManifestsCacheFile)" />
+  </Target>
+  <!-- Keep the project template pinned to the SDK package produced by this build. -->
+  <Target Name="PrepareAlarmlistTemplates" BeforeTargets="GetVsixSourceItems" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)../../src/SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj"
+             Targets="GetSdkPackagePath" Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_AlarmlistTemplateSdk" />
+    </MSBuild>
+    <PropertyGroup>
+      <_AlarmlistTemplateRoot>$(IntermediateOutputPath)Templates/</_AlarmlistTemplateRoot>
+    </PropertyGroup>
+    <ItemGroup>
+      <_AlarmlistTemplateFile Include="Templates/**/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AlarmlistTemplateFile)" DestinationFiles="@(_AlarmlistTemplateFile->'$(_AlarmlistTemplateRoot)%(RecursiveDir)%(Filename)%(Extension)')" />
+    <ReadLinesFromFile File="Templates/Projects/Alarmlist/Alarmlist.almproj">
+      <Output TaskParameter="Lines" ItemName="_AlarmlistProjectTemplateLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <_AlarmlistProjectTemplate>@(_AlarmlistProjectTemplateLines)</_AlarmlistProjectTemplate>
+      <_AlarmlistProjectTemplate>$(_AlarmlistProjectTemplate.Replace('__ALARMLIST_SDK_VERSION__', '%(_AlarmlistTemplateSdk.PackageVersion)'))</_AlarmlistProjectTemplate>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(_AlarmlistTemplateRoot)Projects/Alarmlist/Alarmlist.almproj" Lines="$(_AlarmlistProjectTemplate)" Overwrite="true" />
+    <ZipDirectory SourceDirectory="$(_AlarmlistTemplateRoot)Projects/Alarmlist" DestinationFile="$(_AlarmlistTemplateRoot)Alarmlist.Project.zip" Overwrite="true" />
+    <ZipDirectory SourceDirectory="$(_AlarmlistTemplateRoot)Items/AlarmList" DestinationFile="$(_AlarmlistTemplateRoot)Alarmlist.Item.zip" Overwrite="true" />
+    <ItemGroup>
+      <VSIXSourceItem Include="$(_AlarmlistTemplateRoot)Alarmlist.Project.zip" VSIXSubPath="ProjectTemplates\Alarmlist" />
+      <VSIXSourceItem Include="$(_AlarmlistTemplateRoot)Alarmlist.Item.zip" VSIXSubPath="ItemTemplates\Alarmlist" />
+      <FileWrites Include="$(_AlarmlistTemplateRoot)**/*" />
+    </ItemGroup>
+  </Target>
+</Project>

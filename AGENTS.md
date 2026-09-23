@@ -29,12 +29,17 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `src/MSBuild/SampleData/` | Shared ALMX samples and a project that invokes the task directly. |
 | `src/SDK/Alarmlist.SDK/` | SDK packaging project, `sdk/` entry points, and `tools/` props/targets. |
 | `src/SDK/Alarmlist.SDK.Tests/` | Tests of the packaged SDK, isolated consumer projects, and build lifecycle. |
+| `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, project and item templates, and XML editor registration. |
+| `src/VisualStudio/Alarmlist.VisualStudio.UnitTests/` | `net472` CPS build-check and MSBuild XAML schema tests. |
+| `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks. |
 | `src/shared/Unittesting/` | Shared compiler/task test helpers linked through build configuration. |
 | `eng/` | Repository build settings, version properties, and common build tooling. |
+| `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
 | `template/` | Reference XML implementation/tests outside the current solution; active implementation lives in `src/`. |
 
 Read `src/SDK/Alarmlist.SDK/README.md` for SDK usage and
 `src/SDK/Alarmlist.SDK.Tests/README.md` for the package-test workflow.
+Read `src/VisualStudio/README.md` for extension packaging and experimental IDE testing.
 
 ## Reference repositories and architectural direction
 
@@ -78,6 +83,10 @@ When making structural changes:
 - The shared configuration targets `net472;net8.0` and sets C# 12. Keep code and
   dependencies compatible with both frameworks; language support does not imply
   that a newer runtime API is available on .NET Framework.
+- The in-process Visual Studio extension and its CPS unit tests target only
+  `net472`; the VSIX supports Visual Studio 2022 17.9+ and 2026 x64. Its package-consumer
+  integration tests still target both repository frameworks. Do not propagate
+  this host-specific target to the compiler, tasks, or SDK.
 - Use a .NET SDK that supports the `.slnx` solution format. `global.json` declares
   `tools.dotnet` as `9.0.302` for the repository tooling and pins
   `Arkarin0.DotNet.Arcade.Sdk` to `1.0.0-Preview`. The `tools.dotnet` entry is not
@@ -115,6 +124,8 @@ dotnet test src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj --framework n
 dotnet test src/MSBuild/AlarmList.MSBuild.UnitTests/AlarmList.MSBuild.UnitTests.csproj --framework net8.0
 dotnet test src/MSBuild/AlarmList.MSBuild.IntegrationTests/AlarmList.MSBuild.IntegrationTests.csproj --framework net8.0
 dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj --framework net8.0
+dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj
 ```
 
 - Add or update regression tests for behavior changes using existing xUnit
@@ -186,6 +197,19 @@ dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj --fra
   changing project-reference or target-framework handling.
 - Update the SDK README and consumer tests when changing public SDK properties,
   defaults, package layout, or lifecycle behavior.
+- Keep CPS capabilities and XAML rules in the SDK's `tools/` directory. The VSIX
+  templates must use the built SDK version; do not add private compiler copies
+  or hard-coded local package paths. Keep the CPS up-to-date provider requesting
+  builds until removed/conditional input handling has an alternative guarantee.
+- Release the authoritative SDK package to NuGet.org before distributing its
+  matching VSIX. `eng/release-visualstudio.ps1` separates candidate preparation,
+  explicit SDK publication, and fresh-cache verification of the published SDK.
+  Do not bundle a private SDK in the VSIX or modify users' NuGet sources on install.
+- Command-line builds create a VSIX without deploying it. Visual Studio builds
+  deploy to `AlarmlistExp`, which is also the F5 launch instance. Use Visual Studio
+  2022 or 2026 for this workflow. Use desktop MSBuild for explicit experimental deployment
+  and `eng/test-visualstudio.ps1` for the IDE smoke test. Package tests alone do not
+  verify Visual Studio UI behavior.
 
 ## Coding style
 

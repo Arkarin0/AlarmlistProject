@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Alarm List</Name>
+    <Description>An ALMX file containing an alarm definition.</Description>
+    <ProjectType>Alarmlist</ProjectType>
+    <DefaultName>Alarms.almx</DefaultName>
+    <SortOrder>100</SortOrder>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem ReplaceParameters="true" TargetFileName="$fileinputname$.almx" ItemType="Compile">Alarms.almx</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

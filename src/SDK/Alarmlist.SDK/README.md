@@ -7,7 +7,11 @@ assemblies, and their runtime dependencies.
 
 ## Use the SDK
 
-Add the package's feed to your `NuGet.Config`, then create `Plant.almproj`:
+For published releases, enable nuget.org in your NuGet sources, then create
+`Plant.almproj`. A project-specific `NuGet.Config` is not necessary when that
+source is already enabled. Unpublished development packages require a local
+feed; repositories with package source mapping must allow this SDK from the
+selected feed.
 
 ```xml
 <Project Sdk="Alarmlist.MSBuild.SDK/1.0.0" />
@@ -36,6 +40,22 @@ The default output is `bin/Debug/Plant.Alarmlist.xml`. `Restore` is a no-op
 after SDK resolution; ALMX projects do not restore managed package references.
 The SDK does not require a `TargetFramework`: it chooses `tasks/net8.0` for
 .NET MSBuild and `tasks/net472` for desktop MSBuild based on the host runtime.
+
+## Visual Studio integration
+
+The [Alarmlist VSIX](../../VisualStudio/README.md) adds a CPS project type and
+project/item templates for Visual Studio 2022 17.9+ and 2026. Released templates
+pin a published SDK version, resolved through NuGet like command-line builds.
+See the [SDK-first release workflow](../../VisualStudio/README.md#sdk-first-release).
+The SDK supplies the `Alarmlist`
+capability, file schemas, and project properties under `tools/Rules/`.
+
+Configurations default to `Debug|AnyCPU` and `Release|AnyCPU`. A consumer can
+replace these defaults by declaring its own `ProjectConfiguration` items with
+`Configuration` and `Platform` metadata. The `.almproj.user` file is imported
+for CPS user settings such as Show All Files. Design-time builds do not compile
+or write output. Normal IDE builds always invoke MSBuild to reflect removed or
+conditional inputs. ALMX files open in the XML editor in this first milestone.
 
 ## Customize a project
 

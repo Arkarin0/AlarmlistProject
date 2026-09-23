@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <ContentType Name="Alarmlist" DisplayName="Alarm list" ItemType="Compile" />
+  <ContentType Name="Text" DisplayName="Text file" ItemType="None" />
+  <ItemType Name="Compile" DisplayName="Alarmlist compiler" />
+  <ItemType Name="None" DisplayName="Does not participate in build" />
+  <ItemType Name="Folder" DisplayName="Folder" />
+  <FileExtension Name=".almx" ContentType="Alarmlist" />
+  <FileExtension Name=".txt" ContentType="Text" />
+</ProjectSchemaDefinitions>

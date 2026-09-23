@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="ConfigurationGeneralFile" DisplayName="General" PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" ItemType="{}{AnyType}" />
+  </Rule.DataSource>
+  <DynamicEnumProperty Name="{}{ItemType}" DisplayName="Build action" EnumProvider="ItemTypes" />
+  <BoolProperty Name="Visible" Visible="False" />
+  <StringProperty Name="Link" Visible="False" />
+  <StringProperty Name="DependentUpon" Visible="False" />
+</Rule>
