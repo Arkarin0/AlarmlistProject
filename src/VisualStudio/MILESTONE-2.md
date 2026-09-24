@@ -1,8 +1,9 @@
 # Milestone two: ALMX document integration
 
-Status: proposed implementation plan. No editor behavior is implemented by this
-document. The UI requirement is interpreted as MVVM, with constructor dependency
-injection for document models and view models.
+Status: editor implemented and validated on VS2022 and VS2026, including project
+Save As and the interactive file-lifecycle checks below. Checkout against a
+checkout-based source-control provider remains unverified. The UI uses MVVM with
+constructor dependency injection for document models and view models.
 
 The outcome is a WPF alarm designer and an XML source view editing the same
 unsaved document, with coordinated Save, Undo/Redo, and document lifetime in
@@ -11,8 +12,8 @@ Visual Studio 2022 17.9+ and 2026 x64.
 ## Scope and starting point
 
 Milestone one provides CPS projects, templates, build integration, and XML editor
-registration. `UI/EditFileControl.xaml` and `UI/EditFileControlViewModel.cs` are
-currently scaffolds. There is no custom editor factory or shared editing model.
+registration. Milestone two replaces the designer scaffolds and adds the custom
+editor factory, source-edit services, and shared document model.
 
 Milestone two includes:
 
@@ -20,18 +21,57 @@ Milestone two includes:
 - Editing local `FullyQualifiedName`, `Name`, `Code`, `Category`, `Description`,
   and the literal `ReferenceName`. Renaming an identifier does not rewrite other
   alarms' references in this milestone.
-- Designer and XML logical views, plus two designer windows over one document.
-  Use standard Visual Studio View Code/View Designer and New Window behavior;
-  a custom tab or split-view framework is unnecessary for this milestone.
+- Ordered local TestProcedure Instructions and Reset entries, with Step, Hint,
+  Warning, Note, and Clear kinds; add, edit, remove, and reorder controls.
+- A XAML-style document window with Designer, Split, and XML modes, plus two
+  editor windows over one document. Keep standard Visual Studio View Code,
+  View Designer, and New Window behavior compatible with the combined host.
 - Shared dirty state, Save/Save All/Save As, Undo/Redo, close/cancel, reload,
   read-only handling, and rename tracking.
 - Recovery when XML is temporarily malformed, and preservation of source text
   outside the operation being performed.
 
-Reference completion, inherited-value presentation, graphical procedure editing,
+Reference completion, inherited-value presentation,
 project-wide live semantic diagnostics, and resolved preview remain milestone
 three. Existing procedure sections, references, and `Clear` directives must
 survive unrelated edits. Compiler diagnostics continue through the build.
+
+## Editor layout: XAML-style split view
+
+Use the interaction pattern from Visual Studio's WPF UserControl editor: one
+document tab containing the graphical editor and source. Microsoft's
+[XAML code editor guide](https://learn.microsoft.com/en-us/visualstudio/xaml-tools/xaml-code-editor?view=visualstudio)
+documents pane switching, swapping, orientation, and collapsing. Apply that
+pattern to an ALMX-specific WPF designer and the XML source editor.
+
+- **Designer:** give the alarm list and detail form the full editor area.
+- **Split:** display that designer and XML source together. Default to designer
+  above/XML below, with a draggable divider. Offer side-by-side layout and Swap
+  Panes for different window sizes and user preferences.
+- **XML:** give the source editor the full editor area while preserving the
+  designer's selection and current document projection.
+
+Keep the list-and-details layout inside the designer pane. On narrow panes,
+collapse the list into an alarm selector so fields remain usable. Keep Add,
+Delete, and alarm filtering in the designer toolbar; standard Save and Undo/Redo
+remain document commands. Arrange mode/orientation controls in one compact bar.
+Remember mode, pane order, orientation, and split proportion as user preferences,
+separate from ALMX contents. Layout changes must not dirty the document.
+
+Host a Visual Studio XML text view over the same document data used by the
+designer. The XAML editor is the interaction reference; the first prototype must
+establish the supported VSSDK hosting route for XML, focus/command routing, and
+language-service behavior. A plain WPF TextBox does not provide the intended
+source-editor integration. Use a small WPF Grid/GridSplitter host if needed;
+this change does not require a general docking framework or the XAML designer's
+internal implementation.
+
+Mode switches must not recreate the document model, buffer, or undo history.
+Retain each pane's selection/caret/scroll state and commit or report conflicts in
+pending field edits before hiding a pane. Invalid XML keeps the source pane
+available and suspends designer mutations until parsing recovers. Selection-to-
+source navigation can follow after the core split integration works; full
+bidirectional semantic navigation remains outside milestone two.
 
 ## MVVM and dependency injection
 
@@ -46,10 +86,11 @@ entries in `Directory.Packages.props` do not imply a DI container is in use.
 | Component | Responsibility | Lifetime |
 | --- | --- | --- |
 | `AlmxEditorFactory` | Attach logical views to compatible VS document data; create view hosts through injected factories. | Package |
+| `AlmxEditorPane` / `EditorLayoutViewModel` | Host both panes; manage mode, orientation, divider, focus, and view preferences. | One per editor window |
 | `AlmxDocumentSessionFactory` | Find or create the session attached to the actual document buffer. | Shared factory |
 | `AlmxDocumentSession` | Coordinate the buffer adapter, source model, edits, and document notifications. | One per open document buffer |
 | `AlmxDocumentModel` | Expose a versioned projection of local ALMX values and parse status. | One per document session |
-| `EditFileControlViewModel` / `AlarmViewModel` | Expose bindings and commands, selection, filtering, and field edit state. | One set per designer view |
+| `EditFileControlViewModel` / `AlarmViewModel` | Expose bindings and commands, selection, filtering, and field edit state. | One set per designer pane, retained across mode switches |
 | `EditFileControl` | WPF layout, bindings, keyboard focus, and accessibility. | One per designer view |
 | XML projection/edit services | Read snapshots and calculate narrowly scoped XML edits. | Stateless/shared where practical |
 
@@ -78,7 +119,7 @@ The original architecture reference was Microsoft's
 [Supporting Multiple Document Views](https://learn.microsoft.com/en-us/visualstudio/extensibility/supporting-multiple-document-views?view=visualstudio).
 It separates the document data object from the view objects. Each view displays
 the same underlying document data; a standard `VsTextBuffer` can notify views
-when that data changes. This is the basis for the proposed sharing arrangement.
+when that data changes. This is the basis for the implemented sharing arrangement.
 
 ```mermaid
 flowchart LR
@@ -166,8 +207,8 @@ nodes is suitable for editing literal local source values.
   manager/history; test command routing while a WPF text box has focus, including
   its temporary field edits. Do not add a separate model undo stack.
 - Subscribe once per session. Reading snapshots and publishing notifications
-  must never trigger another write. Cancel superseded background parses and
-  publish only results for the current version. Apply buffer changes and WPF
+  must never trigger another write. The implementation parses current snapshots
+  synchronously; background parsing and large-file tuning are deferred. Apply buffer changes and WPF
   notifications on their required UI thread.
 - On malformed XML, keep the source editable and show the designer's parse
   error state. Disable model mutations until a current valid projection exists;
@@ -188,17 +229,18 @@ The composition choice follows
 
 | Step | Work | Evidence required before proceeding |
 | --- | --- | --- |
-| 1. Prove document integration | Add a minimal designer factory/pane, XML logical-view registration, buffer reuse, and a single test edit command. Adapt package registration and the existing XML `.pkgdef` coherently. | XML-first and designer-first opening share document data and undo history on VS2022 and VS2026. A designer edit is visible and undoable in XML, and vice versa. Save, reopen, and two simultaneous views work. |
+| 1. Prove document integration | Add a minimal combined designer/XML host, logical-view registration, buffer reuse, and a single test edit command. Adapt package registration and the existing XML `.pkgdef` coherently. | Embedded XML view, XML-first and designer-first opening share document data and undo history on VS2022 and VS2026. A designer edit is visible and undoable in XML, and vice versa. Focus routing, mode switching, Save, reopen, and two simultaneous windows work. |
 | 2. Establish injection and ownership | Add typed factories, buffer/persistence abstractions, document session/model, and per-view view models. | Two views receive the same document model but different view models; two files receive different models. Closing one view retains the other; final close removes subscriptions. |
 | 3. Implement source editing | Add snapshot projection, span edits for scalar fields/add/delete, XML preservation, and invalid-source recovery. | Exact text assertions show untouched content survives; stale edits and unsafe targets leave the buffer unchanged. Empty roots support adding the first alarm. |
-| 4. Build the MVVM designer | Complete the existing WPF scaffold with list, filter, details, commands, and validation messages. | All required fields and add/delete work through bindings; literal references remain editable; keyboard use and VS themes are usable. |
+| 4. Build the MVVM designer | Complete the existing WPF scaffold with list, filter, details, commands, and validation messages. Add Designer/Split/XML modes, both split orientations, swapping, resizing, and saved layout preferences. | All required fields and add/delete work through bindings; literal references remain editable. Pane state survives mode changes, layout changes do not dirty XML, and keyboard use and VS themes are usable. |
 | 5. Complete lifecycle behavior | Integrate Save All/Save As, focused-field commits, undo routing, rename, external changes, and read-only/query-edit handling. | Cancelled saves/checkout/reloads retain unsaved text. External changes with local edits use the VS conflict workflow. Rename/Save As update identity without duplicating the session. |
 | 6. Package and document | Update VSIX registration/content tests, IDE smoke coverage, and the README. | New editor registration and MEF composition load on both hosts; milestone-one project creation and builds still pass. Record host versions and smoke logs. |
 
-Step one is the main technical uncertainty: standard XML editor interoperability
-and its undo bridge must be demonstrated before expanding the UI. If the chosen
-registration/adapter route cannot share the existing document data, revise that
-route and this plan before proceeding. Do not compensate with a second buffer.
+Step one is the main technical uncertainty: embedded XML editor interoperability,
+focus/command routing, and its undo bridge must be demonstrated before expanding
+the UI. If the chosen registration/adapter route cannot share the existing
+document data, revise that route and this plan before proceeding. Do not
+compensate with a second buffer.
 
 ## Validation plan
 
@@ -222,7 +264,9 @@ record manual experimental-instance checks for WPF focus/commands and multiple
 views. Verify both opening orders, cross-view undo, Save All with an active field,
 Save As, dirty close/cancel, XML-only survival after designer closure, invalid XML
 recovery, read-only files, external reload/conflict, and rename on each supported
-host. Package inspection cannot establish those UI behaviors.
+host. Also verify all three modes, both orientations, swapping/resizing, retained
+selection/caret state, restored layout preferences, and Undo/Redo from either
+focused pane. Package inspection cannot establish those UI behaviors.
 
 Run compiler tests on both frameworks if implementation requires compiler
 changes. Preserve the existing SDK/Arcade configuration and use the current
@@ -230,5 +274,52 @@ package versions unless step one demonstrates a specific missing API. Any new
 dependency needs an explicit compatible version in both the affected project
 and the repository's version listing.
 
-Planning validation: inspected the implementation, related tests and build files,
-and the references linked above. No build or tests were run for this plan.
+## Implementation decisions and validation record
+
+The source pane embeds the native VS code window through `IVsUIElementPane`.
+Creating that complete element initializes XML coloring and language services.
+The factory defers view initialization until VS has loaded the document buffer.
+The session is attached to the buffer property collection; its host-specific
+lifetime and draft coordination are in `Editor/`. Models and edit services remain
+independent of Visual Studio services. No dependency versions or compiler/SDK
+contracts were changed.
+
+Project-item Save As uses a CPS `IFileActionHandler` to reconcile the persisted
+buffer path with project ownership. The pinned CPS SDK marks this hook obsolete,
+but exposes it on both supported hosts. The handler reads `IPersistFileFormat`'s
+actual filename because native XML persistence can omit its new-moniker result.
+It creates the destination item with source metadata, transfers the existing
+document through `IVsProject3.TransferItem`, then removes the old source item
+without deleting its disk file. This order keeps both views alive and prevents
+duplicate compilation through default globs. External destinations receive Link
+metadata. Save As back to an excluded original filename is covered as well.
+This follows the shell's document-ownership model described in
+[Persistence and the Running Document Table](https://learn.microsoft.com/en-us/visualstudio/extensibility/internals/persistence-and-the-running-document-table?view=visualstudio).
+
+Validation on 2026-09-24: 57 extension unit tests, 20 extension integration tests
+(10 per framework), and the final native code-window experimental IDE smoke on
+both VS2022 and VS2026 passed. The SDK suite previously passed 34 tests (17 per
+framework); SDK contents were unchanged. See the README for host versions and logs.
+
+The smoke now checks local and linked project-item Save As, returning to the
+original filename, unchanged buffer/RDT identity across two views, subsequent
+saves, original-file preservation, and a build with one compiler input. It runs
+these checks for both the ALMX and standard XML editors. The duplicate-view command
+is resolved by stable command GUID/ID: VS2026 calls it `Window.NewTab`, whereas
+`Window.NewWindow` now floats a tab. The earlier disposed-window failure came from
+the smoke closing that original tab; it did not require an editor-host workaround.
+
+Interactive checks passed on both hosts for dirty-close cancellation, clean
+external reload into the designer, declining reload with local edits, cancelling
+overwrite of an externally modified file, and cancelling the Git provider's
+read-only edit prompt. Rejected drafts remained available and saved after write
+access was restored; disk contents stayed unchanged during cancellation.
+VS2022 also exercised cancellation of the native read-only Save As fallback.
+VS2026 project Save As through the actual dialog accepted a filename containing
+spaces, ampersand, percent, and semicolon; its next save preserved the original.
+
+Earlier interactive checks cover native XML coloring, side-by-side editing,
+focused-field Save All, loose-document Save As, and TestProcedure Instructions/
+Reset creation, escaping, removal after typing, and shared Undo in VS2022.
+Checkout against a checkout-based provider and large-file parsing performance
+have not been tested. Git's read-only Query Edit workflow is covered above.

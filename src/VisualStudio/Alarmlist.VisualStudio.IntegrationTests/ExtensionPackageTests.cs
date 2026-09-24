@@ -44,7 +44,15 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("\"Language(VsTemplate)\"=\"Alarmlist\"", registration);
                 Assert.Contains("\"ProjectFactoryPackage\"=\"{3347bee8-d7a1-4082-95e4-38a439553cc2}\"", registration);
                 Assert.Contains("ItemTemplates", registration);
-                Assert.Contains("\"almx\"=", Read(package.GetEntry("Alarmlist.XmlEditor.pkgdef")));
+                Assert.Contains("Editors\\{6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f}", registration);
+                Assert.Contains("\"almx\"=dword:00000060", registration);
+                foreach (string logicalView in new[] { "7651a701", "7651a702", "7651a703" }) Assert.Contains(logicalView, registration);
+                Assert.Contains(manifest.Descendants(ns + "Asset"), asset => (string)asset.Attribute("Type") == "Microsoft.VisualStudio.MefComponent"
+                    && (string)asset.Attribute("Path") == "Alarmlist.VisualStudio.dll");
+                string xmlRegistration = Read(package.GetEntry("Alarmlist.XmlEditor.pkgdef"));
+                Assert.Contains("\"almx\"=dword:00000028", xmlRegistration);
+                Assert.Contains("Languages\\File Extensions\\.almx", xmlRegistration);
+                Assert.Contains("{F6819A78-A205-47B5-BE1C-675B3C7F0B8E}", xmlRegistration);
                 Assert.Equal(2, package.Entries.Count(entry => entry.FullName.EndsWith(".vstemplate")));
                 var projectTemplate = XDocument.Parse(Read(package.Entries.Single(entry =>
                     entry.FullName.StartsWith("ProjectTemplates/", StringComparison.Ordinal)

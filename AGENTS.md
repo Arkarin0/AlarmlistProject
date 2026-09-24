@@ -29,8 +29,8 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `src/MSBuild/SampleData/` | Shared ALMX samples and a project that invokes the task directly. |
 | `src/SDK/Alarmlist.SDK/` | SDK packaging project, `sdk/` entry points, and `tools/` props/targets. |
 | `src/SDK/Alarmlist.SDK.Tests/` | Tests of the packaged SDK, isolated consumer projects, and build lifecycle. |
-| `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, project and item templates, and XML editor registration. |
-| `src/VisualStudio/Alarmlist.VisualStudio.UnitTests/` | `net472` CPS build-check and MSBuild XAML schema tests. |
+| `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, templates, and MVVM designer/XML split editor. `Editor/` owns host integration, `Documents/` shared models, `Editing/` source-preserving edits, and `UI/` views/view models. |
+| `src/VisualStudio/Alarmlist.VisualStudio.UnitTests/` | `net472` editor/model, XML preservation, CPS build-check, and MSBuild XAML schema tests. |
 | `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks. |
 | `src/shared/Unittesting/` | Shared compiler/task test helpers linked through build configuration. |
 | `eng/` | Repository build settings, version properties, and common build tooling. |

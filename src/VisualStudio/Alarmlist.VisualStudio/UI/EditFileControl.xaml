@@ -1,12 +1,100 @@
-﻿<UserControl x:Class="Alarmlist.VisualStudio.EditFileControl"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Alarmlist.VisualStudio"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-            
+<UserControl x:Class="Alarmlist.VisualStudio.EditFileControl"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+  Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+  Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+  SizeChanged="OnSizeChanged" PreviewKeyDown="OnPreviewKeyDown">
+  <UserControl.Resources>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
+      <Setter Property="Padding" Value="5,3" />
+    </Style>
+    <Style TargetType="Button"><Setter Property="Padding" Value="9,3" /><Setter Property="Margin" Value="0,0,6,0" /></Style>
+  </UserControl.Resources>
+  <Grid Margin="12">
+    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+    <DockPanel Margin="0,0,0,8">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Content="_Add alarm" Command="{Binding AddCommand}" />
+        <Button Content="_Delete" Command="{Binding DeleteCommand}" />
+      </StackPanel>
+      <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
+      <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter alarms" ToolTip="Filter alarms by name or identifier" Margin="0,0,10,0" />
+    </DockPanel>
+    <TextBlock Grid.Row="1" Text="{Binding Error}" TextWrapping="Wrap" Margin="0,0,0,8" AutomationProperties.LiveSetting="Polite" />
+    <Grid Grid.Row="2">
+      <Grid.ColumnDefinitions><ColumnDefinition x:Name="ListColumn" Width="220" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <ListBox x:Name="AlarmList" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" Background="Transparent" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,12,0" AutomationProperties.Name="Alarms">
+        <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Title}" /></Style></ListBox.ItemContainerStyle>
+        <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="4"><TextBlock Text="{Binding Title}" FontWeight="SemiBold" /><TextBlock Text="{Binding Identity}" FontSize="11" Opacity="0.75" /></StackPanel></DataTemplate></ListBox.ItemTemplate>
+      </ListBox>
+      <DockPanel Grid.Column="1">
+        <ComboBox x:Name="AlarmSelector" DockPanel.Dock="Top" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" DisplayMemberPath="Title" Visibility="Collapsed" Margin="0,0,0,8" AutomationProperties.Name="Selected alarm" />
+        <TextBlock DockPanel.Dock="Bottom" Text="Local values only. Clear a checkbox to remove that field. Reference names are edited literally." TextWrapping="Wrap" Opacity="0.7" Margin="0,8,0,0" />
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel IsEnabled="{Binding CanEdit}">
+          <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding CanEdit}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Margin="0,0,8,10">
+                  <CheckBox Content="{Binding Name}" IsChecked="{Binding IsPresent}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,0,4" Click="OnPresenceChanged" ToolTip="Include a local value for this field" />
+                  <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsPresent}" AutomationProperties.Name="{Binding Name}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Expander Header="Test procedure" IsExpanded="True" Margin="0,6,8,0"
+                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
+            <StackPanel Margin="0,8,0,0">
+              <TextBlock Text="Local entries run in order after inherited entries. Clear resets the preceding entries in its section."
+                         TextWrapping="Wrap" Opacity="0.75" Margin="0,0,0,8" />
+              <ItemsControl ItemsSource="{Binding ProcedureSections}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="0,0,0,16">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="0,0,0,6" />
+                      <TextBlock Text="{Binding Error}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                      <WrapPanel Margin="0,0,0,8">
+                        <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding NewKind}" MinWidth="92" Margin="0,0,6,0"
+                                  AutomationProperties.Name="{Binding Name, StringFormat=New {0} entry kind}" />
+                        <Button Content="Add entry" Command="{Binding AddCommand}"
+                                AutomationProperties.Name="{Binding Name, StringFormat=Add {0} entry}" />
+                      </WrapPanel>
+                      <ItemsControl ItemsSource="{Binding Items}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
+                                    Padding="6" Margin="0,0,0,8">
+                              <StackPanel>
+                                <WrapPanel Margin="0,0,0,5">
+                                  <TextBlock Text="{Binding Number}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                  <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind, UpdateSourceTrigger=PropertyChanged}"
+                                            IsEnabled="{Binding CanEdit}" MinWidth="88" Margin="0,0,6,0"
+                                            AutomationProperties.Name="Procedure entry kind" LostKeyboardFocus="OnFieldLostFocus" />
+                                  <Button Content="↑" Command="{Binding MoveUpCommand}" ToolTip="Move entry up" AutomationProperties.Name="Move procedure entry up" />
+                                  <Button Content="↓" Command="{Binding MoveDownCommand}" ToolTip="Move entry down" AutomationProperties.Name="Move procedure entry down" />
+                                  <Button Content="Remove" Command="{Binding DeleteCommand}" AutomationProperties.Name="Remove procedure entry" />
+                                </WrapPanel>
+                                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsTextEnabled}"
+                                         AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxHeight="160" VerticalScrollBarVisibility="Auto"
+                                         IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus" AutomationProperties.Name="Procedure entry text" />
+                                <TextBlock Text="{Binding Guidance}" TextWrapping="Wrap" Opacity="0.75" />
+                              </StackPanel>
+                            </Border>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Expander>
+          </StackPanel>
+        </ScrollViewer>
+      </DockPanel>
     </Grid>
+  </Grid>
 </UserControl>
