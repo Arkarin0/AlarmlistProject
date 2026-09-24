@@ -1,7 +1,8 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: planned; no milestone-three behavior is implemented by this document.
-The procedure interaction below is the recommended design. Continue the MVVM,
+Status: compiler iterations one and two implemented: snapshot input, located
+diagnostics, and detached field/procedure provenance. Project analysis and the reference-aware UI remain
+planned. The procedure interaction below is the recommended design. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -30,11 +31,12 @@ Project-wide rename/refactoring, cross-project reference semantics, individual
 inherited-step overrides, XML IntelliSense/squiggles, and changes to output format
 are outside this milestone. The XML pane retains its existing language service.
 
-Milestone two still records project-item Save As/RDT identity problems and an
-`ObjectDisposedException` with the final VS2026 editor host. Resolve and validate
-these before accepting milestone three: the project index depends on reliable
-document identity and lifetime. Retain its outstanding checkout, external-change,
-and dirty-close checks; do not mark them complete based on package tests.
+The updated milestone-two validation record confirms project-item Save As/RDT
+identity and final native-editor smoke checks on VS2022 and VS2026. The earlier
+disposed-window failure was caused by the smoke using a renamed IDE command.
+Dirty-close and external-change cancellation were also exercised on both hosts.
+Preserve those regressions as project analysis is added. Checkout against a
+checkout-based source-control provider and large-file performance remain unverified.
 
 ## Semantic contracts to preserve
 
@@ -148,13 +150,13 @@ duplicates and unnamed alarms must remain distinguishable. Equal procedure text
 does not imply equal origin. For UI explanations, also expose which Clear excluded
 an entry; keep excluded entries out of the resolved output model.
 
-Compiler diagnostics currently have no source spans. Add optional source
-locations without breaking existing constructors, IDs, or location-free callers.
-Capture locations while parsing and binding, not by searching message text.
-Duplicate definitions need related locations; missing/self/circular references
-must identify the relevant ReferenceName declarations. Use the same location data
-for designer navigation and MSBuild file/line logging when available. All compiler
-APIs remain compatible with `net472;net8.0` and independent of WPF/CPS.
+Iteration one adds optional declaration locations without changing existing
+diagnostic constructors, IDs, or messages. Locations are captured while parsing
+and attached during binding. Duplicates identify both declarations; reference
+errors identify ReferenceName elements, with related locations for cycle members.
+MSBuild now logs file/line ranges from the same data. Iteration two adds resolved
+value/procedure provenance; designer navigation remains to be implemented. All compiler APIs
+remain compatible with `net472;net8.0` and independent of WPF/CPS.
 
 This analysis contract requires a matching SDK release. Preserve both task
 runtimes, package-content checks, existing Arcade imports, and SDK-first release
@@ -274,8 +276,8 @@ results, including on project unload/configuration changes. Report parse/input
 failures separately; do not invent reference diagnostics for incomplete analysis.
 
 Provide a read-only selected-alarm resolved preview: effective scalars, surviving
-Instructions/Reset entries, and origin links. Offer resolved XML using the existing
-compiler/output writer in memory, retaining `AlarmList` casing. Source serialization
+Instructions/Reset entries, and origin links. Add an in-memory sink to the existing
+compiler/output writer for resolved XML, retaining `AlarmList` casing. Source serialization
 remains `Alarmlist` with references/directives. Block a successful compiled XML
 preview when the compilation fails; never overwrite a previous output file.
 Label pending or incomplete results and which project configuration they use.
@@ -284,8 +286,8 @@ Label pending or incomplete results and which project configuration they use.
 
 | Step | Work | Evidence required |
 | --- | --- | --- |
-| 1. Stabilize the baseline | Close the recorded Save As identity and VS2026 lifecycle issues; complete outstanding lifecycle checks. | Shared buffer identity, save/reopen, XML-only survival, and both supported IDE hosts verified. |
-| 2. Prove compiler analysis access | Prototype resolved-SDK loading/isolation, snapshot parsing, and a small provenance/location result. | Unsaved cross-file input resolves without disk writes; different SDK versions coexist or produce a clear compatibility state; no private compiler in VSIX. Record the chosen bridge mechanism. |
+| 1. Stabilize the baseline | Completed in the updated milestone-two record; retain its regression coverage. | Both IDE hosts passed editor/project smoke, Save As, shared identity, and interactive cancellation checks. Checkout-based provider coverage remains unavailable. |
+| 2. Prove compiler analysis access | Snapshot/provenance contract and package-consumer smoke implemented. VS SDK loading/isolation remains next. | Unsaved cross-file input resolves without disk writes; different SDK versions must still be shown to coexist or produce a clear compatibility state; no private compiler in VSIX. Record the chosen bridge mechanism. |
 | 3. Add project snapshots | Implement CPS input subscriptions, buffer/disk precedence, cancellation, and result publication. | Conditional/removed inputs, configuration changes, linked files, closed-file changes, invalid input, and unload cannot publish obsolete results. |
 | 4. Add references and scalar UI | Implement completion/navigation, effective field state, override commands, and chain adorners. | Multi-hop origin, empty local values, identical local/inherited text, active drafts, Undo, keyboard access, and themes behave as specified. |
 | 5. Add inherited procedures | Implement row origins, Clear presentation, effective sequence, and section commands. | Instructions/Reset remain independent; whole-section copy preserves effective behavior without duplicating local rows; source preservation and atomic Undo verified. |
@@ -329,6 +331,141 @@ input size, typing responsiveness, analysis latency, cancellation, and retained
 memory after repeated open/close. Start with full project recomputation; introduce
 incremental invalidation only if measurements justify its additional complexity.
 
-Planning validation: implementation, nearby tests, project/package configuration,
-WPF documentation, and Roslyn's workspace source were reviewed. This documentation
-change does not constitute an implementation or a new build/test pass.
+## Iteration one: compiler snapshot input and located diagnostics
+
+The first implementation slice establishes source input for the SDK analysis
+bridge. No editor UI or CPS project-index code changes in this iteration.
+
+- `AlmxTextSnapshot` captures immutable Text, FilePath, and Version. Its `Parse()`
+  method returns fresh syntax; `AlarmCompiler.CompileSnapshots(...)` compiles a
+  set of snapshots using the existing parser and Binder. FilePath identifies the
+  document but is never read or written by snapshot compilation.
+- File and snapshot readers share secure XML settings and document parsing,
+  including validation of trailing content. DTDs remain prohibited and unknown
+  elements remain skipped. Malformed XML still throws `XmlException`; the future
+  project service must translate that into incomplete-analysis state.
+- Parsed alarms retain their declaration and local scalar-field locations.
+  `GetFieldLocation` identifies local source only; it does not resolve provenance.
+  Locations describe the parsed input and are not updated by later syntax mutation.
+- `SourceLocation` identifies an element's qualified name using one-based line
+  and column positions, with an exclusive end column. It includes the captured
+  version for snapshot input; disk input has no buffer version. An absolute text
+  offset is not stored; the editor can map the range through the matching snapshot.
+- `Diagnostic.WithLocation(...)` preserves existing diagnostic construction and
+  supplies optional primary/related locations. ALM0001 points to the duplicate
+  identifier and relates the first declaration; ALM0002/3 point to ReferenceName;
+  ALM0004 includes each participating reference. Location-free callers still work.
+- The MSBuild task forwards locations for errors and warnings. Failure still
+  preserves previous output, and message braces are logged literally.
+
+Example for a future host adapter, after capturing the buffer on its required
+thread:
+
+```csharp
+var snapshot = new AlmxTextSnapshot(currentText, documentPath, snapshotVersion);
+CompilationResult result = new AlarmCompiler().CompileSnapshots(new[] { snapshot });
+```
+
+The location model adapts Roslyn's
+[source-location abstraction](https://github.com/dotnet/roslyn/blob/main/src/Compilers/Core/Portable/Diagnostic/Location.cs)
+to XML declaration ranges, without a Roslyn dependency. The snapshot input is
+immutable; parsed/bound syntax and CompilationResult retain their existing mutable
+collections and must remain private to an analysis run.
+
+Iteration-one handoff: add resolved field/procedure provenance and a host-independent
+analysis result, then prove loading that contract from the resolved SDK with
+version isolation. Project subscriptions, live Error List publication, completion,
+adorners, procedure commands, and preview remain later slices. The VSIX continues
+to contain no compiler copy, and no SDK release is published by these changes.
+
+Iteration-one validation (2026-09-24):
+
+| Suite | Result |
+| --- | --- |
+| Compiler | 79 passed per framework, net472 and net8.0 |
+| MSBuild task unit tests | 6 passed per framework |
+| MSBuild task integration tests | 4 passed per framework |
+| SDK package-consumer tests using dotnet MSBuild | 17 passed per framework |
+| SDK package-consumer tests using VS2022 desktop MSBuild | 17 passed, net472; prior environment setting restored |
+| Visual Studio editor unit tests | 57 passed, net472 |
+| VSIX/template integration tests | 10 passed per framework |
+
+The SDK and VSIX were rebuilt through those tests. The existing CA1416 warning
+in the shared test helper remains. Interactive IDE smoke/navigation, performance,
+and checkout-provider checks were not rerun for this compiler/task iteration;
+the earlier milestone-two host validation remains a separate record.
+
+## Iteration two: detached provenance analysis
+
+`AlarmCompiler.AnalyzeSnapshots(...)` now returns a read-only `AnalysisResult`
+with `ContractVersion == 1`. It contains no mutable syntax nodes, compiler alarm
+collections, or diagnostic argument arrays. The result records every input path
+and version, including empty files, without retaining the input text. New analysis
+runs cannot modify earlier results.
+
+Each analyzed alarm exposes:
+
+- An `AlarmOrigin` with its declaration location and an ordinal scoped to this
+  result. Duplicate and unnamed declarations remain distinguishable.
+- Its literal ReferenceName and the resolved reference chain, immediate target
+  first. `IsResolved` is false for duplicate identities, missing/self/circular
+  references, and alarms depending on any such chain. Those alarms keep local
+  data but expose no effective fields/procedures. Unrelated valid alarms still
+  resolve, while the overall result remains unsuccessful if any error exists.
+- Name, Code, Category, and Description with local presence/value/location,
+  effective value, defining alarm/location, and `IsInherited`. Explicit empty
+  values still inherit; whitespace and nonempty values equal to an ancestor's
+  remain local. The scalar getters and analysis share one source-selection rule.
+- Independent Instructions and Reset with local entries, effective entries, and
+  excluded entries. Every entry has its original alarm, section, parsed local
+  index, and versioned declaration location. Equal text never merges identities.
+- Each excluded entry points to the Clear that first removed it, including in an
+  ancestor. Local Clear directives remain in LocalEntries and are absent from
+  EffectiveEntries. The existing collection resolver records exclusions during
+  its ordinary ordered merge, so output and analysis share Clear semantics.
+
+Procedure indexes count recognized parsed entries, including Clear; unknown XML
+nodes are skipped. Future edit commands must use the existing XML projection and
+validated source locations, not blindly reuse these indexes as XML child positions.
+LocalEntries and ExcludedEntries can describe the same local row for different
+views; an editor must not render it twice in a single source-oriented sequence.
+
+The compiler's new `Analysis/` layer follows Roslyn's
+[SemanticModel separation](https://github.com/dotnet/roslyn/blob/main/src/Compilers/Core/Portable/Compilation/SemanticModel.cs)
+between parsed declarations and answers about their meaning. Here the exposed
+result is a compact immutable projection suitable for a future SDK bridge; no
+Roslyn packages or VS types were introduced. Existing compilation APIs, diagnostic
+IDs/messages, and compiled XML semantics remain unchanged. Malformed input still
+throws `XmlException`, which the future project service must treat as incomplete.
+
+The SDK `AnalysisContract` consumer uses MSBuild's
+[RoslynCodeTaskFactory](https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-roslyncodetaskfactory?view=vs-2022)
+to run a small reflection-based verifier. It loads the compiler beside the task
+assembly selected by the restored SDK and verifies its actual assembly path,
+contract version, unsaved input, inherited fields, procedure origins, Clear, and
+result isolation. It has no compiler project reference and produces no compiled
+alarm file. This is package API coverage, not a VS loading/isolation implementation.
+
+Next iteration: implement and test the resolved-SDK bridge with explicit contract
+compatibility, unload/lifetime handling, and isolation between SDK versions. Then
+connect CPS input snapshots before adding completion, chain adorners, procedure
+commands, live diagnostics, or preview. Neither the SDK nor the VSIX was published.
+
+Iteration-two validation (2026-09-24):
+
+| Suite | Result |
+| --- | --- |
+| Compiler | 92 passed per framework, net472 and net8.0 |
+| MSBuild task unit tests | 6 passed per framework |
+| MSBuild task integration tests | 4 passed per framework |
+| SDK package-consumer tests using dotnet MSBuild | 18 passed per framework |
+| SDK package-consumer tests using VS2022 desktop MSBuild | 18 passed, net472; prior environment setting restored |
+| Visual Studio editor unit tests | 57 passed, net472 |
+| VSIX/template integration tests | 10 passed per framework |
+
+The package consumer verified the actual net8.0 compiler with dotnet MSBuild and
+the actual net472 compiler with desktop MSBuild. The SDK and VSIX were rebuilt.
+The existing CA1416 warning in the shared test helper remains. Interactive IDE
+smoke/navigation, performance, and checkout-provider checks were not rerun because
+this iteration does not change editor behavior. The earlier milestone-two host
+validation remains a separate record.

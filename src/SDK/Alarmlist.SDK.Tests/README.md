@@ -18,6 +18,11 @@ and [TestApp](https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Ar
   Each invocation receives a separate log, including expected failures.
 - Tests cover package contents, compilation, conditional inputs, diagnostics,
   framework selection, and Clean/Rebuild behavior.
+- `AnalysisContract` loads the compiler from the restored SDK's selected task
+  runtime and calls its public snapshot analysis API through reflection. It checks
+  contract version, field/procedure origins, Clear, result isolation, and absence
+  of disk writes without a compiler project reference. The ordinary test run
+  exercises the net8.0 payload; the desktop-MSBuild run below exercises net472.
 - `ProjectReferenceTests` additionally exercises the test project's actual SDK
   reference with Visual Studio build settings and `BuildProjectReferences=false`.
   These repository-build regression tests require the checkout and its restored

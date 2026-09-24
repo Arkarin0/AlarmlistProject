@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Alarmlist.Analysis;
 using Alarmlist.Binding;
 using Alarmlist.Core;
 using Alarmlist.Diagnostics;
@@ -48,6 +49,27 @@ namespace Alarmlist.Compiler
             });
 
             return Compile(sources);
+        }
+
+        /// <summary>Compiles captured document text without accessing its source paths on disk.</summary>
+        public CompilationResult CompileSnapshots(IEnumerable<AlmxTextSnapshot> snapshots)
+        {
+            if (snapshots == null) throw new ArgumentNullException(nameof(snapshots));
+
+            return Compile(snapshots.Select(snapshot =>
+            {
+                if (snapshot == null) throw new ArgumentException("A source snapshot must not be null.", nameof(snapshots));
+                return snapshot.CreateSourceText();
+            }));
+        }
+
+        /// <summary>Returns detached effective values and their origins for captured document text.</summary>
+        public AnalysisResult AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot> snapshots)
+        {
+            if (snapshots == null) throw new ArgumentNullException(nameof(snapshots));
+            AlmxTextSnapshot[] inputs = snapshots.ToArray();
+            if (inputs.Any(snapshot => snapshot == null)) throw new ArgumentException("A source snapshot must not be null.", nameof(snapshots));
+            return SnapshotAnalyzer.Analyze(inputs);
         }
 
         public CompilationResult Compile(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree)

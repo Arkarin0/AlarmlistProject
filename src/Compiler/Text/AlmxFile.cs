@@ -47,10 +47,7 @@ namespace Alarmlist.Text
 
             using (var reader = XmlReader.Create(FilePath, CreateReaderSettings()))
             {
-                if (!ReadAlarmListNode(reader, out var tree))
-                    return new AlarmSyntaxTree();
-
-                return tree;
+                return ReadDocument(reader, FilePath, null);
             }
         }
 
@@ -95,11 +92,12 @@ namespace Alarmlist.Text
                 WriteAlarmSyntaxNode(alarm, writer);
         }
 
-        private static XmlReaderSettings CreateReaderSettings()
+        internal static XmlReaderSettings CreateReaderSettings()
         {
             return new XmlReaderSettings
             {
-                DtdProcessing = DtdProcessing.Prohibit
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null
             };
         }
 

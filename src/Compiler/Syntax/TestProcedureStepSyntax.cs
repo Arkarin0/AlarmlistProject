@@ -1,5 +1,7 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
+using Alarmlist.Text;
+
 namespace Alarmlist.Syntax
 {
     public sealed class TestProcedureStepSyntax : ITestProcedureItem
@@ -17,5 +19,7 @@ namespace Alarmlist.Syntax
         public TestProcedureStepKind Kind { get; set; }
 
         public string Text { get; set; }
+
+        public SourceLocation Location { get; internal set; }
     }
 }

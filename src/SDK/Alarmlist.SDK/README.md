@@ -94,6 +94,32 @@ Each build recompiles the selected inputs so changes to conditional items and
 removed files are reflected. Compiler diagnostics fail the build. Clean removes
 the configured compiled output and preserves unrelated files.
 
+Reference errors ALM0001-ALM0004 include the source file and declaration line/column
+when read from ALMX files. Missing, self, and circular references point to the
+`ReferenceName` element; duplicate names point to `FullyQualifiedName`. A failed
+compilation leaves any previous compiled output unchanged. Live analysis of
+unsaved editor buffers is a separate milestone-three feature still in development.
+
+## Compiler analysis API
+
+The compiler in each SDK task-runtime directory exposes
+`AlarmCompiler.AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot>)` for host adapters.
+It returns a detached, read-only `Alarmlist.Analysis.AnalysisResult` with contract
+version 1, input versions, local/effective fields, defining alarms and locations,
+reference chains, procedure origins, Clear exclusions, and located diagnostics.
+It shares the compiler's resolution rules and never reads or writes snapshot paths.
+
+Check each alarm's `IsResolved` before using effective fields or procedure lists.
+Invalid or ambiguous reference chains retain local data but have no effective
+projection; unrelated valid alarms remain available. Malformed XML still throws
+`XmlException`. Result-local ordinals distinguish duplicate or unnamed alarms;
+they are not persistent identities. Editor commands must validate source versions
+and use source locations rather than treating procedure indexes as XML child indexes.
+
+This API does not install a Visual Studio analysis service. SDK loading/version
+isolation, project subscriptions, and inherited-value UI are later implementation
+steps. Keep using the project's resolved SDK compiler for those integrations.
+
 ## Build and test this repository
 
 From the repository root:

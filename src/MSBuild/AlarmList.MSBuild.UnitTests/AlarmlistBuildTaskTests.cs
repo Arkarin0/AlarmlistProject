@@ -7,6 +7,7 @@ using System.Xml.Linq;
 using Alarmlist.Compiler;
 using Alarmlist.Diagnostics;
 using Alarmlist.MSBuild;
+using Alarmlist.Text;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using CompiledAlarmList = Alarmlist.Compiler.AlarmList;
@@ -80,6 +81,8 @@ namespace AlarmList.MSBuild.UnitTests
 
             Assert.False(success);
             Assert.NotEmpty(buildErrors);
+            Assert.Equal(0, buildErrors[0].LineNumber);
+            Assert.True(string.IsNullOrEmpty(buildErrors[0].File));
         }
 
         [Fact]
@@ -98,6 +101,69 @@ namespace AlarmList.MSBuild.UnitTests
             Assert.False(success);
             foreach (var diagnostic in diagnostics)
                 Assert.Contains(buildErrors, error => error.Code == diagnostic.Id);
+        }
+
+        [Fact]
+        public void ExecuteReportsSourceLocationAndPreservesPreviousOutputOnFailure()
+        {
+            string directory = Path.Combine(Path.GetTempPath(), "AlarmlistTaskTests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            string source = Path.Combine(directory, "Input.almx");
+            string output = Path.Combine(directory, "Alarmlist.xml");
+            try
+            {
+                File.WriteAllText(source, "<Alarmlist>\n  <Alarm>\n    <FullyQualifiedName>A</FullyQualifiedName>\n"
+                    + "    <ReferenceName>Missing{0}</ReferenceName>\n  </Alarm>\n</Alarmlist>");
+                File.WriteAllText(output, "previous output");
+                var task = new AlarmlistBuildTask
+                {
+                    OutputDirectory = directory,
+                    Compile = new ITaskItem[] { new TaskItem(source) },
+                    BuildEngine = buildEngine.Object
+                };
+
+                Assert.False(task.Execute());
+
+                BuildErrorEventArgs error = Assert.Single(buildErrors);
+                Assert.Equal("ALM0002", error.Code);
+                Assert.Equal(source, error.File);
+                Assert.Equal(4, error.LineNumber);
+                Assert.Equal(6, error.ColumnNumber);
+                Assert.Equal(4, error.EndLineNumber);
+                Assert.Equal(19, error.EndColumnNumber);
+                Assert.Contains("Missing{0}", error.Message);
+                Assert.Equal("previous output", File.ReadAllText(output));
+                Assert.Null(task.OutputFile);
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
+        }
+
+        [Fact]
+        public void ExecutePreservesWarningLocationsAndLiteralMessageBraces()
+        {
+            var warning = new Diagnostic(new DiagnosticDescriptor("TEST001", "Warning", "Value '{0}'.", DiagnosticSeverity.Warning), "{x}")
+                .WithLocation(new SourceLocation("Warning.almx", 7, 4, 9));
+            var error = new Diagnostic(DiagnosticDescriptors.MissingReference, "A", "Missing");
+            var task = new AlarmlistBuildTask(_ => new CompilationResult(new CompiledAlarmList(), new[] { warning, error }))
+            {
+                OutputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N")),
+                Compile = new ITaskItem[] { new TaskItem("Input.almx") },
+                BuildEngine = buildEngine.Object
+            };
+
+            Assert.False(task.Execute());
+
+            BuildWarningEventArgs logged = Assert.Single(buildWarnings);
+            Assert.Equal("TEST001", logged.Code);
+            Assert.Equal("Warning.almx", logged.File);
+            Assert.Equal(7, logged.LineNumber);
+            Assert.Equal(4, logged.ColumnNumber);
+            Assert.Equal(7, logged.EndLineNumber);
+            Assert.Equal(13, logged.EndColumnNumber);
+            Assert.Equal(warning.Message, logged.Message);
         }
 
         private static IEnumerable<Diagnostic> CreateDiagnosticsForAllDescriptors()

@@ -13,8 +13,11 @@ buffer, including edits made from additional windows. The
 The [milestone-three plan](MILESTONE-3.md) covers project-wide reference analysis,
 inherited fields with WPF chain-icon adorners, inherited test-procedure rows,
 live diagnostics, and resolved preview. It recommends section-level local copies
-for customizing inherited procedures and records the remaining milestone-two
-lifecycle prerequisites. These features are planned, not yet implemented.
+for customizing inherited procedures. The first two iterations add compiler
+snapshots, file/line information for build diagnostics, and a read-only analysis
+API for field/procedure origins and Clear exclusions. The reference-aware UI and
+live project analysis are still planned. Milestone-two lifecycle validation is recorded
+below and remains regression coverage.
 
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax
@@ -267,8 +270,9 @@ task frameworks remain unchanged.
 For interactive verification, launch `devenv.exe /RootSuffix AlarmlistExp` and
 also check the New Project/Add New Item dialogs, Add Existing Item, XML editing,
 and the output directory, filename, and automatic inclusion project properties.
-Compiler diagnostics currently have IDs and messages but no source spans;
-file/line navigation and live diagnostics are later work.
+Compiler reference diagnostics now carry source-file and declaration ranges through
+the MSBuild logger. Interactive Error List navigation for those ranges has not yet
+been rechecked in the IDE. Live diagnostics and inherited-value UI remain later work.
 
 ## Milestone-two validation record (2026-09-24)
 

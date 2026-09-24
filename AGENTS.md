@@ -21,8 +21,8 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 
 | Location | Responsibility |
 | --- | --- |
-| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, and output writers. |
-| `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, and output. |
+| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, and detached snapshot/provenance results in `Analysis/`. |
+| `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
 | `src/MSBuild/AlarmList.MSBuild.UnitTests/` | Task unit tests and mocked build-engine behavior. |
 | `src/MSBuild/AlarmList.MSBuild.IntegrationTests/` | Integration tests invoking MSBuild against sample projects. |
@@ -159,6 +159,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   `Binding/Binder` merges sources and resolves references; `AlarmCompiler`
   produces a `CompilationResult`; `Output` writers serialize resolved alarms.
   Keep compiler behavior independent of MSBuild-specific APIs.
+- `Text/AlmxTextSnapshot` and `AlarmCompiler.CompileSnapshots` analyze captured
+  unsaved text without disk access. Preserve fresh syntax per parse, snapshot
+  versions on source locations, and location-free diagnostic callers. Source
+  locations use one-based lines/columns and an exclusive end column.
+- `AlarmCompiler.AnalyzeSnapshots` returns the read-only, versioned analysis
+  contract from `Analysis/`. Preserve local/effective field separation, procedure
+  origins and Clear exclusions, and unavailable effective values for invalid
+  reference chains. Reuse compiler resolution rules rather than duplicating them
+  in editor code. The SDK's `AnalysisContract` consumer asset verifies this API
+  from the restored package without a compiler project reference.
 - ALMX source serialization and compiled output serialization are distinct.
   Source XML uses an `Alarmlist` root and supports references and procedure
   directives; compiled XML uses an `AlarmList` root and resolved values. Preserve

@@ -1,5 +1,6 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
@@ -10,6 +11,11 @@ namespace Alarmlist.Syntax
     {
         public IReadOnlyList<T> ResolveFrom(IEnumerable<T> inheritedItems)
         {
+            return ResolveFrom(inheritedItems, null);
+        }
+
+        internal IReadOnlyList<T> ResolveFrom(IEnumerable<T> inheritedItems, Action<T, T> onExcluded)
+        {
             var result = new List<T>();
 
             if (inheritedItems != null)
@@ -19,6 +25,9 @@ namespace Alarmlist.Syntax
             {
                 if (item is Clear)
                 {
+                    if (onExcluded != null)
+                        foreach (T preceding in result)
+                            onExcluded(preceding, item);
                     result.Clear();
                     continue;
                 }

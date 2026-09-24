@@ -82,6 +82,7 @@ namespace Alarmlist.MSBuild.IntegrationTests
             Assert.NotEqual(0, result.ExitCode);
             Assert.False(File.Exists(outputFile));
             Assert.Contains("ALM0002", result.Output);
+            Assert.Contains("MissingReference.almx(5,6", result.Output);
             Assert.Contains("Sample.Plant.Reference.DoesNotExist", result.Output);
         }
 

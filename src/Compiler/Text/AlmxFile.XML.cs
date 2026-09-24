@@ -73,6 +73,11 @@ namespace Alarmlist.Text
 
         public static bool ReadAlarmSyntaxNode(XmlReader reader, out Syntax.AlarmSyntaxNode alarm)
         {
+            return ReadAlarmSyntaxNode(reader, null, null, out alarm);
+        }
+
+        private static bool ReadAlarmSyntaxNode(XmlReader reader, string filePath, int? version, out Syntax.AlarmSyntaxNode alarm)
+        {
             alarm = null;
 
             if (reader == null)
@@ -86,6 +91,7 @@ namespace Alarmlist.Text
             if (reader.LocalName != WellKnownNodeNames.Alarm) // or nameof(Syntax.AlarmSyntaxNode)
                 return false;
 
+            SourceLocation location = GetLocation(reader, filePath, version);
             bool isEmptyElement = reader.IsEmptyElement;
 
             reader.ReadStartElement(); // always consume start
@@ -93,7 +99,7 @@ namespace Alarmlist.Text
             if (isEmptyElement)
                 return false;
 
-            var result = new Syntax.AlarmSyntaxNode();
+            var result = new Syntax.AlarmSyntaxNode { Location = location };
 
             // Read all child elements in a loop (order-independent, version-tolerant)
             while (reader.NodeType != XmlNodeType.EndElement)
@@ -107,31 +113,37 @@ namespace Alarmlist.Text
                 switch (reader.LocalName)
                 {
                     case nameof(AlarmSyntaxNode.FullyQualifiedName):
+                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
                         result.FullyQualifiedName = reader.ReadElementContentAsString();
                         break;
 
                     case nameof(AlarmSyntaxNode.ReferenceName):
+                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
                         result.ReferenceName = reader.ReadElementContentAsString();
                         break;
 
                     case nameof(AlarmSyntaxNode.Name):
+                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
                         result.Name = reader.ReadElementContentAsString();
                         break;
 
                     case nameof(AlarmSyntaxNode.Code):
+                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
                         result.Code = reader.ReadElementContentAsString();
                         break;
 
                     case nameof(AlarmSyntaxNode.Category):
+                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
                         result.Category = reader.ReadElementContentAsString();
                         break;
 
                     case nameof(AlarmSyntaxNode.Description):
+                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
                         result.Description = reader.ReadElementContentAsString();
                         break;
 
                     case WellKnownNodeNames.TestProcedure:
-                        ReadTestProcedureNode(reader, result.TestProcedure);
+                        ReadTestProcedureNode(reader, result.TestProcedure, filePath, version);
                         break;
 
                     default:
@@ -148,6 +160,11 @@ namespace Alarmlist.Text
         }
 
         public static bool ReadTestProcedureNode(XmlReader reader, TestProcedureSyntax testProcedure)
+        {
+            return ReadTestProcedureNode(reader, testProcedure, null, null);
+        }
+
+        private static bool ReadTestProcedureNode(XmlReader reader, TestProcedureSyntax testProcedure, string filePath, int? version)
         {
             if (reader == null)
                 throw new ArgumentNullException(nameof(reader));
@@ -181,11 +198,11 @@ namespace Alarmlist.Text
                 switch (reader.LocalName)
                 {
                     case WellKnownNodeNames.TestProcedureInstructions:
-                        ReadTestProcedureSectionNode(reader, testProcedure.Instructions);
+                        ReadTestProcedureSectionNode(reader, testProcedure.Instructions, filePath, version);
                         break;
 
                     case WellKnownNodeNames.TestProcedureReset:
-                        ReadTestProcedureSectionNode(reader, testProcedure.Reset);
+                        ReadTestProcedureSectionNode(reader, testProcedure.Reset, filePath, version);
                         break;
 
                     default:
@@ -198,7 +215,7 @@ namespace Alarmlist.Text
             return true;
         }
 
-        private static bool ReadTestProcedureSectionNode(XmlReader reader, ReferenceableCollection<ITestProcedureItem> items)
+        private static bool ReadTestProcedureSectionNode(XmlReader reader, ReferenceableCollection<ITestProcedureItem> items, string filePath, int? version)
         {
             reader.MoveToContent();
 
@@ -222,14 +239,15 @@ namespace Alarmlist.Text
 
                 if (reader.LocalName == WellKnownNodeNames.Clear)
                 {
-                    items.Add(new Clear());
+                    items.Add(new Clear { Location = GetLocation(reader, filePath, version) });
                     reader.Skip();
                     continue;
                 }
 
                 if (TryGetStepKind(reader.LocalName, out var kind))
                 {
-                    items.Add(new TestProcedureStepSyntax(kind, reader.ReadElementContentAsString()));
+                    SourceLocation location = GetLocation(reader, filePath, version);
+                    items.Add(new TestProcedureStepSyntax(kind, reader.ReadElementContentAsString()) { Location = location });
                     continue;
                 }
 
@@ -298,6 +316,29 @@ namespace Alarmlist.Text
 
         public static bool ReadAlarmListNode(XmlReader reader, out Syntax.AlarmSyntaxTree value)
         {
+            return ReadAlarmListNode(reader, null, null, out value);
+        }
+
+        internal static AlarmSyntaxTree ReadDocument(XmlReader reader, string filePath, int? version)
+        {
+            ReadAlarmListNode(reader, filePath, version, out AlarmSyntaxTree tree);
+            // Validate trailing content too, even when whitespace follows the root.
+            while (reader.Read())
+            {
+            }
+            return tree ?? new AlarmSyntaxTree();
+        }
+
+        private static SourceLocation GetLocation(XmlReader reader, string filePath, int? version)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !(reader is IXmlLineInfo lineInfo) || !lineInfo.HasLineInfo())
+                return null;
+
+            return new SourceLocation(filePath, lineInfo.LineNumber, lineInfo.LinePosition, reader.Name.Length, version);
+        }
+
+        private static bool ReadAlarmListNode(XmlReader reader, string filePath, int? version, out Syntax.AlarmSyntaxTree value)
+        {
             value = null;
 
             if (reader == null)
@@ -332,7 +373,7 @@ namespace Alarmlist.Text
                 switch (reader.LocalName)
                 {
                     case WellKnownNodeNames.Alarm:
-                        if (ReadAlarmSyntaxNode(reader, out var alarm))
+                        if (ReadAlarmSyntaxNode(reader, filePath, version, out var alarm))
                         {
                             result.Alarms.Add(alarm);
                         }

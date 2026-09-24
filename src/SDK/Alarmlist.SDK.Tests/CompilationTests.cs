@@ -64,6 +64,8 @@ namespace Alarmlist.MSBuild.SDK.Tests
             var result = app.Run(_output, "/t:Build");
             Assert.NotEqual(0, result.ExitCode);
             Assert.Contains(diagnostic, result.Output);
+            if (asset == "Diagnostics")
+                Assert.Contains("MissingReference.almx(5,6", result.Output);
             Assert.False(File.Exists(app.OutputPath));
         }
     }

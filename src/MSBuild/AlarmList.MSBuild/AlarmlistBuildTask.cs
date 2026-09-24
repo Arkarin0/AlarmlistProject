@@ -3,6 +3,7 @@ using System.IO;
 using Alarmlist.Compiler;
 using Alarmlist.Diagnostics;
 using Alarmlist.Output;
+using Alarmlist.Text;
 using Microsoft.Build.Framework;
 
 namespace Alarmlist.MSBuild
@@ -73,14 +74,19 @@ namespace Alarmlist.MSBuild
         {
             foreach (var diagnostic in result.Diagnostics)
             {
+                SourceLocation location = diagnostic.Location;
                 switch (diagnostic.Severity)
                 {
                     case DiagnosticSeverity.Error:
-                        Log.LogError(null, diagnostic.Id, null, null, 0, 0, 0, 0, diagnostic.Message);
+                        Log.LogError(null, diagnostic.Id, null, location?.FilePath,
+                            location?.LineNumber ?? 0, location?.ColumnNumber ?? 0,
+                            location?.EndLineNumber ?? 0, location?.EndColumnNumber ?? 0, "{0}", diagnostic.Message);
                         break;
 
                     case DiagnosticSeverity.Warning:
-                        Log.LogWarning(null, diagnostic.Id, null, null, 0, 0, 0, 0, diagnostic.Message);
+                        Log.LogWarning(null, diagnostic.Id, null, location?.FilePath,
+                            location?.LineNumber ?? 0, location?.ColumnNumber ?? 0,
+                            location?.EndLineNumber ?? 0, location?.EndColumnNumber ?? 0, "{0}", diagnostic.Message);
                         break;
 
                     default:

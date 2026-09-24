@@ -1,7 +1,10 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using Alarmlist.Text;
 
 namespace Alarmlist.Diagnostics
 {
@@ -16,6 +19,21 @@ namespace Alarmlist.Diagnostics
         public DiagnosticDescriptor Descriptor { get; }
 
         public object[] Arguments { get; }
+
+        public SourceLocation Location { get; private set; }
+
+        public IReadOnlyList<SourceLocation> RelatedLocations { get; private set; } = Array.Empty<SourceLocation>();
+
+        /// <summary>Returns a diagnostic with source information, preserving its descriptor and message.</summary>
+        public Diagnostic WithLocation(SourceLocation location, IEnumerable<SourceLocation> relatedLocations = null)
+        {
+            return new Diagnostic(Descriptor, (object[])Arguments.Clone())
+            {
+                Location = location,
+                RelatedLocations = Array.AsReadOnly((relatedLocations ?? Enumerable.Empty<SourceLocation>())
+                    .Where(related => related != null).ToArray())
+            };
+        }
 
         public string Id => Descriptor.Id;
 

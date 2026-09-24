@@ -1,0 +1,14 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <UsingTask TaskName="VerifyPackagedAnalysis" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <Task>
+      <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)VerifyPackagedAnalysis.cs" />
+    </Task>
+  </UsingTask>
+  <Target Name="VerifyAnalysis">
+    <PropertyGroup>
+      <AnalysisCompiler>$([System.IO.Path]::GetDirectoryName('$(AlarmlistTasksAssembly)'))/Alarmlist.Core.dll</AnalysisCompiler>
+    </PropertyGroup>
+    <VerifyPackagedAnalysis CompilerAssembly="$(AnalysisCompiler)" ProjectDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+</Project>

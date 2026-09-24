@@ -52,9 +52,11 @@ namespace Alarmlist.Binding
                 if (string.IsNullOrWhiteSpace(alarm.FullyQualifiedName))
                     continue;
 
-                if (alarmsByName.ContainsKey(alarm.FullyQualifiedName))
+                if (alarmsByName.TryGetValue(alarm.FullyQualifiedName, out var previous))
                 {
-                    diagnostics.ReportDuplicateAlarmName(alarm.FullyQualifiedName);
+                    diagnostics.ReportDuplicateAlarmName(alarm.FullyQualifiedName,
+                        alarm.GetFieldLocation(nameof(AlarmSyntaxNode.FullyQualifiedName)) ?? alarm.Location,
+                        previous.GetFieldLocation(nameof(AlarmSyntaxNode.FullyQualifiedName)) ?? previous.Location);
                     continue;
                 }
 
@@ -68,13 +70,13 @@ namespace Alarmlist.Binding
 
                 if (alarm.ReferenceName == alarm.FullyQualifiedName)
                 {
-                    diagnostics.ReportSelfReference(alarm.FullyQualifiedName);
+                    diagnostics.ReportSelfReference(alarm.FullyQualifiedName, GetReferenceLocation(alarm));
                     continue;
                 }
 
                 if (!alarmsByName.TryGetValue(alarm.ReferenceName, out var reference))
                 {
-                    diagnostics.ReportMissingReference(alarm.FullyQualifiedName, alarm.ReferenceName);
+                    diagnostics.ReportMissingReference(alarm.FullyQualifiedName, alarm.ReferenceName, GetReferenceLocation(alarm));
                     continue;
                 }
 
@@ -107,7 +109,7 @@ namespace Alarmlist.Binding
                         .Concat(new[] { GetDisplayName(alarm) })
                         .ToList();
 
-                    diagnostics.ReportCircularReference(trace);
+                    diagnostics.ReportCircularReference(trace, GetReferenceLocation(cycle[0]), cycle.Skip(1).Select(GetReferenceLocation));
 
                     foreach (var item in cycle)
                         AlarmSyntaxNode.ClearResolvedReference(item);
@@ -131,6 +133,11 @@ namespace Alarmlist.Binding
             return string.IsNullOrWhiteSpace(alarm.FullyQualifiedName)
                 ? "<unnamed>"
                 : alarm.FullyQualifiedName;
+        }
+
+        private static SourceLocation GetReferenceLocation(AlarmSyntaxNode alarm)
+        {
+            return alarm.GetFieldLocation(nameof(AlarmSyntaxNode.ReferenceName)) ?? alarm.Location;
         }
 
         public void AddSourceText(SourceText sourceText)
