@@ -1,0 +1,241 @@
+// Created/modified by Arkarin0 under one ore more license(s).
+
+using System;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Xml;
+using Alarmlist.VisualStudio.Analysis;
+using Alarmlist.VisualStudio.ProjectSystem;
+using Microsoft.Build.Construction;
+using Microsoft.Build.Evaluation;
+using Microsoft.Build.Execution;
+using Microsoft.VisualStudio.Threading;
+using Xunit;
+
+namespace Alarmlist.VisualStudio.UnitTests.Analysis
+{
+    public class ProjectAnalysisInputTests
+    {
+        [Fact]
+        public async Task ProjectServiceUsesThePackagedCompilerForUnsavedCrossFileInheritanceAsync()
+        {
+            using (var directory = new TempDirectory())
+            using (var threading = new JoinableTaskContext())
+            {
+                string sdk = Path.Combine(directory.Path, "sdk");
+                ZipFile.ExtractToDirectory(Path.Combine(AppContext.BaseDirectory, "testassets", "analysis-sdk.nupkg"), sdk);
+                string basePath = Path.Combine(directory.Path, "Base.almx");
+                string childPath = Path.Combine(directory.Path, "Child.almx");
+                string baseText = "<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName><Name>Disk base</Name></Alarm></Alarmlist>";
+                File.WriteAllText(basePath, baseText);
+                File.WriteAllText(childPath, "<Alarmlist><Alarm><ReferenceName>Base</ReferenceName></Alarm></Alarmlist>");
+                var documents = new Documents();
+                documents.Open[basePath] = new CapturedAnalysisInput(new AnalysisInput(baseText.Replace("Disk base", "Unsaved base"), basePath, 3), new object());
+                var service = new ProjectAnalysisService(new ProjectAnalysisInputSource(documents), new SdkAnalysisBridgeFactory(), threading, token => Task.CompletedTask);
+                try
+                {
+                    service.UpdateProject(new AnalysisProject(Path.Combine(directory.Path, "Plant.almproj"), "Debug",
+                        Path.Combine(sdk, "tasks", "net472", "Alarmlist.Core.dll"), new[] { basePath, childPath }));
+                    await ExpectNameAsync(service, "Unsaved base");
+                    AnalysisField inherited = service.Current.Response.Snapshot.Alarms[1].Fields.Single(field => field.Name == "Name");
+                    Assert.True(inherited.IsInherited);
+                    Assert.Equal(3, inherited.ValueLocation.SourceVersion);
+                    Assert.Equal(baseText, File.ReadAllText(basePath));
+                    documents.Open.Clear();
+                    documents.Notify(basePath);
+                    await ExpectNameAsync(service, "Disk base");
+                    Assert.False(File.Exists(Path.Combine(directory.Path, "Plant.Alarmlist.xml")));
+                }
+                finally { await service.StopAsync(); }
+                Assert.Equal(0, documents.Subscribers);
+            }
+        }
+
+        [Theory]
+        [InlineData("Debug", new[] { "Z.almx", "A.almx", "Z.almx" })]
+        [InlineData("Release", new[] { "Z.almx", "A.almx", "Z.almx", "Release.almx" })]
+        public void EvaluationCapturesConditionalInputsInOrderWithDuplicatesAndSdkFromTheSameSnapshot(string configuration, string[] expected)
+        {
+            using (var directory = new TempDirectory())
+            using (var projects = new ProjectCollection())
+            using (var reader = XmlReader.Create(new StringReader("<Project><PropertyGroup><AlarmlistAnalysisCompilerAssembly>"
+                + "sdk-$(Configuration)</AlarmlistAnalysisCompilerAssembly></PropertyGroup><ItemGroup>"
+                + "<Compile Include='Z.almx;A.almx;Z.almx'/><Compile Include='Release.almx' Condition=\"'$(Configuration)' == 'Release'\"/>"
+                + "<Compile Include='Removed.almx'/><Compile Remove='Removed.almx'/><None Include='Excluded.almx'/></ItemGroup></Project>")))
+            {
+                ProjectRootElement root = ProjectRootElement.Create(reader, projects);
+                root.FullPath = Path.Combine(directory.Path, "Plant.almproj");
+                var instance = new ProjectInstance(root, new Dictionary<string, string> { { "Configuration", configuration } }, null, projects);
+                AnalysisProject snapshot = AlarmlistProjectSnapshot.Capture(instance, root.FullPath, configuration);
+                Assert.Equal(expected.Select(name => Path.Combine(directory.Path, name)), snapshot.Inputs);
+                Assert.Equal("sdk-" + configuration, snapshot.CompilerPath);
+                Assert.Equal(configuration, snapshot.Configuration);
+                Assert.Equal(root.FullPath, snapshot.ProjectPath);
+                Assert.Empty(Directory.GetFiles(directory.Path));
+            }
+        }
+
+        [Fact]
+        public async Task OpenBuffersWinOverDiskAndClosingReturnsToDiskWithoutSavingAsync()
+        {
+            using (var directory = new TempDirectory())
+            {
+                string path = Path.Combine(directory.Path, "A.almx");
+                File.WriteAllText(path, "<Alarmlist><Alarm><Name>Disk</Name></Alarm></Alarmlist>");
+                var documents = new Documents();
+                object buffer = new object();
+                documents.Open[path] = new CapturedAnalysisInput(new AnalysisInput("<Alarmlist><Alarm><Name>Unsaved</Name></Alarm></Alarmlist>", path, 7), buffer);
+                using (var source = new ProjectAnalysisInputSource(documents))
+                {
+                    source.Watch(new AnalysisProject("Plant", "Debug", null, new[] { path }));
+                    var opened = await source.CaptureAsync(new[] { path, path }, CancellationToken.None);
+                    Assert.Equal(2, opened.Count);
+                    Assert.All(opened, input => Assert.Same(buffer, input.BufferSnapshot));
+                    Assert.All(opened, input => Assert.Equal(7, input.Input.Version));
+                    Assert.Contains("Disk", File.ReadAllText(path));
+                    documents.Open.Clear();
+                    var closed = Assert.Single(await source.CaptureAsync(new[] { path }, CancellationToken.None));
+                    Assert.Null(closed.BufferSnapshot);
+                    Assert.Contains("Disk", closed.Input.Text);
+                    Assert.False(opened[0].Matches(closed));
+                }
+                Assert.Equal(0, documents.Subscribers);
+            }
+        }
+
+        [Theory]
+        [InlineData("utf-8")]
+        [InlineData("utf-16")]
+        [InlineData("iso-8859-1")]
+        public void ClosedFileCaptureHonorsXmlEncodingAndPreservesExactText(string encodingName)
+        {
+            using (var directory = new TempDirectory())
+            {
+                string path = Path.Combine(directory.Path, "Encoded.almx");
+                string text = "<?xml version='1.0' encoding='" + encodingName + "'?>\r\n<Alarmlist><!-- äöü --><Alarm><Name>Größe</Name></Alarm></Alarmlist>";
+                File.WriteAllText(path, text, Encoding.GetEncoding(encodingName));
+                Assert.Equal(text, ProjectAnalysisInputSource.ReadXmlText(path));
+            }
+        }
+
+        [Fact]
+        public async Task MissingInputFailsTheWholeCaptureAndNoFilesAreCreatedAsync()
+        {
+            using (var directory = new TempDirectory())
+            using (var source = new ProjectAnalysisInputSource(new Documents()))
+            {
+                string path = Path.Combine(directory.Path, "Missing.almx");
+                IOException exception = await Assert.ThrowsAsync<IOException>(() => source.CaptureAsync(new[] { path }, CancellationToken.None));
+                Assert.Contains(path, exception.Message);
+                Assert.Empty(Directory.GetFiles(directory.Path));
+            }
+        }
+
+        [Fact]
+        public async Task DiskWatcherFindsSelectedFileCreationAndRenameAndDetachesOnDisposeAsync()
+        {
+            using (var directory = new TempDirectory())
+            {
+                string path = Path.Combine(directory.Path, "sub", "Created.almx");
+                var documents = new Documents();
+                using (var source = new ProjectAnalysisInputSource(documents))
+                {
+                    source.Watch(new AnalysisProject("Plant", "Debug", null, new[] { path }));
+                    Task created = ExpectChangeAsync(source, path, () =>
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(path));
+                        File.WriteAllText(path, "<Alarmlist/>");
+                    });
+                    await created;
+                    await ExpectChangeAsync(source, path, () => File.Move(path, path + ".moved"));
+                    Assert.False(File.Exists(path));
+                    source.Watch(null);
+                    long events = 0;
+                    source.Changed += (sender, args) => Interlocked.Increment(ref events);
+                    documents.Notify(path);
+                    Assert.Equal(0, Interlocked.Read(ref events));
+                }
+                Assert.Equal(0, documents.Subscribers);
+            }
+        }
+
+        [Fact]
+        public async Task SharedBufferRenameNotifiesBothSelectedIdentitiesAsync()
+        {
+            using (var directory = new TempDirectory())
+            {
+                string oldPath = Path.Combine(directory.Path, "Old.almx");
+                string newPath = Path.Combine(directory.Path, "New.almx");
+                var documents = new Documents();
+                using (var source = new ProjectAnalysisInputSource(documents))
+                {
+                    source.Watch(new AnalysisProject("Plant", "Debug", null, new[] { oldPath, newPath }));
+                    await ExpectChangeAsync(source, oldPath, () => documents.Notify(oldPath));
+                    await ExpectChangeAsync(source, newPath, () => documents.Notify(newPath));
+                }
+            }
+        }
+
+        private static async Task ExpectChangeAsync(ProjectAnalysisInputSource source, string path, Action action)
+        {
+            var signal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler<AnalysisFileChangedEventArgs> changed = (sender, args) => { if (args.Path == path) signal.TrySetResult(true); };
+            source.Changed += changed;
+            try
+            {
+                action();
+                Assert.Same(signal.Task, await Task.WhenAny(signal.Task, Task.Delay(10000)));
+                await signal.Task;
+            }
+            finally { source.Changed -= changed; }
+        }
+
+        private static async Task ExpectNameAsync(ProjectAnalysisService service, string name)
+        {
+            var signal = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler changed = (sender, args) =>
+            {
+                var state = service.Current;
+                if (state.Status == ProjectAnalysisStatus.Available
+                    && state.Response.Snapshot.Alarms[1].Fields.Single(field => field.Name == "Name").EffectiveValue == name) signal.TrySetResult(true);
+            };
+            service.Changed += changed;
+            try
+            {
+                changed(null, EventArgs.Empty);
+                Assert.Same(signal.Task, await Task.WhenAny(signal.Task, Task.Delay(10000)));
+                await signal.Task;
+            }
+            finally { service.Changed -= changed; }
+        }
+
+        private sealed class Documents : IOpenAnalysisDocuments
+        {
+            public readonly ConcurrentDictionary<string, CapturedAnalysisInput> Open = new ConcurrentDictionary<string, CapturedAnalysisInput>();
+            public event EventHandler<AnalysisFileChangedEventArgs> Changed;
+            public int Subscribers => Changed?.GetInvocationList().Length ?? 0;
+            public Task<IReadOnlyDictionary<string, CapturedAnalysisInput>> CaptureAsync(IReadOnlyList<string> paths, CancellationToken token)
+                => Task.FromResult<IReadOnlyDictionary<string, CapturedAnalysisInput>>(new Dictionary<string, CapturedAnalysisInput>(Open));
+            public void Notify(string path) => Changed?.Invoke(this, new AnalysisFileChangedEventArgs(path));
+        }
+
+        private sealed class TempDirectory : IDisposable
+        {
+            private static readonly string s_root = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Alarmlist Analysis Tests"));
+            public string Path { get; } = System.IO.Path.Combine(s_root, Guid.NewGuid().ToString("N"));
+            public TempDirectory() { Directory.CreateDirectory(Path); }
+            public void Dispose()
+            {
+                string path = System.IO.Path.GetFullPath(Path);
+                if (!path.StartsWith(s_root + System.IO.Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Unsafe test cleanup.");
+                Directory.Delete(path, true);
+            }
+        }
+    }
+}

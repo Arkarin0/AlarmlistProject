@@ -19,6 +19,23 @@ namespace Alarmlist.MSBuild.SDK.Tests
         }
 
         [Fact]
+        public void EvaluationExposesTheRestoredDesktopAnalysisCompilerWithoutBuilding()
+        {
+            var app = _fixture.CreateTestApp("MinimalProject");
+            var result = app.Run(_output, "/getProperty:AlarmlistAnalysisCompilerAssembly");
+            Assert.True(result.ExitCode == 0, result.Output);
+            string expected = Path.Combine(app.PackageDirectory, "tasks", "net472", "Alarmlist.Core.dll");
+            Assert.Equal(expected, result.Output.Trim(), ignoreCase: true);
+            Assert.True(File.Exists(expected));
+            Assert.False(File.Exists(app.OutputPath));
+
+            var overriddenTask = app.Run(_output, "/getProperty:AlarmlistAnalysisCompilerAssembly", "/p:AlarmlistTasksAssembly=custom-build-task.dll");
+            Assert.True(overriddenTask.ExitCode == 0, overriddenTask.Output);
+            Assert.Equal(expected, overriddenTask.Output.Trim(), ignoreCase: true);
+            Assert.False(File.Exists(app.OutputPath));
+        }
+
+        [Fact]
         public void PackagedCompilerAnalyzesUnsavedSnapshotsWithOrigins()
         {
             var app = _fixture.CreateTestApp("AnalysisContract");

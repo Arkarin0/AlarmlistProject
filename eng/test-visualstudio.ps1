@@ -4,6 +4,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$VisualStudioPath,
   [string]$Configuration = 'Debug',
+  [string]$RootSuffix = 'AlarmlistExp',
   [switch]$KeepOpen
 )
 
@@ -109,6 +110,14 @@ public static class AlarmlistRunningObjectTable
         // VS2026 renamed command 265 from Window.NewWindow to Window.NewTab;
         // its Window.NewWindow now floats the existing tab instead of copying it.
         string duplicateCommand = dte.Commands.Item("{5EFC7975-14BC-11CF-9B2B-00AA00573819}", 265).Name;
+        // A fresh experimental profile may still be initializing the native
+        // editor's command routing when Show returns. Wait for readiness before
+        // invoking the command, just as we wait for the new window below.
+        for (int attempt = 0; attempt < 50 && !dte.Commands.Item(duplicateCommand, 0).IsAvailable; attempt++)
+        {
+            document.Activate();
+            System.Threading.Thread.Sleep(100);
+        }
         dte.ExecuteCommand(duplicateCommand, "");
         // Activation can lag behind ExecuteCommand on newer hosts. Close only
         // the newly created window, never whichever window is active at return.
@@ -392,7 +401,7 @@ $retainInstance = $false
 [AlarmlistRunningObjectTable]::RegisterMessageFilter()
 try {
   $ide = Start-Process -FilePath (Join-Path $VisualStudioPath 'Common7/IDE/devenv.exe') `
-    -ArgumentList @(('"' + $solutionPath + '"'), '/RootSuffix', 'AlarmlistExp', '/Log', ('"' + (Join-Path $runDirectory 'ActivityLog.xml') + '"')) `
+    -ArgumentList @(('"' + $solutionPath + '"'), '/RootSuffix', $RootSuffix, '/Log', ('"' + (Join-Path $runDirectory 'ActivityLog.xml') + '"')) `
     -WindowStyle Hidden -PassThru
   $dte = Wait-For { [AlarmlistRunningObjectTable]::Find($ide.Id) } 'Visual Studio automation startup'
   # The ROT entry may be published before the IDE accepts automation calls.

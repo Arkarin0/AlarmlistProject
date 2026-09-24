@@ -1,8 +1,9 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: compiler iterations one and two implemented: snapshot input, located
-diagnostics, and detached field/procedure provenance. Project analysis and the reference-aware UI remain
-planned. The procedure interaction below is the recommended design. Continue the MVVM,
+Status: iterations one through four implemented: snapshot input, located
+diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
+project analysis subscriptions with buffer/disk snapshots. The reference-aware UI
+remains planned. The procedure interaction below is the recommended design. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -90,7 +91,7 @@ Suggested responsibilities, with names finalized during implementation:
 | WPF inheritance behavior | Attach/detach adorners and expose visual state; contain no binding or compiler rules. |
 
 Keep CPS/VSSDK adapters in `ProjectSystem/` and `Editor/`, project analysis models
-in a proposed `Analysis/` folder, and presentation in `UI/`. Use typed factories
+in `Analysis/`, and presentation in `UI/`. Use typed factories
 and constructor injection through existing MEF composition. No service lookup
 inside models/view models. Update AGENTS.md's project map when these folders are
 actually introduced.
@@ -287,8 +288,8 @@ Label pending or incomplete results and which project configuration they use.
 | Step | Work | Evidence required |
 | --- | --- | --- |
 | 1. Stabilize the baseline | Completed in the updated milestone-two record; retain its regression coverage. | Both IDE hosts passed editor/project smoke, Save As, shared identity, and interactive cancellation checks. Checkout-based provider coverage remains unavailable. |
-| 2. Prove compiler analysis access | Snapshot/provenance contract and package-consumer smoke implemented. VS SDK loading/isolation remains next. | Unsaved cross-file input resolves without disk writes; different SDK versions must still be shown to coexist or produce a clear compatibility state; no private compiler in VSIX. Record the chosen bridge mechanism. |
-| 3. Add project snapshots | Implement CPS input subscriptions, buffer/disk precedence, cancellation, and result publication. | Conditional/removed inputs, configuration changes, linked files, closed-file changes, invalid input, and unload cannot publish obsolete results. |
+| 2. Prove compiler analysis access | Implemented: snapshot/provenance contract, isolated AppDomain bridge, and evaluated SDK path adapter. | Packaged unsaved analysis, simultaneous same-identity SDK locations, explicit incompatible-version state, cleanup, and a standalone packaged worker pass. No private compiler in VSIX. See iteration three for the loading mechanism and validation limits. |
+| 3. Add project snapshots | Implemented: CPS evaluation subscription, buffer/disk capture, debounce, generation gates, and ownership/cleanup. | Controlled tests cover conditional/removed inputs, configuration changes, linked files, file watching, invalid input, and unload during analysis. Packaged end-to-end unsaved inheritance and existing editor smoke pass; performance and direct live-semantic UI assertions remain. |
 | 4. Add references and scalar UI | Implement completion/navigation, effective field state, override commands, and chain adorners. | Multi-hop origin, empty local values, identical local/inherited text, active drafts, Undo, keyboard access, and themes behave as specified. |
 | 5. Add inherited procedures | Implement row origins, Clear presentation, effective sequence, and section commands. | Instructions/Reset remain independent; whole-section copy preserves effective behavior without duplicating local rows; source preservation and atomic Undo verified. |
 | 6. Add diagnostics and preview | Integrate navigable live errors, MSBuild locations, and in-memory output preview. | Compiler/build/live results agree for identical inputs; unsaved edits update live results; failures never produce a successful preview or new compiled output. |
@@ -446,7 +447,7 @@ contract version, unsaved input, inherited fields, procedure origins, Clear, and
 result isolation. It has no compiler project reference and produces no compiled
 alarm file. This is package API coverage, not a VS loading/isolation implementation.
 
-Next iteration: implement and test the resolved-SDK bridge with explicit contract
+Iteration-two handoff: implement and test the resolved-SDK bridge with explicit contract
 compatibility, unload/lifetime handling, and isolation between SDK versions. Then
 connect CPS input snapshots before adding completion, chain adorners, procedure
 commands, live diagnostics, or preview. Neither the SDK nor the VSIX was published.
@@ -469,3 +470,164 @@ The existing CA1416 warning in the shared test helper remains. Interactive IDE
 smoke/navigation, performance, and checkout-provider checks were not rerun because
 this iteration does not change editor behavior. The earlier milestone-two host
 validation remains a separate record.
+
+## Iteration three: isolated SDK analysis bridge
+
+The SDK now evaluates `AlarmlistAnalysisCompilerAssembly` to the absolute path of
+its net472 compiler, independently of the build-task runtime and task-path override.
+`AlarmlistAnalysisBridgeProvider` reads that property from its CPS ConfiguredProject
+and opens the injected bridge factory on a worker thread. It performs no build,
+source discovery, or saves. The future project service will consume this adapter.
+
+`SdkAnalysisBridge` owns one dedicated .NET Framework AppDomain per instance.
+The worker loads the requested compiler by absolute path, verifies its loaded
+identity/location and desktop framework, checks contract 1 and every consumed
+property type/enum, and executes an empty analysis before returning availability.
+Missing evaluation/assemblies, incompatible contracts, load failures, malformed
+XML, and analysis failures have distinct states and explanatory messages. Reference
+errors remain available analysis results with compiler diagnostics and Success=false.
+No failure substitutes a different SDK or returns an old successful result.
+
+Only extension-owned serializable input and immutable result data cross the domain
+boundary. The worker uses reflection to copy compiler answers; it has no semantic
+resolution rules. Compiler instances, reflection metadata, and SDK exception objects
+remain inside the domain. Source versions, local/effective fields, all procedure
+origins/Clear exclusions, and diagnostic locations are preserved. Origin ordinals
+remain result-local; consumers must compare their values rather than object identity.
+
+The domain uses SingleDomain loading and its own configuration instead of the VS
+host's binding redirects. The worker has no remoting lease timeout. Analyze and
+Dispose serialize access; Dispose unloads the domain and releases the compiler
+image, and repeated disposal is safe. Call these operations off the UI thread.
+There is no compiler shadow copy or shared global compiler cache. Disposal waits
+for an active analysis; contract 1 cannot interrupt a compiler call. Cancellation
+is checked before and after analysis so cancelled results are discarded. The next
+project service must additionally gate publication on current input generations,
+dispose on unload/configuration/SDK changes, and handle any domain-unload failure.
+The adapter disposes a newly opened bridge if its opening request was cancelled.
+
+The host/source separation follows the existing Roslyn-inspired workspace design.
+AppDomain lifetime follows Microsoft's
+[.NET Framework unloading guidance](https://learn.microsoft.com/en-us/dotnet/framework/app-domains/how-to-unload-an-application-domain).
+This small reflection/remoting boundary fits the existing net472 VS host and avoids
+adding a compiler dependency or another assembly to the VSIX. It provides version
+isolation, not a security boundary for executing untrusted SDK code.
+
+Iteration-three validation (2026-09-24):
+
+| Suite | Result |
+| --- | --- |
+| Visual Studio unit tests, including 16 new bridge cases | 73 passed, net472 |
+| SDK package-consumer tests using dotnet MSBuild | 19 passed per framework, net472 and net8.0 |
+| SDK package-consumer tests using VS2022 desktop MSBuild | 19 passed, net472; previous environment setting restored |
+| VSIX/template integration tests | 10 passed per framework |
+
+Bridge tests use the compiler extracted from the built SDK and also execute the
+worker from the actual VSIX assembly in an otherwise empty application directory.
+Two simultaneous SDK locations with the same compiler assembly identity remain
+separate, disposal/reopening works, and synthetic old/future/incomplete APIs with
+assembly version 99 report incompatibility without disturbing a compatible bridge.
+Results survive unloading; failed initialization releases its image; the host domain
+never acquires Alarmlist.Core. These are controlled package/loader tests, not a claim
+that two released SDK versions or live CPS composition were tested inside the IDE.
+
+The SDK/VSIX were rebuilt. No compiler or MSBuild task implementation changed, so
+their direct suites were not rerun. Interactive VS2022/VS2026 smoke, live project
+unload/configuration transitions, cancellation during a long compiler call, and
+performance remain for project-service integration. Neither package was published.
+
+Iteration-three handoff: project input snapshots and ownership. Subscribe to evaluated
+Compile items/configuration changes, prefer open shared buffers over disk, debounce
+analysis, reject obsolete results, and dispose bridges/subscriptions on unload.
+After that, implement reference selection, scalar chain adorners, inherited procedure
+rows/section commands, live diagnostics, and resolved preview.
+
+## Iteration four: project snapshots, scheduling, and ownership
+
+`AlarmlistProjectAnalysis` is a CPS dynamic-load component at project scope. It
+subscribes to the active configuration's evaluation source and captures ordered
+Compile items and the SDK compiler path from the same immutable ProjectInstance.
+`AlarmlistProjectSnapshot` replaces iteration three's one-off property reader.
+It preserves evaluated conditions, removals, order, and duplicate inputs; it does
+not glob or infer project membership. Configuration transitions invalidate current
+results, and queued snapshots from another configuration are ignored.
+
+`ProjectAnalysisService` owns the bridge and a disposable input source. Requests
+are debounced by 250 ms and serialized through a semaphore using Visual Studio's
+JoinableTaskContext. Every accepted change increments the project generation and
+immediately clears the previous result. Superseded requests are cancelled; a
+compiler call that ignores cancellation cannot publish its result. Configuration
+or SDK changes recycle the bridge, while ordinary document edits reuse it.
+
+`VsAnalysisDocuments` captures open shared buffers through the RDT and editor
+adapters, including documents opened before the service and XML-only editor views.
+It observes document creation/disposal, text changes, and file actions for rename
+and Save As. It never saves, edits, or disposes VS-owned documents. An open input
+that is still loading is incomplete rather than silently replaced by disk text.
+Uncommitted control drafts remain outside the shared text and analysis.
+
+Closed inputs are read without altering their XML text, honoring BOM/declaration
+encoding. File watchers observe only selected inputs and the compiler path; watched
+directories can include linked files outside the project. Missing directories are
+watched through an existing ancestor. Create/delete/rename changes invalidate the
+selected file, and watcher errors request a full refresh and watcher recreation.
+Watchers determine changes, never membership. Read failures produce incomplete
+state without a partial compiler result or obsolete reference diagnostics.
+
+Before publication, the service captures the inputs again and compares paths,
+text, buffer versions, and buffer snapshot identity. The final generation check
+also guards project changes during capture/analysis. Disk versions are scoped to
+the project generation; buffer source versions retain native editor version numbers.
+Results expose Pending, Available, Incomplete, Unavailable, and Stopped states.
+Available results may contain normal compiler reference errors. Subscribers must
+dispatch as needed and read Current rather than retain an event's older state.
+
+`ProjectAnalysisRegistry` lists all owning project contexts for a document. Linked
+files can have separate results in separate projects; loose/excluded files have no
+borrowed context. CPS unload removes the registry entry and subscriptions, cancels
+pending work, and asynchronously releases the bridge/watchers after active work.
+The existing document sessions and per-view drafts remain independent.
+
+This adapts Roslyn's immutable-current-workspace approach and CPS's active-source
+lifetime patterns, using the APIs available in the pinned CPS SDK. The
+[CPS up-to-date component](https://github.com/dotnet/project-system/blob/main/src/Microsoft.VisualStudio.ProjectSystem.Managed.VS/ProjectSystem/VS/UpToDate/BuildUpToDateCheck.cs)
+is a reference for subscription ownership and recycling; ALMX analysis remains a
+smaller service without compiler/build logic in its host adapters.
+
+Iteration-four validation (2026-09-24):
+
+| Check | Result |
+| --- | --- |
+| Visual Studio unit tests, including 19 new project/input cases | 92 passed, net472; no new build warnings |
+| VSIX/template integration tests | 10 passed per framework, net472 and net8.0 |
+| VS2022 17.14.26 experimental smoke | Passed in separate AlarmlistM3 profile; log directory `17764539dcc34accaf6335bde80749e7` |
+| VS2026 18.10.2 experimental smoke | Passed in separate AlarmlistM3 profile; log directory `435081a58ba24c69a0b157ad3474deae` |
+
+Smoke logs are under `artifacts/log/Debug/VisualStudioSmoke/`. Both hosts exercised
+the current extension's editor, XML-first sharing, duplicate windows, Undo/Redo,
+Save All, local/linked Save As, project reopen, item lifecycle, and build commands.
+The initial VS2022 AlarmlistExp deployment was blocked by an open IDE's DLL lock;
+its subsequent old-build smoke is excluded from this record. The smoke script now
+accepts a matching `-RootSuffix`. The first fresh-profile VS2026 run reached the
+editor before Window.NewTab was available; a bounded command-readiness wait was
+added, and the rerun passed. Existing user IDE sessions were left open.
+
+Controlled tests cover debounce, edits/configuration switches/unload during an
+uncancellable call, silent buffer identity changes, removed inputs, independent
+linked contexts, SDK recovery/replacement, incomplete input, actual file watching,
+encoding, and subscription cleanup. An end-to-end test uses the real packaged SDK
+through the project service to resolve unsaved cross-file inheritance and then
+return to disk values when the buffer closes, without saving or writing output.
+
+The SDK/VSIX were rebuilt and deployed only to experimental profiles. The compiler,
+MSBuild task, and SDK build behavior did not change in this iteration, so their
+direct suites were not rerun. The existing IDE smoke validates editor/lifecycle
+regressions; it does not directly inspect semantic service results inside the IDE.
+Those assertions, configuration-switch UI coverage, and large-project latency and
+retained-memory measurements remain for presentation integration. No packages were
+published, and chain adorners/live Error List/preview are not yet exposed.
+
+Next iteration: connect current project results to the designer's reference and
+scalar view models, add reference selection/source navigation, and implement the
+inherited-value chain Adorner with local override commands and draft preservation.
+Inherited procedure rows and section commands follow that slice.

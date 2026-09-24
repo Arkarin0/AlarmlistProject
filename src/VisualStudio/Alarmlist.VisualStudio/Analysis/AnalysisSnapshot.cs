@@ -1,0 +1,204 @@
+// Created/modified by Arkarin0 under one ore more license(s).
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Alarmlist.VisualStudio.Analysis
+{
+    // These copied values are owned by the host. No SDK types cross the AppDomain
+    // boundary, and results remain usable after the compiler domain is unloaded.
+    internal enum AnalysisStepKind { Instruction, Hint, Warning, Note }
+    internal enum AnalysisSeverity { Info, Warning, Error }
+
+    [Serializable]
+    internal sealed class AnalysisSource
+    {
+        public string FilePath { get; }
+        public int Version { get; }
+
+        public AnalysisSource(string filePath, int version)
+        {
+            FilePath = filePath;
+            Version = version;
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisLocation
+    {
+        public string FilePath { get; }
+        public int LineNumber { get; }
+        public int ColumnNumber { get; }
+        public int EndLineNumber { get; }
+        public int EndColumnNumber { get; }
+        public int? SourceVersion { get; }
+
+        public AnalysisLocation(string filePath, int lineNumber, int columnNumber, int endLineNumber, int endColumnNumber, int? sourceVersion)
+        {
+            FilePath = filePath;
+            LineNumber = lineNumber;
+            ColumnNumber = columnNumber;
+            EndLineNumber = endLineNumber;
+            EndColumnNumber = endColumnNumber;
+            SourceVersion = sourceVersion;
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisAlarmOrigin
+    {
+        public int Index { get; }
+        public string FullyQualifiedName { get; }
+        public AnalysisLocation Location { get; }
+
+        public AnalysisAlarmOrigin(int index, string fullyQualifiedName, AnalysisLocation location)
+        {
+            Index = index;
+            FullyQualifiedName = fullyQualifiedName;
+            Location = location;
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisEntryOrigin
+    {
+        public AnalysisAlarmOrigin Alarm { get; }
+        public string Section { get; }
+        public int Index { get; }
+        public AnalysisLocation Location { get; }
+
+        public AnalysisEntryOrigin(AnalysisAlarmOrigin alarm, string section, int index, AnalysisLocation location)
+        {
+            Alarm = alarm;
+            Section = section;
+            Index = index;
+            Location = location;
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisField
+    {
+        public string Name { get; }
+        public bool IsPresent { get; }
+        public string LocalValue { get; }
+        public AnalysisLocation LocalLocation { get; }
+        public string EffectiveValue { get; }
+        public AnalysisAlarmOrigin DefiningAlarm { get; }
+        public AnalysisLocation ValueLocation { get; }
+        public bool IsInherited { get; }
+
+        public AnalysisField(string name, bool isPresent, string localValue, AnalysisLocation localLocation, string effectiveValue, AnalysisAlarmOrigin definingAlarm, AnalysisLocation valueLocation, bool isInherited)
+        {
+            Name = name;
+            IsPresent = isPresent;
+            LocalValue = localValue;
+            LocalLocation = localLocation;
+            EffectiveValue = effectiveValue;
+            DefiningAlarm = definingAlarm;
+            ValueLocation = valueLocation;
+            IsInherited = isInherited;
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisEntry
+    {
+        public AnalysisStepKind? Kind { get; }
+        public bool IsClear { get; }
+        public string Text { get; }
+        public AnalysisEntryOrigin Origin { get; }
+        public bool IsInherited { get; }
+        public AnalysisEntryOrigin ExcludedBy { get; }
+
+        public AnalysisEntry(AnalysisStepKind? kind, bool isClear, string text, AnalysisEntryOrigin origin, bool isInherited, AnalysisEntryOrigin excludedBy)
+        {
+            Kind = kind;
+            IsClear = isClear;
+            Text = text;
+            Origin = origin;
+            IsInherited = isInherited;
+            ExcludedBy = excludedBy;
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisSection
+    {
+        public string Name { get; }
+        public IReadOnlyList<AnalysisEntry> LocalEntries { get; }
+        public IReadOnlyList<AnalysisEntry> EffectiveEntries { get; }
+        public IReadOnlyList<AnalysisEntry> ExcludedEntries { get; }
+
+        public AnalysisSection(string name, IReadOnlyList<AnalysisEntry> localEntries, IReadOnlyList<AnalysisEntry> effectiveEntries, IReadOnlyList<AnalysisEntry> excludedEntries)
+        {
+            Name = name;
+            LocalEntries = Array.AsReadOnly(localEntries.ToArray());
+            EffectiveEntries = Array.AsReadOnly(effectiveEntries.ToArray());
+            ExcludedEntries = Array.AsReadOnly(excludedEntries.ToArray());
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisAlarm
+    {
+        public AnalysisAlarmOrigin Origin { get; }
+        public string ReferenceName { get; }
+        public bool IsResolved { get; }
+        public IReadOnlyList<AnalysisAlarmOrigin> ReferenceChain { get; }
+        public IReadOnlyList<AnalysisField> Fields { get; }
+        public AnalysisSection Instructions { get; }
+        public AnalysisSection Reset { get; }
+
+        public AnalysisAlarm(AnalysisAlarmOrigin origin, string referenceName, bool isResolved, IReadOnlyList<AnalysisAlarmOrigin> referenceChain, IReadOnlyList<AnalysisField> fields, AnalysisSection instructions, AnalysisSection reset)
+        {
+            Origin = origin;
+            ReferenceName = referenceName;
+            IsResolved = isResolved;
+            ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
+            Fields = Array.AsReadOnly(fields.ToArray());
+            Instructions = instructions;
+            Reset = reset;
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisDiagnostic
+    {
+        public string Id { get; }
+        public AnalysisSeverity Severity { get; }
+        public string Message { get; }
+        public AnalysisLocation Location { get; }
+        public IReadOnlyList<AnalysisLocation> RelatedLocations { get; }
+
+        public AnalysisDiagnostic(string id, AnalysisSeverity severity, string message, AnalysisLocation location, IReadOnlyList<AnalysisLocation> relatedLocations)
+        {
+            Id = id;
+            Severity = severity;
+            Message = message;
+            Location = location;
+            RelatedLocations = Array.AsReadOnly(relatedLocations.ToArray());
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisSnapshot
+    {
+        public int ContractVersion { get; }
+        public bool Success { get; }
+        public IReadOnlyList<AnalysisSource> Sources { get; }
+        public IReadOnlyList<AnalysisAlarm> Alarms { get; }
+        public IReadOnlyList<AnalysisDiagnostic> Diagnostics { get; }
+
+        public AnalysisSnapshot(int contractVersion, bool success, IReadOnlyList<AnalysisSource> sources, IReadOnlyList<AnalysisAlarm> alarms, IReadOnlyList<AnalysisDiagnostic> diagnostics)
+        {
+            ContractVersion = contractVersion;
+            Success = success;
+            Sources = Array.AsReadOnly(sources.ToArray());
+            Alarms = Array.AsReadOnly(alarms.ToArray());
+            Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        }
+    }
+}
+

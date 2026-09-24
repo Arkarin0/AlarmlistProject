@@ -1,0 +1,166 @@
+// Created/modified by Arkarin0 under one ore more license(s).
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.Composition;
+using System.IO;
+using System.Linq;
+using System.Threading;
+
+namespace Alarmlist.VisualStudio.Analysis
+{
+    internal enum AnalysisAvailability { Available, SdkUnavailable, UnsupportedContract, LoadFailed, InvalidInput, AnalysisFailed }
+
+    [Serializable]
+    internal sealed class AnalysisInput
+    {
+        public string Text { get; }
+        public string FilePath { get; }
+        public int Version { get; }
+
+        public AnalysisInput(string text, string filePath, int version)
+        {
+            Text = text ?? throw new ArgumentNullException(nameof(text));
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A source path is required.", nameof(filePath));
+            if (version < 0) throw new ArgumentOutOfRangeException(nameof(version));
+            FilePath = filePath;
+            Version = version;
+        }
+    }
+
+    [Serializable]
+    internal sealed class AnalysisResponse
+    {
+        public AnalysisAvailability Availability { get; }
+        public string Message { get; }
+        public AnalysisSnapshot Snapshot { get; }
+
+        public AnalysisResponse(AnalysisAvailability availability, string message, AnalysisSnapshot snapshot = null)
+        { Availability = availability; Message = message; Snapshot = snapshot; }
+    }
+
+    internal sealed class BridgeOpenResult
+    {
+        public AnalysisAvailability Availability { get; }
+        public string Message { get; }
+        public ISdkAnalysisBridge Bridge { get; }
+
+        public BridgeOpenResult(AnalysisAvailability availability, string message, ISdkAnalysisBridge bridge = null)
+        { Availability = availability; Message = message; Bridge = bridge; }
+    }
+
+    internal interface ISdkAnalysisBridgeFactory
+    {
+        BridgeOpenResult Open(string evaluatedCompilerPath);
+    }
+
+    internal interface ISdkAnalysisBridge : IDisposable
+    {
+        string CompilerPath { get; }
+        string CompilerIdentity { get; }
+        AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken cancellationToken = default);
+    }
+
+    [Export(typeof(ISdkAnalysisBridgeFactory))]
+    internal sealed class SdkAnalysisBridgeFactory : ISdkAnalysisBridgeFactory
+    {
+        public BridgeOpenResult Open(string evaluatedCompilerPath) => SdkAnalysisBridge.Open(evaluatedCompilerPath);
+    }
+
+    /// <summary>Owned by one project/configuration. Call off the UI thread and dispose on SDK change or project unload.</summary>
+    internal sealed class SdkAnalysisBridge : ISdkAnalysisBridge
+    {
+        private readonly object _gate = new object();
+        private AppDomain _domain;
+        private readonly SdkAnalysisWorker _worker;
+        public string CompilerPath { get; }
+        public string CompilerIdentity { get; }
+
+        private SdkAnalysisBridge(AppDomain domain, SdkAnalysisWorker worker, string compilerPath, string identity)
+        { _domain = domain; _worker = worker; CompilerPath = compilerPath; CompilerIdentity = identity; }
+
+        internal static BridgeOpenResult Open(string evaluatedCompilerPath)
+        {
+            if (string.IsNullOrWhiteSpace(evaluatedCompilerPath))
+                return new BridgeOpenResult(AnalysisAvailability.SdkUnavailable,
+                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 1.");
+
+            AppDomain domain = null;
+            try
+            {
+                string root = Path.GetPathRoot(evaluatedCompilerPath);
+                if (string.IsNullOrEmpty(root) || root == "\\" || root == "/" || root.EndsWith(":", StringComparison.Ordinal))
+                    return new BridgeOpenResult(AnalysisAvailability.SdkUnavailable, "The evaluated analysis compiler path must be absolute: " + evaluatedCompilerPath);
+                string path = Path.GetFullPath(evaluatedCompilerPath);
+                if (!File.Exists(path))
+                    return new BridgeOpenResult(AnalysisAvailability.SdkUnavailable, "Restore the project's Alarmlist.MSBuild.SDK. Its analysis compiler was not found: " + path);
+
+                string hostAssembly = typeof(SdkAnalysisWorker).Assembly.Location;
+                domain = AppDomain.CreateDomain("Alarmlist analysis " + Guid.NewGuid().ToString("N"), null, new AppDomainSetup
+                {
+                    ApplicationBase = Path.GetDirectoryName(hostAssembly),
+                    ConfigurationFile = hostAssembly + ".config",
+                    LoaderOptimization = LoaderOptimization.SingleDomain,
+                    DisallowBindingRedirects = true,
+                    DisallowCodeDownload = true
+                });
+                var worker = (SdkAnalysisWorker)domain.CreateInstanceFromAndUnwrap(hostAssembly, typeof(SdkAnalysisWorker).FullName);
+                AnalysisResponse initialized = worker.Initialize(path);
+                if (initialized.Availability != AnalysisAvailability.Available)
+                    return new BridgeOpenResult(initialized.Availability, initialized.Message);
+
+                var bridge = new SdkAnalysisBridge(domain, worker, path, worker.CompilerIdentity);
+                domain = null; // Ownership transfers only after successful initialization.
+                return new BridgeOpenResult(AnalysisAvailability.Available, null, bridge);
+            }
+            catch (Exception exception) when (IsRecoverable(exception))
+            {
+                return new BridgeOpenResult(AnalysisAvailability.LoadFailed,
+                    "Unable to load the project's analysis compiler at " + evaluatedCompilerPath + ": " + exception.Message);
+            }
+            finally
+            {
+                if (domain != null) AppDomain.Unload(domain);
+            }
+        }
+
+        public AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken cancellationToken = default)
+        {
+            if (inputs == null) throw new ArgumentNullException(nameof(inputs));
+            cancellationToken.ThrowIfCancellationRequested();
+            AnalysisInput[] snapshots = inputs.ToArray();
+            if (snapshots.Any(input => input == null)) throw new ArgumentException("An input must not be null.", nameof(inputs));
+            lock (_gate)
+            {
+                if (_domain == null) throw new ObjectDisposedException(nameof(SdkAnalysisBridge));
+                cancellationToken.ThrowIfCancellationRequested();
+                AnalysisResponse response;
+                try { response = _worker.Analyze(snapshots); }
+                catch (Exception exception) when (IsRecoverable(exception))
+                {
+                    response = new AnalysisResponse(AnalysisAvailability.AnalysisFailed, "SDK analysis failed: " + exception.Message);
+                }
+                // Contract 1 has no cancellation parameter. Discard superseded work
+                // after the call; do not abort compiler threads or publish stale data.
+                cancellationToken.ThrowIfCancellationRequested();
+                return response;
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (_gate)
+            {
+                if (_domain == null) return;
+                AppDomain.Unload(_domain);
+                _domain = null;
+            }
+        }
+
+        internal static bool IsRecoverable(Exception exception)
+        {
+            return !(exception is OutOfMemoryException) && !(exception is StackOverflowException)
+                && !(exception is ThreadAbortException) && !(exception is AccessViolationException);
+        }
+    }
+}

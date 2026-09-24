@@ -6,6 +6,8 @@
     <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_AlarmlistTaskFramework>
     <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_AlarmlistTaskFramework>
     <AlarmlistTasksAssembly Condition="'$(AlarmlistTasksAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/$(_AlarmlistTaskFramework)/AlarmList.MSBuild.dll</AlarmlistTasksAssembly>
+    <!-- The in-process Visual Studio analysis bridge always runs on .NET Framework. -->
+    <AlarmlistAnalysisCompilerAssembly>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '../tasks/net472/Alarmlist.Core.dll'))</AlarmlistAnalysisCompilerAssembly>
     <BuildDependsOn>BeforeBuild;CoreBuild;AfterBuild;$(BuildDependsOn)</BuildDependsOn>
     <CleanDependsOn>BeforeClean;CoreClean;AfterClean;$(CleanDependsOn)</CleanDependsOn>
   </PropertyGroup>

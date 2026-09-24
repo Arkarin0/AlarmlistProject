@@ -116,9 +116,18 @@ projection; unrelated valid alarms remain available. Malformed XML still throws
 they are not persistent identities. Editor commands must validate source versions
 and use source locations rather than treating procedure indexes as XML child indexes.
 
-This API does not install a Visual Studio analysis service. SDK loading/version
-isolation, project subscriptions, and inherited-value UI are later implementation
-steps. Keep using the project's resolved SDK compiler for those integrations.
+The SDK exposes `AlarmlistAnalysisCompilerAssembly` during project evaluation as
+the absolute path to its `tasks/net472/Alarmlist.Core.dll`. It always selects the
+desktop compiler for the in-process Visual Studio host, regardless of the build
+runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
+target and writes no compiled output. Treat it as an SDK-provided location;
+an absent property means the SDK does not provide this bridge integration.
+
+The extension now has an isolated AppDomain bridge for contract 1 and a CPS
+project service that captures this property and ordered Compile inputs from the
+same evaluation, then analyzes current buffer/disk snapshots. Inherited-value UI
+and live Error List publication remain later implementation steps. Release the matching
+SDK before distributing a VSIX that uses the new contract.
 
 ## Build and test this repository
 

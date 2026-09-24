@@ -9,6 +9,20 @@
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" />
     <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.SDK" Version="17.9.380" PrivateAssets="all" />
     <Reference Include="System.Xaml" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Content Include="../../SDK/Alarmlist.SDK/tools/Rules/*.xaml" Link="Rules/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="PrepareAnalysisBridgeTestAssets" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="../../SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" Targets="GetSdkPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_AnalysisSdkPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_AnalysisSdkPackage)" DestinationFiles="$(TargetDir)testassets/analysis-sdk.nupkg" />
+    <MSBuild Projects="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_AnalysisExtensionAssembly" />
+    </MSBuild>
+    <Copy SourceFiles="@(_AnalysisExtensionAssembly->'%(RootDir)%(Directory)Alarmlist.VisualStudio.vsix')" DestinationFolder="$(TargetDir)testassets" />
+  </Target>
 </Project>

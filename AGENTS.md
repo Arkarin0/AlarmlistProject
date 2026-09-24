@@ -29,8 +29,8 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `src/MSBuild/SampleData/` | Shared ALMX samples and a project that invokes the task directly. |
 | `src/SDK/Alarmlist.SDK/` | SDK packaging project, `sdk/` entry points, and `tools/` props/targets. |
 | `src/SDK/Alarmlist.SDK.Tests/` | Tests of the packaged SDK, isolated consumer projects, and build lifecycle. |
-| `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, templates, and MVVM designer/XML split editor. `Editor/` owns host integration, `Documents/` shared models, `Editing/` source-preserving edits, and `UI/` views/view models. |
-| `src/VisualStudio/Alarmlist.VisualStudio.UnitTests/` | `net472` editor/model, XML preservation, CPS build-check, and MSBuild XAML schema tests. |
+| `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, templates, and MVVM designer/XML split editor. `Editor/` owns host integration and open-buffer observation, `Documents/` shared models, `Editing/` source-preserving edits, `Analysis/` the SDK bridge, project snapshots/scheduling and file watching, `ProjectSystem/` CPS subscriptions, and `UI/` views/view models. |
+| `src/VisualStudio/Alarmlist.VisualStudio.UnitTests/` | `net472` editor/model, XML preservation, SDK bridge isolation/package-worker, CPS build-check, and MSBuild XAML schema tests. |
 | `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks. |
 | `src/shared/Unittesting/` | Shared compiler/task test helpers linked through build configuration. |
 | `eng/` | Repository build settings, version properties, and common build tooling. |
@@ -211,6 +211,17 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   templates must use the built SDK version; do not add private compiler copies
   or hard-coded local package paths. Keep the CPS up-to-date provider requesting
   builds until removed/conditional input handling has an alternative guarantee.
+- The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
+  SDK's net472 compiler independently of the build task runtime. The extension's
+  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-1 data
+  into host-owned results. Do not load compiler types in the VS host domain, add a
+  compiler project reference, or substitute another SDK on failure. Call bridge
+  operations off the UI thread; owners must dispose on SDK/configuration changes
+  and unload. `AlarmlistProjectAnalysis` owns the service through CPS dynamic-load
+  callbacks and the active evaluation source. Preserve evaluated Compile order and
+  duplicates, open-buffer precedence (including XML-only views), immediate stale
+  result invalidation, and generation/text/identity checks before publication.
+  Shared VS buffers remain VS-owned; disposing analysis must not close them.
 - Release the authoritative SDK package to NuGet.org before distributing its
   matching VSIX. `eng/release-visualstudio.ps1` separates candidate preparation,
   explicit SDK publication, and fresh-cache verification of the published SDK.
@@ -220,6 +231,9 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   2022 or 2026 for this workflow. Use desktop MSBuild for explicit experimental deployment
   and `eng/test-visualstudio.ps1` for the IDE smoke test. Package tests alone do not
   verify Visual Studio UI behavior.
+- The smoke script accepts `-RootSuffix` (default `AlarmlistExp`). Match the suffix
+  used for deployment; a separate experimental profile allows validation without
+  replacing an extension DLL held by an existing IDE session.
 
 ## Coding style
 

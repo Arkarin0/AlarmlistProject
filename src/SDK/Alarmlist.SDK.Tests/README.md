@@ -23,6 +23,9 @@ and [TestApp](https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Ar
   contract version, field/procedure origins, Clear, result isolation, and absence
   of disk writes without a compiler project reference. The ordinary test run
   exercises the net8.0 payload; the desktop-MSBuild run below exercises net472.
+- Evaluation tests check that `AlarmlistAnalysisCompilerAssembly` points to the
+  restored package's net472 compiler under either MSBuild runtime, including when
+  the build-task path is overridden, without running Build or writing output.
 - `ProjectReferenceTests` additionally exercises the test project's actual SDK
   reference with Visual Studio build settings and `BuildProjectReferences=false`.
   These repository-build regression tests require the checkout and its restored

@@ -15,9 +15,24 @@ inherited fields with WPF chain-icon adorners, inherited test-procedure rows,
 live diagnostics, and resolved preview. It recommends section-level local copies
 for customizing inherited procedures. The first two iterations add compiler
 snapshots, file/line information for build diagnostics, and a read-only analysis
-API for field/procedure origins and Clear exclusions. The reference-aware UI and
-live project analysis are still planned. Milestone-two lifecycle validation is recorded
-below and remains regression coverage.
+API for field/procedure origins and Clear exclusions. Iteration three adds an
+isolated SDK analysis bridge and a CPS adapter for the evaluated compiler path.
+Iteration four starts project analysis from CPS subscriptions, using current open
+buffers and watched disk inputs. The reference-aware UI is still planned. Milestone-two
+lifecycle validation is recorded below and remains regression coverage.
+
+The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
+in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
+incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off
+the UI thread, recreating the bridge after SDK/configuration changes. The project
+service now owns that lifecycle and input subscriptions, debounces edits by 250 ms,
+and clears stale results immediately. Generation, text, and buffer identity checks
+guard publication. XML-only editor buffers take precedence over disk, and drafts
+that have not reached the shared buffer remain outside analysis. A context registry
+keeps linked projects separate; views do not yet display the semantic results.
+Unit tests extract the built SDK and VSIX to verify
+unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
+without a compiler project reference or additional VSIX assemblies.
 
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax
@@ -244,6 +259,11 @@ development tools installed. Find its path and instance ID with `vswhere`:
 
 powershell.exe -NoProfile -STA -File eng/test-visualstudio.ps1 -VisualStudioPath '<VS installation>'
 ```
+
+Use matching custom deployment/smoke suffixes, for example
+`/p:VSSDKTargetPlatformRegRootSuffix=AlarmlistM3` and `-RootSuffix AlarmlistM3`,
+when an existing experimental IDE is holding the extension DLL. The smoke waits
+for the duplicate-window command to become available during editor startup.
 
 The smoke script starts a separate `AlarmlistExp` instance, discovers the installed
 templates, creates a project, adds a folder and ALMX item, renames it, closes and
