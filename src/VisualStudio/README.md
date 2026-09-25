@@ -37,6 +37,12 @@ Iteration fourteen adds opt-in running-IDE analysis/lifecycle measurements to th
 smoke script and records final host regressions and the remaining release gates.
 Milestone-two lifecycle validation is recorded below and remains regression coverage.
 
+The proposed [milestone-four plan](MILESTONE-4.md) covers explicitly enabled
+well-known and custom property expressions, shared compiler/build/editor context,
+and property completion in designer fields. It defines compatibility gates and
+seven implementation iterations. Milestone three's remaining release checks stay
+open; milestone four is not implemented yet.
+
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off

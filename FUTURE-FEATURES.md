@@ -4,6 +4,13 @@ Status: ideas for future development, recorded on 2026-09-24. These notes captur
 intent and open design questions; they do not define implemented behavior,
 committed milestones, or a delivery schedule.
 
+Planning update (2026-09-25): the proposed
+[milestone-four plan](src/VisualStudio/MILESTONE-4.md) selects well-known and custom
+string properties plus their designer completion as its scope. It supplies
+recommended answers to the property questions below; these notes retain the
+broader ideas. Localization, XML completion, and syntax generation remain
+unassigned. The proposal does not describe implemented behavior.
+
 ## Well-known properties and custom properties
 
 Introduce `wellknownProperties`: predefined values that can be referenced in ALMX
@@ -62,7 +69,9 @@ property definitions or localization files.
 
 Coordinate this work with the reference-name completion already planned in
 [Visual Studio milestone three](src/VisualStudio/MILESTONE-3.md). The broader
-property and localization completion described here has no assigned milestone.
+property completion is proposed for designer fields in
+[milestone four](src/VisualStudio/MILESTONE-4.md). Localization completion and
+broader XML IntelliSense have no assigned milestone.
 
 ## Generate syntax nodes from an external definition
 
