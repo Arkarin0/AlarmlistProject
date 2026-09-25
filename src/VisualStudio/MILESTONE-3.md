@@ -1,6 +1,6 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: implementation and runnable validation through iteration sixteen are
+Status: implementation and runnable validation through iteration seventeen are
 complete: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
@@ -12,8 +12,9 @@ local-override focus fixes, contextual action names, two-host functional accepta
 and running-IDE analysis/lifecycle measurements. Release acceptance remains open
 for spoken screen-reader output, native high contrast, mixed-DPI transitions,
 keystroke-to-paint responsiveness, and remaining whole-IDE memory growth. The
-extension binding-retention paths found by heap profiling are fixed; see iteration
-fifteen for the measured scope and limits. Continue the MVVM,
+extension binding and document-ownership retention paths found by heap profiling
+are fixed; see iterations fifteen through seventeen for the measured scope and
+limits. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -1406,3 +1407,68 @@ window and Windows Settings timed out. No native high-contrast theme or display
 scale was changed, and no actual speech/transcript acceptance is claimed. The
 user was asked to expose the contrast settings and Speech Recap windows. These
 interactive gates and precise keystroke-to-paint measurement remain open.
+
+## Iteration seventeen: observe VS documents without owning them
+
+Iteration sixteen was committed as `6211e7b`. The VS2022 root path began with the
+shared `VsAnalysisDocuments` service's strong document dictionary. It continued
+through document/buffer adapters, native XML view hosts and the split control to
+disposed designers and analysis snapshots. Waiting for `TextDocumentDisposed`
+while holding the document alive made the observer an unintended owner.
+
+The observer now uses a conditional weak table for registrations and weak
+references for deterministic event detachment. It still handles creation,
+changes, renames and disposal, and never disposes a VS-owned document or buffer.
+Dead weak entries are pruned during registration. Three regressions cover
+collection while the observer remains alive, duplicate registration, rename
+notifications, and document/service disposal. Strict editor-contract stand-ins
+reject unexpected ownership operations. Test-only editor assemblies use pinned
+PackageDownload assets matching the VSIX, preserving the CPS dependency family.
+
+VS2022 17.14.36930.0, Debug, AlarmlistM3, 1,002 alarms, 20 measured closes:
+
+| Check | Before observer fix | After observer fix |
+| --- | --- | --- |
+| Reachable closed designer models, warmup -> final | 7 -> 27 | 0 -> 0 |
+| Reachable disposed analysis adapters, warmup -> final | 7 -> 27 | 0 -> 0 |
+| Reachable managed objects, MiB, warmup -> final | 135.6 -> 177.6 | 125.2 -> 122.9 |
+
+These are separate process runs, not a controlled host-performance comparison.
+The managed root walk no longer found the observed retained designer graphs.
+Private memory after measured closes 1 and 20 was 925.9 -> 947.9 MiB; Gen-2
+collections advanced from three to four. XML diagnostic latency was median
+326.2 / maximum 389.6 ms, and designer latency was 332.7 / 387.9 ms. No collection
+was forced in the IDE. Full smoke, source/output preservation and owned-process
+cleanup passed. Evidence is
+`artifacts/log/Debug/VisualStudioSmoke/f59a2a01ffe04d6da788209b62f5ea3a/`.
+
+Final code validation: 220 Visual Studio unit tests passed with one opt-in
+performance theory skipped; packaged VSIX consumers passed 10 tests on each of
+net472 and net8.0. Logs are `m3-iteration17-unit.log`,
+`m3-iteration17-document-lifetime.log`, `m3-iteration17-package.log` and
+`m3-iteration17-heap2022.log` under `artifacts/log/Debug/`.
+
+A native keyboard check in VS2026's retained iteration-sixteen smoke fixture
+rendered an appended Unicode draft in the Name field and restored the original
+value on Escape. Source and compiled-output hashes stayed unchanged. This was a
+small-fixture functional check, not a keystroke-to-paint timing measurement.
+Its baseline is `artifacts/log/Debug/m3-typing-baseline.json`; the fixture is
+`VisualStudioSmoke/f50a8066bc8e48099f40394b193172ed/`. Narrator was stopped after
+its attempted validation. No contrast theme or monitor scale was changed.
+
+Automatic approval review rejected closing that retained VS2026 window because
+it might contain unsaved solution/application state. It remains open; permission
+to save the generated solution metadata and close it was requested. A separate
+`AlarmlistM3Memory` profile was deployed for the final VS2026 observer repeat, but
+its first-run sign-in screen prevented automation startup. The driver timed out
+and cleaned up its own new process without producing measurements. No pass is
+claimed for that attempt (`m3-iteration17-heap2026.log`, fixture
+`VisualStudioSmoke/a735cc6a66264cb6ae02650a02420b49/`). The earlier 100-cycle
+VS2026 binding-fix result remains valid for that build.
+
+Remaining release acceptance: actual screen-reader output, native high contrast,
+mixed-DPI movement, precise native typing/paint measurement, and the final
+VS2026 observer/long-session process-memory repeat. The two identified extension
+retention causes and missing live-region event are fixed, but these results do
+not establish a plateau for all native/managed IDE allocations. No SDK or VSIX
+was published.

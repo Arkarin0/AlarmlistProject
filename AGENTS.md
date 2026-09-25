@@ -228,6 +228,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   duplicates, open-buffer precedence (including XML-only views), immediate stale
   result invalidation, and generation/text/identity checks before publication.
   Shared VS buffers remain VS-owned; disposing analysis must not close them.
+  Document observation must use weak ownership: waiting for TextDocumentDisposed
+  while strongly retaining the document can keep closed VS2022 editor graphs alive.
   Export dynamic load components through the named unconfigured-project scope,
   and release analysis on CPS scope disposal as well as capability unload. Bridge
   remoting may resolve only the already-loaded extension assembly in the VS host;
@@ -258,7 +260,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   XML, and refuse copies that would discard unsupported local content. Keep local
   draft controls stable during semantic refreshes.
 - Designer BAML tests use the pinned shell assembly as a PackageDownload test
-  asset; table tests use matching Shell.Framework and Interop assets. This preserves
+  asset; table tests use matching Shell.Framework and Interop assets, and document
+  observer tests use the matching Text.Data, CoreUtility and Editor assets. This preserves
   the CPS test host's MSBuild dependency family. Keep those versions aligned with
   the extension's VS SDK; do not bundle these host assemblies in the VSIX.
 - Live diagnostics belong to `Alarmlist.LiveDiagnostics`, separate from Build

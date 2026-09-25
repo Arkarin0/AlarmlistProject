@@ -14,6 +14,16 @@
     <PackageDownload Include="Microsoft.VisualStudio.Shell.15.0" Version="[17.9.37000]" />
     <PackageDownload Include="Microsoft.VisualStudio.Shell.Framework" Version="[17.9.37000]" />
     <PackageDownload Include="Microsoft.VisualStudio.Interop" Version="[17.9.37000]" />
+    <!-- Document observer tests use the same editor contracts as the VSIX. -->
+    <PackageDownload Include="Microsoft.VisualStudio.Text.Data" Version="[17.9.187]" />
+    <PackageDownload Include="Microsoft.VisualStudio.CoreUtility" Version="[17.9.187]" />
+    <PackageDownload Include="Microsoft.VisualStudio.Editor" Version="[17.9.187]" />
+    <Reference Include="Microsoft.VisualStudio.Text.Data"
+               HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.text.data/17.9.187/lib/net472/Microsoft.VisualStudio.Text.Data.dll" />
+    <Reference Include="Microsoft.VisualStudio.CoreUtility"
+               HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.coreutility/17.9.187/lib/net472/Microsoft.VisualStudio.CoreUtility.dll" />
+    <Reference Include="Microsoft.VisualStudio.Editor"
+               HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.editor/17.9.187/lib/net472/Microsoft.VisualStudio.Editor.dll" />
     <Reference Include="Microsoft.VisualStudio.Shell.Framework"
                HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.shell.framework/17.9.37000/lib/net472/Microsoft.VisualStudio.Shell.Framework.dll" />
     <Reference Include="Microsoft.VisualStudio.Interop"

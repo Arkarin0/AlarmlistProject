@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +26,10 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly IServiceProvider _services;
         private readonly IVsEditorAdaptersFactoryService _adapters;
         private readonly ITextDocumentFactoryService _documents;
-        private readonly Dictionary<ITextDocument, TrackedDocument> _tracked = new Dictionary<ITextDocument, TrackedDocument>();
+        // Observation must not keep VS-owned buffers/views alive until VS raises
+        // TextDocumentDisposed; on some hosts that notification follows collection.
+        private readonly ConditionalWeakTable<ITextDocument, TrackedDocument> _tracked = new ConditionalWeakTable<ITextDocument, TrackedDocument>();
+        private readonly List<WeakReference<ITextDocument>> _subscriptions = new List<WeakReference<ITextDocument>>();
         private bool _disposed;
         public event EventHandler<AnalysisFileChangedEventArgs> Changed;
 
@@ -86,7 +90,7 @@ namespace Alarmlist.VisualStudio.Editor
         {
             lock (_gate)
             {
-                if (_disposed || _tracked.ContainsKey(document)) return;
+                if (_disposed || _tracked.TryGetValue(document, out _)) return;
                 var tracked = new TrackedDocument(document.FilePath);
                 tracked.TextChanged = (sender, args) => Changed?.Invoke(this, new AnalysisFileChangedEventArgs(document.FilePath));
                 tracked.FileChanged = (sender, args) =>
@@ -97,6 +101,8 @@ namespace Alarmlist.VisualStudio.Editor
                     if (oldPath != document.FilePath) Changed?.Invoke(this, new AnalysisFileChangedEventArgs(document.FilePath));
                 };
                 _tracked.Add(document, tracked);
+                _subscriptions.RemoveAll(reference => !reference.TryGetTarget(out _));
+                _subscriptions.Add(new WeakReference<ITextDocument>(document));
                 document.TextBuffer.Changed += tracked.TextChanged;
                 document.FileActionOccurred += tracked.FileChanged;
             }
@@ -111,6 +117,8 @@ namespace Alarmlist.VisualStudio.Editor
                 {
                     Detach(args.TextDocument, tracked);
                     _tracked.Remove(args.TextDocument);
+                    _subscriptions.RemoveAll(reference => !reference.TryGetTarget(out ITextDocument document)
+                        || ReferenceEquals(document, args.TextDocument));
                     path = tracked.Path;
                 }
             }
@@ -131,8 +139,16 @@ namespace Alarmlist.VisualStudio.Editor
                 _disposed = true;
                 _documents.TextDocumentCreated -= OnCreated;
                 _documents.TextDocumentDisposed -= OnDisposed;
-                foreach (KeyValuePair<ITextDocument, TrackedDocument> pair in _tracked) Detach(pair.Key, pair.Value);
-                _tracked.Clear();
+                foreach (WeakReference<ITextDocument> reference in _subscriptions)
+                {
+                    if (reference.TryGetTarget(out ITextDocument document) && _tracked.TryGetValue(document, out TrackedDocument tracked))
+                    {
+                        Detach(document, tracked);
+                        _tracked.Remove(document);
+                    }
+                }
+                _subscriptions.Clear();
+                Changed = null;
             }
         }
 
