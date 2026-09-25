@@ -81,7 +81,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             });
         }
 
-        internal static void RunOnSta(Action action)
+        internal static void RunOnSta(Action action, TimeSpan? timeout = null)
         {
             Exception failure = null;
             var thread = new Thread(() =>
@@ -93,7 +93,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             thread.IsBackground = true;
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
-            Assert.True(thread.Join(TimeSpan.FromSeconds(15)), "WPF test did not complete.");
+            Assert.True(thread.Join(timeout ?? TimeSpan.FromSeconds(15)), "WPF test did not complete.");
             if (failure != null) ExceptionDispatchInfo.Capture(failure).Throw();
         }
 

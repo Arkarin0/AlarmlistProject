@@ -243,6 +243,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   Clear both previews during drafts or stale/unavailable analysis; project XML
   requires whole-project success. Keep preview support optional for older SDKs,
   and copy XML as a string outside the required contract-1 property map.
+- Designer lookup caches must validate current text/version before reuse and be
+  keyed by immutable analysis state, captured input, and selected source. Keep
+  unchanged preview controls stable so text selection/focus survives refreshes,
+  while refreshing command availability during asynchronous validation.
 - Procedure presentation uses SDK local/effective/excluded entries and origins;
   never infer Clear exclusions or execution order from displayed text. Section
   copies require current resolved inputs and produce one buffer edit with a leading
@@ -273,6 +277,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
 - The smoke script accepts `-RootSuffix` (default `AlarmlistExp`). Match the suffix
   used for deployment; a separate experimental profile allows validation without
   replacing an extension DLL held by an existing IDE session.
+- `eng/measure-visualstudio-analysis.ps1` runs opt-in x64 net472 measurements of the
+  packaged SDK bridge and actual WPF designer BAML in Release by default. It keeps
+  CSV samples, test results, and revision/runtime details under `artifacts/log/`.
+  Normal tests skip the performance theory; do not introduce machine-dependent
+  timing assertions. These measurements exclude live VS/RDT capture and CPS debounce.
 
 ## Coding style
 

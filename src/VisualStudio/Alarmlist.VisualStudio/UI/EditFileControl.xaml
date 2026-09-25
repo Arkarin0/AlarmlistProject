@@ -8,6 +8,9 @@
   SizeChanged="OnSizeChanged" PreviewKeyDown="OnPreviewKeyDown">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="Visibility" />
+    <Style TargetType="Expander">
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+    </Style>
     <Style TargetType="TextBox">
       <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
@@ -24,10 +27,12 @@
             <StackPanel>
               <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
               <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="160"
-                       VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Procedure value" />
+                       VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Label, StringFormat=Procedure {0}}"
+                       AutomationProperties.HelpText="{Binding OriginText}" />
               <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
               <TextBlock Text="{Binding ExclusionText}" TextWrapping="Wrap" />
-              <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0" />
+              <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                      AutomationProperties.Name="{Binding Label, StringFormat=Go to source for {0}}" />
             </StackPanel>
           </Border>
         </ContentControl>
@@ -102,7 +107,8 @@
                                AutomationProperties.HelpText="{Binding OriginText}" ToolTip="{Binding OriginText}" />
                     </AdornerDecorator>
                     <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
-                    <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                    <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                            AutomationProperties.Name="{Binding Name, StringFormat=Go to source for resolved {0}}" />
                   </StackPanel>
                 </DataTemplate></ItemsControl.ItemTemplate>
               </ItemsControl>
@@ -123,7 +129,7 @@
               <TextBlock Text="{Binding XmlPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,6" AutomationProperties.LiveSetting="Polite" />
               <TextBox Text="{Binding CompiledXml, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas"
                        MaxHeight="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                       AutomationProperties.Name="Compiled project XML" />
+                       AutomationProperties.Name="Compiled project XML" AutomationProperties.HelpText="{Binding XmlPreviewMessage}" />
             </StackPanel>
           </Expander>
           <StackPanel IsEnabled="{Binding CanEdit}">

@@ -195,6 +195,102 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
+        public void RefreshUsesOneSnapshotWhenBackgroundAnalysisCompletesDuringNotification()
+        {
+            using (var session = new SemanticSession())
+            {
+                ProjectAnalysisState available = session.Analysis.Current;
+                var pending = new ProjectAnalysisState(2, available.Project, ProjectAnalysisStatus.Pending, "Pending");
+                int reads = 0;
+                session.Analysis.ReadCurrent = () => ++reads == 1 ? pending : available;
+                session.Analysis.Set(pending);
+                Assert.Empty(session.View.ResolvedFields);
+                Assert.Empty(session.View.ReferenceChoices);
+                Assert.Null(session.View.CompiledXml);
+                Assert.Equal("Pending", session.View.AnalysisMessage);
+                session.Analysis.ReadCurrent = null;
+                session.Analysis.Set(available);
+                Assert.Equal("Inherited", session.View.ResolvedFields[1].Value);
+            }
+        }
+
+        [Fact]
+        public async Task UnchangedPreviewRefreshStillUpdatesNavigationAvailabilityAsync()
+        {
+            using (var session = new SemanticSession())
+            {
+                ResolvedFieldViewModel field = session.View.ResolvedFields[1];
+                var completion = new TaskCompletionSource<bool>();
+                session.Analysis.Validation = completion.Task;
+                int notifications = 0;
+                field.GoToSourceCommand.CanExecuteChanged += (sender, args) => notifications++;
+                field.GoToSourceCommand.Execute(null);
+                Assert.Same(field, session.View.ResolvedFields[1]);
+                Assert.False(field.GoToSourceCommand.CanExecute(null));
+                Assert.True(notifications > 0);
+                completion.SetResult(true);
+                await session.View.PendingAnalysisAction;
+                Assert.True(field.GoToSourceCommand.CanExecute(null));
+                Assert.NotNull(session.Analysis.Navigation);
+            }
+        }
+
+        [Theory]
+        [InlineData("\r")]
+        [InlineData("\n")]
+        [InlineData("\r\n")]
+        public void CachedSelectionLookupDistinguishesDeclarationsAcrossLineEndings(string newline)
+        {
+            string text = ChildAlarm.Replace("<Alarm>", "<!-- header -->" + newline
+                + " <Alarm><FullyQualifiedName>Sibling</FullyQualifiedName><Name>Local</Name></Alarm>" + newline + " <Alarm>")
+                .Replace("<ReferenceName>", newline + "   <ReferenceName>");
+            using (var session = new SemanticSession(text))
+            {
+                Assert.Equal("Local", session.View.ResolvedFields[1].Value);
+                Assert.DoesNotContain(session.View.ReferenceChoices, choice => choice.Identifier == "Sibling");
+                session.View.Selected = session.View.Alarms.Last();
+                Assert.Equal("Inherited", session.View.ResolvedFields[1].Value);
+                Assert.Contains(session.View.ReferenceChoices, choice => choice.Identifier == "Sibling");
+                session.Analysis.Set(session.Analysis.Current);
+                Assert.Equal("Inherited", session.View.ResolvedFields[1].Value);
+                session.View.Selected = session.View.Alarms.First();
+                Assert.Equal("Local", session.View.ResolvedFields[1].Value);
+                session.Buffer.SetText(text.Replace("<Name>Local</Name>", "<Name>Changed</Name>"));
+                Assert.Empty(session.View.ResolvedFields);
+                session.Analyze();
+                Assert.Equal("Changed", session.View.ResolvedFields[1].Value);
+            }
+        }
+
+        [Fact]
+        public void UnchangedAnalysisPreservesPreviewTextSelectionAndLogicalFocus()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession())
+                using (var host = new HwndSource(new HwndSourceParameters("ALMX preview selection test")
+                { Width = 950, Height = 850, WindowStyle = unchecked((int)0x80000000) }))
+                {
+                    var control = new EditFileControl(session.View) { Width = 900, Height = 800 };
+                    host.RootVisual = control;
+                    InheritanceAdornerTests.Pump();
+                    VisualChildren(control).OfType<Expander>().Single(item => Equals(item.Header, "Resolved alarm preview")).IsExpanded = true;
+                    InheritanceAdornerTests.Pump();
+                    TextBox name = VisualChildren(control).OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Resolved Name");
+                    name.Select(1, 4);
+                    System.Windows.Input.FocusManager.SetFocusedElement(control, name);
+                    session.Analysis.Set(session.Analysis.Current);
+                    InheritanceAdornerTests.Pump();
+                    TextBox refreshed = VisualChildren(control).OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Resolved Name");
+                    Assert.Equal("nher", refreshed.SelectedText);
+                    Assert.Same(refreshed, System.Windows.Input.FocusManager.GetFocusedElement(control));
+                    Assert.False(session.View.HasPending);
+                    Assert.Equal(0, session.Buffer.Edits);
+                }
+            });
+        }
+
+        [Fact]
         public void PreviewBamlDisplaysReadOnlyValuesWithChainAdornersWithoutEditing()
         {
             InheritanceAdornerTests.RunOnSta(() =>

@@ -40,6 +40,8 @@ namespace Alarmlist.VisualStudio.UI
 
     internal sealed partial class EditFileControlViewModel
     {
+        private ProjectAnalysisState _previewState;
+        private AnalysisAlarm _previewAlarm;
         public IReadOnlyList<ResolvedFieldViewModel> ResolvedFields { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
         public IReadOnlyList<ResolvedSectionViewModel> ResolvedSections { get; private set; } = Array.Empty<ResolvedSectionViewModel>();
         public string ResolvedPreviewMessage { get; private set; }
@@ -49,16 +51,26 @@ namespace Alarmlist.VisualStudio.UI
 
         private void RefreshPreview(ProjectAnalysisState state, AnalysisAlarm alarm)
         {
-            ResolvedFields = Array.Empty<ResolvedFieldViewModel>();
-            ResolvedSections = Array.Empty<ResolvedSectionViewModel>();
-            CompiledXml = null;
-            PreviewContext = _disposed || state?.Project == null ? null
-                : state.Project.ProjectPath + " (" + state.Project.Configuration + ")";
             string unavailable = _disposed ? "The view is closed."
                 : HasPending ? "Commit or cancel local drafts to view resolved values and compiled XML."
                 : state?.Status != ProjectAnalysisStatus.Available || state.Response?.Snapshot == null
                     ? state?.Message ?? "Waiting for current project analysis."
                 : !IsValid || !DiagnosticDocumentMatches(state) ? "Waiting for analysis of the current document." : null;
+            if (unavailable == null && ReferenceEquals(_previewState, state) && ReferenceEquals(_previewAlarm, alarm))
+            {
+                // An unchanged result can still change command availability while
+                // navigation validates inputs. Preserve selection/focus in controls.
+                foreach (ResolvedFieldViewModel field in ResolvedFields) field.GoToSourceCommand.Refresh();
+                foreach (ProcedureAnalysisRow row in ResolvedSections.SelectMany(section => section.Items)) row.GoToSourceCommand.Refresh();
+                return;
+            }
+            _previewState = unavailable == null ? state : null;
+            _previewAlarm = unavailable == null ? alarm : null;
+            ResolvedFields = Array.Empty<ResolvedFieldViewModel>();
+            ResolvedSections = Array.Empty<ResolvedSectionViewModel>();
+            CompiledXml = null;
+            PreviewContext = _disposed || state?.Project == null ? null
+                : state.Project.ProjectPath + " (" + state.Project.Configuration + ")";
             ResolvedPreviewMessage = unavailable;
             XmlPreviewMessage = unavailable;
             if (unavailable == null)

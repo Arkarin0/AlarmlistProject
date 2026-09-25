@@ -30,6 +30,12 @@ namespace Alarmlist.VisualStudio.UI
         private int _draftVersion;
         private string _analysisMessage;
         private ReferenceChoice _referenceChoice;
+        private ProjectAnalysisState _alarmState;
+        private AlarmSource _alarmSource;
+        private AnalysisInput _alarmInput;
+        private AnalysisAlarm _currentAlarm;
+        private ProjectAnalysisState _choicesState;
+        private AnalysisAlarm _choicesAlarm;
         public IReadOnlyList<AnalysisProject> Projects => _analysis?.Projects ?? Array.Empty<AnalysisProject>();
         public IReadOnlyList<ReferenceChoice> ReferenceChoices { get; private set; } = Array.Empty<ReferenceChoice>();
         public ReferenceChoice SelectedReferenceChoice
@@ -118,31 +124,52 @@ namespace Alarmlist.VisualStudio.UI
 
         private bool CanUseAnalysis => !_disposed && !_analysisBusy && !HasPending && CanEdit && CurrentAlarm() != null;
 
-        private AnalysisAlarm CurrentAlarm()
+        private AnalysisAlarm CurrentAlarm() => CurrentAlarm(_analysis?.Current);
+
+        private AnalysisAlarm CurrentAlarm(ProjectAnalysisState state)
         {
-            ProjectAnalysisState state = _analysis?.Current;
             if (state?.Status != ProjectAnalysisStatus.Available || state.Response?.Snapshot == null || _original == null
-                || !ReferenceEquals(_baseline, _model.Projection)) return null;
+                || !ReferenceEquals(_baseline, _model.Projection)) return ClearCurrentAlarm();
             CapturedAnalysisInput input = state.Inputs.FirstOrDefault(item => string.Equals(item.Input.FilePath,
                 _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase));
-            if (input == null || input.Input.Text != _model.Projection.Text || input.Input.Version != _model.Version) return null;
-            AnalysisAlarm[] matches = state.Response.Snapshot.Alarms.Where(alarm => SameAlarm(alarm.Origin, _original, input.Input.Text)).ToArray();
-            return matches.Length == 1 ? matches[0] : null;
+            if (input == null || input.Input.Text != _model.Projection.Text || input.Input.Version != _model.Version) return ClearCurrentAlarm();
+            // Check the live document first, even on cache hits. The source and
+            // result are immutable, so commands need not rescan every declaration.
+            if (ReferenceEquals(_alarmState, state) && ReferenceEquals(_alarmSource, _original) && ReferenceEquals(_alarmInput, input.Input))
+                return _currentAlarm;
+            _alarmState = state;
+            _alarmSource = _original;
+            _alarmInput = input.Input;
+            GetDeclarationPosition(input.Input.Text, _original.Start + 1, out int line, out int column);
+            AnalysisAlarm[] matches = state.Response.Snapshot.Alarms.Where(alarm => alarm.Origin.Location != null
+                && string.Equals(alarm.Origin.Location.FilePath, _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase)
+                && alarm.Origin.Location.LineNumber == line && alarm.Origin.Location.ColumnNumber == column).Take(2).ToArray();
+            _currentAlarm = matches.Length == 1 ? matches[0] : null;
+            return _currentAlarm;
         }
 
-        private bool SameAlarm(AnalysisAlarmOrigin origin, AlarmSource source, string text)
+        private AnalysisAlarm ClearCurrentAlarm()
         {
-            AnalysisLocation location = origin.Location;
-            if (location == null || !string.Equals(location.FilePath, _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase)) return false;
-            int offset = 0;
-            for (int line = 1; line < location.LineNumber; line++)
-            {
-                while (offset < text.Length && text[offset] != '\n' && text[offset] != '\r') offset++;
-                if (offset == text.Length) return false;
-                if (text[offset++] == '\r' && offset < text.Length && text[offset] == '\n') offset++;
-            }
+            _alarmState = null; _alarmSource = null; _alarmInput = null; _currentAlarm = null;
+            return null;
+        }
+
+        private static void GetDeclarationPosition(string text, int offset, out int line, out int column)
+        {
+            line = 1;
+            column = 1;
             // XmlReader locations point at the element name, just after '<'.
-            return offset + location.ColumnNumber - 1 == source.Start + 1;
+            // Scan once for the selected source, not once for every SDK alarm.
+            for (int index = 0; index < offset; index++)
+            {
+                if (text[index] == '\r' || text[index] == '\n')
+                {
+                    if (text[index] == '\r' && index + 1 < offset && text[index + 1] == '\n') index++;
+                    line++;
+                    column = 1;
+                }
+                else column++;
+            }
         }
 
         private void OnAnalysisChanged(object sender, EventArgs args) => RefreshAnalysis();
@@ -154,7 +181,7 @@ namespace Alarmlist.VisualStudio.UI
             {
                 ProjectAnalysisState state = _analysis?.Current;
                 RefreshDiagnostics(state);
-                AnalysisAlarm alarm = CurrentAlarm();
+                AnalysisAlarm alarm = CurrentAlarm(state);
                 RefreshPreview(state, alarm);
                 bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
                 foreach (AlarmFieldViewModel field in Fields)
@@ -163,24 +190,29 @@ namespace Alarmlist.VisualStudio.UI
                 foreach (ProcedureSectionViewModel section in ProcedureSections)
                     section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasChanges)
                         ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry));
-                string selectedReference = _referenceChoice?.Identifier;
-                ReferenceChoices = alarm == null ? Array.Empty<ReferenceChoice>() : state.Response.Snapshot.Alarms
-                    .Where(item => !string.IsNullOrEmpty(item.Origin.FullyQualifiedName))
-                    .GroupBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
-                    .Where(group => group.Count() == 1).Select(group => group.Single())
-                    .Where(item => item.IsResolved && item.Origin.Index != alarm.Origin.Index
-                        && item.ReferenceChain.All(origin => origin.Index != alarm.Origin.Index))
-                    .OrderBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
-                    .Select(item => new ReferenceChoice(item)).ToArray();
-                _referenceChoice = ReferenceChoices.FirstOrDefault(item => item.Identifier == selectedReference);
+                if (!ReferenceEquals(_choicesState, state) || !ReferenceEquals(_choicesAlarm, alarm))
+                {
+                    _choicesState = state;
+                    _choicesAlarm = alarm;
+                    string selectedReference = _referenceChoice?.Identifier;
+                    ReferenceChoices = alarm == null ? Array.Empty<ReferenceChoice>() : state.Response.Snapshot.Alarms
+                        .Where(item => !string.IsNullOrEmpty(item.Origin.FullyQualifiedName))
+                        .GroupBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
+                        .Where(group => group.Count() == 1).Select(group => group.Single())
+                        .Where(item => item.IsResolved && item.Origin.Index != alarm.Origin.Index
+                            && item.ReferenceChain.All(origin => origin.Index != alarm.Origin.Index))
+                        .OrderBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
+                        .Select(item => new ReferenceChoice(item)).ToArray();
+                    _referenceChoice = ReferenceChoices.FirstOrDefault(item => item.Identifier == selectedReference);
+                    Notify(nameof(ReferenceChoices)); Notify(nameof(SelectedReferenceChoice));
+                }
                 _analysisMessage = state == null
                     ? (Projects.Count > 1 ? "Choose a project context to show inherited values." : "Project analysis is unavailable for this file. Local editing is available.")
                     : state.Status != ProjectAnalysisStatus.Available ? state.Message ?? state.Status.ToString()
                     : alarm == null ? "Waiting for analysis of the current document."
                     : !alarm.IsResolved ? "This alarm's reference could not be resolved. Check ReferenceName."
                     : "Values from " + Path.GetFileName(state.Project.ProjectPath) + " (" + state.Project.Configuration + ").";
-                Notify(nameof(Projects)); Notify(nameof(SelectedProjectPath)); Notify(nameof(ReferenceChoices));
-                Notify(nameof(SelectedReferenceChoice)); Notify(nameof(AnalysisMessage));
+                Notify(nameof(Projects)); Notify(nameof(SelectedProjectPath)); Notify(nameof(AnalysisMessage));
                 ApplyReferenceCommand?.Refresh(); GoToReferenceCommand?.Refresh();
             }
             finally { _refreshingAnalysis = false; }
@@ -195,7 +227,7 @@ namespace Alarmlist.VisualStudio.UI
         private async Task RunAnalysisActionAsync(Action<ProjectAnalysisState, AnalysisAlarm> action)
         {
             ProjectAnalysisState state = _analysis.Current;
-            AnalysisAlarm alarm = CurrentAlarm();
+            AnalysisAlarm alarm = CurrentAlarm(state);
             AlarmSource original = _original;
             int draftVersion = _draftVersion;
             _analysisBusy = true;
@@ -244,6 +276,8 @@ namespace Alarmlist.VisualStudio.UI
         {
             if (_disposed) return;
             _disposed = true;
+            ClearCurrentAlarm();
+            _choicesState = null; _choicesAlarm = null;
             RefreshPreview(null, null);
             _analysisLifetime.Cancel();
             if (_analysis != null) { _analysis.Changed -= OnAnalysisChanged; _analysis.Dispose(); }

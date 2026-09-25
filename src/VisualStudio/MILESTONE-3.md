@@ -1,11 +1,12 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: iterations one through eight implemented: snapshot input, located
+Status: iterations one through nine implemented: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
 selection/scalar inheritance with chain adorners, inherited procedures, and section
 commands, live designer/Error List diagnostics, and resolved-alarm/compiled XML
-previews. Final visual/performance validation remains. Continue the MVVM,
+previews, plus measured designer performance and preview accessibility fixes.
+Final live-IDE validation remains. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -920,9 +921,100 @@ The host smoke opens the designer but does not directly exercise the new expande
 preview panels. Interactive copy/navigation, theme/high contrast, scrolling/DPI,
 linked-context switching, and representative large-project latency/memory remain
 for final milestone validation. Existing CA1416 warnings in the shared net8.0 test
-helper remain unchanged. No SDK/VSIX was published. Iteration eight remains
-uncommitted for review.
+helper remain unchanged. No SDK/VSIX was published. Iteration eight was committed
+as `120c985` before iteration nine.
 
-Next iteration: final UI/accessibility and performance validation, remaining
-regression checks, and release readiness. Publish the authoritative matching SDK
-before distributing the VSIX, using the existing explicit release workflow.
+## Iteration nine: designer performance and preview accessibility
+
+Measured UI costs exposed repeated source scanning: command availability checked
+every SDK alarm and rescanned the document for each origin's line. The designer
+now computes the selected declaration's line/column once and caches its match by
+immutable project result, selected source, and captured input. It still checks
+current projection/text/version before every reuse and rejects ambiguous matches.
+Reference choices are rebuilt only when the result or selected alarm changes.
+This is a view cache; compiler resolution and whole-project scheduling are unchanged.
+A refresh also uses one captured analysis state throughout, so a concurrent
+background publication cannot mix an alarm from one result with another result's
+project/diagnostics. A controlled state-transition regression covers this race.
+
+An unchanged analysis notification also recreated preview controls, losing text
+selection and logical focus. A regression test reproduced that failure. Preview
+rows now stay stable for the same valid result/selection, while command availability
+is refreshed during asynchronous validation. Draft/stale/disposed states still
+clear both previews immediately. Location tests cover multiple declarations and
+CR, LF, and CRLF, selection switches, edits, and subsequent reanalysis.
+
+Rendered dark/high-contrast previews revealed black inherited expander text.
+Expanders now bind their foreground to the live VS tool-window text brush. The
+actual BAML tests assert label/adorner brushes and read-only UI Automation providers,
+preserve copy selections without editing source, and verify Copy command
+availability without writing to the clipboard. Procedure text/source links now
+include entry labels and origin help; XML preview exposes its status as help text.
+Six offscreen images were rendered and visually inspected across light, dark,
+and high-contrast palettes, narrow/wide layouts, and 100/150/200% rasterization.
+These are simulated palettes and DPI, not native VS theme/per-monitor tests.
+
+The opt-in `eng/measure-visualstudio-analysis.ps1` uses the existing packaged-SDK
+and STA/BAML fixtures, keeps benchmarks out of ordinary CI, and retains raw CSV,
+TRX, revision/working-tree, and runtime metadata. Roslyn's
+[project-operation benchmarks](https://github.com/dotnet/roslyn/blob/main/src/Tools/IdeCoreBenchmarks/ProjectOperationBenchmarks.cs)
+guide separate setup and parameterized project sizes. This repository uses a small
+Stopwatch harness in the existing net472 test host instead of adding BenchmarkDotNet
+and another project. There are no machine-dependent timing assertions.
+
+Release/x64 results (2026-09-25), medians of five warm samples, milliseconds:
+
+| Scenario | Bridge before → after | UI publication/layout before → after | Unchanged refresh before → after | 100 command queries before → after | Draft/layout before → after |
+| --- | --- | --- | --- | --- | --- |
+| 1,000 alarms / one file | 182.9 → 186.7 | 2,878.1 → 16.9 | 2,878.2 → 3.0 | 14,596.0 → 0.014 | 300.3 → 6.0 |
+| 1,000 alarms / ten files | 188.1 → 191.6 | 45.3 → 17.3 | 48.4 → 3.0 | 148.0 → 0.027 | 10.0 → 10.5 |
+| 10,000 alarms / 100 files | 2,168.1 → 2,151.5 | 73.2 → 35.0 | 60.4 → 3.5 | 166.3 → 0.147 | 23.5 → 8.1 |
+
+Inputs include four-alarm reference chains, scalar overrides, independent Reset,
+and Clear directives. The largest fixture contains 2.77 million source characters
+and 6.83 million compiled-XML characters. Post-change managed live memory was
+96.6 MB and process private memory 302.8 MB for that fixture. After its view/domain
+closed and forced collection, managed memory was 5.7 KB above the pre-case baseline.
+The first case retained approximately 3.3 MB of runtime/WPF initialization; these
+short observations do not prove long-term leak freedom or represent VS totals.
+
+Raw comparison directories under `artifacts/log/Release/AnalysisPerformance/`:
+`7578df198b40416bbfe3b016dc50b0cf` (before),
+`9a07e7ff8e274f80926c4c0640e4967c` (after).
+Preview renders: `artifacts/log/Debug/m3-iteration9-preview-renders/`.
+SDK loading, live VS/RDT capture, CPS debounce, and real typing are outside the warm
+timings. Full SDK analysis remains about 2.2 seconds at 10,000 alarms; production
+runs it off the UI thread, discarding superseded work after the non-cancellable
+contract call. Incremental compilation and demand-driven XML are not introduced.
+
+Iteration-nine validation (2026-09-25):
+
+- Visual Studio unit tests: 196 passed on net472, with one opt-in performance
+  theory skipped in the ordinary run. The benchmark separately passed all three
+  scenarios before and after the optimization (six measured runs total).
+- VSIX/template-consumer tests: 10 passed on each of net472 and net8.0.
+- VS2022 AlarmlistM3 smoke passed on a fresh-run retry; retained log directory:
+  `artifacts/log/Debug/VisualStudioSmoke/a5f57760025d4f568db2e231379262ea`.
+  The first run stalled in project creation before reaching editor checks; only
+  its verified test-owned IDE/runner were terminated. That run's logs remain in
+  `artifacts/log/Debug/VisualStudioSmoke/e23bbc9c1aa64c71be045df6bd81e5bc`.
+  No definitive cause was established; the same deployed build passed the retry.
+- VS2026 AlarmlistM3 smoke passed; retained log directory:
+  `artifacts/log/Debug/VisualStudioSmoke/6bd9da72871f4a51b9a5f767e1128971`.
+  Both successful smokes cover shared designer/XML buffers, Undo/Redo, Save As,
+  project lifecycle, live diagnostics/navigation, XML-only unsaved corrections,
+  unchanged output during analysis, failed-build preservation, Clean, and Rebuild.
+- Diff/whitespace checks pass. Compiler, MSBuild, and SDK implementation/contracts
+  were not changed; their standalone suites were not repeated this iteration.
+
+Remaining acceptance work: direct live-IDE preview keyboard/copy/screen-reader
+interaction, native theme switching and per-monitor DPI, linked-project context
+switching, live RDT capture/typing latency, and longer repeated open/close memory
+measurements. The offscreen checks and short synthetic benchmark do not replace
+those checks. The reference compiler still recomputes the whole project; the
+10,000-alarm analysis latency should inform any later incremental-analysis work.
+
+Iteration nine remains uncommitted for review. No SDK/VSIX was published. The next
+iteration should complete live-host acceptance and release readiness; publish the
+authoritative matching SDK before distributing the VSIX through the explicit
+release workflow.

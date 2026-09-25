@@ -310,6 +310,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             private readonly string _directory = Path.Combine(Path.GetTempPath(), "Alarmlist Designer Tests", Guid.NewGuid().ToString("N"));
             private readonly ISdkAnalysisBridge _bridge;
+            public ISdkAnalysisBridge Bridge => _bridge;
             public TestBuffer Buffer { get; }
             public AlmxDocumentModel Model { get; }
             public EditFileControlViewModel View { get; }
@@ -352,7 +353,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             public string DocumentPath { get; set; }
             public IReadOnlyList<AnalysisProject> Projects { get; set; } = Array.Empty<AnalysisProject>();
             public string SelectedProjectPath { get; set; }
-            public ProjectAnalysisState Current { get; private set; }
+            private ProjectAnalysisState _current;
+            public Func<ProjectAnalysisState> ReadCurrent { get; set; }
+            public ProjectAnalysisState Current => ReadCurrent == null ? _current : ReadCurrent();
             public bool Valid { get; set; } = true;
             public bool Disposed { get; private set; }
             public Task<bool> Validation { get; set; }
@@ -360,7 +363,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             public string NavigationText { get; private set; }
             public Task<bool> IsCurrentAsync(ProjectAnalysisState state, CancellationToken token) => Validation ?? Task.FromResult(Valid && ReferenceEquals(state, Current));
             public void Navigate(AnalysisLocation location, string text) { Navigation = location; NavigationText = text; }
-            public void Set(ProjectAnalysisState state) { Current = state; Changed?.Invoke(this, EventArgs.Empty); }
+            public void Set(ProjectAnalysisState state) { _current = state; Changed?.Invoke(this, EventArgs.Empty); }
             public void Dispose() { Disposed = true; }
         }
     }

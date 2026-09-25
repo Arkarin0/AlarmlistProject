@@ -23,7 +23,9 @@ picker, scalar inheritance display, chain adorners, and source navigation. Itera
 six adds inherited procedure rows, Clear exclusions, effective sequences, and local
 section copies. Iteration seven adds live designer diagnostics and a separate
 Error List source with validated navigation. Iteration eight adds read-only
-selected-alarm and compiled project XML previews. Milestone-two
+selected-alarm and compiled project XML previews. Iteration nine reduces repeated
+designer lookup/refresh work, preserves preview text selection, and fixes themed
+expander text while extending accessibility and performance checks. Milestone-two
 lifecycle validation is recorded below and remains regression coverage.
 
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
@@ -42,6 +44,37 @@ without a compiler project reference or additional VSIX assemblies.
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax
 generation, including open questions about UI integration and collection values.
+
+## Designer performance and rendering checks
+
+Run the opt-in benchmark from the repository root on Windows:
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1
+```
+
+The launcher builds Release and runs x64 net472 measurements using the packaged
+SDK bridge and actual designer BAML. It records five warm samples per scenario:
+1,000 alarms in one file, 1,000 across ten files, and 10,000 across 100 files.
+CSV results, TRX, revision/working-tree state, and .NET runtime details are retained
+under `artifacts/log/Release/AnalysisPerformance/`. `-Configuration Debug` selects
+the Debug build. Normal tests skip this theory; timings are observations, not CI
+pass/fail thresholds. Setup is outside warm samples. Memory figures describe the
+test process and include WPF/runtime costs; they are not VS memory guarantees.
+
+The measurements separate SDK analysis/copying from UI publication/layout,
+unchanged refresh, command queries, and a local draft edit. They exclude live
+VS/RDT capture, CPS debounce, and real typing/screen-reader interaction. See
+[iteration nine](MILESTONE-3.md#iteration-nine-designer-performance-and-preview-accessibility)
+for the before/after data and remaining host checks.
+
+The normal unit suite also verifies read-only automation providers, Copy command
+availability without changing the clipboard, theme brushes, and 100/150/200%
+offscreen rasterization. To retain its preview images, temporarily set
+`ALARMLIST_UI_VALIDATION_OUTPUT_DIRECTORY` to an output directory and run the
+`PreviewSupportsReadOnlyAutomationCopyAndThemedScaledRendering` test. Restore the
+previous variable value afterward. These simulate palettes/DPI outside VS;
+actual theme switching and per-monitor DPI still require IDE validation.
 
 ## Editing ALMX files
 
