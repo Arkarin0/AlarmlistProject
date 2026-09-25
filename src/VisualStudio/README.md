@@ -25,8 +25,11 @@ section copies. Iteration seven adds live designer diagnostics and a separate
 Error List source with validated navigation. Iteration eight adds read-only
 selected-alarm and compiled project XML previews. Iteration nine reduces repeated
 designer lookup/refresh work, preserves preview text selection, and fixes themed
-expander text while extending accessibility and performance checks. Milestone-two
-lifecycle validation is recorded below and remains regression coverage.
+expander text while extending accessibility and performance checks. Iteration ten
+adds repeatable linked-project acceptance and accessible project/alarm selectors.
+Iteration eleven keeps local overrides visible and focused after expanded previews
+clear, without taking focus back after subsequent input or view unload.
+Milestone-two lifecycle validation is recorded below and remains regression coverage.
 
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,

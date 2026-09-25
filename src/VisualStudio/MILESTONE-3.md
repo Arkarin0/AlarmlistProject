@@ -1,12 +1,13 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: iterations one through ten implemented: snapshot input, located
+Status: iterations one through eleven implemented: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
 selection/scalar inheritance with chain adorners, inherited procedures, and section
 commands, live designer/Error List diagnostics, and resolved-alarm/compiled XML
 previews, plus measured designer performance, preview accessibility fixes, and
-repeatable linked-project acceptance with live-host selector accessibility fixes.
+repeatable linked-project acceptance with live-host selector accessibility and
+local-override focus fixes.
 Final live-IDE validation remains. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
@@ -1081,5 +1082,54 @@ announcements, the remaining interactive draft/procedure/context cases in the
 walkthrough, live RDT/typing latency, and long-session memory measurements remain
 open. UI Automation inspection does not establish screen-reader acceptance.
 
-Iteration ten remains uncommitted for review. No SDK/VSIX was published; milestone
+Iteration ten was committed as `63c69ce`. No SDK/VSIX was published; milestone
 three is not yet marked fully accepted or released.
+
+## Iteration eleven: local-override focus and live command acceptance
+
+Live testing with the resolved preview expanded exposed a focus/layout defect:
+**Override locally** cleared the preview rows above the edited field, leaving the
+new draft outside the viewport and keyboard focus on another control. The view
+now waits for the existing validated command and WPF layout, then focuses the
+local field, places the caret after the copied value, and brings it into view.
+Subsequent keyboard/mouse input, changed selection, failed validation, or view
+unload prevents that deferred focus request from taking over. This is view-only
+behavior; SDK provenance, draft validation, and source editing are unchanged.
+
+Iteration-eleven validation (2026-09-25):
+
+- Two actual BAML/button regression cases reproduced the failure before the fix,
+  for absent and explicitly empty local Name elements. Both pass with the fix.
+  Six additional cases cover delayed completion, subsequent keyboard/mouse input,
+  failed validation, and unload/reload. They assert keyboard focus, viewport
+  position, draft state, and no buffer edits rather than just property bindings.
+- Visual Studio unit suite: 212 passed, one opt-in performance theory skipped.
+  VSIX/template-consumer tests: 10 passed on net472 and 10 on net8.0. Logs are
+  retained as `artifacts/log/Debug/m3-iteration11-focus*.log`,
+  `m3-iteration11-vsunit.log`, and `m3-iteration11-vsix.log`.
+- VS2026 18.10.12217.157, AlarmlistM3: switched Dark to Light with the resolved
+  preview expanded, checked inherited scalar text/background/chain colors, and
+  restored Dark. The compiled XML panel was not expanded during that theme
+  switch; its live theme transition remains unchecked.
+- After deploying the fix, started a Name override with both previews expanded.
+  Both cleared, the local editor stayed visible, and Shift+Left selected the
+  copied value's final character without another click. Escape restored the
+  inherited Name, previews, and clean document state.
+- Instructions **Make local copy** produced one leading Clear followed by North
+  inspect, North caution, and Shared local note, each once. XML inspection showed
+  Reset unchanged. One Ctrl+Z restored the original section and clean state;
+  Ctrl+Y/Ctrl+Z repeated the same copy/restore. Returning to the designer restored
+  the inherited Step/Warning rows and local Note.
+- All five disk source/output hashes stayed at the fixture baseline. Build hashes,
+  activity logs, and `iteration11-verified-hashes.json` are retained under
+  `artifacts/log/Debug/VisualStudioAcceptance/23a1409e57014e39975afd34ed76eaac`.
+
+This iteration's live checks used VS2026 only. Repeat the focus/theme/procedure
+scenarios on VS2022. Native high contrast, per-monitor DPI, actual screen-reader
+announcements, the remaining unsaved base/context and scalar commit cases in the
+walkthrough, live RDT/typing latency, and long-session memory measurements remain
+open. Full lifecycle smoke, compiler/MSBuild/SDK standalone suites, and performance
+measurements were not repeated for this view-only change.
+
+No SDK/VSIX was published; milestone three is not yet marked fully accepted or
+released.

@@ -5,7 +5,7 @@
   xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
   Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
   Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
-  SizeChanged="OnSizeChanged" PreviewKeyDown="OnPreviewKeyDown">
+  SizeChanged="OnSizeChanged" PreviewKeyDown="OnPreviewKeyDown" PreviewMouseDown="OnPreviewMouseDown" Unloaded="OnUnloaded">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="Visibility" />
     <Style TargetType="Expander">
@@ -156,7 +156,7 @@
               <DataTemplate>
                 <StackPanel Margin="0,0,8,10">
                   <CheckBox Content="{Binding Name}" IsChecked="{Binding IsPresent}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,0,4" Click="OnPresenceChanged" ToolTip="Include a local value for this field" />
-                  <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsPresent}" Visibility="{Binding ShowLocalEditor, Converter={StaticResource Visibility}}" AutomationProperties.Name="{Binding Name}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
+                  <TextBox x:Name="LocalValueEditor" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsPresent}" Visibility="{Binding ShowLocalEditor, Converter={StaticResource Visibility}}" AutomationProperties.Name="{Binding Name}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
                   <AdornerDecorator Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}">
                     <TextBox Text="{Binding EffectiveValue, Mode=OneWay}" IsReadOnly="True" Padding="26,3,5,3"
                              ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" AutomationProperties.Name="{Binding Name}"
@@ -165,7 +165,8 @@
                   </AdornerDecorator>
                   <TextBlock Text="{Binding OriginText}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}" TextWrapping="Wrap" Margin="0,3,0,3" />
                   <WrapPanel Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}" Margin="0,4,0,0">
-                    <Button Content="Override locally" Command="{Binding OverrideCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}" />
+                    <Button Content="Override locally" Command="{Binding OverrideCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}"
+                            Tag="{Binding ElementName=LocalValueEditor}" Click="OnOverrideLocally" />
                     <Button Content="Go to source" Command="{Binding GoToSourceCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}" />
                     <Button Content="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsPresent, Converter={StaticResource Visibility}}" />
                   </WrapPanel>

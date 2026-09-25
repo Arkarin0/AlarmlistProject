@@ -52,8 +52,10 @@ The helper passing does not establish that any IDE checks below passed.
    Clear and exactly the three current effective entries. Reset is unchanged.
    Undo once restores the original section and inheritance. Redo/Undo should
    restore the same result without duplicate entries.
-4. Choose **Override locally** on inherited Name. Both previews clear during
-   the uncommitted draft. Escape restores inheritance without changing source.
+4. Leave **Resolved alarm preview** expanded and choose **Override locally** on
+   inherited Name. Both previews clear during the uncommitted draft. The local
+   Name editor must stay in view and receive keyboard focus, with the caret after
+   the copied value. Escape restores inheritance without changing source.
    Commit a different local Name, verify the unsaved preview, then Undo.
 5. Edit a base Name in the XML editor without saving. Return to Child and verify
    the corresponding context updates. The other context keeps its own Base.
