@@ -282,6 +282,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   CSV samples, test results, and revision/runtime details under `artifacts/log/`.
   Normal tests skip the performance theory; do not introduce machine-dependent
   timing assertions. These measurements exclude live VS/RDT capture and CPS debounce.
+- `eng/prepare-visualstudio-acceptance.ps1` creates and builds an isolated linked
+  North/South fixture from the SDK version in the built VSIX template. Follow
+  `src/VisualStudio/ACCEPTANCE.md` for interactive checks and preserve the source/
+  output baseline hashes. Fixture preparation alone does not validate the IDE.
 
 ## Coding style
 

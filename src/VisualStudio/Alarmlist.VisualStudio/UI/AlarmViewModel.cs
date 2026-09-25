@@ -11,7 +11,8 @@ namespace Alarmlist.VisualStudio.UI
     internal sealed class AlarmViewModel
     {
         public AlarmSource Source { get; }
-        public string Title => Source.GetValue("Name") ?? Source.Identity ?? "Unnamed alarm";
+        public string Title => !string.IsNullOrWhiteSpace(Source.GetValue("Name")) ? Source.GetValue("Name")
+            : !string.IsNullOrWhiteSpace(Source.Identity) ? Source.Identity : "Unnamed alarm";
         public string Identity => Source.Identity ?? "(no identifier)";
         public AlarmViewModel(AlarmSource source) { Source = source; }
     }

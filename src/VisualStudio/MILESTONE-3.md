@@ -1,11 +1,12 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: iterations one through nine implemented: snapshot input, located
+Status: iterations one through ten implemented: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
 selection/scalar inheritance with chain adorners, inherited procedures, and section
 commands, live designer/Error List diagnostics, and resolved-alarm/compiled XML
-previews, plus measured designer performance and preview accessibility fixes.
+previews, plus measured designer performance, preview accessibility fixes, and
+repeatable linked-project acceptance with live-host selector accessibility fixes.
 Final live-IDE validation remains. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
@@ -1014,7 +1015,71 @@ measurements. The offscreen checks and short synthetic benchmark do not replace
 those checks. The reference compiler still recomputes the whole project; the
 10,000-alarm analysis latency should inform any later incremental-analysis work.
 
-Iteration nine remains uncommitted for review. No SDK/VSIX was published. The next
-iteration should complete live-host acceptance and release readiness; publish the
+Iteration nine was committed as `4ce081b` before iteration ten. No SDK/VSIX was
+published. The next iteration should continue live-host acceptance and release readiness; publish the
 authoritative matching SDK before distributing the VSIX through the explicit
 release workflow.
+
+## Iteration ten: linked-project acceptance and accessible selectors
+
+`eng/prepare-visualstudio-acceptance.ps1` creates an isolated North/South solution
+using the SDK version pinned by the built VSIX template. Both projects link the
+same Child source but define different Base values and procedures. The helper
+builds each consumer, checks effective values and Clear results, and retains
+revision/package metadata, binary logs, and baseline source/output hashes. Its
+generated files use consistent line endings to avoid XML editor normalization
+prompts. [ACCEPTANCE.md](ACCEPTANCE.md) describes repeatable interactive checks;
+preparation alone is not an IDE acceptance result.
+
+Live UI Automation exposed CLR type names on project-context choices and on an
+alarm with an explicit empty Name. Project items now announce their full path
+and configuration, distinguishing equal project filenames in different folders.
+Alarm titles fall back from blank local Name to the local identifier, then to
+"Unnamed alarm". The compact alarm selector also has explicit item names. These
+are presentation/accessibility changes; they do not infer inherited names or
+alter scalar resolution, source presence, or serialized XML.
+
+Iteration-ten validation (2026-09-25):
+
+- Eight new regression cases cover blank/missing/local names, the wide alarm
+  list and compact selector, and actual BAML/UI Automation peers for two project
+  contexts with identical filenames and different paths/configurations. Five
+  cases failed before the fix; all eight pass afterward.
+- Visual Studio unit suite: 204 passed, one opt-in performance theory skipped.
+  An earlier full run crashed after 64 passes with a native `c0000005` access
+  violation reported in `ntdll.dll`. No definitive cause was established. A
+  diagnostic retry and the final ordinary build/test both passed all 204 cases.
+  ProcDump was unavailable, so no crash dump was captured. Logs are retained as
+  `artifacts/log/Debug/m3-iteration10-vsunit*.log`.
+- VSIX/template-consumer tests: 10 passed on each of net472 and net8.0.
+- The fixture helper built both projects successfully against the isolated local
+  SDK package. Source and output hashes stayed unchanged after interactive use.
+- VS2022 AlarmlistM3: the initial live run verified the explicit linked-context
+  prompt, North/South inherited field and procedure changes, equal local Code
+  provenance, Reset reduced to its surviving entry, and navigation from the
+  South resolved Name to South/Base.almx line 4. Dark preview text and chain icons
+  were readable. This run exposed the selector accessibility gaps fixed above.
+  Fixture: `artifacts/log/Debug/VisualStudioAcceptance/4deadb96f9e64acfac461de6bb789207`.
+  After deploying the fix, a fresh VS2022 session on the fixture below verified
+  the corrected alarm/project names, South selection, and its expanded resolved
+  fields and procedure sequence again.
+- VS2026 AlarmlistM3 with the fix deployed: the live tree verified `Shared.Child`
+  as the alarm name and full project path/configuration names for both choices.
+  North's expanded compiled XML included both alarms, Unicode/escaping, and the
+  resolved procedure sequence. Ctrl+A/Ctrl+C through the editor copied it into a
+  scratch XML document. The retained copy equals normal build output plus the
+  final CRLF added on save by editor formatting; all five source/output baseline
+  hashes remain unchanged. Evidence is in `CopyCheck.xml`, `copy-verification.json`,
+  and `verified-hashes.json` under
+  `artifacts/log/Debug/VisualStudioAcceptance/18816822c97549c584d9fc9f7f4038d1`.
+
+Both experimental hosts received the final build. Full lifecycle smoke, compiler,
+MSBuild, SDK standalone suites, and performance measurements were not repeated
+for these presentation changes; their iteration-nine records remain the baseline.
+Native theme switching/high contrast, per-monitor DPI, actual screen-reader
+announcements, the remaining interactive draft/procedure/context cases in the
+walkthrough, live RDT/typing latency, and long-session memory measurements remain
+open. UI Automation inspection does not establish screen-reader acceptance.
+
+Iteration ten remains uncommitted for review. No SDK/VSIX was published; milestone
+three is not yet marked fully accepted or released.

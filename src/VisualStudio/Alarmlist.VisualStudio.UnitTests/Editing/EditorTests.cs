@@ -16,6 +16,19 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         private const string Source = "<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Name>Old</Name><Code>1</Code></Alarm><Alarm><FullyQualifiedName>B</FullyQualifiedName></Alarm></Alarmlist>";
 
         [Theory]
+        [InlineData("<FullyQualifiedName>A</FullyQualifiedName><Name>Local</Name>", "Local")]
+        [InlineData("<FullyQualifiedName>A</FullyQualifiedName><Name/>", "A")]
+        [InlineData("<FullyQualifiedName>A</FullyQualifiedName><Name>  </Name>", "A")]
+        [InlineData("<FullyQualifiedName>A</FullyQualifiedName>", "A")]
+        [InlineData("<FullyQualifiedName/><Name/>", "Unnamed alarm")]
+        [InlineData("", "Unnamed alarm")]
+        public void AlarmTitleFallsBackWhenLocalNameIsMissingOrBlank(string fields, string expected)
+        {
+            AlarmSource source = Assert.Single(_editing.Parse("<Alarmlist><Alarm>" + fields + "</Alarm></Alarmlist>").Alarms);
+            Assert.Equal(expected, new AlarmViewModel(source).Title);
+        }
+
+        [Theory]
         [InlineData("\n")]
         [InlineData("\r\n")]
         public void ScalarEditPreservesEveryOtherCharacter(string newline)

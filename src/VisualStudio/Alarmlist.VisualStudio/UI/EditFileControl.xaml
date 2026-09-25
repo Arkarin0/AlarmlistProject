@@ -52,7 +52,14 @@
     <StackPanel Grid.Row="1" Margin="0,0,0,8">
       <ComboBox ItemsSource="{Binding Projects}" SelectedValuePath="ProjectPath" SelectedValue="{Binding SelectedProjectPath}"
                 AutomationProperties.Name="Analysis project context" Margin="0,0,0,4">
-        <ComboBox.ItemTemplate><DataTemplate><TextBlock><Run Text="{Binding ProjectPath, Mode=OneWay}" /><Run Text="{Binding Configuration, Mode=OneWay, StringFormat= ({0})}" /></TextBlock></DataTemplate></ComboBox.ItemTemplate>
+        <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem">
+          <Setter Property="AutomationProperties.Name"><Setter.Value>
+            <MultiBinding StringFormat="{}{0} ({1})"><Binding Path="ProjectPath" /><Binding Path="Configuration" /></MultiBinding>
+          </Setter.Value></Setter>
+        </Style></ComboBox.ItemContainerStyle>
+        <ComboBox.ItemTemplate><DataTemplate><TextBlock><TextBlock.Text>
+          <MultiBinding StringFormat="{}{0} ({1})"><Binding Path="ProjectPath" /><Binding Path="Configuration" /></MultiBinding>
+        </TextBlock.Text></TextBlock></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
       <TextBlock Text="{Binding AnalysisMessage}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
       <TextBlock Text="{Binding Error}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
@@ -88,7 +95,9 @@
         <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="4"><TextBlock Text="{Binding Title}" FontWeight="SemiBold" /><TextBlock Text="{Binding Identity}" FontSize="11" Opacity="0.75" /></StackPanel></DataTemplate></ListBox.ItemTemplate>
       </ListBox>
       <DockPanel Grid.Column="1">
-        <ComboBox x:Name="AlarmSelector" DockPanel.Dock="Top" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" DisplayMemberPath="Title" Visibility="Collapsed" Margin="0,0,0,8" AutomationProperties.Name="Selected alarm" />
+        <ComboBox x:Name="AlarmSelector" DockPanel.Dock="Top" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" DisplayMemberPath="Title" Visibility="Collapsed" Margin="0,0,0,8" AutomationProperties.Name="Selected alarm">
+          <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Title}" /></Style></ComboBox.ItemContainerStyle>
+        </ComboBox>
         <TextBlock DockPanel.Dock="Bottom" Text="Checkboxes describe local XML elements. Empty scalar values can still inherit. Use Override locally to start an editable copy; Escape cancels it." TextWrapping="Wrap" Opacity="0.7" Margin="0,8,0,0" />
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>

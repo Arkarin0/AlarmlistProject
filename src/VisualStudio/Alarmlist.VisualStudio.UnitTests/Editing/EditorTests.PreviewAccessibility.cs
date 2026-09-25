@@ -14,6 +14,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Alarmlist.VisualStudio.Analysis;
 using Alarmlist.VisualStudio.UI;
 using Xunit;
 
@@ -21,6 +22,49 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
 {
     public partial class EditorTests
     {
+        [Theory]
+        [InlineData(900)]
+        [InlineData(440)]
+        public void AlarmAndProjectChoicesExposeUsefulAutomationNames(int width)
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession(ChildAlarm.Replace("<Code>", "<Name/><Code>")))
+                using (var host = new HwndSource(new HwndSourceParameters("ALMX selector accessibility")
+                { Width = width + 50, Height = 950, WindowStyle = unchecked((int)0x80000000) }))
+                {
+                    AnalysisProject first = session.Analysis.Current.Project;
+                    var second = new AnalysisProject(Path.Combine(Path.GetDirectoryName(first.ProjectPath), "South", "Plant.almproj"),
+                        "Release", null, first.Inputs);
+                    session.Analysis.Projects = new[] { first, second };
+                    session.Analysis.Set(session.Analysis.Current);
+                    var control = new EditFileControl(session.View) { Width = width, Height = 900 };
+                    host.RootVisual = control;
+                    InheritanceAdornerTests.Pump();
+                    var list = (ListBox)control.FindName("AlarmList");
+                    var selector = (ComboBox)control.FindName("AlarmSelector");
+                    if (selector.IsVisible) selector.IsDropDownOpen = true;
+                    InheritanceAdornerTests.Pump();
+                    ItemsControl owner = selector.IsVisible ? (ItemsControl)selector : list;
+                    var peer = (ItemsControlAutomationPeer)UIElementAutomationPeer.CreatePeerForElement(owner);
+                    Assert.Equal("Child", Assert.Single(peer.GetChildren().Where(item => item.GetAutomationControlType()
+                        == AutomationControlType.ListItem)).GetName());
+                    selector.IsDropDownOpen = false;
+
+                    ComboBox projects = VisualChildren(control).OfType<ComboBox>().Single(item =>
+                        AutomationProperties.GetName(item) == "Analysis project context");
+                    projects.IsDropDownOpen = true;
+                    InheritanceAdornerTests.Pump();
+                    var projectPeer = new ComboBoxAutomationPeer(projects);
+                    Assert.Equal(new[] { first.ProjectPath + " (Debug)", second.ProjectPath + " (Release)" },
+                        projectPeer.GetChildren().Where(item => item.GetAutomationControlType() == AutomationControlType.ListItem)
+                            .Select(item => item.GetName()));
+                    projects.IsDropDownOpen = false;
+                    Assert.Equal(0, session.Buffer.Edits);
+                }
+            });
+        }
+
         [Theory]
         [InlineData("Light", 900, 1.0)]
         [InlineData("Dark", 650, 1.5)]

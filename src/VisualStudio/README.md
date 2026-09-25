@@ -320,6 +320,14 @@ IDE. Logs are retained in `artifacts/log/<Configuration>/VisualStudioTests/`.
 
 ## Experimental IDE smoke test
 
+For the linked-project semantic UI checks, run
+`powershell.exe -NoProfile -File eng/prepare-visualstudio-acceptance.ps1` after
+building the VSIX. It creates a fresh two-project solution with a shared alarm,
+distinct inherited values, procedure Clear cases, isolated SDK restore, and
+baseline source/output hashes. Follow [the interactive acceptance walkthrough](ACCEPTANCE.md)
+in the matching experimental instance. Record results separately from the
+automated smoke; creating the fixture does not validate the UI.
+
 For manual testing, run `scripts/start-vs2022.bat` or `scripts/start-vs2026.bat`.
 Each launcher finds the matching installed Visual Studio, builds and deploys the
 extension, then opens its `AlarmlistExp` instance. Close that experimental instance
