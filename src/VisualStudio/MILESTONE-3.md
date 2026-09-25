@@ -7,7 +7,8 @@ selection/scalar inheritance with chain adorners, inherited procedures, and sect
 commands, live designer/Error List diagnostics, and resolved-alarm/compiled XML
 previews, plus measured designer performance, preview accessibility fixes, and
 repeatable linked-project acceptance with live-host selector accessibility and
-local-override focus fixes and two-host functional acceptance.
+local-override focus fixes and two-host functional acceptance. Iteration thirteen
+adds contextual action names; its remaining interactive acceptance gates are below.
 Final live-IDE validation remains. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
@@ -1172,3 +1173,48 @@ passes and 10 packaged-consumer passes per framework; those suites were not
 repeated for this documentation-only iteration. Iterations thirteen and fourteen
 continue accessibility/display and performance/lifecycle validation. No SDK/VSIX
 was published, and full release acceptance remains open.
+
+## Iteration thirteen: action accessibility and live display checks
+
+Iteration twelve was committed as `f6cf6f7`. Live inspection found repeated scalar
+buttons named only "Override locally", "Go to source", or "Use inherited value".
+Their automation names now identify Name, Code, Category, or Description.
+Procedure section actions similarly identify Instructions or Reset. Visible
+captions, command behavior, provenance, and source editing are unchanged.
+
+Iteration-thirteen validation (2026-09-25):
+
+- Two BAML regression cases, at wide and compact widths, failed against the old
+  generic action names and pass with the fix. They inspect actual button peers
+  for eight scalar actions and both commands in each procedure section.
+- Visual Studio unit suite: 214 passed, one opt-in performance theory skipped.
+  VSIX/template-consumer suites: 10 passed on each of net472 and net8.0. Logs:
+  `artifacts/log/Debug/m3-iteration13-actions-before.log`,
+  `m3-iteration13-vsunit.log`, and `m3-iteration13-vsix.log`.
+- The tested fix was deployed to both AlarmlistM3 hosts. Deployment logs are
+  `m3-iteration13-deploy2022.log` and `m3-iteration13-deploy2026.log`. All five
+  fixture source/output hashes still matched after closing the native session.
+- VS2026 with iteration eleven's deployed view: expanded compiled XML switched
+  Dark to Light and back without reopening the document. Text, background,
+  headings, and scrollbars remained readable. Ctrl+A selected the whole XML;
+  attempted typing left the output and clean source unchanged. Shift+Tab reached
+  its heading, and Tab returned to the XML selection.
+- Narrowing the live editor pane to approximately 550 pixels replaced the alarm
+  list with the named compact selector. Origins wrapped, inherited chain icons
+  remained aligned, and the XML retained separate horizontal/vertical scrolling.
+  Shift+Left selected the inherited Name's final character; Ctrl+C placed exactly
+  that character on the clipboard. The original pane width and Dark theme were
+  restored. These checks validate layout and keyboard interaction, not DPI changes.
+- Read-only monitor queries returned 96 x 96 effective DPI for all three attached
+  monitors. No different-scale transition was available in that configuration.
+  The values are retained in `iteration13-monitor-dpi.txt` in iteration twelve's
+  fixture directory.
+
+Native high contrast is still unverified: the shortcut did not enable it and
+Windows Settings did not expose a targetable window. Narrator is installed, but
+the automation session cannot listen to speech; no spoken-announcement acceptance
+is claimed. Actual screen-reader announcements, a different-scale monitor move,
+native high contrast, and live theme checks on VS2022 remain manual release gates.
+The existing offscreen palette/scale/automation tests are complementary evidence.
+Iteration fourteen continues final lifecycle and performance work. Nothing was
+published.

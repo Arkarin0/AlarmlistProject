@@ -66,6 +66,44 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Theory]
+        [InlineData(900)]
+        [InlineData(440)]
+        public void InheritanceActionsExposeTheirFieldOrSectionToAutomation(int width)
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession(ChildAlarm.Replace("<Code>", "<Name/><Code>")))
+                using (var host = new HwndSource(new HwndSourceParameters("ALMX action accessibility")
+                { Width = width + 50, Height = 950, WindowStyle = unchecked((int)0x80000000) }))
+                {
+                    session.Analyze(ProcedureBase.Replace("</Code>", "</Code><Category>Fire</Category><Description>Inspect</Description>"));
+                    var control = new EditFileControl(session.View) { Width = width, Height = 900 };
+                    host.RootVisual = control;
+                    InheritanceAdornerTests.Pump();
+                    Button[] buttons = VisualChildren(control).OfType<Button>().ToArray();
+                    string[] scalarActions = buttons.Where(button => button.DataContext is AlarmFieldViewModel field
+                        && field.IsScalar && button.Visibility == Visibility.Visible)
+                        .Select(button => new ButtonAutomationPeer(button).GetName()).ToArray();
+                    Assert.Equal(new[]
+                    {
+                        "Override Name locally", "Go to source for Name", "Use inherited Name",
+                        "Use inherited Code", "Override Category locally", "Go to source for Category",
+                        "Override Description locally", "Go to source for Description"
+                    }, scalarActions);
+                    string[] sectionActions = buttons.Where(button => button.DataContext is ProcedureSectionViewModel
+                        && (Equals(button.Content, "Use local entries only") || Equals(button.Content, "Make local copy")))
+                        .Select(button => new ButtonAutomationPeer(button).GetName()).ToArray();
+                    Assert.Equal(new[]
+                    {
+                        "Use local Instructions entries only", "Make local copy of Instructions",
+                        "Use local Reset entries only", "Make local copy of Reset"
+                    }, sectionActions);
+                    Assert.Equal(0, session.Buffer.Edits);
+                }
+            });
+        }
+
+        [Theory]
         [InlineData("Light", 900, 1.0)]
         [InlineData("Dark", 650, 1.5)]
         [InlineData("HighContrast", 440, 2.0)]

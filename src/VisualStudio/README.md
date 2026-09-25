@@ -31,6 +31,8 @@ Iteration eleven keeps local overrides visible and focused after expanded previe
 clear, without taking focus back after subsequent input or view unload.
 Iteration twelve verifies scalar commits, unsaved referenced values, linked-project
 isolation, and Undo in VS2022 and VS2026, plus the focus/procedure regressions on VS2022.
+Iteration thirteen gives scalar and section actions contextual accessibility names
+and records live keyboard, theme, and compact-layout checks with explicit manual gates.
 Milestone-two lifecycle validation is recorded below and remains regression coverage.
 
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler

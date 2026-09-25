@@ -66,6 +66,8 @@ The helper passing does not establish that any IDE checks below passed.
 1. Navigate the expanded previews with Tab/Shift+Tab. Text and source links must
    expose descriptive accessible names and origin help. Chain adorners are
    decorative: they must neither take focus nor intercept text selection.
+   Scalar action names must identify their field (for example, **Override Name
+   locally**); section copy/replacement actions must identify Instructions or Reset.
 2. Select text in a resolved field using Shift+Arrow. Ctrl+C and paste into a
    temporary unsaved text document should preserve the selected text. Attempted
    typing in the preview must not change source. Do not save the scratch document.

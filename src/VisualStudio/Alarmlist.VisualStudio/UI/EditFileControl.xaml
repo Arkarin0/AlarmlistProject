@@ -166,9 +166,12 @@
                   <TextBlock Text="{Binding OriginText}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}" TextWrapping="Wrap" Margin="0,3,0,3" />
                   <WrapPanel Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}" Margin="0,4,0,0">
                     <Button Content="Override locally" Command="{Binding OverrideCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}"
-                            Tag="{Binding ElementName=LocalValueEditor}" Click="OnOverrideLocally" />
-                    <Button Content="Go to source" Command="{Binding GoToSourceCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}" />
-                    <Button Content="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsPresent, Converter={StaticResource Visibility}}" />
+                            Tag="{Binding ElementName=LocalValueEditor}" Click="OnOverrideLocally"
+                            AutomationProperties.Name="{Binding Name, StringFormat=Override {0} locally}" />
+                    <Button Content="Go to source" Command="{Binding GoToSourceCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}"
+                            AutomationProperties.Name="{Binding Name, StringFormat=Go to source for {0}}" />
+                    <Button Content="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsPresent, Converter={StaticResource Visibility}}"
+                            AutomationProperties.Name="{Binding Name, StringFormat=Use inherited {0}}" />
                   </WrapPanel>
                 </StackPanel>
               </DataTemplate>
@@ -189,8 +192,10 @@
                       <TextBlock Text="Make local copy captures the effective sequence now. Future changes to the referenced section will no longer flow here. Undo restores inheritance. Commit or cancel drafts before copying."
                                  TextWrapping="Wrap" Margin="0,0,0,6" />
                       <WrapPanel Margin="0,0,0,8">
-                        <Button Content="Use local entries only" Command="{Binding UseLocalEntriesCommand}" />
-                        <Button Content="Make local copy" Command="{Binding MakeLocalCopyCommand}" />
+                        <Button Content="Use local entries only" Command="{Binding UseLocalEntriesCommand}"
+                                AutomationProperties.Name="{Binding Name, StringFormat=Use local {0} entries only}" />
+                        <Button Content="Make local copy" Command="{Binding MakeLocalCopyCommand}"
+                                AutomationProperties.Name="{Binding Name, StringFormat=Make local copy of {0}}" />
                       </WrapPanel>
                       <ItemsControl ItemsSource="{Binding InheritedItems}" ItemTemplate="{StaticResource ProcedureAnalysisRow}" />
                       <Expander Header="Excluded by Clear" Visibility="{Binding HasExcluded, Converter={StaticResource Visibility}}" Margin="0,0,0,8">
