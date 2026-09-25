@@ -19,7 +19,9 @@ API for field/procedure origins and Clear exclusions. Iteration three adds an
 isolated SDK analysis bridge and a CPS adapter for the evaluated compiler path.
 Iteration four starts project analysis from CPS subscriptions, using current open
 buffers and watched disk inputs. Iteration five connects the designer's reference
-picker, scalar inheritance display, chain adorners, and source navigation. Milestone-two
+picker, scalar inheritance display, chain adorners, and source navigation. Iteration
+six adds inherited procedure rows, Clear exclusions, effective sequences, and local
+section copies. Milestone-two
 lifecycle validation is recorded below and remains regression coverage.
 
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
@@ -86,12 +88,26 @@ independent Instructions and Reset edits can be combined. Duplicate procedure
 containers/sections and entries containing nested markup or comments must be
 edited in XML. Unknown entries and surrounding source remain intact.
 
+Inherited procedure rows have a chain icon, origin text, and **Go to source**.
+**Excluded by Clear** explains omitted inherited and earlier local entries; local
+rows remain editable in the source-order list below it. **Effective sequence**
+shows only surviving entries in execution order. Drafts hide a section's semantic
+view until committed or cancelled; they are never replaced by analysis refreshes.
+
+**Use local entries only** inserts a leading Clear while preserving existing
+entries and directives. **Make local copy** replaces that section with a leading
+Clear and its current effective sequence, each entry once. It captures a snapshot:
+future reference changes stop flowing into that section, while the other section
+continues independently. Commit or cancel drafts before copying. Copies require
+current resolved analysis and refuse to discard unsupported source content. Each
+section action is one document undo transaction; Undo restores its original source.
+
 Malformed XML disables designer mutations until the source is corrected. Fields
 containing nested markup, comments, or duplicate scalar elements must be edited
 in XML. Changes preserve untouched source text, including attributes, comments,
 unknown elements, procedure sections, and `Clear` directives. Renaming an alarm
-does not rewrite references. Inherited procedure rows, live semantic diagnostics,
-and the complete resolved preview remain later milestone-three iterations.
+does not rewrite references. Live semantic diagnostics and the complete resolved
+preview remain later milestone-three iterations.
 
 Save As keeps the tab, project item, and Running Document Table at the new path
 while all open views retain the same buffer. The original file remains on disk

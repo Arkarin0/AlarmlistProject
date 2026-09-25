@@ -78,7 +78,42 @@ namespace Alarmlist.VisualStudio.UI
                     Navigate(state, alarm.Fields.Single(item => item.Name == field.Name).ValueLocation)),
                     () => CanUseAnalysis && field.IsInherited);
             }
+            foreach (ProcedureSectionViewModel section in ProcedureSections)
+            {
+                section.UseLocalEntriesCommand = new DelegateCommand(() =>
+                {
+                    if (_disposed || _analysisBusy || !CommitPending() || !CanEdit) return;
+                    _model.UseLocalProcedureEntries(_original, section.Name, out _error);
+                    Notify(nameof(Error));
+                }, () => !_disposed && !_analysisBusy && CanEdit && section.Error == null);
+                section.MakeLocalCopyCommand = new DelegateCommand(() => StartAnalysisAction((state, alarm) =>
+                {
+                    AnalysisSection source = GetSection(alarm, section.Name);
+                    if (!alarm.IsResolved || source == null) return;
+                    ProcedureValueChange[] entries = source.EffectiveEntries.Select((entry, index) =>
+                        new ProcedureValueChange(section.Name, index,
+                            entry.Kind == AnalysisStepKind.Instruction ? "Step" : entry.Kind.ToString(), entry.Text)).ToArray();
+                    _model.MakeProcedureLocalCopy(_original, section.Name, entries, out _error);
+                    Notify(nameof(Error));
+                }), () => CanUseAnalysis && CurrentAlarm()?.IsResolved == true && section.HasAnalysis);
+            }
             if (_analysis != null) _analysis.Changed += OnAnalysisChanged;
+        }
+
+        private static AnalysisSection GetSection(AnalysisAlarm alarm, string name) => name == "Instructions" ? alarm?.Instructions : alarm?.Reset;
+
+        private DelegateCommand ProcedureNavigation(string section, AnalysisEntry entry)
+        {
+            bool CanNavigate()
+            {
+                AnalysisSection current = GetSection(CurrentAlarm(), section);
+                return CanUseAnalysis && CurrentAlarm()?.IsResolved == true && entry.Origin.Location != null
+                    && current != null && (current.EffectiveEntries.Contains(entry) || current.ExcludedEntries.Contains(entry));
+            }
+            return new DelegateCommand(() =>
+            {
+                if (CanNavigate()) StartAnalysisAction((state, alarm) => Navigate(state, entry.Origin.Location));
+            }, CanNavigate);
         }
 
         private bool CanUseAnalysis => !_disposed && !_analysisBusy && !HasPending && CanEdit && CurrentAlarm() != null;
@@ -123,6 +158,9 @@ namespace Alarmlist.VisualStudio.UI
                 foreach (AlarmFieldViewModel field in Fields)
                     field.SetAnalysis(!identityDraft && alarm?.IsResolved == true
                         ? alarm.Fields.FirstOrDefault(item => item.Name == field.Name) : null);
+                foreach (ProcedureSectionViewModel section in ProcedureSections)
+                    section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasChanges)
+                        ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry));
                 string selectedReference = _referenceChoice?.Identifier;
                 ReferenceChoices = alarm == null ? Array.Empty<ReferenceChoice>() : state.Response.Snapshot.Alarms
                     .Where(item => !string.IsNullOrEmpty(item.Origin.FullyQualifiedName))

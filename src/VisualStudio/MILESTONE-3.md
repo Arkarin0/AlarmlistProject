@@ -1,10 +1,10 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: iterations one through five implemented: snapshot input, located
+Status: iterations one through six implemented: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
-selection/scalar inheritance with chain adorners. Inherited procedures, live errors,
-and resolved preview remain planned. The procedure interaction below is the recommended design. Continue the MVVM,
+selection/scalar inheritance with chain adorners, inherited procedures, and section
+commands. Live errors and the complete resolved preview remain planned. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -15,7 +15,7 @@ diagnostics and a resolved preview across the current project's ALMX inputs.
 ## Starting point and scope
 
 The milestone-two designer edits local XML values and ordered local procedure entries.
-Iteration five adds inherited scalar values. The compiler already resolves references
+Iterations five and six add inherited scalar and procedure values. The compiler already resolves references
 across files, scalar fallback, ordered procedure inheritance, and `Clear`.
 Milestone three exposes those existing semantics without changing the ALMX format.
 
@@ -292,7 +292,7 @@ Label pending or incomplete results and which project configuration they use.
 | 2. Prove compiler analysis access | Implemented: snapshot/provenance contract, isolated AppDomain bridge, and evaluated SDK path adapter. | Packaged unsaved analysis, simultaneous same-identity SDK locations, explicit incompatible-version state, cleanup, and a standalone packaged worker pass. No private compiler in VSIX. See iteration three for the loading mechanism and validation limits. |
 | 3. Add project snapshots | Implemented: CPS evaluation subscription, buffer/disk capture, debounce, generation gates, and ownership/cleanup. | Controlled tests cover conditional/removed inputs, configuration changes, linked files, file watching, invalid input, and unload during analysis. Packaged end-to-end unsaved inheritance and existing editor smoke pass; performance and direct live-semantic UI assertions remain. |
 | 4. Add references and scalar UI | Implemented: project-context choice, reference picker/navigation, inherited scalar display, local override commands, and WPF chain adorners. | Packaged-compiler view-model tests cover origins, empty/equal values, stale commands and drafts; STA tests cover actual BAML and adorner lifecycle. See iteration five for IDE validation and remaining visual checks. |
-| 5. Add inherited procedures | Implement row origins, Clear presentation, effective sequence, and section commands. | Instructions/Reset remain independent; whole-section copy preserves effective behavior without duplicating local rows; source preservation and atomic Undo verified. |
+| 5. Add inherited procedures | Implemented: row origins/adorners, Clear/excluded presentation, effective sequence, and section commands. | Packaged-compiler tests verify section independence, copies without duplication, source preservation, one buffer edit per action, and exact restoration through the test buffer's undo. See iteration six for live UI validation limits. |
 | 6. Add diagnostics and preview | Integrate navigable live errors, MSBuild locations, and in-memory output preview. | Compiler/build/live results agree for identical inputs; unsaved edits update live results; failures never produce a successful preview or new compiled output. |
 | 7. Package and validate | Update SDK/VSIX content tests, smoke coverage, READMEs, and release requirements. | Both frameworks and IDE hosts pass the relevant matrix; supported SDK contract/version is documented and published before distributing its VSIX. |
 
@@ -704,9 +704,70 @@ UI assertions. Interactive reference/source navigation, shared-project context
 switching, keyboard flow, real themes/high contrast, scrolling/resizing/DPI, and
 large-project latency/memory still need live visual validation. Existing user IDE
 sessions were preserved; only this turn's test instances were closed. No packages
-were published. The new iteration remains uncommitted for review.
+were published. Iteration five was committed as `91ad097` before iteration six.
 
-Next iteration: inherited Instructions/Reset rows, Clear/excluded-entry
-presentation, and section-level Use local entries only / Make local copy commands,
-with source preservation and one undo transaction per section action. Live Error
-List and the complete resolved preview follow that slice.
+## Iteration six: inherited procedures and local section copies
+
+Instructions and Reset now consume the SDK's local/effective/excluded procedure
+provenance independently. Surviving inherited rows are read-only and selectable,
+with a chain Adorner on the row container, defining alarm/section/source position,
+accessible origin text, and Go to source. Navigation validates current project
+inputs before opening the defining entry, including multi-hop references.
+
+Clear appears as a labelled divider in the local source list. Excluded by Clear
+expands a read-only explanation of inherited and earlier local exclusions, naming
+the responsible Clear's origin. Local controls remain in a stable source-order
+list, including excluded local rows, so analysis refreshes do not move focused
+editors or discard drafts. The excluded group points to that list for local editing.
+Effective sequence is a separate numbered, read-only view of surviving entries;
+source positions are labelled explicitly and never presented as execution order.
+
+Use local entries only commits pending drafts through the normal conflict checks,
+then inserts a leading Clear if one is needed. It preserves existing local entries
+and directives, including comments, attributes, unknown elements, and later Clears. Make
+local copy requires current resolved analysis and committed/cancelled drafts. It
+revalidates the project snapshot, replaces only the selected section's contents
+with a leading Clear and each effective entry once, and preserves the other
+section and the reference. The UI explains that this captures a snapshot and
+future reference changes no longer flow into the copied section.
+
+Each section transformation uses one version-checked buffer edit and the existing
+VS undo transaction. A separate pending-draft commit remains its own action.
+Copies preserve container tags/attributes, namespace prefixes, and surrounding
+XML, but refuse removed entry attributes, comments, unknown content, nested
+markup, and duplicate containers rather than discarding them. Some unsupported
+markup already makes SDK analysis unavailable, which disables copying earlier.
+
+Analysis changes never overwrite local drafts. A procedure draft hides that
+section's stale semantic presentation while an untouched section can refresh;
+reference/identity drafts and unavailable results hide affected semantic values.
+Late copy/navigation completion is rejected after source, context, selection, or
+draft changes. Enter commits editable text fields and reaches buttons normally.
+
+Iteration-six validation (2026-09-25):
+
+- Visual Studio unit tests: 138 passed on net472, including 26 new procedure cases.
+  Tests use the actual packaged SDK for inheritance, all entry kinds, multi-hop
+  origins, multiple Clears, independent sections, empty sections, snapshots,
+  stale commands, and draft retention. Editing tests cover safe refusal, exact
+  surrounding-source preservation, namespaces/escaping, conflicts, rejected edits,
+  one buffer edit per section action, and exact-text test-buffer undo.
+- STA tests load actual designer BAML and verify row adorners, read-only values,
+  accessible origin text, Clear dividers, and Enter routing to command buttons.
+- Packaged VSIX/template-consumer tests: 10 passed per framework, net472 and net8.0.
+- VS2022 experimental smoke passed in AlarmlistM3; retained log directory:
+  `artifacts/log/Debug/VisualStudioSmoke/060588351da348a7aa0e56dcd64a653a`.
+- VS2026 experimental smoke passed in AlarmlistM3; retained log directory:
+  `artifacts/log/Debug/VisualStudioSmoke/ad0b27f3dd3c42b98d601a72628c92ea`.
+  Both runs cover the existing shared editor/native XML lifecycle, Undo/Redo,
+  Save All, Save As for local/linked project items, project item operations, build
+  Error List reporting, failed-output preservation, Clean, and Rebuild.
+
+Direct interaction with the new section commands and Undo in the IDE, theme/high
+contrast, scrolling/resizing/DPI, and the earlier linked-context/performance checks
+still require live visual validation. No compiler semantics, SDK contract, package
+dependencies, or public XML format changed. Iteration six remains uncommitted for
+review.
+
+Next iteration: navigable live diagnostics in the designer and an ALMX-owned
+Error List source, followed by the complete selected-alarm resolved/XML preview.

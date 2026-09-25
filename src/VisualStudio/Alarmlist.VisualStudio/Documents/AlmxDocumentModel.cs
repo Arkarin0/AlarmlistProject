@@ -77,6 +77,12 @@ namespace Alarmlist.VisualStudio.Documents
         public bool MoveProcedureItem(AlarmSource alarm, string section, int index, int direction, out string error)
             => Apply(() => _editing.MoveProcedureItem(Projection, alarm, section, index, direction), "Move procedure entry", out error);
 
+        public bool UseLocalProcedureEntries(AlarmSource alarm, string section, out string error)
+            => Apply(() => _editing.UseLocalProcedureEntries(Projection, alarm, section), "Use local procedure entries only", out error);
+
+        public bool MakeProcedureLocalCopy(AlarmSource alarm, string section, IReadOnlyList<ProcedureValueChange> entries, out string error)
+            => Apply(() => _editing.MakeProcedureLocalCopy(Projection, alarm, section, entries), "Make procedure section local", out error);
+
         private void CheckProcedureBaseline(AlmxProjection baseline, AlarmSource original, AlarmSource current, string name)
         {
             ProcedureSectionSource before = original.GetProcedureSection(name);

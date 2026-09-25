@@ -21,6 +21,8 @@ namespace Alarmlist.VisualStudio.Editing
         SourceEdit AddProcedureItem(AlmxProjection projection, AlarmSource alarm, string section, string kind);
         SourceEdit DeleteProcedureItem(AlmxProjection projection, AlarmSource alarm, string section, int index);
         SourceEdit MoveProcedureItem(AlmxProjection projection, AlarmSource alarm, string section, int index, int direction);
+        SourceEdit UseLocalProcedureEntries(AlmxProjection projection, AlarmSource alarm, string section);
+        SourceEdit MakeProcedureLocalCopy(AlmxProjection projection, AlarmSource alarm, string section, IReadOnlyList<ProcedureValueChange> entries);
     }
 
     [Export(typeof(IAlmxEditingService))]

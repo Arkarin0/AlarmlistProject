@@ -1,7 +1,9 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace Alarmlist.VisualStudio.Editing
 {
@@ -40,17 +42,70 @@ namespace Alarmlist.VisualStudio.Editing
             string item = "<" + QualifiedName(parent, kind) + "/>";
             if (section.Source != null) return InsertChild(projection.Text, section.Source, item);
 
+            return InsertProcedureSection(projection, alarm, section, item);
+        }
+
+        private static SourceEdit InsertProcedureSection(AlmxProjection projection, AlarmSource alarm, ProcedureSectionSource section, string content)
+        {
+            XmlSourceElement parent = section.Procedure ?? alarm.Source;
+
             string newline = Newline(projection.Text);
             string indent = Indent(projection.Text, parent.Start);
-            string sectionTag = QualifiedName(parent, sectionName);
+            string sectionTag = QualifiedName(parent, section.Name);
             if (section.Procedure != null)
                 return InsertChild(projection.Text, parent, "<" + sectionTag + ">" + newline
-                    + indent + "    " + item + newline + indent + "  </" + sectionTag + ">");
+                    + indent + "    " + content + newline + indent + "  </" + sectionTag + ">");
 
             string procedureTag = QualifiedName(parent, "TestProcedure");
             return InsertChild(projection.Text, parent, "<" + procedureTag + ">" + newline
-                + indent + "    <" + sectionTag + ">" + newline + indent + "      " + item + newline
+                + indent + "    <" + sectionTag + ">" + newline + indent + "      " + content + newline
                 + indent + "    </" + sectionTag + ">" + newline + indent + "  </" + procedureTag + ">");
+        }
+
+        public SourceEdit UseLocalProcedureEntries(AlmxProjection projection, AlarmSource alarm, string sectionName)
+        {
+            ProcedureSectionSource section = RequireSection(projection, alarm, sectionName);
+            if (section.Items.FirstOrDefault()?.Kind == "Clear") return new SourceEdit(0, 0, string.Empty);
+            if (section.Source == null || section.Source.IsEmpty)
+                return AddProcedureItem(projection, alarm, sectionName, "Clear");
+
+            // Insert without replacing any existing content, including unsupported XML.
+            string clear = "<" + QualifiedName(section.Source, "Clear") + "/>";
+            string newline = Newline(projection.Text);
+            string indent = section.Source.Children.Count > 0 ? Indent(projection.Text, section.Source.Children[0].Start)
+                : Indent(projection.Text, section.Source.Start) + "  ";
+            return new SourceEdit(section.Source.StartTagEnd, 0, newline + indent + clear);
+        }
+
+        public SourceEdit MakeProcedureLocalCopy(AlmxProjection projection, AlarmSource alarm, string sectionName,
+            IReadOnlyList<ProcedureValueChange> entries)
+        {
+            ProcedureSectionSource section = RequireSection(projection, alarm, sectionName);
+            if (section.Source != null && (section.Source.Element.Nodes().Any(node =>
+                    !(node is XElement) && (!(node is XText text) || !string.IsNullOrWhiteSpace(text.Value)))
+                || section.Source.Children.Count != section.Items.Count
+                || section.Items.Any(item => !item.CanEdit || item.Source.Element.HasAttributes)))
+                throw new InvalidOperationException("This section contains comments, attributes, or unsupported content that a local copy would replace. Edit it in XML to preserve that content.");
+
+            XmlSourceElement parent = section.Source ?? section.Procedure ?? alarm.Source;
+            string newline = Newline(projection.Text);
+            string indent = Indent(projection.Text, parent.Start)
+                + (section.Source != null ? "  " : section.Procedure != null ? "    " : "      ");
+            var rows = new List<string> { "<" + QualifiedName(parent, "Clear") + "/>" };
+            foreach (ProcedureValueChange entry in entries)
+            {
+                RequireKind(entry.Kind);
+                if (entry.Section != sectionName || entry.Kind == "Clear")
+                    throw new ArgumentException("A local copy requires the surviving entries of this section.", nameof(entries));
+                string tag = QualifiedName(parent, entry.Kind);
+                rows.Add("<" + tag + ">" + Escape(entry.Text ?? string.Empty) + "</" + tag + ">");
+            }
+            string content = string.Join(newline + indent, rows);
+            if (section.Source == null) return InsertProcedureSection(projection, alarm, section, content);
+            if (section.Source.IsEmpty) return InsertChild(projection.Text, section.Source, content);
+            // Keep the section's opening/closing tags (and their attributes) verbatim.
+            return new SourceEdit(section.Source.StartTagEnd, section.Source.CloseStart - section.Source.StartTagEnd,
+                newline + indent + content + newline + Indent(projection.Text, section.Source.Start));
         }
 
         public SourceEdit DeleteProcedureItem(AlmxProjection projection, AlarmSource alarm, string section, int index)

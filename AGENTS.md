@@ -229,6 +229,12 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   active drafts, and dispose notification subscriptions on view close. WPF adorners
   remain decorative, themed, and outside editing/compilation logic. Never dispose
   a FileSystemWatcher while holding the lock used by its callbacks.
+- Procedure presentation uses SDK local/effective/excluded entries and origins;
+  never infer Clear exclusions or execution order from displayed text. Section
+  copies require current resolved inputs and produce one buffer edit with a leading
+  Clear plus each effective entry once. Preserve the other section and surrounding
+  XML, and refuse copies that would discard unsupported local content. Keep local
+  draft controls stable during semantic refreshes.
 - Designer BAML tests use the pinned shell assembly as a PackageDownload test
   asset, preserving the CPS test host's matching MSBuild dependency family. Keep
   that version aligned with the extension's VS SDK; do not bundle it in the VSIX.

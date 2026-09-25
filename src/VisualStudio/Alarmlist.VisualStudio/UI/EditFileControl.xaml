@@ -14,6 +14,25 @@
       <Setter Property="Padding" Value="5,3" />
     </Style>
     <Style TargetType="Button"><Setter Property="Padding" Value="9,3" /><Setter Property="Margin" Value="0,0,6,0" /></Style>
+    <DataTemplate x:Key="ProcedureAnalysisRow">
+      <AdornerDecorator Margin="0,0,0,8">
+        <ContentControl ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" Focusable="False"
+                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        AutomationProperties.Name="{Binding Label}" AutomationProperties.HelpText="{Binding OriginText}"
+                        ToolTip="{Binding OriginText}">
+          <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" Padding="26,6,6,6">
+            <StackPanel>
+              <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+              <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="160"
+                       VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Procedure value" />
+              <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding ExclusionText}" TextWrapping="Wrap" />
+              <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0" />
+            </StackPanel>
+          </Border>
+        </ContentControl>
+      </AdornerDecorator>
+    </DataTemplate>
   </UserControl.Resources>
   <Grid Margin="12">
     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
@@ -86,6 +105,21 @@
                     <StackPanel Margin="0,0,0,16">
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="0,0,0,6" />
                       <TextBlock Text="{Binding Error}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                      <TextBlock Text="{Binding AnalysisGuidance}" TextWrapping="Wrap" Margin="0,0,0,5" />
+                      <TextBlock Text="Make local copy captures the effective sequence now. Future changes to the referenced section will no longer flow here. Undo restores inheritance. Commit or cancel drafts before copying."
+                                 TextWrapping="Wrap" Margin="0,0,0,6" />
+                      <WrapPanel Margin="0,0,0,8">
+                        <Button Content="Use local entries only" Command="{Binding UseLocalEntriesCommand}" />
+                        <Button Content="Make local copy" Command="{Binding MakeLocalCopyCommand}" />
+                      </WrapPanel>
+                      <ItemsControl ItemsSource="{Binding InheritedItems}" ItemTemplate="{StaticResource ProcedureAnalysisRow}" />
+                      <Expander Header="Excluded by Clear" Visibility="{Binding HasExcluded, Converter={StaticResource Visibility}}" Margin="0,0,0,8">
+                        <StackPanel>
+                          <TextBlock Text="These entries remain in their source XML. Local entries can still be edited in the local source list below." TextWrapping="Wrap" Margin="0,4,0,6" />
+                          <ItemsControl ItemsSource="{Binding ExcludedItems}" ItemTemplate="{StaticResource ProcedureAnalysisRow}" />
+                        </StackPanel>
+                      </Expander>
+                      <TextBlock Text="Local source entries (source order)" FontWeight="SemiBold" Margin="0,0,0,6" />
                       <WrapPanel Margin="0,0,0,8">
                         <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding NewKind}" MinWidth="92" Margin="0,0,6,0"
                                   AutomationProperties.Name="{Binding Name, StringFormat=New {0} entry kind}" />
@@ -99,7 +133,7 @@
                                     Padding="6" Margin="0,0,0,8">
                               <StackPanel>
                                 <WrapPanel Margin="0,0,0,5">
-                                  <TextBlock Text="{Binding Number}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                  <TextBlock Text="{Binding Number, StringFormat=Source {0}}" VerticalAlignment="Center" Margin="0,0,6,0" />
                                   <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind, UpdateSourceTrigger=PropertyChanged}"
                                             IsEnabled="{Binding CanEdit}" MinWidth="88" Margin="0,0,6,0"
                                             AutomationProperties.Name="Procedure entry kind" LostKeyboardFocus="OnFieldLostFocus" />
@@ -107,15 +141,21 @@
                                   <Button Content="↓" Command="{Binding MoveDownCommand}" ToolTip="Move entry down" AutomationProperties.Name="Move procedure entry down" />
                                   <Button Content="Remove" Command="{Binding DeleteCommand}" AutomationProperties.Name="Remove procedure entry" />
                                 </WrapPanel>
-                                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsTextEnabled}"
+                                <Separator Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
+                                <TextBlock Text="Clear preceding entries" FontWeight="SemiBold" Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
+                                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsTextEnabled}" Visibility="{Binding ShowText, Converter={StaticResource Visibility}}"
                                          AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxHeight="160" VerticalScrollBarVisibility="Auto"
                                          IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus" AutomationProperties.Name="Procedure entry text" />
                                 <TextBlock Text="{Binding Guidance}" TextWrapping="Wrap" Opacity="0.75" />
+                                <TextBlock Text="{Binding ExclusionText}" TextWrapping="Wrap" />
                               </StackPanel>
                             </Border>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
+                      <Expander Header="Effective sequence" Visibility="{Binding HasAnalysis, Converter={StaticResource Visibility}}" Margin="0,0,0,8">
+                        <ItemsControl ItemsSource="{Binding EffectiveItems}" ItemTemplate="{StaticResource ProcedureAnalysisRow}" Margin="0,6,0,0" />
+                      </Expander>
                     </StackPanel>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>

@@ -294,6 +294,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
         private sealed class TestBuffer : IDocumentBuffer
         {
+            private readonly Stack<string> _undo = new Stack<string>();
             private EventHandler _changed;
             public event EventHandler Changed { add => _changed += value; remove => _changed -= value; }
             public int Subscribers => _changed?.GetInvocationList().Length ?? 0;
@@ -302,10 +303,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             public DocumentSnapshot Current { get; private set; }
             public TestBuffer(string text) { Current = new DocumentSnapshot(text, 0); }
             public void SetText(string text) { Current = new DocumentSnapshot(text, Current.Version + 1); _changed?.Invoke(this, EventArgs.Empty); }
+            public void Undo() => SetText(_undo.Pop());
             public bool TryApply(int version, SourceEdit edit, string description, out string error)
             {
                 if (RejectEdit || version != Current.Version) { error = "Rejected"; return false; }
                 Edits++;
+                _undo.Push(Current.Text);
                 SetText(edit.Apply(Current.Text));
                 error = null;
                 return true;
