@@ -8,8 +8,8 @@ Planning update (2026-09-25): the proposed
 [milestone-four plan](src/VisualStudio/MILESTONE-4.md) selects well-known and custom
 string properties plus their designer completion as its scope. It supplies
 recommended answers to the property questions below; these notes retain the
-broader ideas. Localization, XML completion, and syntax generation remain
-unassigned. The proposal does not describe implemented behavior.
+broader ideas. Localization, NuGet alarm libraries, XML completion, and syntax
+generation remain unassigned. The proposal does not describe implemented behavior.
 
 ## Well-known properties and custom properties
 
@@ -38,6 +38,33 @@ Open questions:
 Add localization expressions such as `$(loc:MyKeyword)`, replaced with the
 localized value for the selected language or culture.
 
+In Visual Studio, provide a language dropdown combobox on a toolbar, following
+the behavior of Visual Studio's `Configuration` combobox for C# projects.
+Selecting a language updates both the resolved translations displayed in the
+designer and the language used for subsequent compilation.
+
+When an editable field receives focus, display its raw source string, such as
+`$(loc:MyKeyword)`, instead of the resolved translation. After editing ends and
+focus leaves the field, display the translation for the selected language again.
+Edits apply to the raw source value. Changing the selected language updates the
+active language setting while preserving the localization expressions in ALMX
+source files.
+
+Supply the language used for translation during compilation as a compile-time
+setting (compiler constant), exposed through a project property in the same way
+that C# projects expose `Configuration`. The property name and default remain to
+be defined. The toolbar combobox reflects and changes this same project setting,
+keeping the designer's displayed translations and compiled translations aligned.
+
+When compiling the final translated alarm list, if a localization keyword cannot
+be found in the localization source, the compiler must report an error and fail
+compilation without writing a new compiled output. As part of the future
+implementation, add a dedicated
+missing-localization-keyword error to the compiler's diagnostic classes, with a
+stable diagnostic ID and a message identifying the keyword and compilation
+language. Report the source location of the expression where available. The
+diagnostic ID will be assigned when this feature is implemented.
+
 The supported localization file formats remain undecided. Candidates are:
 
 - CAB-based files; the contained localization format still needs clarification.
@@ -48,11 +75,43 @@ Open questions:
 
 - Which formats should be supported first, and how are localization files included
   in a project?
-- How are the target culture, default language, and fallback behavior selected?
-- What happens when a key is missing or duplicated?
+- What is the compilation-language property's name and default, and how is it
+  passed to standalone compiler callers?
+- How should language fallback behave during display and compilation?
+- What happens when a localization key is duplicated?
 - Which fields can be localized, and how do localization expressions interact with
   property expansion and inherited values?
 - Does compilation produce one output per culture, or use another output model?
+
+## NuGet packages and alarm libraries
+
+Support distributing reusable alarm lists through NuGet packages. A package
+contains a compiled alarm list with localization expressions still unresolved.
+The consuming project translates these expressions using its selected language
+when compiling the final alarm list.
+
+Consider a new `OutputType=Library` option for producing this compiled,
+untranslated form. The exact output format and which compilation stages run for
+a library remain to be defined.
+
+Investigate whether custom property expressions should also remain unresolved in
+the packaged alarm list. If retained, the consuming project supplies their values
+and resolves them during final compilation. Decide which values can be fixed by
+the library author and which must be supplied by the consumer.
+
+Open questions:
+
+- How should the compiled library represent unresolved localization and custom
+  property expressions, and which validation can happen when creating it?
+- Should localization resources and custom property defaults or declarations be
+  included in the package, supplied by the consumer, or combined?
+- How are property scope, precedence, and name conflicts handled across the
+  consuming project and its packages? Which context supplies well-known properties?
+- How should package restore, library discovery, and packing integrate with
+  `.almproj` projects, including dependencies between alarm libraries?
+- How are packaged alarms combined with project alarms, including references and
+  duplicate names? Missing localization keywords must still fail final compilation
+  as described above; define when unresolved custom properties become errors.
 
 ## IntelliSense
 
