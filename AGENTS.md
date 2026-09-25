@@ -31,11 +31,12 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `src/SDK/Alarmlist.SDK.Tests/` | Tests of the packaged SDK, isolated consumer projects, and build lifecycle. |
 | `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, templates, and MVVM designer/XML split editor. `Editor/` owns host integration and open-buffer observation, `Documents/` shared models, `Editing/` source-preserving edits, `Analysis/` the SDK bridge, project snapshots/scheduling and file watching, `Diagnostics/` the live Error List source/navigation, `ProjectSystem/` CPS subscriptions, and `UI/` views/view models. |
 | `src/VisualStudio/Alarmlist.VisualStudio.UnitTests/` | `net472` editor/model, XML preservation, SDK bridge isolation/package-worker, CPS build-check, and MSBuild XAML schema tests. |
-| `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks. |
+| `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks, plus opt-in net472 live IDE functional smoke wrappers. |
 | `src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/` | Opt-in xUnit-hosted BenchmarkDotNet bridge/WPF measurements and running-IDE latency/memory validation; net472 only. |
 | `src/shared/VisualStudioTesting/` | Shared opt-in live-IDE driver invocation and structured result validation for integration/performance tests. |
 | `src/shared/Unittesting/` | Shared compiler/task test helpers linked through build configuration. |
 | `eng/` | Repository build settings, version properties, and common build tooling. |
+| `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
 | `template/` | Reference XML implementation/tests outside the current solution; active implementation lives in `src/`. |
 
@@ -308,6 +309,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   latency/memory in PerformanceTests. Preserve ordinary-run skipping, trait filters,
   cross-process serialization, complete-report validation and the driver's ownership
   of its test IDE. Keep the matching deployed configuration/profile explicit.
+- `eng/capture-visualstudio-heap.ps1` captures managed object counts, root paths
+  and thread stacks from an explicitly selected test process using the optional
+  ClrMD tool. Preserve PID/start-time identity checks and new report paths. Keep
+  diagnostic capture separate from timing measurements; do not force collection
+  in the inspected process or treat a reachable object as proof of a leak.
 - `eng/prepare-visualstudio-acceptance.ps1` creates and builds an isolated linked
   North/South fixture from the SDK version in the built VSIX template. Follow
   `src/VisualStudio/ACCEPTANCE.md` for interactive checks and preserve the source/

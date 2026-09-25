@@ -97,3 +97,12 @@ metadata under `VisualStudioSmoke/`. Failures retain logs and cannot pass with a
 empty, partial, wrong-host or unsuccessful report. No collection is forced in the
 measured IDE. Diagnostic polling includes COM overhead and does not measure typing
 to paint; memory totals do not establish leak freedom.
+
+## Heap and lifetime investigation
+
+For retained-object or stalled-driver investigation, use the separate
+[heap diagnostic tool](../../../eng/tools/VisualStudioHeapProbe/README.md).
+`eng/capture-visualstudio-heap.ps1 -ProcessId <test-process-pid>` retains managed
+heap totals, selected root paths and thread stacks with revision/runtime metadata.
+It requires Windows/x64 and .NET 8 and does not force collection in the inspected
+process. Run it separately from benchmarks; normal tests do not invoke it.
