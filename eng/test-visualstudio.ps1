@@ -5,7 +5,12 @@ param(
   [string]$VisualStudioPath,
   [string]$Configuration = 'Debug',
   [string]$RootSuffix = 'AlarmlistExp',
-  [switch]$KeepOpen
+  [switch]$KeepOpen,
+  [switch]$MeasureAnalysis,
+  [ValidateRange(1, 100)]
+  [int]$MeasurementIterations = 20,
+  [ValidateRange(1, 10000)]
+  [int]$MeasurementAlarmCount = 1000
 )
 
 $ErrorActionPreference = 'Stop'
@@ -334,6 +339,10 @@ public static class AlarmlistRunningObjectTable
         Marshal.ThrowExceptionForHR(frame.GetGuidProperty((int)Microsoft.VisualStudio.Shell.Interop.__VSFPROPID.VSFPROPID_guidEditorType, out actualEditor));
         if (actualEditor != xmlEditor) throw new Exception("The unsaved live-analysis test must use the XML editor only.");
         Marshal.ThrowExceptionForHR(frame.Show());
+        return ReplaceOpenBuffer(automation, path, text);
+    }
+    public static bool ReplaceOpenBuffer(object automation, string path, string text)
+    {
         // DTE dispatches edits to the UI thread. Document activation may lag
         // behind OpenDocument after reopening a solution, so select by path.
         foreach (EnvDTE.Document openDocument in ((EnvDTE.DTE)automation).Documents)
@@ -350,6 +359,24 @@ public static class AlarmlistRunningObjectTable
             return true;
         }
         return false;
+    }
+    public static void OpenMeasurementDesigner(object automation, string path)
+    {
+        var open = Service<Microsoft.VisualStudio.Shell.Interop.IVsUIShellOpenDocument>(automation, typeof(Microsoft.VisualStudio.Shell.Interop.SVsUIShellOpenDocument));
+        Guid editor = new Guid("6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f"), primary = Guid.Empty;
+        Microsoft.VisualStudio.OLE.Interop.IServiceProvider site;
+        Microsoft.VisualStudio.Shell.Interop.IVsUIHierarchy hierarchy;
+        Microsoft.VisualStudio.Shell.Interop.IVsWindowFrame frame;
+        uint item;
+        Marshal.ThrowExceptionForHR(open.OpenDocumentViaProjectWithSpecific(path, 0, ref editor, "", ref primary, out site, out hierarchy, out item, out frame));
+        try
+        {
+            Marshal.ThrowExceptionForHR(frame.Show());
+            Guid actualEditor;
+            Marshal.ThrowExceptionForHR(frame.GetGuidProperty((int)Microsoft.VisualStudio.Shell.Interop.__VSFPROPID.VSFPROPID_guidEditorType, out actualEditor));
+            if (actualEditor != editor) throw new Exception("The lifecycle measurement must open the ALMX designer.");
+        }
+        finally { if (frame != null) Marshal.ReleaseComObject(frame); }
     }
     public static bool IsAtLocation(object automation, string path, int line, int column)
     {
@@ -439,7 +466,7 @@ public static class AlarmlistRunningObjectTable
 }
 '@
 
-function Wait-For($Action, [string]$Description) {
+function Wait-For($Action, [string]$Description, [int]$PollMilliseconds = 500) {
   $deadline = [DateTime]::UtcNow.AddSeconds(120)
   do {
     try {
@@ -448,7 +475,7 @@ function Wait-For($Action, [string]$Description) {
     } catch [Runtime.InteropServices.COMException] {
       if ($_.Exception.HResult -notin @(-2147418111, -2147417846)) { throw }
     }
-    Start-Sleep -Milliseconds 500
+    Start-Sleep -Milliseconds $PollMilliseconds
   } while ([DateTime]::UtcNow -lt $deadline)
   throw "Timed out: $Description"
 }
@@ -458,6 +485,122 @@ function Assert-AlarmCount([int]$Expected) {
   if (@($compiled.AlarmList.Alarm).Count -ne $Expected) {
     throw "Expected $Expected compiled alarms."
   }
+}
+
+function Read-ClrCounter([string]$Instance, [string]$Name) {
+  $counter = [Diagnostics.PerformanceCounter]::new('.NET CLR Memory', $Name, $Instance, $true)
+  try { return $counter.RawValue } finally { $counter.Dispose() }
+}
+
+function Measure-LiveAnalysis {
+  # This exercises the running IDE through its supported automation/SDK APIs.
+  # It measures buffer replacement to Error List publication, not keystroke paint.
+  $measurementPath = Join-Path $projectDirectory 'Measurement.almx'
+  $sources = [Text.StringBuilder]::new('<Alarmlist>')
+  for ($index = 0; $index -lt $MeasurementAlarmCount; $index++) {
+    [void]$sources.Append("<Alarm><FullyQualifiedName>Measurement.$index</FullyQualifiedName><Name>Alarm $index</Name></Alarm>")
+  }
+  [void]$sources.Append('</Alarmlist>')
+  [IO.File]::WriteAllText($measurementPath, $sources.ToString())
+  Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Measurement.almx', '') } 'measurement input discovery' | Out-Null
+  git -C $repoRoot rev-parse HEAD | Set-Content (Join-Path $runDirectory 'measurement-commit.txt')
+  git -C $repoRoot status --short | Set-Content (Join-Path $runDirectory 'measurement-working-tree.txt')
+  [pscustomobject]@{
+    HostVersion = (Get-Item (Join-Path $VisualStudioPath 'Common7/IDE/devenv.exe')).VersionInfo.FileVersion
+    Configuration = $Configuration; RootSuffix = $RootSuffix; ProcessId = $ide.Id
+    AdditionalAlarms = $MeasurementAlarmCount; Iterations = $MeasurementIterations
+    DiagnosticPollMilliseconds = 50; ForcedIdeCollection = $false
+    CollectAutomationClientBeforeMemorySample = $true
+    StartedUtc = [DateTime]::UtcNow.ToString('O')
+  } | ConvertTo-Json | Set-Content (Join-Path $runDirectory 'measurement-environment.json')
+  $latencies = [Collections.Generic.List[object]]::new()
+  $memory = [Collections.Generic.List[object]]::new()
+  $sourceHash = (Get-FileHash -LiteralPath $livePath -Algorithm SHA256).Hash
+  $measurementHash = (Get-FileHash -LiteralPath $measurementPath -Algorithm SHA256).Hash
+  $outputHash = (Get-FileHash -LiteralPath $outputFile -Algorithm SHA256).Hash
+  $dte.Documents.CloseAll(2)
+  $clrInstance = $null
+  try {
+    $category = [Diagnostics.PerformanceCounterCategory]::new('.NET CLR Memory')
+    foreach ($instance in $category.GetInstanceNames()) {
+      if ((Read-ClrCounter $instance 'Process ID') -eq $ide.Id) { $clrInstance = $instance; break }
+    }
+  } catch { Write-Warning "CLR memory counters are unavailable: $_" }
+  Write-Output "CLR memory counter instance: $clrInstance (blank means unavailable)"
+
+  foreach ($mode in @('XmlBuffer', 'DesignerReopen')) {
+    # The first two samples warm the editor, SDK, and process; retain them but
+    # exclude them from the summary. Each error has a unique reference so an old
+    # row or the immediate stale-result clear cannot satisfy publication.
+    for ($sample = -1; $sample -le $MeasurementIterations; $sample++) {
+      $reference = "Missing$mode$sample"
+      $text = $liveText.Replace('MissingLive', $reference)
+      $message = "Alarm 'Live' references missing alarm '$reference'."
+      if ($mode -eq 'DesignerReopen') {
+        [AlarmlistRunningObjectTable]::OpenMeasurementDesigner($dte, $livePath)
+      } elseif ($sample -eq -1) {
+        Wait-For { [AlarmlistRunningObjectTable]::ReplaceXmlBuffer($dte, $livePath, $liveText) } 'measurement XML buffer opening' | Out-Null
+      }
+      $timer = [Diagnostics.Stopwatch]::StartNew()
+      if (![AlarmlistRunningObjectTable]::ReplaceOpenBuffer($dte, $livePath, $text)) {
+        throw 'Measurement buffer was not available for editing.'
+      }
+      Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, $message) } 'measured live diagnostic publication' 50 | Out-Null
+      $timer.Stop()
+      $latencies.Add([pscustomobject]@{ Mode = $mode; Sample = $sample; Warmup = ($sample -le 0); Milliseconds = $timer.Elapsed.TotalMilliseconds })
+      $latencies | Select-Object Mode, Sample, Warmup, @{ Name = 'Milliseconds'; Expression = {
+        $_.Milliseconds.ToString('R', [Globalization.CultureInfo]::InvariantCulture)
+      } } | Export-Csv (Join-Path $runDirectory 'analysis-latency.csv') -NoTypeInformation
+      if ($mode -eq 'DesignerReopen') {
+        $dte.Documents.Item($livePath).Close(2)
+        Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'measurement close restores disk analysis' 50 | Out-Null
+        if ($dte.Documents.Count -ne 0) { throw 'A measurement document remained open after close.' }
+        # Release temporary COM wrappers in this PowerShell driver before reading
+        # the other process. Never force collection inside the IDE being measured.
+        [GC]::Collect()
+        [GC]::WaitForPendingFinalizers()
+        [GC]::Collect()
+        $ide.Refresh()
+        $managedBytes = $null
+        $gen2Collections = $null
+        if ($clrInstance) {
+          try {
+            if ((Read-ClrCounter $clrInstance 'Process ID') -ne $ide.Id) { throw 'CLR counter instance changed process.' }
+            $managedBytes = Read-ClrCounter $clrInstance '# Bytes in all Heaps'
+            $gen2Collections = Read-ClrCounter $clrInstance '# Gen 2 Collections'
+          } catch {
+            Write-Warning "Further CLR memory samples are unavailable: $_"
+            $clrInstance = $null
+          }
+        }
+        $memory.Add([pscustomobject]@{
+          Sample = $sample; Warmup = ($sample -le 0); PrivateBytes = $ide.PrivateMemorySize64
+          WorkingSetBytes = $ide.WorkingSet64; Handles = $ide.HandleCount; OpenDocuments = $dte.Documents.Count
+          CapturedUtc = [DateTime]::UtcNow.ToString('O')
+          ManagedHeapBytes = $managedBytes; Gen2Collections = $gen2Collections
+        })
+        $memory | Export-Csv (Join-Path $runDirectory 'designer-close-memory.csv') -NoTypeInformation
+      }
+      Write-Output ("Measured {0} sample {1}: {2:N1} ms" -f $mode, $sample, $timer.Elapsed.TotalMilliseconds)
+    }
+    if ($mode -eq 'XmlBuffer') {
+      $dte.Documents.Item($livePath).Close(2)
+      Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'XML measurement close restores disk analysis' | Out-Null
+    }
+  }
+  if ((Get-FileHash -LiteralPath $livePath -Algorithm SHA256).Hash -ne $sourceHash -or
+      (Get-FileHash -LiteralPath $measurementPath -Algorithm SHA256).Hash -ne $measurementHash -or
+      (Get-FileHash -LiteralPath $outputFile -Algorithm SHA256).Hash -ne $outputHash) {
+    throw 'Analysis measurements changed source or compiled output on disk.'
+  }
+  Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Measurement.almx', 'delete') } 'measurement input cleanup' | Out-Null
+  foreach ($group in ($latencies | Where-Object { !$_.Warmup } | Group-Object Mode)) {
+    $values = @($group.Group.Milliseconds | Sort-Object)
+    $middle = [int][Math]::Floor($values.Count / 2)
+    $median = if ($values.Count % 2) { $values[$middle] } else { ($values[$middle - 1] + $values[$middle]) / 2 }
+    Write-Output ("{0}: median {1:N1} ms, max {2:N1} ms ({3} warm samples)" -f $group.Name, $median, $values[-1], $values.Count)
+  }
+  Write-Output 'Measurements retained; no timing thresholds or forced collection were applied to the IDE.'
 }
 
 $ide = $null
@@ -528,6 +671,7 @@ try {
   if ([IO.File]::ReadAllText($outputFile) -ne $before) { throw 'Live analysis changed compiled output.' }
   $dte.Documents.Item($livePath).Close(2)
   Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'closing unsaved XML restores disk diagnostics' | Out-Null
+  if ($MeasureAnalysis) { Measure-LiveAnalysis }
   Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Live.almx', 'delete') } 'live input deletion' | Out-Null
   Wait-For { ![AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'removed input clears live diagnostic' | Out-Null
   Write-Output 'Live Error List: no-Build publication, project unload/reopen, navigation, XML-only unsaved correction, close/discard, and removed-input cleanup passed.'

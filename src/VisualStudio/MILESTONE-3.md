@@ -1,15 +1,18 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: iterations one through twelve completed: snapshot input, located
+Status: implementation and runnable validation through iteration fourteen are
+complete: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
 selection/scalar inheritance with chain adorners, inherited procedures, and section
 commands, live designer/Error List diagnostics, and resolved-alarm/compiled XML
 previews, plus measured designer performance, preview accessibility fixes, and
 repeatable linked-project acceptance with live-host selector accessibility and
-local-override focus fixes and two-host functional acceptance. Iteration thirteen
-adds contextual action names; its remaining interactive acceptance gates are below.
-Final live-IDE validation remains. Continue the MVVM,
+local-override focus fixes, contextual action names, two-host functional acceptance,
+and running-IDE analysis/lifecycle measurements. Release acceptance remains open
+for spoken screen-reader output, native high contrast, mixed-DPI transitions,
+keystroke-to-paint responsiveness, and investigation of measured memory growth.
+See iteration fourteen for the final evidence and limits. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -1218,3 +1221,94 @@ native high contrast, and live theme checks on VS2022 remain manual release gate
 The existing offscreen palette/scale/automation tests are complementary evidence.
 Iteration fourteen continues final lifecycle and performance work. Nothing was
 published.
+
+## Iteration fourteen: running-IDE measurements and final regression record
+
+Iteration thirteen was committed as `a5f94b9`. Its production build remains
+unchanged. The smoke script now supports opt-in `-MeasureAnalysis`, configurable
+sample and alarm counts, and retained timing/process-memory CSVs with host and
+revision metadata. The ordinary smoke path remains available without measurements.
+See the [README](README.md) for the command and measurement contract.
+
+Each mode has two retained warmups followed by measured samples. A unique missing
+reference for every unsaved edit requires a fresh Error List diagnostic; clearing
+an obsolete row cannot complete a sample. XML mode keeps one XML-only buffer open.
+Designer mode opens the actual ALMX editor, edits, closes without saving, and waits
+for disk analysis to return before checking that no documents remain open. The
+driver releases temporary COM wrappers before memory sampling; it never forces
+collection in the IDE. Source and compiled-output hashes must stay unchanged.
+
+Final measurements (2026-09-25, Debug, AlarmlistM3, SDK 1.0.0, 1,002 alarms across
+three inputs):
+
+| Host | Samples per mode | XML median / maximum | Designer median / maximum |
+| --- | --- | --- | --- |
+| VS2022 17.14.36930.0 | 20 | 341.4 / 388.6 ms | 343.9 / 419.0 ms |
+| VS2026 18.10.12217.157 | 100 | 336.1 / 434.1 ms | 340.0 / 467.1 ms |
+
+These timings include automation, RDT/buffer capture, debounce, SDK analysis, and
+50 ms diagnostic polling. Editor opening is outside the timer. They do not measure
+physical keystrokes, UI paint, or successful compiled-preview generation: the
+missing-reference probe intentionally prevents successful compilation. No timing
+threshold is asserted, and these host/process samples are not a controlled
+comparison of Visual Studio versions.
+
+Whole-IDE memory after the first and last measured designer closes:
+
+| Host | Private memory | CLR heap counter | Gen-2 collections | Handles | Open documents |
+| --- | --- | --- | --- | --- | --- |
+| VS2022, 20 cycles | 620.1 -> 644.7 MiB | 108.3 -> 157.8 MiB | 2 -> 2 | 2,493 -> 2,395 | 0 throughout |
+| VS2026, 100 cycles | 652.4 -> 1,030.4 MiB | 119.9 -> 322.9 MiB | 4 -> 5 | 2,256 -> 2,303 | 0 throughout |
+
+The memory increase is unresolved. An earlier VS2026 run grew from 1,036.4 to
+1,281.0 MiB; adding CLR counters and releasing the automation client's wrappers
+did not eliminate growth. Process totals and CLR counters cannot identify retained
+objects or distinguish extension ownership from IDE caches, other packages, and
+collection timing. Zero documents and roughly stable handles do not establish
+leak freedom. A longer profiler run with heap/root attribution is a release gate;
+no production memory fix or leak-free acceptance is claimed.
+
+Iteration-fourteen validation:
+
+- The finalized measurement script completed the full smoke successfully on both
+  hosts. This includes native XML/designer integration, shared views, Undo/Redo,
+  Save As, CPS item/build lifecycle, no-Build diagnostics, unload/reopen cleanup,
+  navigation, XML-only unsaved edits, close/discard, removed inputs, preservation
+  of Build diagnostics, failed-build output preservation, Clean, and Rebuild.
+- All measured closes restored disk diagnostics with zero open documents. Unsaved
+  measurements preserved source/output hashes. Test-owned IDE instances closed.
+- A retained VS2022 session verified the deployed contextual action names and
+  compiled XML/resolved-field readability through Dark/Light transitions. The
+  original Dark theme was restored. This closes the VS2022 live-theme gate left
+  in iteration thirteen; it does not establish native high-contrast acceptance.
+- Iteration thirteen's final production build passed 214 Visual Studio unit tests
+  with one opt-in performance theory skipped, plus 10 packaged-consumer tests on
+  each of net472 and net8.0. Those unchanged suites were not repeated in this
+  script/documentation iteration. The script parsed successfully and was exercised
+  directly on both hosts. Compiler/MSBuild/SDK standalone tests and the separate
+  Release bridge/BAML benchmark retain their earlier recorded results.
+
+Final evidence is under `artifacts/log/Debug/VisualStudioSmoke/`:
+
+- VS2022: `b23293fa55d4437295b1c0b7c12e9554`.
+- VS2026: `1949cfe731f1443bb29f1b17f9f7d452`.
+- Earlier VS2022/native-theme run: `dd145759c1494893a8be541cf81b1a84`.
+- Earlier VS2026 runs: `3bd1e48c65ed4bf2968ab2a50f995162` and
+  `910cccd307e94eafaf6ad399731da671`.
+
+Each final directory retains `analysis-latency.csv`, `designer-close-memory.csv`,
+environment/revision metadata, fixture/build logs, and the IDE activity log.
+Top-level transcripts are `artifacts/log/Debug/m3-iteration14-smoke*-final.log`.
+The first two runs used local decimal formatting; their original CSVs remain
+unchanged beside derived `analysis-latency-invariant.csv` copies. Final CSVs use
+invariant decimals directly. Activity logs include unrelated host-package errors;
+passing the smoke does not mean those logs are error-free.
+
+The planned implementation and runnable validation iterations are complete.
+Milestone three is **not yet fully release-accepted**. Remaining acceptance work is
+actual spoken screen-reader announcements, native high contrast, a transition
+between monitors with different effective DPI, keystroke-to-paint responsiveness,
+and memory-growth attribution/long-session validation. The first three could not
+be established with the available session or display configuration; UI Automation
+and offscreen palette/scale tests are complementary evidence only. No SDK/VSIX was
+published. Publish the authoritative SDK before distributing its matching VSIX.

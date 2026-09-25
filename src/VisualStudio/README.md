@@ -33,6 +33,8 @@ Iteration twelve verifies scalar commits, unsaved referenced values, linked-proj
 isolation, and Undo in VS2022 and VS2026, plus the focus/procedure regressions on VS2022.
 Iteration thirteen gives scalar and section actions contextual accessibility names
 and records live keyboard, theme, and compact-layout checks with explicit manual gates.
+Iteration fourteen adds opt-in running-IDE analysis/lifecycle measurements to the
+smoke script and records final host regressions and the remaining release gates.
 Milestone-two lifecycle validation is recorded below and remains regression coverage.
 
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
@@ -386,6 +388,35 @@ failed run with interactive prompts enabled for inspection. The generated
 projects, local package feed, and ActivityLog are retained under
 `artifacts/log/<Configuration>/VisualStudioSmoke/`. Initialize the experimental
 instance manually first if Visual Studio requires first-run or sign-in input.
+
+Add `-MeasureAnalysis` to measure live analysis while running the same smoke:
+
+```powershell
+powershell.exe -NoProfile -STA -File eng/test-visualstudio.ps1 -VisualStudioPath '<VS installation>' -RootSuffix AlarmlistM3 -MeasureAnalysis -MeasurementIterations 100
+```
+
+The default is 20 measured samples per mode after two warmups, with 1,000 extra
+alarms in one generated input. `-MeasurementIterations` accepts 1-100 and
+`-MeasurementAlarmCount` accepts 1-10,000. The two modes replace an unsaved XML-only
+buffer repeatedly and reopen/edit/close the ALMX designer for each sample. Timings
+start at buffer replacement and end when a unique new diagnostic reaches Error
+List; they include capture, debounce, analysis, COM calls, and 50 ms polling.
+Editor opening is outside the timer. This does not measure keystroke-to-paint time
+or successful compiled-preview generation, since the probe intentionally contains
+a missing reference.
+
+`analysis-latency.csv`, `designer-close-memory.csv`, and environment/revision
+metadata remain in the smoke directory. Memory samples record the entire IDE's
+private bytes, working set, handles, and zero remaining open documents after each
+designer close and restored disk analysis. When available, .NET CLR heap-size and
+generation-two collection counters are matched to the test IDE's process ID;
+blank values mean unavailable. CSV timings use invariant decimal formatting.
+The automation driver releases its temporary window wrapper and collects its own
+COM wrappers before memory sampling. No IDE collection is forced, and no
+machine-dependent thresholds are asserted. Whole-process trends include other
+extensions, caches, and automation overhead; they cannot establish leak freedom.
+The script verifies that unsaved measurements leave source and compiled output
+unchanged, then removes only its generated measurement input from the test project.
 
 Run deployment and the smoke test for each installed host when changing extension
 compatibility. The manifest's open upper bound follows Microsoft's

@@ -277,6 +277,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
 - The smoke script accepts `-RootSuffix` (default `AlarmlistExp`). Match the suffix
   used for deployment; a separate experimental profile allows validation without
   replacing an extension DLL held by an existing IDE session.
+- Its opt-in `-MeasureAnalysis` mode measures running-IDE buffer-to-diagnostic
+  latency and repeated designer close/process-memory samples. Parameters select
+  1-100 measured iterations and 1-10,000 additional fixture alarms. Keep unique
+  diagnostic markers, two warmups, source/output preservation, and raw CSV data;
+  do not add machine-dependent thresholds. These timings include 50 ms polling
+  and COM overhead, exclude editor opening, and are not keystroke-paint timings.
+  Optional CLR counters must match the owned IDE process; unavailable is not zero.
+  Release the automation driver's temporary COM wrappers before sampling; do not
+  force collection in the measured IDE.
+  Whole-IDE memory trends without forced collection do not prove leak freedom.
 - `eng/measure-visualstudio-analysis.ps1` runs opt-in x64 net472 measurements of the
   packaged SDK bridge and actual WPF designer BAML in Release by default. It keeps
   CSV samples, test results, and revision/runtime details under `artifacts/log/`.

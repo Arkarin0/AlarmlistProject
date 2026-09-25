@@ -94,8 +94,10 @@ SHA256 values. A preview or context change must never write compiled output.
 Record host version, deployed build, fixture path, scenarios, observed results,
 failures, and any checks not run in [MILESTONE-3](MILESTONE-3.md).
 
-Live typing/RDT capture latency and repeated open/close memory retention need
-separate measurements. Use the existing opt-in performance harness as a baseline,
-not as a measurement of a running IDE. Keep remaining checks explicit before
-release acceptance. Publish the authoritative matching SDK before distributing
+Use `eng/test-visualstudio.ps1 -MeasureAnalysis` for running-IDE buffer-to-diagnostic
+latency and repeated designer close/process-memory samples. See the README for
+parameters and measurement limits. Real keystroke-to-paint responsiveness and
+long-session memory attribution still need interactive/profiler evidence. The
+separate packaged-bridge benchmark remains a useful baseline. Keep remaining
+checks explicit before release acceptance. Publish the authoritative matching SDK before distributing
 the VSIX through the existing release workflow.
