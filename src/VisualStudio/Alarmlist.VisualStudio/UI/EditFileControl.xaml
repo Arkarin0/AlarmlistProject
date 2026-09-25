@@ -1,11 +1,13 @@
 <UserControl x:Class="Alarmlist.VisualStudio.EditFileControl"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
   xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
   Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
   Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
   SizeChanged="OnSizeChanged" PreviewKeyDown="OnPreviewKeyDown">
   <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visibility" />
     <Style TargetType="TextBox">
       <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
@@ -23,7 +25,14 @@
       <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
       <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter alarms" ToolTip="Filter alarms by name or identifier" Margin="0,0,10,0" />
     </DockPanel>
-    <TextBlock Grid.Row="1" Text="{Binding Error}" TextWrapping="Wrap" Margin="0,0,0,8" AutomationProperties.LiveSetting="Polite" />
+    <StackPanel Grid.Row="1" Margin="0,0,0,8">
+      <ComboBox ItemsSource="{Binding Projects}" SelectedValuePath="ProjectPath" SelectedValue="{Binding SelectedProjectPath}"
+                AutomationProperties.Name="Analysis project context" Margin="0,0,0,4">
+        <ComboBox.ItemTemplate><DataTemplate><TextBlock><Run Text="{Binding ProjectPath, Mode=OneWay}" /><Run Text="{Binding Configuration, Mode=OneWay, StringFormat= ({0})}" /></TextBlock></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <TextBlock Text="{Binding AnalysisMessage}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+      <TextBlock Text="{Binding Error}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+    </StackPanel>
     <Grid Grid.Row="2">
       <Grid.ColumnDefinitions><ColumnDefinition x:Name="ListColumn" Width="220" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
       <ListBox x:Name="AlarmList" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" Background="Transparent" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,12,0" AutomationProperties.Name="Alarms">
@@ -32,15 +41,36 @@
       </ListBox>
       <DockPanel Grid.Column="1">
         <ComboBox x:Name="AlarmSelector" DockPanel.Dock="Top" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" DisplayMemberPath="Title" Visibility="Collapsed" Margin="0,0,0,8" AutomationProperties.Name="Selected alarm" />
-        <TextBlock DockPanel.Dock="Bottom" Text="Local values only. Clear a checkbox to remove that field. Reference names are edited literally." TextWrapping="Wrap" Opacity="0.7" Margin="0,8,0,0" />
+        <TextBlock DockPanel.Dock="Bottom" Text="Checkboxes describe local XML elements. Empty scalar values can still inherit. Use Override locally to start an editable copy; Escape cancels it." TextWrapping="Wrap" Opacity="0.7" Margin="0,8,0,0" />
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel IsEnabled="{Binding CanEdit}">
+          <StackPanel Margin="0,0,8,12">
+            <TextBlock Text="Reference selection" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <ComboBox ItemsSource="{Binding ReferenceChoices}" SelectedItem="{Binding SelectedReferenceChoice}" DisplayMemberPath="Label"
+                      IsTextSearchEnabled="True" TextSearch.TextPath="Identifier" AutomationProperties.Name="Reference candidates" Margin="0,0,0,5" />
+            <WrapPanel>
+              <Button Content="Use selected reference" Command="{Binding ApplyReferenceCommand}" />
+              <Button Content="Go to reference" Command="{Binding GoToReferenceCommand}" />
+            </WrapPanel>
+          </StackPanel>
           <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding CanEdit}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <StackPanel Margin="0,0,8,10">
                   <CheckBox Content="{Binding Name}" IsChecked="{Binding IsPresent}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,0,4" Click="OnPresenceChanged" ToolTip="Include a local value for this field" />
-                  <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsPresent}" AutomationProperties.Name="{Binding Name}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
+                  <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsPresent}" Visibility="{Binding ShowLocalEditor, Converter={StaticResource Visibility}}" AutomationProperties.Name="{Binding Name}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
+                  <AdornerDecorator Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}">
+                    <TextBox Text="{Binding EffectiveValue, Mode=OneWay}" IsReadOnly="True" Padding="26,3,5,3"
+                             ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" AutomationProperties.Name="{Binding Name}"
+                             AutomationProperties.HelpText="{Binding OriginText}" ToolTip="{Binding OriginText}"
+                             TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" />
+                  </AdornerDecorator>
+                  <TextBlock Text="{Binding OriginText}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}" TextWrapping="Wrap" Margin="0,3,0,3" />
+                  <WrapPanel Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}" Margin="0,4,0,0">
+                    <Button Content="Override locally" Command="{Binding OverrideCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}" />
+                    <Button Content="Go to source" Command="{Binding GoToSourceCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}" />
+                    <Button Content="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsPresent, Converter={StaticResource Visibility}}" />
+                  </WrapPanel>
                 </StackPanel>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

@@ -125,8 +125,9 @@ an absent property means the SDK does not provide this bridge integration.
 
 The extension now has an isolated AppDomain bridge for contract 1 and a CPS
 project service that captures this property and ordered Compile inputs from the
-same evaluation, then analyzes current buffer/disk snapshots. Inherited-value UI
-and live Error List publication remain later implementation steps. Release the matching
+same evaluation, then analyzes current buffer/disk snapshots. The designer uses
+these results for reference selection and inherited scalar values; inherited
+procedure presentation and live Error List publication remain later steps. Release the matching
 SDK before distributing a VSIX that uses the new contract.
 
 ## Build and test this repository

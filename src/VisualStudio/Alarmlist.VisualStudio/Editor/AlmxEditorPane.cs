@@ -28,6 +28,7 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly EditFileViewModelFactory _viewModels;
         private readonly IEditorLayoutSettings _settings;
         private readonly IContentTypeRegistryService _contentTypes;
+        private readonly VsDesignerAnalysisFactory _analysis;
         private AlmxDocumentSession _session;
         private EditFileControlViewModel _viewModel;
         private EditorLayoutViewModel _layout;
@@ -41,7 +42,7 @@ namespace Alarmlist.VisualStudio.Editor
 
         public AlmxEditorPane(System.IServiceProvider site, OleServiceProvider oleSite,
             IVsEditorAdaptersFactoryService adapters, IVsTextLines lines, AlmxDocumentSessionFactory sessions,
-            EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, bool xmlOnly) : base(site)
+            EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, VsDesignerAnalysisFactory analysis, bool xmlOnly) : base(site)
         {
             _oleSite = oleSite;
             _adapters = adapters;
@@ -51,6 +52,7 @@ namespace Alarmlist.VisualStudio.Editor
             _viewModels = viewModels;
             _settings = settings;
             _contentTypes = contentTypes;
+            _analysis = analysis;
         }
 
         protected override void Initialize()
@@ -79,7 +81,7 @@ namespace Alarmlist.VisualStudio.Editor
             if (_textHost == null || !(sourceElement is System.Windows.FrameworkElement sourceControl))
                 throw new InvalidOperationException("Visual Studio did not create the ALMX source editor.");
             _session = _sessions.GetOrCreate(buffer, _lines, (IVsQueryEditQuerySave2)GetService(typeof(SVsQueryEditQuerySave)));
-            _viewModel = _viewModels.Create(_session.Model);
+            _viewModel = _viewModels.Create(_session.Model, _analysis.Create(buffer));
             _session.Attach(_viewModel);
             _layout = new EditorLayoutViewModel(_settings, _session.CommitPending, _xmlOnly);
             _control = new SplitEditorControl(_layout, new EditFileControl(_viewModel), sourceControl);

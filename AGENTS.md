@@ -222,6 +222,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   duplicates, open-buffer precedence (including XML-only views), immediate stale
   result invalidation, and generation/text/identity checks before publication.
   Shared VS buffers remain VS-owned; disposing analysis must not close them.
+- Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
+  Keep source presence/local drafts separate from inherited effective displays.
+  Only the SDK's provenance determines inheritance; equal text is not evidence.
+  Revalidate current project inputs before copying/picking/navigating, preserve
+  active drafts, and dispose notification subscriptions on view close. WPF adorners
+  remain decorative, themed, and outside editing/compilation logic. Never dispose
+  a FileSystemWatcher while holding the lock used by its callbacks.
+- Designer BAML tests use the pinned shell assembly as a PackageDownload test
+  asset, preserving the CPS test host's matching MSBuild dependency family. Keep
+  that version aligned with the extension's VS SDK; do not bundle it in the VSIX.
 - Release the authoritative SDK package to NuGet.org before distributing its
   matching VSIX. `eng/release-visualstudio.ps1` separates candidate preparation,
   explicit SDK publication, and fresh-cache verification of the published SDK.

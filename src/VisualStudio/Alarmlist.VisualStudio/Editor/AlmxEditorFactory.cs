@@ -25,17 +25,19 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly EditFileViewModelFactory _viewModels;
         private readonly IEditorLayoutSettings _settings;
         private readonly IContentTypeRegistryService _contentTypes;
+        private readonly VsDesignerAnalysisFactory _analysis;
         private ServiceProvider _site;
         private OleServiceProvider _oleSite;
 
         [ImportingConstructor]
-        public AlmxEditorFactory(IVsEditorAdaptersFactoryService adapters, AlmxDocumentSessionFactory sessions, EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes)
+        public AlmxEditorFactory(IVsEditorAdaptersFactoryService adapters, AlmxDocumentSessionFactory sessions, EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, VsDesignerAnalysisFactory analysis)
         {
             _adapters = adapters;
             _sessions = sessions;
             _viewModels = viewModels;
             _settings = settings;
             _contentTypes = contentTypes;
+            _analysis = analysis;
         }
 
         public int SetSite(OleServiceProvider site)
@@ -92,7 +94,7 @@ namespace Alarmlist.VisualStudio.Editor
                     return VSConstants.VS_E_INCOMPATIBLEDOCDATA;
             }
 
-            AlmxEditorPane pane = new AlmxEditorPane(_site, _oleSite, _adapters, lines, _sessions, _viewModels, _settings, _contentTypes, physicalView == "XML");
+            AlmxEditorPane pane = new AlmxEditorPane(_site, _oleSite, _adapters, lines, _sessions, _viewModels, _settings, _contentTypes, _analysis, physicalView == "XML");
             try
             {
                 docView = Marshal.GetIUnknownForObject(pane);

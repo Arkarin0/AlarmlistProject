@@ -21,6 +21,7 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         private readonly IOpenAnalysisDocuments _documents;
         private readonly object _gate = new object();
+        private readonly object _lifecycleGate = new object();
         private readonly List<FileSystemWatcher> _watchers = new List<FileSystemWatcher>();
         private string[] _paths = Array.Empty<string>();
         private bool _disposed;
@@ -38,13 +39,22 @@ namespace Alarmlist.VisualStudio.Analysis
             string[] paths = project == null ? Array.Empty<string>() : project.Inputs
                 .Concat(string.IsNullOrWhiteSpace(project.CompilerPath) ? Array.Empty<string>() : new[] { project.CompilerPath })
                 .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-            lock (_gate)
+            lock (_lifecycleGate)
             {
-                if (_disposed) throw new ObjectDisposedException(nameof(ProjectAnalysisInputSource));
-                if (!_restartWatchers && paths.SequenceEqual(_paths, StringComparer.Ordinal)) return;
-                foreach (FileSystemWatcher watcher in _watchers) watcher.Dispose();
-                _watchers.Clear();
-                _paths = Array.Empty<string>();
+                FileSystemWatcher[] previous;
+                lock (_gate)
+                {
+                    if (_disposed) throw new ObjectDisposedException(nameof(ProjectAnalysisInputSource));
+                    if (!_restartWatchers && paths.SequenceEqual(_paths, StringComparer.Ordinal)) return;
+                    previous = _watchers.ToArray();
+                    _watchers.Clear();
+                    _paths = Array.Empty<string>();
+                }
+                // Framework FileSystemWatcher invokes callbacks under its own
+                // monitor; Component.Dispose takes the same monitor. Never hold
+                // our callback gate while disposing or changing a watcher.
+                foreach (FileSystemWatcher watcher in previous) watcher.Dispose();
+                var created = new List<FileSystemWatcher>();
                 try
                 {
                     foreach (string directory in paths.Select(ExistingParent).Distinct(StringComparer.OrdinalIgnoreCase))
@@ -54,22 +64,25 @@ namespace Alarmlist.VisualStudio.Analysis
                             IncludeSubdirectories = true,
                             NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size
                         };
-                        _watchers.Add(watcher);
+                        created.Add(watcher);
                         watcher.Changed += OnDiskChanged;
                         watcher.Created += OnDiskChanged;
                         watcher.Deleted += OnDiskChanged;
                         watcher.Renamed += OnDiskRenamed;
                         watcher.Error += OnWatcherError;
                     }
-                    _paths = paths;
-                    foreach (FileSystemWatcher watcher in _watchers) watcher.EnableRaisingEvents = true;
-                    _restartWatchers = false;
+                    lock (_gate)
+                    {
+                        _paths = paths;
+                        _watchers.AddRange(created);
+                        _restartWatchers = false;
+                    }
+                    foreach (FileSystemWatcher watcher in created) watcher.EnableRaisingEvents = true;
                 }
                 catch
                 {
-                    foreach (FileSystemWatcher watcher in _watchers) watcher.Dispose();
-                    _watchers.Clear();
-                    _paths = Array.Empty<string>();
+                    lock (_gate) { _watchers.Clear(); _paths = Array.Empty<string>(); }
+                    foreach (FileSystemWatcher watcher in created) watcher.Dispose();
                     throw;
                 }
             }
@@ -141,14 +154,19 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public void Dispose()
         {
-            lock (_gate)
+            lock (_lifecycleGate)
             {
-                if (_disposed) return;
-                _disposed = true;
+                FileSystemWatcher[] previous;
+                lock (_gate)
+                {
+                    if (_disposed) return;
+                    _disposed = true;
+                    previous = _watchers.ToArray();
+                    _watchers.Clear();
+                    _paths = Array.Empty<string>();
+                }
                 _documents.Changed -= OnDocumentChanged;
-                foreach (FileSystemWatcher watcher in _watchers) watcher.Dispose();
-                _watchers.Clear();
-                _paths = Array.Empty<string>();
+                foreach (FileSystemWatcher watcher in previous) watcher.Dispose();
             }
         }
     }

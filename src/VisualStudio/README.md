@@ -18,7 +18,8 @@ snapshots, file/line information for build diagnostics, and a read-only analysis
 API for field/procedure origins and Clear exclusions. Iteration three adds an
 isolated SDK analysis bridge and a CPS adapter for the evaluated compiler path.
 Iteration four starts project analysis from CPS subscriptions, using current open
-buffers and watched disk inputs. The reference-aware UI is still planned. Milestone-two
+buffers and watched disk inputs. Iteration five connects the designer's reference
+picker, scalar inheritance display, chain adorners, and source navigation. Milestone-two
 lifecycle validation is recorded below and remains regression coverage.
 
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
@@ -29,7 +30,7 @@ service now owns that lifecycle and input subscriptions, debounces edits by 250 
 and clears stale results immediately. Generation, text, and buffer identity checks
 guard publication. XML-only editor buffers take precedence over disk, and drafts
 that have not reached the shared buffer remain outside analysis. A context registry
-keeps linked projects separate; views do not yet display the semantic results.
+keeps linked projects separate; each view can choose its owning project context.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
@@ -48,8 +49,23 @@ from document contents. **Open With > XML (Text) Editor** remains available.
 Filter the alarm list by name or identifier, select an alarm, and edit its local
 `FullyQualifiedName`, `Name`, `Code`, `Category`, `Description`, or `ReferenceName`.
 A checked field is present in the source; clearing its checkbox removes it. An
-empty checked field remains an explicit empty local value. The list becomes a
+empty checked field remains an explicit empty local value and can still inherit.
+The list becomes a
 selector when the designer pane is narrow.
+
+Inherited Name, Code, Category, and Description values are selectable, read-only
+fields with a chain icon and defining alarm/file text. **Override locally** starts
+a draft copied from the current effective value; **Use inherited value** removes
+the local XML element. Viewing, focusing, or saving an untouched inherited field
+does not create an override. Analysis refreshes preserve active local drafts.
+
+Choose a project context for a file linked into multiple projects. The reference
+picker lists unambiguous identifiers from that project and excludes self/cyclic
+choices. **Use selected reference** edits only ReferenceName; literal entry remains
+available. **Go to reference** opens the immediate target, while **Go to source**
+opens the actual defining field through multi-hop inheritance. Copy, picker, and
+navigation commands revalidate captured inputs before acting. Pending, incomplete,
+unavailable, and loose-file states retain local editing without stale inheritance.
 
 Enter or leaving a field commits its draft; Shift+Enter inserts a newline, and
 Escape cancels a draft. Save and Save All also commit active drafts. Each accepted
@@ -74,8 +90,8 @@ Malformed XML disables designer mutations until the source is corrected. Fields
 containing nested markup, comments, or duplicate scalar elements must be edited
 in XML. Changes preserve untouched source text, including attributes, comments,
 unknown elements, procedure sections, and `Clear` directives. Renaming an alarm
-does not rewrite references. Reference completion, inherited-value previews,
-and live semantic diagnostics remain milestone three.
+does not rewrite references. Inherited procedure rows, live semantic diagnostics,
+and the complete resolved preview remain later milestone-three iterations.
 
 Save As keeps the tab, project item, and Running Document Table at the new path
 while all open views retain the same buffer. The original file remains on disk

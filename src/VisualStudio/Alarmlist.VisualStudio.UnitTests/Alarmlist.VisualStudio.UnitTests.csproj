@@ -2,12 +2,18 @@
   <PropertyGroup>
     <TargetFrameworks />
     <TargetFramework>net472</TargetFramework>
+    <UseWPF>true</UseWPF>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" />
     <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.SDK" Version="17.9.380" PrivateAssets="all" />
+    <!-- BAML uses shell theme keys. Download the host assembly as a test asset
+         without changing the CPS test host's MSBuild dependency family. -->
+    <PackageDownload Include="Microsoft.VisualStudio.Shell.15.0" Version="[17.9.37000]" />
+    <Content Include="$(NuGetPackageRoot)/microsoft.visualstudio.shell.15.0/17.9.37000/lib/net472/Microsoft.VisualStudio.Shell.15.0.dll"
+             Link="Microsoft.VisualStudio.Shell.15.0.dll" CopyToOutputDirectory="PreserveNewest" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />

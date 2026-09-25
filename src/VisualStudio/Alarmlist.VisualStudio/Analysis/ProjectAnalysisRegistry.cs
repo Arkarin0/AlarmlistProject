@@ -1,5 +1,6 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
@@ -14,8 +15,27 @@ namespace Alarmlist.VisualStudio.Analysis
         private readonly object _gate = new object();
         private readonly HashSet<ProjectAnalysisService> _projects = new HashSet<ProjectAnalysisService>();
 
-        public void Add(ProjectAnalysisService project) { lock (_gate) _projects.Add(project); }
-        public void Remove(ProjectAnalysisService project) { lock (_gate) _projects.Remove(project); }
+        public event EventHandler Changed;
+
+        public void Add(ProjectAnalysisService project)
+        {
+            lock (_gate)
+            {
+                if (!_projects.Add(project)) return;
+                project.Changed += OnChanged;
+            }
+            OnChanged(this, EventArgs.Empty);
+        }
+        public void Remove(ProjectAnalysisService project)
+        {
+            lock (_gate)
+            {
+                if (!_projects.Remove(project)) return;
+                project.Changed -= OnChanged;
+            }
+            OnChanged(this, EventArgs.Empty);
+        }
+        private void OnChanged(object sender, EventArgs args) => Changed?.Invoke(this, EventArgs.Empty);
 
         public IReadOnlyList<ProjectAnalysisService> GetContexts(string documentPath)
         {

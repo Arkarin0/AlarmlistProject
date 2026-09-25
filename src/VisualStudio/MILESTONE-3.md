@@ -1,9 +1,10 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: iterations one through four implemented: snapshot input, located
+Status: iterations one through five implemented: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
-project analysis subscriptions with buffer/disk snapshots. The reference-aware UI
-remains planned. The procedure interaction below is the recommended design. Continue the MVVM,
+project analysis subscriptions with buffer/disk snapshots, and designer reference
+selection/scalar inheritance with chain adorners. Inherited procedures, live errors,
+and resolved preview remain planned. The procedure interaction below is the recommended design. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -13,8 +14,8 @@ diagnostics and a resolved preview across the current project's ALMX inputs.
 
 ## Starting point and scope
 
-The current designer edits local XML values and ordered local procedure entries.
-It does not yet display inherited values. The compiler already resolves references
+The milestone-two designer edits local XML values and ordered local procedure entries.
+Iteration five adds inherited scalar values. The compiler already resolves references
 across files, scalar fallback, ordered procedure inheritance, and `Clear`.
 Milestone three exposes those existing semantics without changing the ALMX format.
 
@@ -290,7 +291,7 @@ Label pending or incomplete results and which project configuration they use.
 | 1. Stabilize the baseline | Completed in the updated milestone-two record; retain its regression coverage. | Both IDE hosts passed editor/project smoke, Save As, shared identity, and interactive cancellation checks. Checkout-based provider coverage remains unavailable. |
 | 2. Prove compiler analysis access | Implemented: snapshot/provenance contract, isolated AppDomain bridge, and evaluated SDK path adapter. | Packaged unsaved analysis, simultaneous same-identity SDK locations, explicit incompatible-version state, cleanup, and a standalone packaged worker pass. No private compiler in VSIX. See iteration three for the loading mechanism and validation limits. |
 | 3. Add project snapshots | Implemented: CPS evaluation subscription, buffer/disk capture, debounce, generation gates, and ownership/cleanup. | Controlled tests cover conditional/removed inputs, configuration changes, linked files, file watching, invalid input, and unload during analysis. Packaged end-to-end unsaved inheritance and existing editor smoke pass; performance and direct live-semantic UI assertions remain. |
-| 4. Add references and scalar UI | Implement completion/navigation, effective field state, override commands, and chain adorners. | Multi-hop origin, empty local values, identical local/inherited text, active drafts, Undo, keyboard access, and themes behave as specified. |
+| 4. Add references and scalar UI | Implemented: project-context choice, reference picker/navigation, inherited scalar display, local override commands, and WPF chain adorners. | Packaged-compiler view-model tests cover origins, empty/equal values, stale commands and drafts; STA tests cover actual BAML and adorner lifecycle. See iteration five for IDE validation and remaining visual checks. |
 | 5. Add inherited procedures | Implement row origins, Clear presentation, effective sequence, and section commands. | Instructions/Reset remain independent; whole-section copy preserves effective behavior without duplicating local rows; source preservation and atomic Undo verified. |
 | 6. Add diagnostics and preview | Integrate navigable live errors, MSBuild locations, and in-memory output preview. | Compiler/build/live results agree for identical inputs; unsaved edits update live results; failures never produce a successful preview or new compiled output. |
 | 7. Package and validate | Update SDK/VSIX content tests, smoke coverage, READMEs, and release requirements. | Both frameworks and IDE hosts pass the relevant matrix; supported SDK contract/version is documented and published before distributing its VSIX. |
@@ -627,7 +628,85 @@ Those assertions, configuration-switch UI coverage, and large-project latency an
 retained-memory measurements remain for presentation integration. No packages were
 published, and chain adorners/live Error List/preview are not yet exposed.
 
-Next iteration: connect current project results to the designer's reference and
+Iteration-four handoff: connect current project results to the designer's reference and
 scalar view models, add reference selection/source navigation, and implement the
 inherited-value chain Adorner with local override commands and draft preservation.
 Inherited procedure rows and section commands follow that slice.
+
+## Iteration five: references and inherited scalar presentation
+
+The designer now consumes the project's current analysis through a per-view
+`IDesignerAnalysis` adapter. A context picker keeps linked projects separate;
+loose/excluded files retain local editing with an explicit unavailable message.
+The adapter observes project changes and document rename/Save As, dispatches
+notifications to the UI, and releases subscriptions when the view closes.
+Publication and command checks use the actual current state, not an older event.
+
+Name, Code, Category, and Description expose local presence/text separately from
+effective inherited text. Inherited displays are one-way, read-only, and selectable.
+An explicit empty local element remains checked and empty in XML while its inherited
+display explains the fallback. Equal nonempty local text remains a local override.
+An invalid reference or pending/incomplete analysis clears inherited presentation.
+Semantic refresh never replaces a local draft. Alarm matching uses the current
+document text/version and declaration position, including unnamed alarms and all
+XML line-ending forms; it does not attach results by identifier alone.
+
+`InheritedValueAdorner` draws a vector chain in reserved left padding, with the
+field's live foreground brush and hit testing disabled. Each inherited field has
+an AdornerDecorator, tooltip, accessible origin text, and a separate Go to source
+button. The attached behavior removes/recreates adorners on load/unload, data
+context changes, and inherited state changes. Source checkboxes retain their
+existing meaning and local procedure controls remain available.
+
+Override locally first revalidates the captured project inputs, then seeds only
+that field's draft. Normal commit writes the selected local value through the
+existing conflict-checked edit service; Escape cancels it. Use inherited value
+removes the local element. Untouched inherited display/focus/Save does not write
+an override. Changes to the selected alarm, context, source, or draft while a
+command is validating cancel that action without overwriting newer work.
+
+The project reference picker shows name, ordinal identifier, and defining path.
+It excludes the selected declaration, ambiguous names, unresolved targets, and
+targets whose compiler-provided chain would introduce a cycle. Literal edits stay
+available. Go to reference uses the immediate target; Go to source uses the actual
+defining field. Navigation revalidates input captures and checks the opened shared
+buffer text before placing the caret. Commands requiring a current snapshot are
+unavailable while drafts are pending or the matching result is unavailable.
+
+Validation exposed and fixed two lifecycle issues. Framework FileSystemWatcher
+callbacks and disposal take the watcher's monitor, so replacement/disposal now
+happen outside the input source's callback lock. View notification cleanup joins
+its task collection through a separate factory, avoiding a join that waits on
+itself during duplicate-window close. A dedicated STA regression covers queued
+notification disposal. The BAML test also caught and fixed a two-way default
+binding on the read-only project-context label.
+
+Iteration-five validation (2026-09-25):
+
+| Check | Result |
+| --- | --- |
+| Visual Studio unit tests | 112 passed on net472, including 20 new scalar/picker/navigation/BAML/adorner/lifetime cases |
+| Packaged VSIX and template-consumer tests | 10 passed per framework, net472 and net8.0 |
+| VS2022 17.14.26 experimental smoke | Passed in AlarmlistM3; log directory `352fb5aeab1643d3932c48a74ce0f453` |
+| VS2026 18.10.2 experimental smoke | Passed in AlarmlistM3; log directory `ad443c7029ef40bc993376e63f24dc54` |
+
+Smoke logs remain under `artifacts/log/Debug/VisualStudioSmoke/`. The initial
+close-window deadlocks are not counted as passes; both IDEs passed after the fix.
+Tests use the real packaged compiler for scalar semantics. STA tests load the
+actual designer BAML, verify that inherited display never becomes an implicit
+local draft, and check adorner state, theme-brush updates, unload/reload, and
+non-interactive overlay behavior. The shell assembly is a pinned PackageDownload
+test asset so BAML tests do not change the CPS test host's MSBuild dependency family.
+
+The additional Computer Use visual inspection timed out waiting for app approval.
+The automated IDE smoke covers editor and project lifecycle, not direct semantic
+UI assertions. Interactive reference/source navigation, shared-project context
+switching, keyboard flow, real themes/high contrast, scrolling/resizing/DPI, and
+large-project latency/memory still need live visual validation. Existing user IDE
+sessions were preserved; only this turn's test instances were closed. No packages
+were published. The new iteration remains uncommitted for review.
+
+Next iteration: inherited Instructions/Reset rows, Clear/excluded-entry
+presentation, and section-level Use local entries only / Make local copy commands,
+with source preservation and one undo transaction per section action. Live Error
+List and the complete resolved preview follow that slice.

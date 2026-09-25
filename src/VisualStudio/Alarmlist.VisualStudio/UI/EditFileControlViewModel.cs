@@ -15,10 +15,10 @@ namespace Alarmlist.VisualStudio.UI
         private readonly AlarmViewModelFactory _alarms;
         [ImportingConstructor]
         public EditFileViewModelFactory(AlarmViewModelFactory alarms) { _alarms = alarms; }
-        public EditFileControlViewModel Create(AlmxDocumentModel model) => new EditFileControlViewModel(model, _alarms);
+        public EditFileControlViewModel Create(AlmxDocumentModel model, IDesignerAnalysis analysis) => new EditFileControlViewModel(model, _alarms, analysis);
     }
 
-    internal sealed class EditFileControlViewModel : ObservableObject, IDisposable
+    internal sealed partial class EditFileControlViewModel : ObservableObject, IDisposable
     {
         private readonly AlmxDocumentModel _model;
         private readonly AlarmViewModelFactory _factory;
@@ -55,7 +55,7 @@ namespace Alarmlist.VisualStudio.UI
             }
         }
 
-        public EditFileControlViewModel(AlmxDocumentModel model, AlarmViewModelFactory factory)
+        public EditFileControlViewModel(AlmxDocumentModel model, AlarmViewModelFactory factory, IDesignerAnalysis analysis = null)
         {
             _model = model;
             _factory = factory;
@@ -65,6 +65,7 @@ namespace Alarmlist.VisualStudio.UI
             AddCommand = new DelegateCommand(Add, () => IsValid);
             DeleteCommand = new DelegateCommand(Delete, () => CanEdit);
             _model.Changed += OnModelChanged;
+            InitializeAnalysis(analysis);
             Refresh();
         }
 
@@ -76,6 +77,8 @@ namespace Alarmlist.VisualStudio.UI
                 || ProcedureSections.Any(section => section.Items.Any(item => item.HasChanges));
             PendingChanged?.Invoke(this, EventArgs.Empty);
             Notify(nameof(HasPending));
+            _draftVersion++;
+            RefreshAnalysis();
         }
 
         public bool CommitPending()
@@ -133,6 +136,7 @@ namespace Alarmlist.VisualStudio.UI
             _original = _selected?.Source;
             foreach (AlarmFieldViewModel field in Fields) field.Load(_original);
             foreach (ProcedureSectionViewModel section in ProcedureSections) section.Load(_original);
+            RefreshAnalysis();
         }
 
         private void EditProcedure(string section, int index, ProcedureAction action, string kind)
@@ -174,8 +178,8 @@ namespace Alarmlist.VisualStudio.UI
         private void OnModelChanged(object sender, EventArgs args)
         {
             if (!_committing && !_pending) Refresh();
-            else { Notify(nameof(IsValid)); Notify(nameof(CanEdit)); Notify(nameof(Error)); AddCommand.Refresh(); DeleteCommand.Refresh(); }
+            else { Notify(nameof(IsValid)); Notify(nameof(CanEdit)); Notify(nameof(Error)); AddCommand.Refresh(); DeleteCommand.Refresh(); RefreshAnalysis(); }
         }
-        public void Dispose() { _model.Changed -= OnModelChanged; PendingChanged = null; }
+        public void Dispose() { _model.Changed -= OnModelChanged; DisposeAnalysis(); PendingChanged = null; }
     }
 }
