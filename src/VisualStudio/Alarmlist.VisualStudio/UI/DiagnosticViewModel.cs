@@ -7,7 +7,7 @@ using Alarmlist.VisualStudio.Analysis;
 
 namespace Alarmlist.VisualStudio.UI
 {
-    internal sealed class DiagnosticViewModel
+    internal sealed class DiagnosticViewModel : ObservableObject
     {
         public LiveDiagnostic Diagnostic { get; }
         public string Heading => Diagnostic.IsCompilerDiagnostic ? Diagnostic.Severity + " " + Diagnostic.Id : "Analysis unavailable";
@@ -20,11 +20,11 @@ namespace Alarmlist.VisualStudio.UI
             var locations = new List<DiagnosticLocationViewModel>();
             if (diagnostic.Location != null) locations.Add(new DiagnosticLocationViewModel(diagnostic.Location, "Source", navigation(diagnostic.Location)));
             locations.AddRange(diagnostic.RelatedLocations.Select(location => new DiagnosticLocationViewModel(location, "Related", navigation(location))));
-            Locations = locations.AsReadOnly();
+            Locations = BindingCollection.Create(locations);
         }
     }
 
-    internal sealed class DiagnosticLocationViewModel
+    internal sealed class DiagnosticLocationViewModel : ObservableObject
     {
         public AnalysisLocation Location { get; }
         public string Label { get; }

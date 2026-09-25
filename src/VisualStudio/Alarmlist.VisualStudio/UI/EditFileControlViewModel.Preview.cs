@@ -7,7 +7,7 @@ using Alarmlist.VisualStudio.Analysis;
 
 namespace Alarmlist.VisualStudio.UI
 {
-    internal sealed class ResolvedFieldViewModel
+    internal sealed class ResolvedFieldViewModel : ObservableObject
     {
         public string Name { get; }
         public string Value { get; }
@@ -25,7 +25,7 @@ namespace Alarmlist.VisualStudio.UI
         }
     }
 
-    internal sealed class ResolvedSectionViewModel
+    internal sealed class ResolvedSectionViewModel : ObservableObject
     {
         public string Name { get; }
         public IReadOnlyList<ProcedureAnalysisRow> Items { get; }
@@ -34,7 +34,7 @@ namespace Alarmlist.VisualStudio.UI
         public ResolvedSectionViewModel(AnalysisSection section, Func<AnalysisEntry, DelegateCommand> navigation)
         {
             Name = section.Name;
-            Items = section.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry))).ToArray();
+            Items = BindingCollection.Create(section.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry))));
         }
     }
 
@@ -82,13 +82,12 @@ namespace Alarmlist.VisualStudio.UI
                     : "This alarm is resolved. Other project errors prevent compiled XML preview.";
                 if (alarm?.IsResolved == true)
                 {
-                    ResolvedFields = new[] { new ResolvedFieldViewModel("FullyQualifiedName", alarm.Origin.FullyQualifiedName,
+                    ResolvedFields = BindingCollection.Create(new[] { new ResolvedFieldViewModel("FullyQualifiedName", alarm.Origin.FullyQualifiedName,
                         false, alarm.Origin, alarm.Origin.Location, PreviewNavigation(state, alarm, alarm.Origin.Location)) }
                         .Concat(alarm.Fields.Select(field => new ResolvedFieldViewModel(field.Name, field.EffectiveValue,
-                            field.IsInherited, field.DefiningAlarm, field.ValueLocation, PreviewNavigation(state, alarm, field.ValueLocation))))
-                        .ToArray();
-                    ResolvedSections = new[] { alarm.Instructions, alarm.Reset }.Select(section => new ResolvedSectionViewModel(section,
-                        entry => PreviewNavigation(state, alarm, entry.Origin.Location))).ToArray();
+                            field.IsInherited, field.DefiningAlarm, field.ValueLocation, PreviewNavigation(state, alarm, field.ValueLocation)))));
+                    ResolvedSections = BindingCollection.Create(new[] { alarm.Instructions, alarm.Reset }.Select(section => new ResolvedSectionViewModel(section,
+                        entry => PreviewNavigation(state, alarm, entry.Origin.Location))));
                 }
                 CompiledXml = snapshot.Success ? state.Response.CompiledXml : null;
                 XmlPreviewMessage = !snapshot.Success ? "Compiled XML is unavailable until all project errors are resolved."

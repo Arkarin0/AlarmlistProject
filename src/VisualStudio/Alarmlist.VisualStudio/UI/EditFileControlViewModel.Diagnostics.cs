@@ -19,12 +19,12 @@ namespace Alarmlist.VisualStudio.UI
 
         private void RefreshDiagnostics(ProjectAnalysisState state)
         {
-            Diagnostics = LiveDiagnostic.Create(state?.Status == ProjectAnalysisStatus.Available && !DiagnosticDocumentMatches(state) ? null : state)
+            Diagnostics = BindingCollection.Create(LiveDiagnostic.Create(state?.Status == ProjectAnalysisStatus.Available && !DiagnosticDocumentMatches(state) ? null : state)
                 .Select(diagnostic => new DiagnosticViewModel(diagnostic, location =>
                 new DelegateCommand(() =>
                 {
                     if (CanNavigateDiagnostic(diagnostic, location)) PendingAnalysisAction = NavigateDiagnosticAsync(diagnostic, location);
-                }, () => CanNavigateDiagnostic(diagnostic, location)))).ToArray();
+                }, () => CanNavigateDiagnostic(diagnostic, location)))));
             Notify(nameof(Diagnostics)); Notify(nameof(DiagnosticsHeading)); Notify(nameof(DiagnosticsGuidance));
         }
 

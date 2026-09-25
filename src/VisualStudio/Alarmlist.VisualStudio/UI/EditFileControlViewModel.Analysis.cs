@@ -11,7 +11,18 @@ using Alarmlist.VisualStudio.Editing;
 
 namespace Alarmlist.VisualStudio.UI
 {
-    internal sealed class ReferenceChoice
+    internal sealed class AnalysisProjectChoice : ObservableObject
+    {
+        public string ProjectPath { get; }
+        public string Configuration { get; }
+        public AnalysisProjectChoice(AnalysisProject project)
+        {
+            ProjectPath = project.ProjectPath;
+            Configuration = project.Configuration;
+        }
+    }
+
+    internal sealed class ReferenceChoice : ObservableObject
     {
         public AnalysisAlarm Alarm { get; }
         public string Identifier => Alarm.Origin.FullyQualifiedName;
@@ -36,7 +47,8 @@ namespace Alarmlist.VisualStudio.UI
         private AnalysisAlarm _currentAlarm;
         private ProjectAnalysisState _choicesState;
         private AnalysisAlarm _choicesAlarm;
-        public IReadOnlyList<AnalysisProject> Projects => _analysis?.Projects ?? Array.Empty<AnalysisProject>();
+        public IReadOnlyList<AnalysisProjectChoice> Projects => BindingCollection.Create(
+            _analysis?.Projects.Select(project => new AnalysisProjectChoice(project)));
         public IReadOnlyList<ReferenceChoice> ReferenceChoices { get; private set; } = Array.Empty<ReferenceChoice>();
         public ReferenceChoice SelectedReferenceChoice
         {
@@ -195,14 +207,14 @@ namespace Alarmlist.VisualStudio.UI
                     _choicesState = state;
                     _choicesAlarm = alarm;
                     string selectedReference = _referenceChoice?.Identifier;
-                    ReferenceChoices = alarm == null ? Array.Empty<ReferenceChoice>() : state.Response.Snapshot.Alarms
+                    ReferenceChoices = alarm == null ? (IReadOnlyList<ReferenceChoice>)Array.Empty<ReferenceChoice>() : BindingCollection.Create(state.Response.Snapshot.Alarms
                         .Where(item => !string.IsNullOrEmpty(item.Origin.FullyQualifiedName))
                         .GroupBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
                         .Where(group => group.Count() == 1).Select(group => group.Single())
                         .Where(item => item.IsResolved && item.Origin.Index != alarm.Origin.Index
                             && item.ReferenceChain.All(origin => origin.Index != alarm.Origin.Index))
                         .OrderBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
-                        .Select(item => new ReferenceChoice(item)).ToArray();
+                        .Select(item => new ReferenceChoice(item)));
                     _referenceChoice = ReferenceChoices.FirstOrDefault(item => item.Identifier == selectedReference);
                     Notify(nameof(ReferenceChoices)); Notify(nameof(SelectedReferenceChoice));
                 }

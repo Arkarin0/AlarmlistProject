@@ -7,6 +7,8 @@ using System.Windows.Input;
 
 namespace Alarmlist.VisualStudio.UI
 {
+    // Use this for immutable presentation rows too: WPF otherwise subscribes
+    // through PropertyDescriptor.AddValueChanged, which can root the source.
     internal abstract class ObservableObject : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;

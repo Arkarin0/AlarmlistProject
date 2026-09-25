@@ -239,6 +239,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   active drafts, and dispose notification subscriptions on view close. WPF adorners
   remain decorative, themed, and outside editing/compilation logic. Never dispose
   a FileSystemWatcher while holding the lock used by its callbacks.
+- Bind designer item sources through read-only notifying collections and immutable
+  presentation rows through the existing notification base. WPF's non-notifying
+  collection cache and PropertyDescriptor subscriptions can retain closed views
+  and analysis snapshots. Keep analysis DTOs independent of UI notification types.
 - Resolved previews use SDK effective fields and surviving procedure entries.
   Clear both previews during drafts or stale/unavailable analysis; project XML
   requires whole-project success. Keep preview support optional for older SDKs,

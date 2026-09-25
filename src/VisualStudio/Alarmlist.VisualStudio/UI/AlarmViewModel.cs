@@ -8,7 +8,7 @@ using Alarmlist.VisualStudio.Editing;
 
 namespace Alarmlist.VisualStudio.UI
 {
-    internal sealed class AlarmViewModel
+    internal sealed class AlarmViewModel : ObservableObject
     {
         public AlarmSource Source { get; }
         public string Title => !string.IsNullOrWhiteSpace(Source.GetValue("Name")) ? Source.GetValue("Name")

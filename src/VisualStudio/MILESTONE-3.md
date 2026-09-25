@@ -1,6 +1,6 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: implementation and runnable validation through iteration fourteen are
+Status: implementation and runnable validation through iteration fifteen are
 complete: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
@@ -11,8 +11,9 @@ repeatable linked-project acceptance with live-host selector accessibility and
 local-override focus fixes, contextual action names, two-host functional acceptance,
 and running-IDE analysis/lifecycle measurements. Release acceptance remains open
 for spoken screen-reader output, native high contrast, mixed-DPI transitions,
-keystroke-to-paint responsiveness, and investigation of measured memory growth.
-See iteration fourteen for the final evidence and limits. Continue the MVVM,
+keystroke-to-paint responsiveness, and remaining whole-IDE memory growth. The
+extension binding-retention paths found by heap profiling are fixed; see iteration
+fifteen for the measured scope and limits. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -1312,3 +1313,63 @@ and memory-growth attribution/long-session validation. The first three could not
 be established with the available session or display configuration; UI Automation
 and offscreen palette/scale tests are complementary evidence only. No SDK/VSIX was
 published. Publish the authoritative SDK before distributing its matching VSIX.
+
+## Iteration fifteen: remove WPF binding retention
+
+Heap/root profiling identified two routes retaining disposed designers: WPF's
+inactive collection-view cache for non-notifying item sources, and
+`ReflectPropertyDescriptor` subscriptions on immutable presentation rows. The
+latter retained diagnostic navigation commands, their designer, and complete
+analysis snapshots. See the [WPF collection-view lifetime explanation](https://github.com/dotnet/wpf/blob/main/src/Microsoft.DotNet.Wpf/src/PresentationFramework/MS/Internal/Data/ViewManager.cs).
+
+Designer item sources now use read-only notifying snapshots, and immutable UI
+rows implement the existing notification interface so WPF uses weak property
+subscriptions. Project choices copy only their displayed identity into UI rows;
+analysis contracts remain immutable and independent of WPF. Editing semantics,
+SDK resolution, preview stability, and compiler contracts are unchanged.
+
+New lifetime regressions instantiate real designer BAML, populate scalar,
+procedure, excluded-entry and diagnostic bindings, dispose the model, and check
+that the view, model, analysis state and project become collectible while the
+STA dispatcher stays alive. These tests deliberately omit an HWND so native
+window teardown and external UI Automation clients cannot control collection.
+The final regression reproduced retention with the original bindings and passes
+with the fix. Actual IDE lifetime evidence is separate below.
+
+A diagnostic copy of the normal smoke driver captured Windows process snapshots
+with Microsoft.Diagnostics.Runtime 3.1.512801 at samples 0, 20 and 100. It walked
+managed objects and strong/dependent roots without forcing collection in the
+IDE. Full heap contents were not written; retained JSON contains type counts,
+addresses and root paths. The diagnostic driver and probe are local artifacts
+under `artifacts/tools/M3HeapProbe/`, not shipping dependencies.
+
+VS2026 18.10.12217.157, Debug, AlarmlistM3, 1,002 alarms:
+
+| Measurement | After warmups | After 20 closes | After 100 closes |
+| --- | --- | --- | --- |
+| Reachable managed objects, MiB | 121.1 | 122.9 | 122.7 |
+| Reachable closed designer models | 0 | 0 | 0 |
+| Reachable disposed per-view analysis adapters | 0 | 0 | 0 |
+| Reachable project analysis states | 1 | 1 | 1 |
+| Analysis AppDomains including the VS host | 2 | 2 | 2 |
+
+The one reachable state belongs to the current loaded project's analysis service.
+Before the fix, the 20-cycle probe found eight reachable disposed designer models
+and nine reachable analysis states. After the fix, retired models/adapters still
+present in the heap were unreachable; old panes were also unreachable. These
+results establish removal of the observed extension retention paths, not proof
+that every IDE component is leak-free.
+
+The full 100-cycle smoke passed, preserved source/output hashes and closed its
+owned IDE. XML diagnostic latency was median 327.0 / maximum 470.1 ms; designer
+latency was 332.7 / 454.0 ms. The measurement limits from iteration fourteen apply.
+Evidence: `artifacts/log/Debug/VisualStudioSmoke/a1438f7d63364a9096804efb2c02afb0/`,
+including `heap-0.json`, `heap-20.json`, `heap-100.json` and the normal CSVs.
+The before-fix probe is `e7ceb8e9f47c46d1a0ad1befec8c98aa` in the same parent.
+
+Whole-process private memory still increased from 950.9 to 1,396.8 MiB between
+measured closes 1 and 100. At the final snapshot, about 291.9 MiB of managed
+objects were unreachable; reachable managed memory was approximately flat.
+This separates retained objects from allocation/collection pressure, but does
+not fully attribute native allocations or prove a whole-IDE memory plateau.
+That residual process-memory investigation remains open before release acceptance.

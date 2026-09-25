@@ -1,6 +1,7 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.Linq;
@@ -32,8 +33,8 @@ namespace Alarmlist.VisualStudio.UI
         private bool _refreshing;
         public event EventHandler PendingChanged;
         public ObservableCollection<AlarmViewModel> Alarms { get; } = new ObservableCollection<AlarmViewModel>();
-        public AlarmFieldViewModel[] Fields { get; }
-        public ProcedureSectionViewModel[] ProcedureSections { get; }
+        public IReadOnlyList<AlarmFieldViewModel> Fields { get; }
+        public IReadOnlyList<ProcedureSectionViewModel> ProcedureSections { get; }
         public DelegateCommand AddCommand { get; }
         public DelegateCommand DeleteCommand { get; }
         public bool HasPending => _pending;
@@ -59,9 +60,9 @@ namespace Alarmlist.VisualStudio.UI
         {
             _model = model;
             _factory = factory;
-            Fields = AlarmSource.FieldNames.Select(name => new AlarmFieldViewModel(name, OnDraftChanged)).ToArray();
-            ProcedureSections = new[] { "Instructions", "Reset" }
-                .Select(name => _factory.CreateProcedureSection(name, OnDraftChanged, EditProcedure)).ToArray();
+            Fields = BindingCollection.Create(AlarmSource.FieldNames.Select(name => new AlarmFieldViewModel(name, OnDraftChanged)));
+            ProcedureSections = BindingCollection.Create(new[] { "Instructions", "Reset" }
+                .Select(name => _factory.CreateProcedureSection(name, OnDraftChanged, EditProcedure)));
             AddCommand = new DelegateCommand(Add, () => IsValid);
             DeleteCommand = new DelegateCommand(Delete, () => CanEdit);
             _model.Changed += OnModelChanged;

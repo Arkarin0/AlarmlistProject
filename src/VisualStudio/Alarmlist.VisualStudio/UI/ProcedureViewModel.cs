@@ -66,12 +66,10 @@ namespace Alarmlist.VisualStudio.UI
         {
             HasAnalysis = section != null && _error == null;
             if (!HasAnalysis) section = null;
-            InheritedItems = section?.EffectiveEntries.Where(entry => entry.IsInherited)
-                .Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry))).ToArray() ?? Array.Empty<ProcedureAnalysisRow>();
-            ExcludedItems = section?.ExcludedEntries.Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry)))
-                .ToArray() ?? Array.Empty<ProcedureAnalysisRow>();
-            EffectiveItems = section?.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry)))
-                .ToArray() ?? Array.Empty<ProcedureAnalysisRow>();
+            InheritedItems = BindingCollection.Create(section?.EffectiveEntries.Where(entry => entry.IsInherited)
+                .Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry))));
+            ExcludedItems = BindingCollection.Create(section?.ExcludedEntries.Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry))));
+            EffectiveItems = BindingCollection.Create(section?.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry))));
             foreach (ProcedureItemViewModel item in Items)
                 item.SetExclusion(section?.LocalEntries.FirstOrDefault(entry => entry.Origin.Index == item.Index)?.ExcludedBy);
             Notify(nameof(InheritedItems)); Notify(nameof(ExcludedItems)); Notify(nameof(EffectiveItems));
@@ -80,7 +78,7 @@ namespace Alarmlist.VisualStudio.UI
         }
     }
 
-    internal sealed class ProcedureAnalysisRow
+    internal sealed class ProcedureAnalysisRow : ObservableObject
     {
         public AnalysisEntry Entry { get; }
         public string Kind => Entry.Kind == AnalysisStepKind.Instruction ? "Step" : Entry.Kind.ToString();
