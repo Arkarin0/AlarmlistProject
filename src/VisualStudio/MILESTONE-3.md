@@ -1,13 +1,13 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: iterations one through eleven implemented: snapshot input, located
+Status: iterations one through twelve completed: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
 selection/scalar inheritance with chain adorners, inherited procedures, and section
 commands, live designer/Error List diagnostics, and resolved-alarm/compiled XML
 previews, plus measured designer performance, preview accessibility fixes, and
 repeatable linked-project acceptance with live-host selector accessibility and
-local-override focus fixes.
+local-override focus fixes and two-host functional acceptance.
 Final live-IDE validation remains. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
@@ -1133,3 +1133,42 @@ measurements were not repeated for this view-only change.
 
 No SDK/VSIX was published; milestone three is not yet marked fully accepted or
 released.
+
+## Iteration twelve: functional acceptance on both IDE hosts
+
+Iteration eleven was committed as `b010465`. Its deployed build was exercised in
+VS2022 17.14.36930.0 and VS2026 18.10.12217.157 using AlarmlistM3 and a fresh
+North/South fixture. No production change was needed for these scenarios.
+
+Iteration-twelve validation (2026-09-25):
+
+- VS2022 repeated the expanded-preview local-override regression: the draft
+  remained visible, received keyboard focus, and placed the caret at the end.
+  Shift+Left selected the final character without a click; Escape restored
+  inheritance and the clean document state.
+- On both hosts, a different local Name committed from the designer appeared in
+  the unsaved resolved preview with local provenance and in the Child's compiled
+  XML. Base retained its own value. One Undo restored the empty Name element and
+  clean buffer.
+- VS2022 repeated Instructions Make local copy, XML inspection, and single-edit
+  Undo/Redo/Undo. The leading Clear and three effective entries occurred once;
+  Reset was unchanged. This complements the same VS2026 checks in iteration eleven.
+- On both hosts, editing North/Base's Name in the XML buffer without saving
+  updated Child's inherited Name and both compiled alarms in the North context.
+  South still showed its own Base value and origin. Returning to North retained
+  the pending value on VS2022; undoing Base and returning to North on VS2026
+  restored the original inherited value.
+- All five source/output hashes matched the fixture baseline after the edits
+  were undone. No source or compiled output was saved. The fixture, selected
+  observed UI Automation values, hash verification, build logs, and host activity
+  logs are under
+  `artifacts/log/Debug/VisualStudioAcceptance/5e32f94629bb42b9b420fe1de2a14d67`.
+  Deployment/preparation logs are `m3-iteration12-deploy2022.log` and
+  `m3-iteration12-fixture.log` under `artifacts/log/Debug/`.
+
+These are live functional acceptance results, not latency or screen-reader
+measurements. The unchanged implementation retains iteration eleven's 212 unit
+passes and 10 packaged-consumer passes per framework; those suites were not
+repeated for this documentation-only iteration. Iterations thirteen and fourteen
+continue accessibility/display and performance/lifecycle validation. No SDK/VSIX
+was published, and full release acceptance remains open.
