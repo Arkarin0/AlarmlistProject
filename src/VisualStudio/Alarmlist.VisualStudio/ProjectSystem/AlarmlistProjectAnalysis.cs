@@ -3,17 +3,20 @@
 using System;
 using System.ComponentModel.Composition;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Alarmlist.VisualStudio.Analysis;
+using Alarmlist.VisualStudio.Diagnostics;
 using Microsoft.VisualStudio.ProjectSystem;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Threading;
 
 namespace Alarmlist.VisualStudio.ProjectSystem
 {
-    [Export(typeof(IProjectDynamicLoadComponent))]
+    [Export(ExportContractNames.Scopes.UnconfiguredProject, typeof(IProjectDynamicLoadComponent))]
     [AppliesTo(AlarmlistProject.Capability)]
-    internal sealed class AlarmlistProjectAnalysis : IProjectDynamicLoadComponent
+    internal sealed class AlarmlistProjectAnalysis : OnceInitializedOnceDisposedAsync, IProjectDynamicLoadComponent
     {
         private readonly object _gate = new object();
         private readonly IActiveConfiguredProjectSubscriptionService _subscriptions;
@@ -21,6 +24,8 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         private readonly IOpenAnalysisDocuments _documents;
         private readonly ISdkAnalysisBridgeFactory _factory;
         private readonly ProjectAnalysisRegistry _registry;
+        private readonly LiveDiagnosticTableSource _diagnostics;
+        private IDisposable _diagnosticSubscription;
         private ProjectAnalysisService _analysis;
         private IDisposable _link;
         private ActionBlock<IProjectVersionedValue<IProjectSnapshot>> _updates;
@@ -29,15 +34,19 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         [ImportingConstructor]
         public AlarmlistProjectAnalysis(IActiveConfiguredProjectSubscriptionService subscriptions,
             IActiveConfiguredProjectProvider active, IOpenAnalysisDocuments documents,
-            ISdkAnalysisBridgeFactory factory, ProjectAnalysisRegistry registry)
-        { _subscriptions = subscriptions; _active = active; _documents = documents; _factory = factory; _registry = registry; }
+            ISdkAnalysisBridgeFactory factory, ProjectAnalysisRegistry registry, LiveDiagnosticTableSource diagnostics)
+            : base(new JoinableTaskContextNode(ThreadHelper.JoinableTaskContext))
+        { _subscriptions = subscriptions; _active = active; _documents = documents; _factory = factory; _registry = registry; _diagnostics = diagnostics; }
 
-        public Task LoadAsync()
+        public async Task LoadAsync()
         {
+            await InitializeAsync();
             lock (_gate)
             {
-                if (_analysis != null) return Task.CompletedTask;
+                DisposalToken.ThrowIfCancellationRequested();
+                if (_analysis != null) return;
                 _analysis = new ProjectAnalysisService(new ProjectAnalysisInputSource(_documents), _factory, ThreadHelper.JoinableTaskContext);
+                _diagnosticSubscription = _diagnostics.Attach(_analysis);
                 _registry.Add(_analysis);
                 _active.Changed += OnActiveChanged;
                 _updates = new ActionBlock<IProjectVersionedValue<IProjectSnapshot>>(OnEvaluation,
@@ -45,8 +54,13 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 _link = _subscriptions.ProjectSource.SourceBlock.LinkTo(_updates, new DataflowLinkOptions { PropagateCompletion = true });
                 _observation = ObserveCompletionAsync(_updates, _analysis);
             }
-            return Task.CompletedTask;
         }
+
+        protected override Task InitializeCoreAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        // CPS can dispose the project scope without changing its capabilities.
+        // Release registrations, watchers and the SDK domain on that path too.
+        protected override Task DisposeCoreAsync(bool initialized) => UnloadAsync();
 
         private void OnActiveChanged(object sender, EventArgs args)
         {
@@ -110,6 +124,8 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 analysis = _analysis;
                 if (analysis == null) return;
                 _analysis = null;
+                _diagnosticSubscription.Dispose();
+                _diagnosticSubscription = null;
                 _active.Changed -= OnActiveChanged;
                 _link.Dispose();
                 _link = null;

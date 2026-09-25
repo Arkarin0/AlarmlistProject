@@ -1,10 +1,11 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: iterations one through six implemented: snapshot input, located
+Status: iterations one through seven implemented: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
 selection/scalar inheritance with chain adorners, inherited procedures, and section
-commands. Live errors and the complete resolved preview remain planned. Continue the MVVM,
+commands, and live designer/Error List diagnostics. The complete resolved preview
+remains planned. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -293,7 +294,7 @@ Label pending or incomplete results and which project configuration they use.
 | 3. Add project snapshots | Implemented: CPS evaluation subscription, buffer/disk capture, debounce, generation gates, and ownership/cleanup. | Controlled tests cover conditional/removed inputs, configuration changes, linked files, file watching, invalid input, and unload during analysis. Packaged end-to-end unsaved inheritance and existing editor smoke pass; performance and direct live-semantic UI assertions remain. |
 | 4. Add references and scalar UI | Implemented: project-context choice, reference picker/navigation, inherited scalar display, local override commands, and WPF chain adorners. | Packaged-compiler view-model tests cover origins, empty/equal values, stale commands and drafts; STA tests cover actual BAML and adorner lifecycle. See iteration five for IDE validation and remaining visual checks. |
 | 5. Add inherited procedures | Implemented: row origins/adorners, Clear/excluded presentation, effective sequence, and section commands. | Packaged-compiler tests verify section independence, copies without duplication, source preservation, one buffer edit per action, and exact restoration through the test buffer's undo. See iteration six for live UI validation limits. |
-| 6. Add diagnostics and preview | Integrate navigable live errors, MSBuild locations, and in-memory output preview. | Compiler/build/live results agree for identical inputs; unsaved edits update live results; failures never produce a successful preview or new compiled output. |
+| 6. Add diagnostics and preview | Live designer/Error List diagnostics and validated navigation implemented; complete resolved/XML preview remains. | Packaged compiler IDs/messages/related locations feed both surfaces; see iteration seven for lifecycle, unsaved editing, and host validation. |
 | 7. Package and validate | Update SDK/VSIX content tests, smoke coverage, READMEs, and release requirements. | Both frameworks and IDE hosts pass the relevant matrix; supported SDK contract/version is documented and published before distributing its VSIX. |
 
 ## Validation plan
@@ -766,8 +767,91 @@ Iteration-six validation (2026-09-25):
 Direct interaction with the new section commands and Undo in the IDE, theme/high
 contrast, scrolling/resizing/DPI, and the earlier linked-context/performance checks
 still require live visual validation. No compiler semantics, SDK contract, package
-dependencies, or public XML format changed. Iteration six remains uncommitted for
-review.
+dependencies, or public XML format changed. Iteration six was committed as
+`c5eedd8` before iteration seven.
 
-Next iteration: navigable live diagnostics in the designer and an ALMX-owned
-Error List source, followed by the complete selected-alarm resolved/XML preview.
+## Iteration seven: live diagnostics and Error List integration
+
+Live project diagnostics in the designer display the selected context's compiler
+IDs, severities, messages, primary locations, and related-location links. They
+remain project-wide even when no alarm is selected. They describe captured shared
+buffer text, not uncommitted control drafts; navigation is disabled while a draft
+is pending. A document edit clears obsolete rows before the queued project-analysis
+notification arrives. Pending/unavailable/context changes never keep an older
+compiler result attached to the view.
+
+`Diagnostics/LiveDiagnosticTableSource` publishes the same SDK diagnostics as an
+ALMX-owned Visual Studio table source, labelled Alarmlist live analysis with
+`ErrorSource.Other` (IntelliSense). CPS dynamic load/unload owns each project's
+registration. Immutable snapshots retain separate project/configuration rows and
+convert compiler positions to the Error List's zero-based coordinates. Pending
+analysis clears the affected project's compiler errors; unload removes its rows.
+The source replaces only its own data, leaving MSBuild's Build entries intact.
+Input/parse/SDK failures are analysis-unavailable warnings without fabricated ALM
+codes or source positions. No new compiler contracts or public file formats are
+introduced, and live analysis never saves source or writes compiled output.
+
+The source and event processor follow Roslyn's
+[snapshot table integration](https://github.com/dotnet/roslyn/blob/main/src/VisualStudio/Core/Def/FindReferences/Contexts/AbstractTableDataSourceFindUsagesContext.cs)
+and [navigation interception](https://github.com/dotnet/roslyn/blob/main/src/VisualStudio/Core/Def/FindReferences/FindReferencesTableControlEventProcessorProvider.cs).
+ALMX uses its existing whole-project snapshot service instead of adding Roslyn
+workspace or incremental diagnostic dependencies. The pinned VS SDK's table APIs
+provide registration and immutable snapshots on either thread. Sink callbacks run
+outside the state lock, and subscriber lifetimes are independent.
+
+Diagnostic navigation revalidates project membership/current state and all captured
+inputs, including unsaved buffer identity, then checks the opened VS buffer against
+the expected text before moving its caret. It shares the existing source-navigation
+adapter with scalar/procedure links. The Error List event processor consumes stale
+or location-free navigation events as well, preventing default navigation to an
+obsolete line. Navigation work is tracked and cancelled/joined during disposal,
+using a separate joining factory to avoid a task-collection self-join.
+
+The expanded IDE smoke test exposed two earlier host-integration gaps. The CPS
+component now uses the named unconfigured-project export and the CPS asynchronous
+disposal base, so analysis starts automatically and closes its registrations,
+watchers, and SDK domain when the project scope is disposed. This follows the
+project-system [dynamic component lifetime pattern](https://github.com/dotnet/project-system/blob/main/src/Microsoft.VisualStudio.ProjectSystem.Managed/ProjectSystem/AbstractMultiLifetimeComponent.cs).
+The bridge also resolves its already-loaded extension assembly during remoting
+calls: VS loads it outside its application directory, where name-based proxy/DTO
+resolution otherwise fails. The resolver is removed after each boundary call and
+never resolves SDK assemblies into the host. Regression tests reproduce both
+LoadFrom and LoadFile hosts outside the application base.
+
+The new reopen scenario also found that the SDK declared Folder as a file item
+type. CPS rejected a persisted empty folder whose identity ended in a separator.
+Folder now remains solely under its ProjectFileFolderItems rule, following the
+managed project system's [item schema](https://github.com/dotnet/project-system/blob/main/src/Microsoft.VisualStudio.ProjectSystem.Managed/ProjectSystem/Rules/Items/ProjectItemsSchema.xaml).
+The rule regression test checks this distinction, and the IDE smoke reopens the
+project after its last file in the test folder has been deleted.
+
+Iteration-seven validation (2026-09-25):
+
+- Visual Studio unit tests: 165 passed on net472, including 24 new diagnostic
+  cases covering all four compiler IDs, related locations, no selected alarm,
+  BAML bindings, drafts, stale captures/locations, buffer reopen identity, project
+  removal during navigation, multiple linked contexts/sinks, configuration changes,
+  pending-state clearing, immutable snapshots, and analysis-failure classification,
+  plus three CPS activation/bridge host-loading regression cases.
+- Packaged VSIX/template-consumer tests: 10 passed per framework, net472 and net8.0.
+  Shell.Framework/Interop table test references use pinned PackageDownload assets,
+  preserving the CPS test host's MSBuild dependency versions.
+- SDK package-consumer tests: 19 passed per framework, net472 and net8.0, after
+  the folder-schema correction.
+- VS2022 experimental smoke passed in AlarmlistM3; retained log directory:
+  `artifacts/log/Debug/VisualStudioSmoke/566e4b186f3c4221a32271c07c31d005`.
+- VS2026 experimental smoke passed in AlarmlistM3; retained log directory:
+  `artifacts/log/Debug/VisualStudioSmoke/4921feece1db4b4b952db92d8a9d77f2`.
+  Both runs verify live diagnostics before Build, source navigation, project
+  close/reopen clearing and republication (including an empty folder), XML-only
+  unsaved corrections with an explicit XML editor identity check, discard/removed-input refresh, and preservation of existing
+  Build errors. Source on disk and compiled output remain unchanged by live
+  analysis. The existing editor lifecycle, Save As, Undo/Redo, project operations,
+  failed-build output preservation, Clean, and Rebuild checks also pass.
+
+Direct designer diagnostic keyboard/theme/DPI interaction, linked-project context
+switching in the IDE, and large-project latency/memory measurements remain for live
+visual validation. Iteration seven remains uncommitted for review.
+
+Next iteration: the complete selected-alarm resolved preview and in-memory compiled
+XML preview, with failure gating and no output-file writes.

@@ -285,17 +285,82 @@ public static class AlarmlistRunningObjectTable
     }
     public static bool HasCompilerError(object automation)
     {
+        return HasErrorDescription(automation, "Alarm 'Invalid' references missing alarm 'Missing'.");
+    }
+    public static bool HasErrorDescription(object automation, string description)
+    {
         var errors = ((EnvDTE80.DTE2)automation).ToolWindows.ErrorList.ErrorItems;
         for (int i = 1; i <= errors.Count; i++)
         {
             var error = errors.Item(i);
             if (error.ErrorLevel == EnvDTE80.vsBuildErrorLevel.vsBuildErrorLevelHigh
-                && error.Description == "Alarm 'Invalid' references missing alarm 'Missing'.") return true;
+                && error.Description == description) return true;
         }
         return false;
     }
+    public static void NavigateError(object automation, string description)
+    {
+        var errors = ((EnvDTE80.DTE2)automation).ToolWindows.ErrorList.ErrorItems;
+        for (int i = 1; i <= errors.Count; i++)
+            if (errors.Item(i).Description == description) { errors.Item(i).Navigate(); return; }
+        throw new Exception("The live diagnostic is not present for navigation.");
+    }
+    public static bool ReplaceXmlBuffer(object automation, string path, string text)
+    {
+        var open = Service<Microsoft.VisualStudio.Shell.Interop.IVsUIShellOpenDocument>(automation, typeof(Microsoft.VisualStudio.Shell.Interop.SVsUIShellOpenDocument));
+        Guid xmlEditor = new Guid("fa3cd31e-987b-443a-9b81-186104e8dac1");
+        Guid primary = Guid.Empty;
+        Microsoft.VisualStudio.OLE.Interop.IServiceProvider site;
+        Microsoft.VisualStudio.Shell.Interop.IVsUIHierarchy hierarchy;
+        uint item;
+        Microsoft.VisualStudio.Shell.Interop.IVsWindowFrame frame;
+        // Solution reopening can restore the earlier navigation window. Close
+        // every view for this test document so the edit proves XML-only analysis.
+        var shell = Service<Microsoft.VisualStudio.Shell.Interop.IVsUIShell>(automation, typeof(Microsoft.VisualStudio.Shell.Interop.SVsUIShell));
+        Microsoft.VisualStudio.Shell.Interop.IEnumWindowFrames windows;
+        Marshal.ThrowExceptionForHR(shell.GetDocumentWindowEnum(out windows));
+        var frames = new Microsoft.VisualStudio.Shell.Interop.IVsWindowFrame[1];
+        uint fetched;
+        while (windows.Next(1, frames, out fetched) == 0 && fetched == 1)
+        {
+            object moniker;
+            Marshal.ThrowExceptionForHR(frames[0].GetProperty((int)Microsoft.VisualStudio.Shell.Interop.__VSFPROPID.VSFPROPID_pszMkDocument, out moniker));
+            if (String.Equals(moniker as string, path, StringComparison.OrdinalIgnoreCase))
+                Marshal.ThrowExceptionForHR(frames[0].CloseFrame((uint)Microsoft.VisualStudio.Shell.Interop.__FRAMECLOSE.FRAMECLOSE_NoSave));
+        }
+        Marshal.ThrowExceptionForHR(open.OpenDocumentViaProjectWithSpecific(path, 0, ref xmlEditor, "", ref primary, out site, out hierarchy, out item, out frame));
+        if (frame == null) return false;
+        Guid actualEditor;
+        Marshal.ThrowExceptionForHR(frame.GetGuidProperty((int)Microsoft.VisualStudio.Shell.Interop.__VSFPROPID.VSFPROPID_guidEditorType, out actualEditor));
+        if (actualEditor != xmlEditor) throw new Exception("The unsaved live-analysis test must use the XML editor only.");
+        Marshal.ThrowExceptionForHR(frame.Show());
+        // DTE dispatches edits to the UI thread. Document activation may lag
+        // behind OpenDocument after reopening a solution, so select by path.
+        foreach (EnvDTE.Document openDocument in ((EnvDTE.DTE)automation).Documents)
+        {
+            if (!String.Equals(openDocument.FullName, path, StringComparison.OrdinalIgnoreCase)) continue;
+            var document = openDocument.Object("TextDocument") as EnvDTE.TextDocument;
+            if (document == null) return false;
+            EnvDTE.TextPoint start = document.StartPoint;
+            EnvDTE.TextPoint end = document.EndPoint;
+            if (start == null || end == null) return false;
+            EnvDTE.EditPoint edit = start.CreateEditPoint();
+            if (edit == null) return false;
+            edit.ReplaceText(end, text, (int)EnvDTE.vsEPReplaceTextOptions.vsEPReplaceTextKeepMarkers);
+            return true;
+        }
+        return false;
+    }
+    public static bool IsAtLocation(object automation, string path, int line, int column)
+    {
+        var document = ((EnvDTE.DTE)automation).ActiveDocument;
+        if (document == null || !String.Equals(document.FullName, path, StringComparison.OrdinalIgnoreCase)) return false;
+        var selection = document.Selection as EnvDTE.TextSelection;
+        return selection != null && selection.CurrentLine == line && selection.CurrentColumn == column;
+    }
     public static void DumpBuildOutput(object automation)
     {
+        Console.WriteLine("IDE status: " + ((EnvDTE.DTE)automation).StatusBar.Text);
         var errors = ((EnvDTE80.DTE2)automation).ToolWindows.ErrorList.ErrorItems;
         for (int i = 1; i <= errors.Count; i++) Console.WriteLine(errors.Item(i).Description);
         foreach (EnvDTE.OutputWindowPane pane in ((EnvDTE80.DTE2)automation).ToolWindows.OutputWindow.OutputWindowPanes)
@@ -440,12 +505,44 @@ try {
 
   $outputFile = Join-Path $projectDirectory 'bin/Debug/Plant.Alarmlist.xml'
   $before = [IO.File]::ReadAllText($outputFile)
+  $livePath = Join-Path $projectDirectory 'Live.almx'
+  $liveText = "<Alarmlist>`r`n  <Alarm><FullyQualifiedName>Live</FullyQualifiedName>`r`n    <ReferenceName>MissingLive</ReferenceName></Alarm>`r`n</Alarmlist>"
+  $liveMessage = "Alarm 'Live' references missing alarm 'MissingLive'."
+  [IO.File]::WriteAllText($livePath, $liveText)
+  Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Live.almx', '') } 'live input discovery' | Out-Null
+  Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'live diagnostic before Build' | Out-Null
+  [AlarmlistRunningObjectTable]::NavigateError($dte, $liveMessage)
+  Wait-For { [AlarmlistRunningObjectTable]::IsAtLocation($dte, $livePath, 3, 6) } 'live diagnostic source navigation' | Out-Null
+  Write-Output 'Live diagnostic navigation reached its source position.'
+  # Closing the solution also drains the source view before opening the same
+  # file explicitly through a different editor factory after reopening.
+  $dte.Solution.Close($false)
+  Wait-For { ![AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'project unload clears live diagnostics' | Out-Null
+  $dte.Solution.Open($solutionPath)
+  Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Live.almx', '') } 'reopened project item tree' | Out-Null
+  Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'reopened project republishes live diagnostics' | Out-Null
+  Write-Output 'Live diagnostic publication and project unload/reopen passed.'
+  Wait-For { [AlarmlistRunningObjectTable]::ReplaceXmlBuffer($dte, $livePath, $liveText.Replace('<ReferenceName>MissingLive</ReferenceName>', '')) } 'XML-only buffer correction' | Out-Null
+  Wait-For { ![AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'unsaved XML correction clears live error' | Out-Null
+  if ([IO.File]::ReadAllText($livePath) -ne $liveText) { throw 'Live analysis saved the XML buffer.' }
+  if ([IO.File]::ReadAllText($outputFile) -ne $before) { throw 'Live analysis changed compiled output.' }
+  $dte.Documents.Item($livePath).Close(2)
+  Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'closing unsaved XML restores disk diagnostics' | Out-Null
+  Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Live.almx', 'delete') } 'live input deletion' | Out-Null
+  Wait-For { ![AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'removed input clears live diagnostic' | Out-Null
+  Write-Output 'Live Error List: no-Build publication, project unload/reopen, navigation, XML-only unsaved correction, close/discard, and removed-input cleanup passed.'
+
   [IO.File]::WriteAllText((Join-Path $projectDirectory 'Invalid.almx'), '<Alarmlist><Alarm><FullyQualifiedName>Invalid</FullyQualifiedName><ReferenceName>Missing</ReferenceName></Alarm></Alarmlist>')
   Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Invalid.almx', '') } 'globbed input discovery' | Out-Null
   $dte.Solution.SolutionBuild.Build($true)
   if ($dte.Solution.SolutionBuild.LastBuildInfo -eq 0) { throw 'An invalid reference did not fail the IDE build.' }
   Wait-For { [AlarmlistRunningObjectTable]::HasCompilerError($dte) } 'compiler error in Error List' | Out-Null
   if ([IO.File]::ReadAllText($outputFile) -ne $before) { throw 'A failed build replaced the previous output.' }
+  Wait-For { [AlarmlistRunningObjectTable]::ReplaceXmlBuffer($dte, (Join-Path $projectDirectory 'Invalid.almx'), '<Alarmlist><Alarm><FullyQualifiedName>Invalid</FullyQualifiedName><ReferenceName>NewMissing</ReferenceName></Alarm></Alarmlist>') } 'XML-only reference edit' | Out-Null
+  Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, "Alarm 'Invalid' references missing alarm 'NewMissing'.") } 'updated live diagnostic beside Build error' | Out-Null
+  if (![AlarmlistRunningObjectTable]::HasCompilerError($dte)) { throw 'Live diagnostics cleared the existing Build error.' }
+  $dte.Documents.Item((Join-Path $projectDirectory 'Invalid.almx')).Close(2)
+  Write-Output 'Updating live diagnostics preserves the existing Build Error List entry.'
   [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Invalid.almx', 'delete') | Out-Null
   $dte.Solution.SolutionBuild.Clean($true)
   if (Test-Path $outputFile) { throw 'Clean did not delete the output.' }

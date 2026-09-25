@@ -127,7 +127,7 @@ The extension now has an isolated AppDomain bridge for contract 1 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear
-exclusions, and section copies; live Error List publication remains a later step. Release the matching
+exclusions, section copies, and live designer/Error List diagnostics. Release the matching
 SDK before distributing a VSIX that uses the new contract.
 
 ## Build and test this repository

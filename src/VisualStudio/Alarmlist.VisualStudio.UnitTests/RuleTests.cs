@@ -34,6 +34,12 @@ namespace Alarmlist.VisualStudio.UnitTests
                 && extension.Name == ".almx" && extension.ContentType == "Alarmlist");
             Assert.Contains(schema.Nodes, node => node is ContentType content
                 && content.Name == "Alarmlist" && content.ItemType == "Compile");
+            // Declared source item types are files. CPS handles folders through
+            // ProjectFileFolderItems; declaring Folder here breaks empty-folder
+            // reload because its persisted identity ends in a path separator.
+            Assert.DoesNotContain(schema.Nodes, node => node is ItemType item && item.Name == "Folder");
+            var folder = Assert.IsType<Rule>(XamlServices.Load(Path.Combine(AppContext.BaseDirectory, "Rules", "Folder.xaml")));
+            Assert.Equal("ProjectFileFolderItems", folder.DataSource.Persistence);
         }
     }
 }

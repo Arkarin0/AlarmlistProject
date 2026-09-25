@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 
 namespace Alarmlist.VisualStudio.Analysis
@@ -104,8 +105,9 @@ namespace Alarmlist.VisualStudio.Analysis
                     DisallowBindingRedirects = true,
                     DisallowCodeDownload = true
                 });
-                var worker = (SdkAnalysisWorker)domain.CreateInstanceFromAndUnwrap(hostAssembly, typeof(SdkAnalysisWorker).FullName);
-                AnalysisResponse initialized = worker.Initialize(path);
+                SdkAnalysisWorker worker = WithHostAssemblyResolution(() =>
+                    (SdkAnalysisWorker)domain.CreateInstanceFromAndUnwrap(hostAssembly, typeof(SdkAnalysisWorker).FullName));
+                AnalysisResponse initialized = WithHostAssemblyResolution(() => worker.Initialize(path));
                 if (initialized.Availability != AnalysisAvailability.Available)
                     return new BridgeOpenResult(initialized.Availability, initialized.Message);
 
@@ -135,7 +137,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (_domain == null) throw new ObjectDisposedException(nameof(SdkAnalysisBridge));
                 cancellationToken.ThrowIfCancellationRequested();
                 AnalysisResponse response;
-                try { response = _worker.Analyze(snapshots); }
+                try { response = WithHostAssemblyResolution(() => _worker.Analyze(snapshots)); }
                 catch (Exception exception) when (IsRecoverable(exception))
                 {
                     response = new AnalysisResponse(AnalysisAvailability.AnalysisFailed, "SDK analysis failed: " + exception.Message);
@@ -155,6 +157,20 @@ namespace Alarmlist.VisualStudio.Analysis
                 AppDomain.Unload(_domain);
                 _domain = null;
             }
+        }
+
+        private static T WithHostAssemblyResolution<T>(Func<T> operation)
+        {
+            // VS loads the extension outside its application directory. Remoting
+            // resolves proxy/DTO types by assembly name, so direct path loading
+            // alone is insufficient. Resolve only our already loaded host image,
+            // and only for the duration of a boundary call; never resolve an SDK
+            // assembly into the VS domain.
+            Assembly assembly = typeof(SdkAnalysisWorker).Assembly;
+            ResolveEventHandler resolve = (sender, args) => args.Name == assembly.FullName ? assembly : null;
+            AppDomain.CurrentDomain.AssemblyResolve += resolve;
+            try { return operation(); }
+            finally { AppDomain.CurrentDomain.AssemblyResolve -= resolve; }
         }
 
         internal static bool IsRecoverable(Exception exception)

@@ -12,6 +12,12 @@
     <!-- BAML uses shell theme keys. Download the host assembly as a test asset
          without changing the CPS test host's MSBuild dependency family. -->
     <PackageDownload Include="Microsoft.VisualStudio.Shell.15.0" Version="[17.9.37000]" />
+    <PackageDownload Include="Microsoft.VisualStudio.Shell.Framework" Version="[17.9.37000]" />
+    <PackageDownload Include="Microsoft.VisualStudio.Interop" Version="[17.9.37000]" />
+    <Reference Include="Microsoft.VisualStudio.Shell.Framework"
+               HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.shell.framework/17.9.37000/lib/net472/Microsoft.VisualStudio.Shell.Framework.dll" />
+    <Reference Include="Microsoft.VisualStudio.Interop"
+               HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.interop/17.9.37000/lib/net472/Microsoft.VisualStudio.Interop.dll" />
     <Content Include="$(NuGetPackageRoot)/microsoft.visualstudio.shell.15.0/17.9.37000/lib/net472/Microsoft.VisualStudio.Shell.15.0.dll"
              Link="Microsoft.VisualStudio.Shell.15.0.dll" CopyToOutputDirectory="PreserveNewest" />
     <Reference Include="System.Xaml" />

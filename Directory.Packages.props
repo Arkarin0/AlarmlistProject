@@ -13,6 +13,8 @@
     <!-- Visual Studio integration -->
     <PackageVersion Include="Microsoft.VisualStudio.SDK" Version="17.9.37000" />
     <PackageVersion Include="Microsoft.VisualStudio.Shell.15.0" Version="17.9.37000" />
+    <PackageVersion Include="Microsoft.VisualStudio.Shell.Framework" Version="17.9.37000" />
+    <PackageVersion Include="Microsoft.VisualStudio.Interop" Version="17.9.37000" />
     <PackageVersion Include="Microsoft.VisualStudio.ProjectSystem.SDK" Version="17.9.380" />
     <PackageVersion Include="Microsoft.VSSDK.BuildTools" Version="17.14.2142" />
 

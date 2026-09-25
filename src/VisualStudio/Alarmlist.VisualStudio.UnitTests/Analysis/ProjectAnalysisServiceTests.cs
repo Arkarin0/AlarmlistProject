@@ -14,7 +14,7 @@ using Xunit;
 #pragma warning disable VSTHRD003
 namespace Alarmlist.VisualStudio.UnitTests.Analysis
 {
-    public class ProjectAnalysisServiceTests
+    public partial class ProjectAnalysisServiceTests
     {
         private static readonly JoinableTaskContext s_threading = new JoinableTaskContext();
 

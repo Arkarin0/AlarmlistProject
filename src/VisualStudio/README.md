@@ -21,7 +21,8 @@ Iteration four starts project analysis from CPS subscriptions, using current ope
 buffers and watched disk inputs. Iteration five connects the designer's reference
 picker, scalar inheritance display, chain adorners, and source navigation. Iteration
 six adds inherited procedure rows, Clear exclusions, effective sequences, and local
-section copies. Milestone-two
+section copies. Iteration seven adds live designer diagnostics and a separate
+Error List source with validated navigation. Milestone-two
 lifecycle validation is recorded below and remains regression coverage.
 
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
@@ -69,6 +70,16 @@ opens the actual defining field through multi-hop inheritance. Copy, picker, and
 navigation commands revalidate captured inputs before acting. Pending, incomplete,
 unavailable, and loose-file states retain local editing without stale inheritance.
 
+Expand **Live project diagnostics** to see compiler IDs, messages, source links,
+and related locations for the chosen project context. These describe shared
+buffer text; commit or cancel control drafts before navigating. The Visual Studio
+Error List publishes the same current errors under **Alarmlist live analysis**
+(the IntelliSense/non-Build source). Use **Build + IntelliSense** to see both.
+Pending analysis clears obsolete live errors, and project unload removes its rows.
+Input/SDK failures appear separately as analysis-unavailable warnings without ALM
+codes. Neither live analysis nor its navigation saves files or compiles an output;
+existing Build diagnostics remain owned by MSBuild.
+
 Enter or leaving a field commits its draft; Shift+Enter inserts a newline, and
 Escape cancels a draft. Save and Save All also commit active drafts. Each accepted
 designer action is one shared document undo transaction. Ctrl+Z with an uncommitted
@@ -106,8 +117,8 @@ Malformed XML disables designer mutations until the source is corrected. Fields
 containing nested markup, comments, or duplicate scalar elements must be edited
 in XML. Changes preserve untouched source text, including attributes, comments,
 unknown elements, procedure sections, and `Clear` directives. Renaming an alarm
-does not rewrite references. Live semantic diagnostics and the complete resolved
-preview remain later milestone-three iterations.
+does not rewrite references. The complete selected-alarm resolved/XML preview
+remains a later milestone-three iteration.
 
 Save As keeps the tab, project item, and Running Document Table at the new path
 while all open views retain the same buffer. The original file remains on disk

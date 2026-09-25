@@ -29,7 +29,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `src/MSBuild/SampleData/` | Shared ALMX samples and a project that invokes the task directly. |
 | `src/SDK/Alarmlist.SDK/` | SDK packaging project, `sdk/` entry points, and `tools/` props/targets. |
 | `src/SDK/Alarmlist.SDK.Tests/` | Tests of the packaged SDK, isolated consumer projects, and build lifecycle. |
-| `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, templates, and MVVM designer/XML split editor. `Editor/` owns host integration and open-buffer observation, `Documents/` shared models, `Editing/` source-preserving edits, `Analysis/` the SDK bridge, project snapshots/scheduling and file watching, `ProjectSystem/` CPS subscriptions, and `UI/` views/view models. |
+| `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, templates, and MVVM designer/XML split editor. `Editor/` owns host integration and open-buffer observation, `Documents/` shared models, `Editing/` source-preserving edits, `Analysis/` the SDK bridge, project snapshots/scheduling and file watching, `Diagnostics/` the live Error List source/navigation, `ProjectSystem/` CPS subscriptions, and `UI/` views/view models. |
 | `src/VisualStudio/Alarmlist.VisualStudio.UnitTests/` | `net472` editor/model, XML preservation, SDK bridge isolation/package-worker, CPS build-check, and MSBuild XAML schema tests. |
 | `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks. |
 | `src/shared/Unittesting/` | Shared compiler/task test helpers linked through build configuration. |
@@ -211,6 +211,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   templates must use the built SDK version; do not add private compiler copies
   or hard-coded local package paths. Keep the CPS up-to-date provider requesting
   builds until removed/conditional input handling has an alternative guarantee.
+  Keep Folder out of declared file item types in ProjectItemsSchema; its rule uses
+  ProjectFileFolderItems so persisted empty folders can reload in CPS.
 - The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
   SDK's net472 compiler independently of the build task runtime. The extension's
   `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-1 data
@@ -222,6 +224,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   duplicates, open-buffer precedence (including XML-only views), immediate stale
   result invalidation, and generation/text/identity checks before publication.
   Shared VS buffers remain VS-owned; disposing analysis must not close them.
+  Export dynamic load components through the named unconfigured-project scope,
+  and release analysis on CPS scope disposal as well as capability unload. Bridge
+  remoting may resolve only the already-loaded extension assembly in the VS host;
+  scope its resolver to boundary calls and never resolve SDK assemblies there.
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
   Keep source presence/local drafts separate from inherited effective displays.
   Only the SDK's provenance determines inheritance; equal text is not evidence.
@@ -236,8 +242,17 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   XML, and refuse copies that would discard unsupported local content. Keep local
   draft controls stable during semantic refreshes.
 - Designer BAML tests use the pinned shell assembly as a PackageDownload test
-  asset, preserving the CPS test host's matching MSBuild dependency family. Keep
-  that version aligned with the extension's VS SDK; do not bundle it in the VSIX.
+  asset; table tests use matching Shell.Framework and Interop assets. This preserves
+  the CPS test host's MSBuild dependency family. Keep those versions aligned with
+  the extension's VS SDK; do not bundle these host assemblies in the VSIX.
+- Live diagnostics belong to `Alarmlist.LiveDiagnostics`, separate from Build
+  diagnostics. Use immutable table snapshots, SDK IDs/messages/severities, and
+  zero-based Error List positions converted from compiler locations. Clear obsolete
+  live rows on pending analysis/configuration changes/unload; report input/SDK
+  failures separately without inventing ALM codes. Revalidate all captured inputs
+  and project lifetime before navigation. Never clear another table source's data.
+  Track asynchronous navigation through an owned task collection and join through
+  a separate factory on disposal; do not fire-and-forget via ThreadHelper's factory.
 - Release the authoritative SDK package to NuGet.org before distributing its
   matching VSIX. `eng/release-visualstudio.ps1` separates candidate preparation,
   explicit SDK publication, and fresh-cache verification of the published SDK.

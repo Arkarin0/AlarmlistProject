@@ -51,6 +51,30 @@
       </ComboBox>
       <TextBlock Text="{Binding AnalysisMessage}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
       <TextBlock Text="{Binding Error}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+      <Expander Header="{Binding DiagnosticsHeading}" Margin="0,4,0,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="180">
+          <StackPanel>
+            <TextBlock Text="{Binding DiagnosticsGuidance}" TextWrapping="Wrap" Margin="0,4,0,6" />
+            <ItemsControl ItemsSource="{Binding Diagnostics}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel Margin="0,0,0,8">
+                    <TextBlock Text="{Binding Heading}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding Locations}">
+                      <ItemsControl.ItemTemplate><DataTemplate>
+                        <Button Command="{Binding NavigateCommand}" HorizontalAlignment="Left" Margin="0,3,0,0" AutomationProperties.Name="{Binding Label}">
+                          <TextBlock Text="{Binding Label}" TextWrapping="Wrap" />
+                        </Button>
+                      </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Expander>
     </StackPanel>
     <Grid Grid.Row="2">
       <Grid.ColumnDefinitions><ColumnDefinition x:Name="ListColumn" Width="220" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>

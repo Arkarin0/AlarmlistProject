@@ -153,6 +153,7 @@ namespace Alarmlist.VisualStudio.UI
             try
             {
                 ProjectAnalysisState state = _analysis?.Current;
+                RefreshDiagnostics(state);
                 AnalysisAlarm alarm = CurrentAlarm();
                 bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
                 foreach (AlarmFieldViewModel field in Fields)

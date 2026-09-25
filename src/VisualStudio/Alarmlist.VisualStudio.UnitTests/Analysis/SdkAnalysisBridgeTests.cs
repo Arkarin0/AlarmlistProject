@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using Alarmlist.VisualStudio.Analysis;
 using Microsoft.CSharp;
@@ -15,6 +16,52 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
 {
     public class SdkAnalysisBridgeTests
     {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void BridgeWorksWhenExtensionIsLoadedOutsideTheHostApplicationBase(bool loadFile)
+        {
+            using (var sdk = new SdkAsset())
+            {
+                string directory = Path.Combine(sdk.DirectoryPath, "empty-host");
+                Directory.CreateDirectory(directory);
+                AppDomain domain = AppDomain.CreateDomain("Extension host", null, new AppDomainSetup { ApplicationBase = directory });
+                try
+                {
+                    var host = (ExtensionHost)domain.CreateInstanceFromAndUnwrap(typeof(ExtensionHost).Assembly.Location, typeof(ExtensionHost).FullName);
+                    string failure = host.Analyze(typeof(SdkAnalysisBridge).Assembly.Location, sdk.CompilerPath, loadFile);
+                    Assert.True(failure == null, failure);
+                }
+                finally { AppDomain.Unload(domain); }
+            }
+        }
+
+        public sealed class ExtensionHost : MarshalByRefObject
+        {
+            public override object InitializeLifetimeService() => null;
+
+            public string Analyze(string extensionPath, string compilerPath, bool loadFile)
+            {
+                Assembly assembly = loadFile ? Assembly.LoadFile(extensionPath) : Assembly.LoadFrom(extensionPath);
+                Type type = assembly.GetType("Alarmlist.VisualStudio.Analysis.SdkAnalysisBridge", true);
+                object result = type.GetMethod("Open", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { compilerPath });
+                object bridge = result.GetType().GetProperty("Bridge").GetValue(result);
+                if (bridge == null) return (string)result.GetType().GetProperty("Message").GetValue(result);
+                try
+                {
+                    Type inputType = assembly.GetType("Alarmlist.VisualStudio.Analysis.AnalysisInput", true);
+                    Array inputs = Array.CreateInstance(inputType, 1);
+                    inputs.SetValue(Activator.CreateInstance(inputType, "<Alarmlist><Alarm><Name>Hosted</Name></Alarm></Alarmlist>", "Unsaved.almx", 3), 0);
+                    object response = type.GetMethod("Analyze").Invoke(bridge, new object[] { inputs, CancellationToken.None });
+                    if (AppDomain.CurrentDomain.GetAssemblies().Any(loaded => loaded.GetName().Name == "Alarmlist.Core"))
+                        return "The SDK compiler was loaded into the host domain.";
+                    return response.GetType().GetProperty("Availability").GetValue(response).ToString() == "Available"
+                        ? null : (string)response.GetType().GetProperty("Message").GetValue(response);
+                }
+                finally { ((IDisposable)bridge).Dispose(); }
+            }
+        }
+
         [Fact]
         public void PackagedWorkerRunsWithOnlyTheVsixAssemblyInItsApplicationDirectory()
         {

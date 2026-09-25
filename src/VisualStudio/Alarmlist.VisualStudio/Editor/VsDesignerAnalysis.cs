@@ -8,12 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Alarmlist.VisualStudio.Analysis;
 using Alarmlist.VisualStudio.UI;
-using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
-using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.TextManager.Interop;
 using Microsoft.VisualStudio.Threading;
 
 namespace Alarmlist.VisualStudio.Editor
@@ -97,29 +94,13 @@ namespace Alarmlist.VisualStudio.Editor
         public async Task<bool> IsCurrentAsync(ProjectAnalysisState state, CancellationToken token)
         {
             if (_disposed || state == null || !ReferenceEquals(state, Current)) return false;
-            var captured = await Task.Run(() => _inputs.CaptureAsync(state.Project.Inputs, token), token);
-            token.ThrowIfCancellationRequested();
-            return !_disposed && ReferenceEquals(state, Current) && captured.Count == state.Inputs.Count
-                && captured.Select((input, index) => input.Matches(state.Inputs[index])).All(matches => matches);
+            return await ProjectAnalysisValidation.InputsMatchAsync(_inputs, state, token) && !_disposed && ReferenceEquals(state, Current);
         }
 
         public void Navigate(AnalysisLocation location, string expectedText)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            if (_disposed) return;
-            VsShellUtilities.OpenDocument(_services, location.FilePath, VSConstants.LOGVIEWID_Code, out IVsUIHierarchy hierarchy,
-                out uint itemId, out IVsWindowFrame frame, out IVsTextView view);
-            ErrorHandler.ThrowOnFailure(view.GetBuffer(out IVsTextLines lines));
-            ITextSnapshot snapshot = _adapters.GetDocumentBuffer(lines)?.CurrentSnapshot;
-            if (snapshot == null || snapshot.GetText() != expectedText)
-                throw new InvalidOperationException("The source changed while opening. Wait for analysis and try again.");
-            int line = location.LineNumber - 1;
-            int column = location.ColumnNumber - 1;
-            if (line < 0 || line >= snapshot.LineCount || column < 0 || column > snapshot.GetLineFromLineNumber(line).Length)
-                throw new InvalidOperationException("The source location is no longer available.");
-            ErrorHandler.ThrowOnFailure(view.SetCaretPos(line, column));
-            ErrorHandler.ThrowOnFailure(view.CenterLines(line, 1));
-            ErrorHandler.ThrowOnFailure(frame.Show());
+            if (!_disposed) VsSourceNavigation.Navigate(_services, _adapters, location, expectedText);
         }
 
         public void Dispose()
