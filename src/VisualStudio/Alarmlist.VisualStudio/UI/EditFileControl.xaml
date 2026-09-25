@@ -61,8 +61,8 @@
           <MultiBinding StringFormat="{}{0} ({1})"><Binding Path="ProjectPath" /><Binding Path="Configuration" /></MultiBinding>
         </TextBlock.Text></TextBlock></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
-      <TextBlock Text="{Binding AnalysisMessage}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
-      <TextBlock Text="{Binding Error}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+      <ui:LiveStatusTextBlock Text="{Binding AnalysisMessage}" TextWrapping="Wrap" />
+      <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
       <Expander Header="{Binding DiagnosticsHeading}" Margin="0,4,0,0">
         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="180">
           <StackPanel>
@@ -104,7 +104,7 @@
           <Expander Header="Resolved alarm preview" Margin="0,0,8,10">
             <StackPanel Margin="0,6,0,0">
               <TextBlock Text="{Binding PreviewContext}" TextWrapping="Wrap" />
-              <TextBlock Text="{Binding ResolvedPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,8" AutomationProperties.LiveSetting="Polite" />
+              <ui:LiveStatusTextBlock Text="{Binding ResolvedPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,8" />
               <ItemsControl ItemsSource="{Binding ResolvedFields}">
                 <ItemsControl.ItemTemplate><DataTemplate>
                   <StackPanel Margin="0,0,0,10">
@@ -135,7 +135,7 @@
           <Expander Header="Compiled project XML preview" Margin="0,0,8,12">
             <StackPanel Margin="0,6,0,0">
               <TextBlock Text="{Binding PreviewContext}" TextWrapping="Wrap" />
-              <TextBlock Text="{Binding XmlPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,6" AutomationProperties.LiveSetting="Polite" />
+              <ui:LiveStatusTextBlock Text="{Binding XmlPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,6" />
               <TextBox Text="{Binding CompiledXml, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas"
                        MaxHeight="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
                        AutomationProperties.Name="Compiled project XML" AutomationProperties.HelpText="{Binding XmlPreviewMessage}" />
@@ -187,7 +187,7 @@
                   <DataTemplate>
                     <StackPanel Margin="0,0,0,16">
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="0,0,0,6" />
-                      <TextBlock Text="{Binding Error}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                      <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
                       <TextBlock Text="{Binding AnalysisGuidance}" TextWrapping="Wrap" Margin="0,0,0,5" />
                       <TextBlock Text="Make local copy captures the effective sequence now. Future changes to the referenced section will no longer flow here. Undo restores inheritance. Commit or cancel drafts before copying."
                                  TextWrapping="Wrap" Margin="0,0,0,6" />

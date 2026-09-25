@@ -1,6 +1,6 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: implementation and runnable validation through iteration fifteen are
+Status: implementation and runnable validation through iteration sixteen are
 complete: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
@@ -1373,3 +1373,36 @@ objects were unreachable; reachable managed memory was approximately flat.
 This separates retained objects from allocation/collection pressure, but does
 not fully attribute native allocations or prove a whole-IDE memory plateau.
 That residual process-memory investigation remains open before release acceptance.
+
+## Iteration sixteen: emit screen-reader status events
+
+Iteration fifteen was committed as `a64eef2`. Status and error labels now use a
+small TextBlock subclass that raises `LiveRegionChanged` after visible, loaded,
+non-empty text changes. WPF's `LiveSetting=Polite` alone does not emit that event;
+see the [Microsoft accessibility guidance](https://learn.microsoft.com/en-us/accessibility-tools-docs/items/wpf/text_livesetting).
+The behavior covers analysis status, editing errors, both preview messages and
+procedure errors. It does not add focus stops or announce hidden/closed content.
+
+A test-owned native WPF window and an independent UI Automation client verified
+that two successive changes emit events containing the new text. This is event
+pipeline evidence, not an assertion about the words a particular screen reader
+chooses to speak. The full unit suite passed 217 tests, with one opt-in performance
+theory skipped. Packaged VSIX consumers passed all 10 tests on each of net472
+and net8.0. Full experimental-IDE smoke checks passed on VS2022 and VS2026.
+Logs are `artifacts/log/Debug/m3-iteration16-unit-final.log`,
+`m3-iteration16-package.log`, `m3-iteration16-heap2022.log` and
+`m3-iteration16-smoke2026.log`.
+
+The VS2022 20-cycle profiler run found a separate host-dependent retention path
+through the document observer's strong document dictionary, VS text-view
+adapters, and the split designer. Reachable closed models grew from seven to
+27. This does not invalidate the VS2026 binding-fix evidence, but requires a
+further document-ownership fix before memory acceptance. Its evidence directory
+is `artifacts/log/Debug/VisualStudioSmoke/02e26ab8217e473dac9de68280ac74b1/`.
+
+Narrator was started, but its window exposed only limited accessibility because
+of its higher Windows integrity level. Approval to inspect the Narrator update
+window and Windows Settings timed out. No native high-contrast theme or display
+scale was changed, and no actual speech/transcript acceptance is claimed. The
+user was asked to expose the contrast settings and Speech Recap windows. These
+interactive gates and precise keystroke-to-paint measurement remain open.
