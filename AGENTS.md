@@ -32,6 +32,8 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, templates, and MVVM designer/XML split editor. `Editor/` owns host integration and open-buffer observation, `Documents/` shared models, `Editing/` source-preserving edits, `Analysis/` the SDK bridge, project snapshots/scheduling and file watching, `Diagnostics/` the live Error List source/navigation, `ProjectSystem/` CPS subscriptions, and `UI/` views/view models. |
 | `src/VisualStudio/Alarmlist.VisualStudio.UnitTests/` | `net472` editor/model, XML preservation, SDK bridge isolation/package-worker, CPS build-check, and MSBuild XAML schema tests. |
 | `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks. |
+| `src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/` | Opt-in xUnit-hosted BenchmarkDotNet bridge/WPF measurements and running-IDE latency/memory validation; net472 only. |
+| `src/shared/VisualStudioTesting/` | Shared opt-in live-IDE driver invocation and structured result validation for integration/performance tests. |
 | `src/shared/Unittesting/` | Shared compiler/task test helpers linked through build configuration. |
 | `eng/` | Repository build settings, version properties, and common build tooling. |
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
@@ -295,10 +297,17 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   force collection in the measured IDE.
   Whole-IDE memory trends without forced collection do not prove leak freedom.
 - `eng/measure-visualstudio-analysis.ps1` runs opt-in x64 net472 measurements of the
-  packaged SDK bridge and actual WPF designer BAML in Release by default. It keeps
-  CSV samples, test results, and revision/runtime details under `artifacts/log/`.
-  Normal tests skip the performance theory; do not introduce machine-dependent
+  packaged SDK bridge and actual WPF designer BAML in Release through xUnit and
+  BenchmarkDotNet in the dedicated PerformanceTests project. Dry validates the
+  harness, Short takes two warmups/five samples, and Full uses default sampling.
+  It keeps raw CSV/JSON, summaries, test results and revision/runtime details under
+  `artifacts/log/`. Normal tests skip measurements; do not introduce machine-dependent
   timing assertions. These measurements exclude live VS/RDT capture and CPS debounce.
+- Live xUnit wrappers require `ALARMLIST_RUN_LIVE_VS_TESTS=1` and explicit host paths;
+  they run only on net472. Functional smoke belongs in IntegrationTests and live
+  latency/memory in PerformanceTests. Preserve ordinary-run skipping, trait filters,
+  cross-process serialization, complete-report validation and the driver's ownership
+  of its test IDE. Keep the matching deployed configuration/profile explicit.
 - `eng/prepare-visualstudio-acceptance.ps1` creates and builds an isolated linked
   North/South fixture from the SDK version in the built VSIX template. Follow
   `src/VisualStudio/ACCEPTANCE.md` for interactive checks and preserve the source/

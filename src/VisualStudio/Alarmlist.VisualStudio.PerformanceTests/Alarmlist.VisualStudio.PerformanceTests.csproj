@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>net472</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <IsPackable>false</IsPackable>
+    <OutputType>Exe</OutputType>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
+    <Compile Include="../../shared/VisualStudioTesting/LiveVisualStudioRun.cs" Link="LiveVisualStudio/LiveVisualStudioRun.cs" />
+    <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.SDK" Version="17.9.380" PrivateAssets="all" />
+    <!-- BAML uses shell theme keys. Download the host assembly as a test asset
+         without changing the CPS test host's MSBuild dependency family. -->
+    <PackageDownload Include="Microsoft.VisualStudio.Shell.15.0" Version="[17.9.37000]" />
+    <PackageDownload Include="Microsoft.VisualStudio.Shell.Framework" Version="[17.9.37000]" />
+    <PackageDownload Include="Microsoft.VisualStudio.Interop" Version="[17.9.37000]" />
+    <Reference Include="Microsoft.VisualStudio.Shell.Framework"
+               HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.shell.framework/17.9.37000/lib/net472/Microsoft.VisualStudio.Shell.Framework.dll" />
+    <Reference Include="Microsoft.VisualStudio.Interop"
+               HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.interop/17.9.37000/lib/net472/Microsoft.VisualStudio.Interop.dll" />
+    <Content Include="$(NuGetPackageRoot)/microsoft.visualstudio.shell.15.0/17.9.37000/lib/net472/Microsoft.VisualStudio.Shell.15.0.dll"
+             Link="Microsoft.VisualStudio.Shell.15.0.dll" CopyToOutputDirectory="PreserveNewest" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <AssemblyMetadata Include="RepositoryRoot" Value="$(RepoRoot)" />
+    <AssemblyMetadata Include="BuildConfiguration" Value="$(Configuration)" />
+  </ItemGroup>
+  <Target Name="PrepareAnalysisBridgeTestAssets" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="../../SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" Targets="GetSdkPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_AnalysisSdkPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_AnalysisSdkPackage)" DestinationFiles="$(TargetDir)testassets/analysis-sdk.nupkg" />
+  </Target>
+</Project>

@@ -41,6 +41,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Alarmlist.VisualStudio.UnitTests" />
     <InternalsVisibleTo Include="Alarmlist.VisualStudio.IntegrationTests" />
+    <InternalsVisibleTo Include="Alarmlist.VisualStudio.PerformanceTests" />
   </ItemGroup>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
   <!-- Visual Studio evaluates the project before NuGet generates its package imports.

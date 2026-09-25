@@ -68,14 +68,18 @@ Run the opt-in benchmark from the repository root on Windows:
 powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1
 ```
 
-The launcher builds Release and runs x64 net472 measurements using the packaged
-SDK bridge and actual designer BAML. It records five warm samples per scenario:
-1,000 alarms in one file, 1,000 across ten files, and 10,000 across 100 files.
-CSV results, TRX, revision/working-tree state, and .NET runtime details are retained
-under `artifacts/log/Release/AnalysisPerformance/`. `-Configuration Debug` selects
-the Debug build. Normal tests skip this theory; timings are observations, not CI
-pass/fail thresholds. Setup is outside warm samples. Memory figures describe the
-test process and include WPF/runtime costs; they are not VS memory guarantees.
+The launcher builds Release and runs x64 net472 BenchmarkDotNet measurements through
+xUnit in `Alarmlist.VisualStudio.PerformanceTests`, using the packaged SDK bridge
+and actual designer BAML. Its default Short job records five measured iterations
+after two warmups for 1,000 alarms in one file, 1,000 across ten files, and 10,000
+across 100 files. `-Job Dry` verifies the harness; `-Job Full` uses default
+BenchmarkDotNet sampling. `-Filter` accepts xUnit trait filters. Raw CSV, JSON,
+Markdown, TRX, revision/working-tree state and runtime details are retained under
+`artifacts/log/Release/AnalysisPerformance/`. Normal tests skip measurements.
+Timings are observations, not CI pass/fail thresholds; allocation measurements do
+not establish retained memory or VS memory guarantees. See the
+[performance project README](Alarmlist.VisualStudio.PerformanceTests/README.md)
+for scenario selection, measurement limits and opt-in live-IDE xUnit wrappers.
 
 The measurements separate SDK analysis/copying from UI publication/layout,
 unchanged refresh, command queries, and a local draft edit. They exclude live
@@ -394,6 +398,11 @@ failed run with interactive prompts enabled for inspection. The generated
 projects, local package feed, and ActivityLog are retained under
 `artifacts/log/<Configuration>/VisualStudioSmoke/`. Initialize the experimental
 instance manually first if Visual Studio requires first-run or sign-in input.
+
+The script also has opt-in xUnit wrappers: functional smoke in the integration
+project and latency/memory validation in the performance project. They validate
+structured completion reports, retained samples and owned-IDE cleanup. See the
+[live wrapper workflow](Alarmlist.VisualStudio.PerformanceTests/README.md#live-visual-studio-wrappers).
 
 Add `-MeasureAnalysis` to measure live analysis while running the same smoke:
 

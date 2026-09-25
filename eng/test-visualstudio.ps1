@@ -10,14 +10,19 @@ param(
   [ValidateRange(1, 100)]
   [int]$MeasurementIterations = 20,
   [ValidateRange(1, 10000)]
-  [int]$MeasurementAlarmCount = 1000
+  [int]$MeasurementAlarmCount = 1000,
+  [string]$ResultFile,
+  [string]$CancellationFile,
+  [string]$OwnedProcessFile
 )
 
 $ErrorActionPreference = 'Stop'
-if ($PSVersionTable.PSEdition -ne 'Desktop' -or [Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
-  throw 'Run this script with powershell.exe -STA (Windows PowerShell 5.1).'
+if ($PSVersionTable.PSEdition -ne 'Desktop' -or [Threading.Thread]::CurrentThread.ApartmentState -ne 'STA' -or [IntPtr]::Size -ne 8) {
+  throw 'Run this script with x64 powershell.exe -STA (Windows PowerShell 5.1).'
 }
+if ($MeasureAnalysis) { Get-Command Get-FileHash -ErrorAction Stop | Out-Null }
 $repoRoot = Split-Path $PSScriptRoot -Parent
+if ($ResultFile -and (Test-Path -LiteralPath $ResultFile)) { throw 'ResultFile must identify a new run; refusing to reuse an existing report.' }
 $runDirectory = Join-Path $repoRoot "artifacts/log/$Configuration/VisualStudioSmoke/$([Guid]::NewGuid().ToString('N'))"
 $projectDirectory = Join-Path $runDirectory 'Plant'
 New-Item -ItemType Directory -Path $projectDirectory -Force | Out-Null
@@ -95,6 +100,16 @@ public static class AlarmlistRunningObjectTable
         Marshal.ThrowExceptionForHR(provider.QueryService(ref serviceId, ref interfaceId, out pointer));
         try { return (T)Marshal.GetObjectForIUnknown(pointer); }
         finally { Marshal.Release(pointer); }
+    }
+    public static void CloseSolution(object automation, bool save)
+    {
+        // Typed COM calls avoid PowerShell's dynamic rebinding during repeated
+        // solution teardown, which can stall the external automation driver.
+        ((EnvDTE.DTE)automation).Solution.Close(save);
+    }
+    public static void OpenSolution(object automation, string path)
+    {
+        ((EnvDTE.DTE)automation).Solution.Open(path);
     }
     public static void VerifyEditor(object automation, string path)
     {
@@ -303,12 +318,12 @@ public static class AlarmlistRunningObjectTable
         }
         return false;
     }
-    public static void NavigateError(object automation, string description)
+    public static bool TryNavigateError(object automation, string description)
     {
         var errors = ((EnvDTE80.DTE2)automation).ToolWindows.ErrorList.ErrorItems;
         for (int i = 1; i <= errors.Count; i++)
-            if (errors.Item(i).Description == description) { errors.Item(i).Navigate(); return; }
-        throw new Exception("The live diagnostic is not present for navigation.");
+            if (errors.Item(i).Description == description) { errors.Item(i).Navigate(); return true; }
+        return false;
     }
     public static bool ReplaceXmlBuffer(object automation, string path, string text)
     {
@@ -469,6 +484,7 @@ public static class AlarmlistRunningObjectTable
 function Wait-For($Action, [string]$Description, [int]$PollMilliseconds = 500) {
   $deadline = [DateTime]::UtcNow.AddSeconds(120)
   do {
+    if ($CancellationFile -and (Test-Path -LiteralPath $CancellationFile)) { throw 'Live test cancellation requested.' }
     try {
       $result = & $Action
       if ($result) { return $result }
@@ -593,6 +609,7 @@ function Measure-LiveAnalysis {
       (Get-FileHash -LiteralPath $outputFile -Algorithm SHA256).Hash -ne $outputHash) {
     throw 'Analysis measurements changed source or compiled output on disk.'
   }
+  $script:measurementSourcesPreserved = $true
   Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Measurement.almx', 'delete') } 'measurement input cleanup' | Out-Null
   foreach ($group in ($latencies | Where-Object { !$_.Warmup } | Group-Object Mode)) {
     $values = @($group.Group.Milliseconds | Sort-Object)
@@ -606,11 +623,23 @@ function Measure-LiveAnalysis {
 $ide = $null
 $dte = $null
 $retainInstance = $false
+$completedSuccessfully = $false
+$measurementSourcesPreserved = $false
+$failureMessage = ''
 [AlarmlistRunningObjectTable]::RegisterMessageFilter()
 try {
   $ide = Start-Process -FilePath (Join-Path $VisualStudioPath 'Common7/IDE/devenv.exe') `
     -ArgumentList @(('"' + $solutionPath + '"'), '/RootSuffix', $RootSuffix, '/Log', ('"' + (Join-Path $runDirectory 'ActivityLog.xml') + '"')) `
     -WindowStyle Hidden -PassThru
+  if ($OwnedProcessFile) {
+    $ownership = [xml]'<OwnedIde />'
+    $ownership.DocumentElement.SetAttribute('ProcessId', [string]$ide.Id)
+    $ownership.DocumentElement.SetAttribute('DriverProcessId', [string]$PID)
+    $ownership.DocumentElement.SetAttribute('StartUtcTicks', [string]$ide.StartTime.ToUniversalTime().Ticks)
+    $ownership.DocumentElement.SetAttribute('Executable', [IO.Path]::GetFullPath((Join-Path $VisualStudioPath 'Common7/IDE/devenv.exe')))
+    $ownership.DocumentElement.SetAttribute('Solution', $solutionPath)
+    $ownership.Save([IO.Path]::GetFullPath($OwnedProcessFile))
+  }
   $dte = Wait-For { [AlarmlistRunningObjectTable]::Find($ide.Id) } 'Visual Studio automation startup'
   # The ROT entry may be published before the IDE accepts automation calls.
   Wait-For {
@@ -639,8 +668,10 @@ try {
   $dte.Solution.SolutionBuild.Build($true)
   Assert-AlarmCount 2
   [AlarmlistRunningObjectTable]::FindItem($dte, 'sources', 'Additional.almx', 'rename') | Out-Null
-  $dte.Solution.Close($true)
-  $dte.Solution.Open((Join-Path $runDirectory 'Smoke.sln'))
+  Write-Output 'Closing the solution after item rename.'
+  [AlarmlistRunningObjectTable]::CloseSolution($dte, $true)
+  Write-Output 'Reopening the renamed-item solution.'
+  [AlarmlistRunningObjectTable]::OpenSolution($dte, $solutionPath)
   Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, 'sources', 'Renamed.almx', 'delete') } 'project reopening and item deletion' | Out-Null
   $dte.Solution.SolutionBuild.Build($true)
   Assert-AlarmCount 1
@@ -653,15 +684,23 @@ try {
   $liveMessage = "Alarm 'Live' references missing alarm 'MissingLive'."
   [IO.File]::WriteAllText($livePath, $liveText)
   Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Live.almx', '') } 'live input discovery' | Out-Null
+  Write-Output 'Discovered the live diagnostic input.'
   Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'live diagnostic before Build' | Out-Null
-  [AlarmlistRunningObjectTable]::NavigateError($dte, $liveMessage)
-  Wait-For { [AlarmlistRunningObjectTable]::IsAtLocation($dte, $livePath, 3, 6) } 'live diagnostic source navigation' | Out-Null
+  Write-Output 'Published the live diagnostic before Build.'
+  Wait-For {
+    if ([AlarmlistRunningObjectTable]::IsAtLocation($dte, $livePath, 3, 6)) { return $true }
+    # Analysis can replace a table row while navigation revalidates its inputs.
+    # Retry the current row; completion still requires the exact source position.
+    [AlarmlistRunningObjectTable]::TryNavigateError($dte, $liveMessage) | Out-Null
+    return $false
+  } 'live diagnostic source navigation' | Out-Null
   Write-Output 'Live diagnostic navigation reached its source position.'
   # Closing the solution also drains the source view before opening the same
   # file explicitly through a different editor factory after reopening.
-  $dte.Solution.Close($false)
+  [AlarmlistRunningObjectTable]::CloseSolution($dte, $false)
+  Write-Output 'Closed the solution after diagnostic navigation.'
   Wait-For { ![AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'project unload clears live diagnostics' | Out-Null
-  $dte.Solution.Open($solutionPath)
+  [AlarmlistRunningObjectTable]::OpenSolution($dte, $solutionPath)
   Wait-For { [AlarmlistRunningObjectTable]::FindItem($dte, $null, 'Live.almx', '') } 'reopened project item tree' | Out-Null
   Wait-For { [AlarmlistRunningObjectTable]::HasErrorDescription($dte, $liveMessage) } 'reopened project republishes live diagnostics' | Out-Null
   Write-Output 'Live diagnostic publication and project unload/reopen passed.'
@@ -701,7 +740,9 @@ try {
     $retainInstance = $true
     Write-Output "Experimental instance retained for UI inspection. Process: $($ide.Id)"
   }
+  $completedSuccessfully = $true
 } catch {
+  $failureMessage = $_.Exception.ToString()
   if ($dte -and $KeepOpen) {
     $dte.SuppressUI = $false
     $dte.MainWindow.Visible = $true
@@ -713,8 +754,37 @@ try {
   throw
 } finally {
   if ($dte -and !$retainInstance) {
-    try { $dte.Solution.Close($false); $dte.Quit() } catch { Write-Warning $_ }
+    try { [AlarmlistRunningObjectTable]::CloseSolution($dte, $false); $dte.Quit() } catch { Write-Warning $_ }
   }
   if ($ide -and !$retainInstance -and !$ide.WaitForExit(10000)) { Stop-Process -Id $ide.Id }
   [AlarmlistRunningObjectTable]::RestoreMessageFilter()
+  if ($ResultFile) {
+    $cleanupCompleted = !$retainInstance -and (!$ide -or $ide.WaitForExit(10000))
+    $report = [xml]'<LiveVisualStudioRun />'
+    $root = $report.DocumentElement
+    $hostFile = (Get-Item (Join-Path $VisualStudioPath 'Common7/IDE/devenv.exe')).VersionInfo
+    $values = @{
+      SchemaVersion = '1'; Succeeded = $completedSuccessfully; CleanupCompleted = $cleanupCompleted
+      DriverBitness = [IntPtr]::Size * 8
+      RunDirectory = $runDirectory; Configuration = $Configuration; RootSuffix = $RootSuffix
+      HostVersion = '{0}.{1}.{2}.{3}' -f $hostFile.FileMajorPart, $hostFile.FileMinorPart, $hostFile.FileBuildPart, $hostFile.FilePrivatePart
+      Measurements = $MeasureAnalysis.IsPresent; Iterations = $MeasurementIterations
+      AdditionalAlarms = $MeasurementAlarmCount; SourcesPreserved = $measurementSourcesPreserved
+      Failure = $failureMessage
+    }
+    foreach ($name in $values.Keys) { $root.SetAttribute($name, [string]$values[$name]) }
+    foreach ($table in @(@('Latencies', 'analysis-latency.csv'), @('Memory', 'designer-close-memory.csv'))) {
+      $csv = Join-Path $runDirectory $table[1]
+      $element = $report.CreateElement($table[0])
+      [void]$root.AppendChild($element)
+      if (Test-Path -LiteralPath $csv) {
+        foreach ($sample in (Import-Csv -LiteralPath $csv)) {
+          $row = $report.CreateElement('Sample')
+          foreach ($property in $sample.PSObject.Properties) { $row.SetAttribute($property.Name, [string]$property.Value) }
+          [void]$element.AppendChild($row)
+        }
+      }
+    }
+    $report.Save([IO.Path]::GetFullPath($ResultFile))
+  }
 }

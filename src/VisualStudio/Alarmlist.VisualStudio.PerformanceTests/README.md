@@ -1,0 +1,99 @@
+# Visual Studio performance checks
+
+This net472 project uses xUnit for discovery, traits, assertions and TRX results.
+Its isolated scenarios run BenchmarkDotNet 0.15.8 in separate Release/x64 processes.
+The compiler is still loaded from the built SDK package through the extension's
+AppDomain bridge. Benchmark dependencies are private test dependencies, not VSIX
+contents. Ordinary solution tests skip all measurements and live IDE launches.
+
+## Isolated benchmarks
+
+From the repository root on Windows:
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Dry
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Full -Filter 'Category=Performance&Host=Isolated&Area=Bridge'
+```
+
+The default Short job uses two warmups and five measured iterations. Dry checks
+execution/reporting only; it is not performance evidence. Full uses BenchmarkDotNet's
+default sampling policy. All jobs use one invocation per iteration to control WPF
+state changes. CommandQueries100 measures a batch of 100 availability queries.
+
+The Bridge and Designer xUnit theories each select one of three scenarios:
+1,000 alarms in one file, 1,000 across ten files, or 10,000 across 100 files.
+Designer covers fresh result publication/layout, unchanged refresh/layout,
+command queries, and draft editing/layout. WPF runs on STA with actual designer
+BAML. Analysis, input preparation and draft reset are outside the UI measurements.
+Each draft starts from a resolved preview; the measured edit must clear it without
+committing source. Correctness checks run outside the measured interval.
+
+The launcher sets and restores `ALARMLIST_RUN_PERFORMANCE_TESTS`,
+`ALARMLIST_PERFORMANCE_JOB`, and `ALARMLIST_PERFORMANCE_OUTPUT_DIRECTORY`.
+For direct `dotnet test` use, set those variables explicitly and select Release
+and `RunConfiguration.TargetPlatform=x64`. Traits support `Area=Bridge`,
+`Area=Designer`, and `Host=Isolated`. Traits alone do not enable a skipped test.
+
+Results live under `artifacts/log/Release/AnalysisPerformance/<run-id>/`:
+TRX, revision/working-tree and runtime metadata, per-scenario BenchmarkDotNet logs,
+raw measurement CSVs, full JSON and Markdown summaries. xUnit checks the expected
+number of reports, successful execution, finite measurements and exported JSON.
+There are no timing-budget assertions. Reports must be compared on a controlled
+machine; do not compare Debug or Dry observations with full Release measurements.
+
+These are warm SDK operations, not cold SDK startup, live CPS/RDT capture, physical
+typing or screen paint. Allocated bytes describe benchmark operations, not retained
+objects or the memory of a running Visual Studio. Existing collectibility regression
+tests remain in UnitTests. Old Stopwatch results remain historical evidence in
+MILESTONE-3.md; the new measurement method establishes a new baseline.
+
+## Live Visual Studio wrappers
+
+Functional editor smoke belongs to `Alarmlist.VisualStudio.IntegrationTests`.
+Latency and designer-close memory belong here. One performance test runs the full
+smoke plus both measurement modes, avoiding duplicate IDE runs for latency/memory.
+Both wrappers invoke `eng/test-visualstudio.ps1` and validate its completion report.
+Live wrappers only target net472; existing packaged integration tests keep both
+net472 and net8.0. No wall-clock performance limit or memory-growth threshold is
+asserted. The current checks validate complete, correctly identified evidence,
+two warmups per mode, finite samples, source/output preservation and IDE cleanup.
+
+First build and deploy the matching extension/SDK configuration to the experimental
+profile, and complete any Visual Studio first-run screens manually. See the
+[deployment instructions](../README.md#experimental-ide-smoke-test). The wrappers
+do not deploy or change an existing installation. Set the path for each host you
+want to run; unconfigured hosts are skipped:
+
+```powershell
+$env:ALARMLIST_RUN_LIVE_VS_TESTS = '1'
+$env:ALARMLIST_VS2022_PATH = '<VS2022 installation>'
+$env:ALARMLIST_VS2026_PATH = '<VS2026 installation>'
+$env:ALARMLIST_VS_ROOT_SUFFIX = 'AlarmlistExp'
+$env:ALARMLIST_VS_MEASUREMENT_ITERATIONS = '20'
+$env:ALARMLIST_VS_MEASUREMENT_ALARMS = '1000'
+
+dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj -f net472 --filter 'Host=VisualStudio&VSVersion=2022'
+dotnet test src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/Alarmlist.VisualStudio.PerformanceTests.csproj --filter 'Host=VisualStudio&VSVersion=2022'
+```
+
+Restore/unset the environment variables after the opt-in run. Root suffix defaults
+to AlarmlistExp, measured iterations to 20 (range 1-100), and additional alarms to
+1,000 (range 1-10,000). Match the deployed configuration with `-c Release` if needed.
+Run the projects sequentially; a cross-process mutex rejects simultaneous live
+runs. Performance tests also disable within-assembly parallelism. Do not run other
+benchmarks or builds alongside measurements. A watchdog defaults to 30 minutes;
+`ALARMLIST_VS_TIMEOUT_SECONDS` accepts 30-7,200 seconds. This detects stuck runs,
+not performance regressions. On timeout the wrapper requests cancellation, then
+stops only the IDE identified by the driver's ownership receipt and matching PID
+and start time, and stops its driver. Cleanup failures are reported in test output.
+The driver always uses x64 Windows PowerShell with its own module search paths,
+even when the test runner is x86 or launched from PowerShell 7.
+
+Wrapper logs, the IDE ownership receipt and `result.xml` are under
+`artifacts/log/<Configuration>/LiveVisualStudioTests/<run-id>/`. The report links
+the retained smoke fixture, ActivityLog, latency/memory CSVs and measurement
+metadata under `VisualStudioSmoke/`. Failures retain logs and cannot pass with an
+empty, partial, wrong-host or unsuccessful report. No collection is forced in the
+measured IDE. Diagnostic polling includes COM overhead and does not measure typing
+to paint; memory totals do not establish leak freedom.

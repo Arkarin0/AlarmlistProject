@@ -47,6 +47,7 @@
 		<PackageVersion Include="Microsoft.Extensions.Logging" Version="7.0.0" />
 
 		<!--XUnit-->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
 		<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
 		<PackageVersion Include="xunit" Version="2.4.1" />
 		<PackageVersion Include="xunit.runner.visualstudio" Version="2.4.3"/>

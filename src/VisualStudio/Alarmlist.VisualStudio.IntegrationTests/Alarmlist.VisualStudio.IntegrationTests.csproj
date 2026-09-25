@@ -8,6 +8,10 @@
     <Compile Include="../../SDK/Alarmlist.SDK.Tests/Utilities/TestApp.cs" Link="Utilities/TestApp.cs" />
     <Content Include="../../SDK/Alarmlist.SDK.Tests/testassets/boilerplate/*" Link="testassets/boilerplate/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <AssemblyMetadata Include="LogOutputDir" Value="$(ArtifactsLogDir)VisualStudioTests/$(TargetFramework)/" />
+    <AssemblyMetadata Include="RepositoryRoot" Value="$(RepoRoot)" />
+    <AssemblyMetadata Include="BuildConfiguration" Value="$(Configuration)" />
+    <Compile Include="../../shared/VisualStudioTesting/LiveVisualStudioRun.cs" Link="LiveVisualStudio/LiveVisualStudioRun.cs" />
+    <Compile Remove="LiveVisualStudio/EditorSmokeTests.cs" Condition="'$(TargetFramework)' != 'net472'" />
     <AssemblyMetadata Include="ExtensionProjectPath" Value="$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj'))" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
