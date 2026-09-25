@@ -1,0 +1,117 @@
+// Created/modified by Arkarin0 under one ore more license(s).
+
+// Minimal contract-1 fixture predating compiled XML preview. It transports
+// snapshot identities, not compiler semantics (covered using the real package).
+using System.Collections.Generic;
+[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.7.2")]
+
+namespace Alarmlist.Text
+{
+    public class AlmxTextSnapshot
+    {
+        public string FilePath { get; set; }
+        public int Version { get; set; }
+        public AlmxTextSnapshot(string text, string path, int version) { FilePath = path; Version = version; }
+    }
+    public class SourceLocation
+    {
+        public string FilePath { get; set; }
+        public int LineNumber { get; set; }
+        public int ColumnNumber { get; set; }
+        public int EndLineNumber { get; set; }
+        public int EndColumnNumber { get; set; }
+        public int? SourceVersion { get; set; }
+    }
+}
+namespace Alarmlist.Diagnostics { public enum DiagnosticSeverity { Info, Warning, Error } }
+namespace Alarmlist.Syntax { public enum TestProcedureStepKind { Instruction, Hint, Warning, Note } }
+namespace Alarmlist.Analysis
+{
+    public class AnalysisResult
+    {
+        public const int CurrentContractVersion = 1;
+        public int ContractVersion { get { return 1; } }
+        public bool Success { get { return true; } }
+        public IReadOnlyList<AnalyzedSource> Sources { get; set; }
+        public IReadOnlyList<AnalyzedAlarm> Alarms { get { return new AnalyzedAlarm[0]; } }
+        public IReadOnlyList<AnalysisDiagnostic> Diagnostics { get { return new AnalysisDiagnostic[0]; } }
+        // OPTIONAL_PREVIEW_PROPERTY
+    }
+    public class AnalyzedSource
+    {
+        public string FilePath { get; set; }
+        public int Version { get; set; }
+    }
+    public class AlarmOrigin
+    {
+        public int Index { get; set; }
+        public string FullyQualifiedName { get; set; }
+        public Alarmlist.Text.SourceLocation Location { get; set; }
+    }
+    public class ProcedureEntryOrigin
+    {
+        public AlarmOrigin Alarm { get; set; }
+        public string Section { get; set; }
+        public int Index { get; set; }
+        public Alarmlist.Text.SourceLocation Location { get; set; }
+    }
+    public class AnalyzedField
+    {
+        public string Name { get; set; }
+        public bool IsPresent { get; set; }
+        public string LocalValue { get; set; }
+        public Alarmlist.Text.SourceLocation LocalLocation { get; set; }
+        public string EffectiveValue { get; set; }
+        public AlarmOrigin DefiningAlarm { get; set; }
+        public Alarmlist.Text.SourceLocation ValueLocation { get; set; }
+        public bool IsInherited { get; set; }
+    }
+    public class AnalyzedProcedureEntry
+    {
+        public Alarmlist.Syntax.TestProcedureStepKind? Kind { get; set; }
+        public bool IsClear { get; set; }
+        public string Text { get; set; }
+        public ProcedureEntryOrigin Origin { get; set; }
+        public bool IsInherited { get; set; }
+        public ProcedureEntryOrigin ExcludedBy { get; set; }
+    }
+    public class AnalyzedProcedureSection
+    {
+        public string Name { get; set; }
+        public IReadOnlyList<AnalyzedProcedureEntry> LocalEntries { get; set; }
+        public IReadOnlyList<AnalyzedProcedureEntry> EffectiveEntries { get; set; }
+        public IReadOnlyList<AnalyzedProcedureEntry> ExcludedEntries { get; set; }
+    }
+    public class AnalyzedAlarm
+    {
+        public AlarmOrigin Origin { get; set; }
+        public string ReferenceName { get; set; }
+        public bool IsResolved { get; set; }
+        public IReadOnlyList<AlarmOrigin> ReferenceChain { get; set; }
+        public IReadOnlyList<AnalyzedField> Fields { get; set; }
+        public AnalyzedProcedureSection Instructions { get; set; }
+        public AnalyzedProcedureSection Reset { get; set; }
+    }
+    public class AnalysisDiagnostic
+    {
+        public string Id { get; set; }
+        public Alarmlist.Diagnostics.DiagnosticSeverity Severity { get; set; }
+        public string Message { get; set; }
+        public Alarmlist.Text.SourceLocation Location { get; set; }
+        public IReadOnlyList<Alarmlist.Text.SourceLocation> RelatedLocations { get; set; }
+    }
+}
+namespace Alarmlist.Compiler
+{
+    public class AlarmCompiler
+    {
+        public Alarmlist.Analysis.AnalysisResult AnalyzeSnapshots(IEnumerable<Alarmlist.Text.AlmxTextSnapshot> snapshots)
+        {
+            var sources = new List<Alarmlist.Analysis.AnalyzedSource>();
+            foreach (var snapshot in snapshots)
+                sources.Add(new Alarmlist.Analysis.AnalyzedSource { FilePath = snapshot.FilePath, Version = snapshot.Version });
+            return new Alarmlist.Analysis.AnalysisResult { Sources = sources };
+        }
+        // OPTIONAL_PREVIEW_METHOD
+    }
+}

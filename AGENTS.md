@@ -169,6 +169,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   reference chains. Reuse compiler resolution rules rather than duplicating them
   in editor code. The SDK's `AnalysisContract` consumer asset verifies this API
   from the restored package without a compiler project reference.
+- The optional `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` overload
+  uses the same bound inputs and normal XML output writer. Keep contract 1 and
+  the original analysis-only overload compatible. `CompiledXml` is unavailable
+  on errors; in-memory previews must never save source or write build output.
 - ALMX source serialization and compiled output serialization are distinct.
   Source XML uses an `Alarmlist` root and supports references and procedure
   directives; compiled XML uses an `AlarmList` root and resolved values. Preserve
@@ -235,6 +239,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   active drafts, and dispose notification subscriptions on view close. WPF adorners
   remain decorative, themed, and outside editing/compilation logic. Never dispose
   a FileSystemWatcher while holding the lock used by its callbacks.
+- Resolved previews use SDK effective fields and surviving procedure entries.
+  Clear both previews during drafts or stale/unavailable analysis; project XML
+  requires whole-project success. Keep preview support optional for older SDKs,
+  and copy XML as a string outside the required contract-1 property map.
 - Procedure presentation uses SDK local/effective/excluded entries and origins;
   never infer Clear exclusions or execution order from displayed text. Section
   copies require current resolved inputs and produce one buffer edit with a leading

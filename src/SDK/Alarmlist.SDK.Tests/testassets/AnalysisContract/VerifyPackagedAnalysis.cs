@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -26,7 +27,8 @@ public sealed class VerifyPackagedAnalysis : Task
         Type snapshotType = assembly.GetType("Alarmlist.Text.AlmxTextSnapshot", true);
         Type compilerType = assembly.GetType("Alarmlist.Compiler.AlarmCompiler", true);
         object compiler = Activator.CreateInstance(compilerType);
-        MethodInfo analyze = compilerType.GetMethod("AnalyzeSnapshots");
+        Type snapshotsType = typeof(IEnumerable<>).MakeGenericType(snapshotType);
+        MethodInfo analyze = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType });
         Require(analyze != null, "The packaged compiler has no snapshot analysis API.");
         string basePath = Path.Combine(ProjectDirectory, "UnsavedBase.almx");
         string childPath = Path.Combine(ProjectDirectory, "UnsavedChild.almx");
@@ -40,6 +42,13 @@ public sealed class VerifyPackagedAnalysis : Task
         object result = analyze.Invoke(compiler, new object[] { snapshots });
         Require((int)Value(result, "ContractVersion") == 1, "Unexpected analysis contract version.");
         Require((bool)Value(result, "Success"), "Valid unsaved inputs did not resolve.");
+        Require(Value(result, "CompiledXml") == null, "Default analysis unexpectedly generated XML.");
+        MethodInfo preview = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType, typeof(bool) });
+        Require(preview != null, "The packaged compiler has no in-memory preview API.");
+        object previewResult = preview.Invoke(compiler, new object[] { snapshots, true });
+        string xml = (string)Value(previewResult, "CompiledXml");
+        Require(xml != null && xml.Contains("<AlarmList>") && xml.Contains("<Name>Inherited</Name>")
+            && xml.Contains("Kind=\"Instruction\"") && !xml.Contains("<ReferenceName>"), "Compiled preview did not use the output format.");
         object child = Items(result, "Alarms")[1];
         object name = Items(child, "Fields").Single(field => (string)Value(field, "Name") == "Name");
         Require((bool)Value(name, "IsPresent") && (bool)Value(name, "IsInherited"), "An empty local element lost its inherited state.");
@@ -57,8 +66,12 @@ public sealed class VerifyPackagedAnalysis : Task
         Require(Items(section, "EffectiveEntries").Length == 0 && Items(section, "ExcludedEntries").Length == 1,
             "Clear did not exclude the inherited sequence.");
         Require(Items(Value(child, "Instructions"), "EffectiveEntries").Length == 2, "A later analysis mutated an earlier result.");
+        snapshots.SetValue(Activator.CreateInstance(snapshotType, childText.Replace(">Base<", ">Missing<"), childPath, 25), 1);
+        object failed = preview.Invoke(compiler, new object[] { snapshots, true });
+        Require(!(bool)Value(failed, "Success") && Value(failed, "CompiledXml") == null, "Failed compilation exposed project XML.");
+        Require((string)Value(previewResult, "CompiledXml") == xml, "A later analysis mutated earlier XML.");
         Require(!File.Exists(basePath) && !File.Exists(childPath), "Analysis wrote snapshot text to disk.");
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 1 passed: origins, Clear, immutable results, and unsaved inputs.");
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 1 passed: origins, Clear, immutable results, unsaved inputs, and compiled XML preview.");
         return true;
     }
 

@@ -16,6 +16,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private Type _snapshotType;
         private object _compiler;
         private MethodInfo _analyze;
+        private PropertyInfo _compiledXml;
         private AnalysisContractReader _reader;
         public string CompilerIdentity { get; private set; }
 
@@ -43,6 +44,17 @@ namespace Alarmlist.VisualStudio.Analysis
                 _analyze = compilerType.GetMethod("AnalyzeSnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType) });
                 if (_analyze == null || _analyze.ReturnType != assembly.GetType("Alarmlist.Analysis.AnalysisResult"))
                     throw new NotSupportedException("The SDK has no compatible AnalyzeSnapshots method.");
+                // XML is an optional addition to contract 1. Older SDKs still
+                // provide provenance/diagnostics without supporting this preview.
+                MethodInfo preview = compilerType.GetMethod("AnalyzeSnapshots", new[]
+                    { typeof(IEnumerable<>).MakeGenericType(_snapshotType), typeof(bool) });
+                PropertyInfo xml = _analyze.ReturnType.GetProperty("CompiledXml", BindingFlags.Public | BindingFlags.Instance);
+                if (preview != null && !preview.IsStatic && preview.ReturnType == _analyze.ReturnType
+                    && xml?.PropertyType == typeof(string) && xml.GetGetMethod() != null && xml.GetIndexParameters().Length == 0)
+                {
+                    _analyze = preview;
+                    _compiledXml = xml;
+                }
                 _compiler = Activator.CreateInstance(compilerType);
                 CompilerIdentity = assembly.FullName;
                 // Prove that the method can execute before advertising availability.
@@ -65,8 +77,12 @@ namespace Alarmlist.VisualStudio.Analysis
                 Array snapshots = Array.CreateInstance(_snapshotType, inputs.Length);
                 for (int i = 0; i < inputs.Length; i++)
                     snapshots.SetValue(Activator.CreateInstance(_snapshotType, inputs[i].Text, inputs[i].FilePath, inputs[i].Version), i);
-                object result = _analyze.Invoke(_compiler, new object[] { snapshots });
-                return new AnalysisResponse(AnalysisAvailability.Available, null, _reader.Read(result));
+                object result = _analyze.Invoke(_compiler, _compiledXml == null
+                    ? new object[] { snapshots } : new object[] { snapshots, true });
+                AnalysisSnapshot snapshot = _reader.Read(result);
+                return new AnalysisResponse(AnalysisAvailability.Available, null, snapshot,
+                    snapshot.Success ? (string)_compiledXml?.GetValue(result, null) : null,
+                    _compiledXml == null ? "This project's SDK does not support compiled XML preview. Update the project's SDK to enable it." : null);
             }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(Unwrap(exception)))
             {

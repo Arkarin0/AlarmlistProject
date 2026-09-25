@@ -17,12 +17,15 @@ namespace Alarmlist.Analysis
         public IReadOnlyList<AnalyzedAlarm> Alarms { get; }
         public IReadOnlyList<AnalysisDiagnostic> Diagnostics { get; }
         public bool Success => !Diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+        /// <summary>Resolved project XML, or null when not requested or compilation failed.</summary>
+        public string CompiledXml { get; }
 
-        internal AnalysisResult(IEnumerable<AlmxTextSnapshot> sources, IEnumerable<AnalyzedAlarm> alarms, IEnumerable<Diagnostic> diagnostics)
+        internal AnalysisResult(IEnumerable<AlmxTextSnapshot> sources, IEnumerable<AnalyzedAlarm> alarms, IEnumerable<Diagnostic> diagnostics, string compiledXml = null)
         {
             Sources = Array.AsReadOnly(sources.Select(source => new AnalyzedSource(source)).ToArray());
             Alarms = Array.AsReadOnly(alarms.ToArray());
             Diagnostics = Array.AsReadOnly(diagnostics.Select(diagnostic => new AnalysisDiagnostic(diagnostic)).ToArray());
+            CompiledXml = Success ? compiledXml : null;
         }
     }
 

@@ -35,9 +35,16 @@ namespace Alarmlist.VisualStudio.Analysis
         public AnalysisAvailability Availability { get; }
         public string Message { get; }
         public AnalysisSnapshot Snapshot { get; }
+        public string CompiledXml { get; }
+        public string XmlPreviewMessage { get; }
 
-        public AnalysisResponse(AnalysisAvailability availability, string message, AnalysisSnapshot snapshot = null)
-        { Availability = availability; Message = message; Snapshot = snapshot; }
+        public AnalysisResponse(AnalysisAvailability availability, string message, AnalysisSnapshot snapshot = null,
+            string compiledXml = null, string xmlPreviewMessage = null)
+        {
+            Availability = availability; Message = message; Snapshot = snapshot;
+            CompiledXml = availability == AnalysisAvailability.Available && snapshot?.Success == true ? compiledXml : null;
+            XmlPreviewMessage = xmlPreviewMessage;
+        }
     }
 
     internal sealed class BridgeOpenResult

@@ -10,6 +10,31 @@ namespace Alarmlist.Output.Tests
     public class XmlAlarmlistOutputWriterTests
     {
         [Fact]
+        public void InMemoryOutputMatchesFileOutputIncludingEncodingEscapingAndAllKinds()
+        {
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xml");
+            var procedure = new TestProcedure(new[]
+            {
+                new TestProcedureItem(TestProcedureItemKind.Instruction, "Inspect <&> 😀"),
+                new TestProcedureItem(TestProcedureItemKind.Hint, "Ü\r\nNext"),
+                new TestProcedureItem(TestProcedureItemKind.Warning, ""),
+                new TestProcedureItem(TestProcedureItemKind.Note, "Last")
+            }, Array.Empty<TestProcedureItem>());
+            var alarms = new AlarmList { new Alarm("A", null, "", "<&>", "Ü", procedure) };
+            var writer = new XmlAlarmlistOutputWriter();
+            try
+            {
+                string xml = writer.WriteToString(alarms);
+                Assert.False(File.Exists(path));
+                writer.Write(alarms, new AlarmlistOutputOptions(path));
+                Assert.Equal(File.ReadAllText(path), xml);
+                Assert.Equal("utf-8", XDocument.Parse(xml).Declaration.Encoding);
+                Assert.Throws<ArgumentNullException>(() => writer.WriteToString(null));
+            }
+            finally { if (File.Exists(path)) File.Delete(path); }
+        }
+
+        [Fact]
         public void WriteUsesCompiledXmlFormat()
         {
             var outputFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "alarmlist.xml");

@@ -109,6 +109,14 @@ version 1, input versions, local/effective fields, defining alarms and locations
 reference chains, procedure origins, Clear exclusions, and located diagnostics.
 It shares the compiler's resolution rules and never reads or writes snapshot paths.
 
+The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
+returns `AnalysisResult.CompiledXml` from those same bound inputs through the
+normal XML output writer. It is null when not requested or compilation fails.
+The original overload keeps its analysis-only behavior and contract version 1.
+`XmlAlarmlistOutputWriter.WriteToString(AlarmList)` is the in-memory output sink;
+its text matches file output, including the UTF-8 declaration and `AlarmList`
+root. Neither API saves source files or changes existing build output.
+
 Check each alarm's `IsResolved` before using effective fields or procedure lists.
 Invalid or ambiguous reference chains retain local data but have no effective
 projection; unrelated valid alarms remain available. Malformed XML still throws
@@ -127,8 +135,10 @@ The extension now has an isolated AppDomain bridge for contract 1 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear
-exclusions, section copies, and live designer/Error List diagnostics. Release the matching
-SDK before distributing a VSIX that uses the new contract.
+exclusions, section copies, live designer/Error List diagnostics, and resolved
+previews. The bridge detects the optional XML overload/property; older contract-1
+SDKs keep analysis working and show XML-preview update guidance. Release the
+matching SDK before distributing a VSIX that uses these capabilities.
 
 ## Build and test this repository
 

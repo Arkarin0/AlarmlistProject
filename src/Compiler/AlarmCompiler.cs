@@ -65,11 +65,15 @@ namespace Alarmlist.Compiler
 
         /// <summary>Returns detached effective values and their origins for captured document text.</summary>
         public AnalysisResult AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot> snapshots)
+            => AnalyzeSnapshots(snapshots, includeCompiledXml: false);
+
+        /// <summary>Optionally includes resolved XML from the same bound inputs. Errors suppress XML output.</summary>
+        public AnalysisResult AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot> snapshots, bool includeCompiledXml)
         {
             if (snapshots == null) throw new ArgumentNullException(nameof(snapshots));
             AlmxTextSnapshot[] inputs = snapshots.ToArray();
             if (inputs.Any(snapshot => snapshot == null)) throw new ArgumentException("A source snapshot must not be null.", nameof(snapshots));
-            return SnapshotAnalyzer.Analyze(inputs);
+            return SnapshotAnalyzer.Analyze(inputs, includeCompiledXml);
         }
 
         public CompilationResult Compile(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree)

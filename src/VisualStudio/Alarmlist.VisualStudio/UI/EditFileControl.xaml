@@ -86,6 +86,46 @@
         <ComboBox x:Name="AlarmSelector" DockPanel.Dock="Top" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" DisplayMemberPath="Title" Visibility="Collapsed" Margin="0,0,0,8" AutomationProperties.Name="Selected alarm" />
         <TextBlock DockPanel.Dock="Bottom" Text="Checkboxes describe local XML elements. Empty scalar values can still inherit. Use Override locally to start an editable copy; Escape cancels it." TextWrapping="Wrap" Opacity="0.7" Margin="0,8,0,0" />
         <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel>
+          <Expander Header="Resolved alarm preview" Margin="0,0,8,10">
+            <StackPanel Margin="0,6,0,0">
+              <TextBlock Text="{Binding PreviewContext}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding ResolvedPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,8" AutomationProperties.LiveSetting="Polite" />
+              <ItemsControl ItemsSource="{Binding ResolvedFields}">
+                <ItemsControl.ItemTemplate><DataTemplate>
+                  <StackPanel Margin="0,0,0,10">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                    <AdornerDecorator>
+                      <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" Padding="26,3,5,3"
+                               ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" TextWrapping="Wrap"
+                               MaxHeight="110" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Name, StringFormat=Resolved {0}}"
+                               AutomationProperties.HelpText="{Binding OriginText}" ToolTip="{Binding OriginText}" />
+                    </AdornerDecorator>
+                    <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
+                    <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0" />
+                  </StackPanel>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ItemsControl ItemsSource="{Binding ResolvedSections}">
+                <ItemsControl.ItemTemplate><DataTemplate>
+                  <StackPanel Margin="0,0,0,10">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Summary}" Margin="0,3,0,6" />
+                    <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ProcedureAnalysisRow}" />
+                  </StackPanel>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Expander>
+          <Expander Header="Compiled project XML preview" Margin="0,0,8,12">
+            <StackPanel Margin="0,6,0,0">
+              <TextBlock Text="{Binding PreviewContext}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding XmlPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,6" AutomationProperties.LiveSetting="Polite" />
+              <TextBox Text="{Binding CompiledXml, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas"
+                       MaxHeight="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                       AutomationProperties.Name="Compiled project XML" />
+            </StackPanel>
+          </Expander>
           <StackPanel IsEnabled="{Binding CanEdit}">
           <StackPanel Margin="0,0,8,12">
             <TextBlock Text="Reference selection" FontWeight="SemiBold" Margin="0,0,0,4" />
@@ -186,6 +226,7 @@
               </ItemsControl>
             </StackPanel>
           </Expander>
+          </StackPanel>
           </StackPanel>
         </ScrollViewer>
       </DockPanel>

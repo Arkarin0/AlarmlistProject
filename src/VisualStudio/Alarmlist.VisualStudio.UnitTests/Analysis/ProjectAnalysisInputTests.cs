@@ -43,6 +43,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     service.UpdateProject(new AnalysisProject(Path.Combine(directory.Path, "Plant.almproj"), "Debug",
                         Path.Combine(sdk, "tasks", "net472", "Alarmlist.Core.dll"), new[] { basePath, childPath }));
                     await ExpectNameAsync(service, "Unsaved base");
+                    string unsavedXml = service.Current.Response.CompiledXml;
+                    Assert.Contains("<Name>Unsaved base</Name>", unsavedXml);
+                    Assert.DoesNotContain("Disk base", unsavedXml);
                     AnalysisField inherited = service.Current.Response.Snapshot.Alarms[1].Fields.Single(field => field.Name == "Name");
                     Assert.True(inherited.IsInherited);
                     Assert.Equal(3, inherited.ValueLocation.SourceVersion);
@@ -50,6 +53,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     documents.Open.Clear();
                     documents.Notify(basePath);
                     await ExpectNameAsync(service, "Disk base");
+                    Assert.Contains("<Name>Disk base</Name>", service.Current.Response.CompiledXml);
+                    Assert.DoesNotContain("Unsaved base", service.Current.Response.CompiledXml);
+                    Assert.Contains("Unsaved base", unsavedXml);
                     Assert.False(File.Exists(Path.Combine(directory.Path, "Plant.Alarmlist.xml")));
                 }
                 finally { await service.StopAsync(); }

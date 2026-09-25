@@ -24,6 +24,7 @@
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Content Include="../../SDK/Alarmlist.SDK/tools/Rules/*.xaml" Link="Rules/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Analysis/LegacyAnalysisCompiler.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="PrepareAnalysisBridgeTestAssets" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
     <MSBuild Projects="../../SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" Targets="GetSdkPackagePath"

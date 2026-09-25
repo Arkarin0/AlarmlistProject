@@ -4,6 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Alarmlist.Binding;
+using Alarmlist.Compiler;
+using Alarmlist.Diagnostics;
+using Alarmlist.Output;
 using Alarmlist.Syntax;
 using Alarmlist.Text;
 
@@ -35,13 +38,21 @@ namespace Alarmlist.Analysis
             }
         }
 
-        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots)
+        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots, bool includeCompiledXml)
         {
             var binder = new Binder();
             binder.AddSourceTexts(snapshots.Select(snapshot => snapshot.CreateSourceText()));
             BindingResult binding = binder.Bind();
             var analyzer = new SnapshotAnalyzer(binding);
-            return new AnalysisResult(snapshots, binding.SyntaxTree.Alarms.Select(analyzer.AnalyzeAlarm), binding.Diagnostics);
+            string xml = null;
+            if (includeCompiledXml && !binding.Diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
+            {
+                // Reuse the already-bound syntax and the normal output writer.
+                // Neither a second parse/bind nor editor-side serialization is needed.
+                CompilationResult compilation = new AlarmCompiler().Compile(binding.SyntaxTree);
+                if (compilation.Success) xml = new XmlAlarmlistOutputWriter().WriteToString(compilation.AlarmList);
+            }
+            return new AnalysisResult(snapshots, binding.SyntaxTree.Alarms.Select(analyzer.AnalyzeAlarm), binding.Diagnostics, xml);
         }
 
         private void AddEntryOrigins(ReferenceableCollection<ITestProcedureItem> entries, AlarmOrigin alarm, string section)

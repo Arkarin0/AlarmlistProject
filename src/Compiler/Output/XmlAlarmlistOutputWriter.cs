@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Xml;
 using Alarmlist.Compiler;
 
@@ -22,16 +23,33 @@ namespace Alarmlist.Output
                 Directory.CreateDirectory(directory);
 
             using (var writer = XmlWriter.Create(options.FilePath, CreateWriterSettings()))
+                WriteDocument(writer, alarmList);
+        }
+
+        /// <summary>Returns the same resolved XML as file output, without accessing the filesystem.</summary>
+        public string WriteToString(AlarmList alarmList)
+        {
+            if (alarmList == null) throw new ArgumentNullException(nameof(alarmList));
+            using (var text = new Utf8StringWriter())
             {
-                writer.WriteStartDocument();
-                writer.WriteStartElement(nameof(AlarmList));
-
-                foreach (var alarm in alarmList)
-                    WriteAlarm(writer, alarm);
-
-                writer.WriteEndElement();
-                writer.WriteEndDocument();
+                using (var writer = XmlWriter.Create(text, CreateWriterSettings()))
+                    WriteDocument(writer, alarmList);
+                return text.ToString();
             }
+        }
+
+        private sealed class Utf8StringWriter : StringWriter
+        {
+            public override Encoding Encoding => Encoding.UTF8;
+        }
+
+        private static void WriteDocument(XmlWriter writer, AlarmList alarmList)
+        {
+            writer.WriteStartDocument();
+            writer.WriteStartElement(nameof(AlarmList));
+            foreach (var alarm in alarmList) WriteAlarm(writer, alarm);
+            writer.WriteEndElement();
+            writer.WriteEndDocument();
         }
 
         private static XmlWriterSettings CreateWriterSettings()

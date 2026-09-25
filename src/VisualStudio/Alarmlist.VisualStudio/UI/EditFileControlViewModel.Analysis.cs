@@ -155,6 +155,7 @@ namespace Alarmlist.VisualStudio.UI
                 ProjectAnalysisState state = _analysis?.Current;
                 RefreshDiagnostics(state);
                 AnalysisAlarm alarm = CurrentAlarm();
+                RefreshPreview(state, alarm);
                 bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
                 foreach (AlarmFieldViewModel field in Fields)
                     field.SetAnalysis(!identityDraft && alarm?.IsResolved == true
@@ -243,6 +244,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             if (_disposed) return;
             _disposed = true;
+            RefreshPreview(null, null);
             _analysisLifetime.Cancel();
             if (_analysis != null) { _analysis.Changed -= OnAnalysisChanged; _analysis.Dispose(); }
             _analysisLifetime.Dispose();

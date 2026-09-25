@@ -22,7 +22,8 @@ buffers and watched disk inputs. Iteration five connects the designer's referenc
 picker, scalar inheritance display, chain adorners, and source navigation. Iteration
 six adds inherited procedure rows, Clear exclusions, effective sequences, and local
 section copies. Iteration seven adds live designer diagnostics and a separate
-Error List source with validated navigation. Milestone-two
+Error List source with validated navigation. Iteration eight adds read-only
+selected-alarm and compiled project XML previews. Milestone-two
 lifecycle validation is recorded below and remains regression coverage.
 
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
@@ -77,8 +78,22 @@ Error List publishes the same current errors under **Alarmlist live analysis**
 (the IntelliSense/non-Build source). Use **Build + IntelliSense** to see both.
 Pending analysis clears obsolete live errors, and project unload removes its rows.
 Input/SDK failures appear separately as analysis-unavailable warnings without ALM
-codes. Neither live analysis nor its navigation saves files or compiles an output;
+codes. Neither live analysis nor its navigation saves files or writes compiled output;
 existing Build diagnostics remain owned by MSBuild.
+
+Expand **Resolved alarm preview** to inspect the selected alarm's identity,
+effective scalar values, and surviving Instructions/Reset entries in execution
+order. Chain adorners mark inherited values; **Go to source** follows each value's
+SDK origin after revalidating the inputs. Missing values and empty sections are
+labelled. A valid alarm remains inspectable when another alarm has errors.
+
+Expand **Compiled project XML preview** to select or copy the whole project's
+resolved XML. The SDK generates it in memory using the normal build serializer,
+including unsaved XML buffers. No source or output file is written. All project
+errors block this XML preview, and pending/stale analysis or local drafts clear
+both previews. Each panel identifies the project/configuration. Older SDKs that
+support analysis but lack XML preview show update guidance while keeping the
+resolved-alarm preview available.
 
 Enter or leaving a field commits its draft; Shift+Enter inserts a newline, and
 Escape cancels a draft. Save and Save All also commit active drafts. Each accepted
@@ -333,9 +348,10 @@ task frameworks remain unchanged.
 For interactive verification, launch `devenv.exe /RootSuffix AlarmlistExp` and
 also check the New Project/Add New Item dialogs, Add Existing Item, XML editing,
 and the output directory, filename, and automatic inclusion project properties.
-Compiler reference diagnostics now carry source-file and declaration ranges through
-the MSBuild logger. Interactive Error List navigation for those ranges has not yet
-been rechecked in the IDE. Live diagnostics and inherited-value UI remain later work.
+Compiler reference diagnostics carry source-file and declaration ranges through
+the MSBuild logger. The smoke also validates live Error List navigation and
+unsaved XML-only analysis. See the milestone-three record for current semantic
+UI coverage and remaining interactive validation.
 
 ## Milestone-two validation record (2026-09-24)
 

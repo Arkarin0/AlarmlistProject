@@ -53,6 +53,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Array inputs = Array.CreateInstance(inputType, 1);
                     inputs.SetValue(Activator.CreateInstance(inputType, "<Alarmlist><Alarm><Name>Hosted</Name></Alarm></Alarmlist>", "Unsaved.almx", 3), 0);
                     object response = type.GetMethod("Analyze").Invoke(bridge, new object[] { inputs, CancellationToken.None });
+                    if (!((string)response.GetType().GetProperty("CompiledXml").GetValue(response) ?? "").Contains("<Name>Hosted</Name>"))
+                        return "Compiled XML did not cross the remoting boundary.";
                     if (AppDomain.CurrentDomain.GetAssemblies().Any(loaded => loaded.GetName().Name == "Alarmlist.Core"))
                         return "The SDK compiler was loaded into the host domain.";
                     return response.GetType().GetProperty("Availability").GetValue(response).ToString() == "Available"
@@ -96,6 +98,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             using (var sdk = new SdkAsset())
             {
                 AnalysisSnapshot snapshot;
+                string xml;
                 using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
                 {
                     string basePath = Path.Combine(sdk.DirectoryPath, "UnsavedBase.almx");
@@ -112,6 +115,11 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     AnalysisResponse response = bridge.Analyze(inputs);
                     Assert.Equal(AnalysisAvailability.Available, response.Availability);
                     snapshot = response.Snapshot;
+                    xml = response.CompiledXml;
+                    Assert.Null(response.XmlPreviewMessage);
+                    Assert.Contains("<AlarmList>", xml);
+                    Assert.DoesNotContain("<ReferenceName>", xml);
+                    Assert.DoesNotContain("<Clear", xml);
                     Assert.True(snapshot.Success);
                     Assert.Equal(1, snapshot.ContractVersion);
                     Assert.Equal(new[] { 4, 9 }, snapshot.Sources.Select(source => source.Version));
@@ -142,6 +150,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
                 }
                 Assert.Equal("Inherited", snapshot.Alarms[1].Fields.Single(field => field.Name == "Name").EffectiveValue);
+                Assert.Contains("<Name>Inherited</Name>", xml);
                 Assert.Throws<NotSupportedException>(() => ((IList<AnalysisAlarm>)snapshot.Alarms).Clear());
                 Assert.Throws<NotSupportedException>(() => ((IList<AnalysisEntry>)snapshot.Alarms[1].Instructions.EffectiveEntries).Clear());
                 // Unloading must release the SDK image as well as preserve copied results.
@@ -177,11 +186,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             using (var sdk = new SdkAsset())
             using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
             {
-                AnalysisSnapshot result = bridge.Analyze(new[]
+                AnalysisResponse response = bridge.Analyze(new[]
                 {
                     Input("<FullyQualifiedName>A</FullyQualifiedName><Name>First</Name>", "First.almx", 1),
                     Input("<FullyQualifiedName>A</FullyQualifiedName><Name>Second</Name>", "Second.almx", 2)
-                }).Snapshot;
+                });
+                Assert.Null(response.CompiledXml);
+                AnalysisSnapshot result = response.Snapshot;
                 Assert.False(result.Success);
                 AnalysisDiagnostic diagnostic = Assert.Single(result.Diagnostics);
                 Assert.Equal("ALM0001", diagnostic.Id);
@@ -207,6 +218,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 AnalysisResponse response = bridge.Analyze(new[] { new AnalysisInput(text, "Broken.almx", 1) });
                 Assert.Equal(AnalysisAvailability.InvalidInput, response.Availability);
                 Assert.Null(response.Snapshot);
+                Assert.Null(response.CompiledXml);
                 Assert.NotEmpty(response.Message);
                 Assert.True(bridge.Analyze(new[] { Input("<Name>Recovered</Name>") }).Snapshot.Success);
             }
@@ -283,6 +295,28 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             return Assert.IsType<SdkAnalysisBridge>(result.Bridge);
         }
 
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        public void LegacySdkWithoutCompletePreviewApiKeepsAnalysisAvailable(bool method, bool property)
+        {
+            using (var sdk = new SdkAsset())
+            {
+                sdk.ReplaceWithLegacyCompiler(method, property);
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    AnalysisResponse response = bridge.Analyze(new[] { Input("", "Unsaved.almx", 19) });
+                    Assert.Equal(AnalysisAvailability.Available, response.Availability);
+                    Assert.True(response.Snapshot.Success);
+                    Assert.Equal(19, Assert.Single(response.Snapshot.Sources).Version);
+                    Assert.Null(response.CompiledXml);
+                    Assert.Contains("does not support compiled XML preview", response.XmlPreviewMessage);
+                    Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+                }
+            }
+        }
+
         private static AnalysisInput Input(string contents, string path = "Unsaved.almx", int version = 0)
             => new AnalysisInput("<Alarmlist><Alarm>" + contents + "</Alarm></Alarmlist>", path, version);
 
@@ -309,6 +343,21 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                         + "[assembly: System.Runtime.Versioning.TargetFramework(\".NETFramework,Version=v4.7.2\")]"
                         + "namespace Alarmlist.Analysis { public class AnalysisResult { "
                         + (contract < 0 ? "" : "public const int CurrentContractVersion = " + contract + ";") + " } }";
+                    CompilerResults result = provider.CompileAssemblyFromSource(options, source);
+                    Assert.False(result.Errors.HasErrors, string.Join(Environment.NewLine, result.Errors.Cast<CompilerError>()));
+                }
+            }
+
+            public void ReplaceWithLegacyCompiler(bool method, bool property)
+            {
+                File.Delete(CompilerPath);
+                string source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Analysis", "LegacyAnalysisCompiler.txt"));
+                if (method) source = source.Replace("// OPTIONAL_PREVIEW_METHOD",
+                    "public Alarmlist.Analysis.AnalysisResult AnalyzeSnapshots(IEnumerable<Alarmlist.Text.AlmxTextSnapshot> snapshots, bool xml) { throw new System.InvalidOperationException(); }");
+                if (property) source = source.Replace("// OPTIONAL_PREVIEW_PROPERTY", "public string CompiledXml { get { throw new System.InvalidOperationException(); } }");
+                using (var provider = new CSharpCodeProvider())
+                {
+                    var options = new CompilerParameters(new[] { "System.dll" }) { OutputAssembly = CompilerPath, GenerateExecutable = false };
                     CompilerResults result = provider.CompileAssemblyFromSource(options, source);
                     Assert.False(result.Errors.HasErrors, string.Join(Environment.NewLine, result.Errors.Cast<CompilerError>()));
                 }

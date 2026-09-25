@@ -1,11 +1,11 @@
 # Milestone three: reference-aware ALMX editing
 
-Status: iterations one through seven implemented: snapshot input, located
+Status: iterations one through eight implemented: snapshot input, located
 diagnostics, detached field/procedure provenance, an isolated SDK bridge, and
 project analysis subscriptions with buffer/disk snapshots, and designer reference
 selection/scalar inheritance with chain adorners, inherited procedures, and section
-commands, and live designer/Error List diagnostics. The complete resolved preview
-remains planned. Continue the MVVM,
+commands, live designer/Error List diagnostics, and resolved-alarm/compiled XML
+previews. Final visual/performance validation remains. Continue the MVVM,
 constructor injection, and shared document-buffer architecture from
 [milestone two](MILESTONE-2.md).
 
@@ -294,7 +294,7 @@ Label pending or incomplete results and which project configuration they use.
 | 3. Add project snapshots | Implemented: CPS evaluation subscription, buffer/disk capture, debounce, generation gates, and ownership/cleanup. | Controlled tests cover conditional/removed inputs, configuration changes, linked files, file watching, invalid input, and unload during analysis. Packaged end-to-end unsaved inheritance and existing editor smoke pass; performance and direct live-semantic UI assertions remain. |
 | 4. Add references and scalar UI | Implemented: project-context choice, reference picker/navigation, inherited scalar display, local override commands, and WPF chain adorners. | Packaged-compiler view-model tests cover origins, empty/equal values, stale commands and drafts; STA tests cover actual BAML and adorner lifecycle. See iteration five for IDE validation and remaining visual checks. |
 | 5. Add inherited procedures | Implemented: row origins/adorners, Clear/excluded presentation, effective sequence, and section commands. | Packaged-compiler tests verify section independence, copies without duplication, source preservation, one buffer edit per action, and exact restoration through the test buffer's undo. See iteration six for live UI validation limits. |
-| 6. Add diagnostics and preview | Live designer/Error List diagnostics and validated navigation implemented; complete resolved/XML preview remains. | Packaged compiler IDs/messages/related locations feed both surfaces; see iteration seven for lifecycle, unsaved editing, and host validation. |
+| 6. Add diagnostics and preview | Implemented: live designer/Error List diagnostics, validated navigation, resolved selected-alarm values, and in-memory project XML. | SDK serialization parity, error/draft/stale gating, origin navigation, legacy SDK fallback, and read-only BAML pass; see iterations seven and eight for host validation and remaining visual checks. |
 | 7. Package and validate | Update SDK/VSIX content tests, smoke coverage, READMEs, and release requirements. | Both frameworks and IDE hosts pass the relevant matrix; supported SDK contract/version is documented and published before distributing its VSIX. |
 
 ## Validation plan
@@ -851,7 +851,78 @@ Iteration-seven validation (2026-09-25):
 
 Direct designer diagnostic keyboard/theme/DPI interaction, linked-project context
 switching in the IDE, and large-project latency/memory measurements remain for live
-visual validation. Iteration seven remains uncommitted for review.
+visual validation. Iteration seven was committed as `737d4e9` before iteration eight.
 
-Next iteration: the complete selected-alarm resolved preview and in-memory compiled
-XML preview, with failure gating and no output-file writes.
+## Iteration eight: resolved alarm and compiled XML previews
+
+The selected-alarm preview shows FullyQualifiedName, all four effective scalar
+fields, and surviving Instructions/Reset entries in SDK execution order. Scalar
+and procedure origins have validated source links, with decorative WPF chain
+adorners for inheritance. Empty sections and missing effective values are explicit;
+source presence remains in the local editor. A resolved alarm remains inspectable
+when unrelated project errors prevent whole-project output.
+
+The compiled XML panel shows the whole selected project's output, including
+unsaved captured buffers. It is selectable and read-only, identifies the project
+and configuration, and never saves source or writes an output file. All compiler
+errors suppress XML. Both panels clear for local drafts, document/version mismatch,
+pending/unavailable analysis, context loss, and disposal. XML remains accessible
+when no alarm is selected. Navigation rejects source, selection, context, or draft
+changes during asynchronous validation.
+
+The compiler's additive `AnalyzeSnapshots(snapshots, includeCompiledXml: true)`
+overload binds once and uses the normal resolved-model conversion and
+`XmlAlarmlistOutputWriter.WriteToString`. The original overload remains analysis
+only. Optional `AnalysisResult.CompiledXml` preserves contract 1 and uses identical
+serialization to file output, including the UTF-8 declaration, escaping, element
+casing, and procedure ordering. The SDK consumer selects overloads explicitly
+when reflecting the API.
+
+This follows Roslyn's [compiler-owned output sinks](https://github.com/dotnet/roslyn/blob/main/src/Compilers/Core/Portable/Compilation/Compilation.cs):
+the editor receives output from the authoritative compiler instead of implementing
+serialization or reference resolution. ALMX uses a string sink for its small XML
+output model, with no Roslyn dependency. The isolated worker detects both optional
+API members; older contract-1 SDKs retain analysis/provenance with XML-preview
+update guidance. XML crosses the boundary as a host-owned response string, outside
+the required contract-1 property map. No compiler types enter the VS host.
+
+XML is generated once per successful debounced analysis off the UI thread and
+travels through the existing generation/text/identity publication checks. Large
+project latency and retained XML memory still need measurement before accepting
+the milestone; demand-driven generation can follow if those measurements warrant it.
+
+Iteration-eight validation (2026-09-25):
+
+- Compiler tests: 101 passed per framework, net472 and net8.0. New cases cover
+  normal-build/preview parity, Unicode/escaping/UTF-8, Clear and section order,
+  all four error IDs, malformed XML/DTDs, empty projects, detached results, and
+  source paths that do not exist on disk.
+- Visual Studio unit tests: 187 passed on net472, including 22 new preview and
+  legacy-SDK cases. Actual BAML verifies read-only bindings, inherited adorners,
+  accessible origin text, and project XML availability without a selected alarm.
+  Packaged worker tests verify XML transport in isolated/LoadFrom/LoadFile hosts
+  and usable results after domain disposal. A targeted project-service test also
+  passes after adding assertions for XML refresh from unsaved text back to disk.
+- MSBuild task tests: 6 unit and 4 integration tests passed per framework.
+- SDK consumers: 19 passed per framework using dotnet MSBuild, plus 19 on net472
+  using desktop MSBuild. The restored-package asset exercises both overloads and
+  verifies XML error gating without a compiler project reference.
+- VSIX/template consumers: 10 passed per framework.
+- VS2022 experimental smoke passed in AlarmlistM3; retained log directory:
+  `artifacts/log/Debug/VisualStudioSmoke/e6eedc12e2c04156a41395d88cffede5`.
+- VS2026 experimental smoke passed in AlarmlistM3; retained log directory:
+  `artifacts/log/Debug/VisualStudioSmoke/f960341f0bba4322b84d828879baa9f1`.
+  Both cover shared designer/XML buffers, Save As, Undo/Redo, project lifecycle,
+  live diagnostics/navigation, XML-only unsaved analysis, unchanged source/output
+  during analysis, build failure preservation, Clean, and Rebuild.
+
+The host smoke opens the designer but does not directly exercise the new expanded
+preview panels. Interactive copy/navigation, theme/high contrast, scrolling/DPI,
+linked-context switching, and representative large-project latency/memory remain
+for final milestone validation. Existing CA1416 warnings in the shared net8.0 test
+helper remain unchanged. No SDK/VSIX was published. Iteration eight remains
+uncommitted for review.
+
+Next iteration: final UI/accessibility and performance validation, remaining
+regression checks, and release readiness. Publish the authoritative matching SDK
+before distributing the VSIX, using the existing explicit release workflow.
