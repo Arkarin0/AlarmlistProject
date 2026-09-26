@@ -31,9 +31,10 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `src/SDK/Alarmlist.SDK.Tests/` | Tests of the packaged SDK, isolated consumer projects, and build lifecycle. |
 | `src/VisualStudio/Alarmlist.VisualStudio/` | Visual Studio 2022/2026 CPS/VSSDK extension, templates, and MVVM designer/XML split editor. `Editor/` owns host integration and open-buffer observation, `Documents/` shared models, `Editing/` source-preserving edits, `Analysis/` the SDK bridge, project snapshots/scheduling and file watching, `Diagnostics/` the live Error List source/navigation, `ProjectSystem/` CPS subscriptions, and `UI/` views/view models. |
 | `src/VisualStudio/Alarmlist.VisualStudio.UnitTests/` | `net472` editor/model, XML preservation, SDK bridge isolation/package-worker, CPS build-check, and MSBuild XAML schema tests. |
-| `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks, plus opt-in net472 live IDE functional smoke wrappers. |
+| `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks. |
+| `src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/` | All automated functional IDE scenarios under xUnit, including FlaUI keyboard interaction; out-of-process net8.0-windows/x64 runner. |
 | `src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/` | Opt-in xUnit-hosted BenchmarkDotNet bridge/WPF measurements and running-IDE latency/memory validation; net472 only. |
-| `src/shared/VisualStudioTesting/` | Shared opt-in live-IDE driver invocation and structured result validation for integration/performance tests. |
+| `src/shared/VisualStudioTesting/` | Shared C# IDE automation primitives and opt-in performance-driver invocation/report validation. |
 | `src/shared/Unittesting/` | Shared compiler/task test helpers linked through build configuration. |
 | `eng/` | Repository build settings, version properties, and common build tooling. |
 | `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
@@ -129,6 +130,7 @@ dotnet test src/MSBuild/AlarmList.MSBuild.IntegrationTests/AlarmList.MSBuild.Int
 dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj --framework net8.0
 dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
 dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj
+dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist.VisualStudio.UI.IntegrationTests.csproj
 ```
 
 - Add or update regression tests for behavior changes using existing xUnit
@@ -282,12 +284,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
 - Command-line builds create a VSIX without deploying it. Visual Studio builds
   deploy to `AlarmlistExp`, which is also the F5 launch instance. Use Visual Studio
   2022 or 2026 for this workflow. Use desktop MSBuild for explicit experimental deployment
-  and `eng/test-visualstudio.ps1` for the IDE smoke test. Package tests alone do not
-  verify Visual Studio UI behavior.
+  and `eng/test-visualstudio.ps1` to launch the functional UI xUnit suite. Package
+  tests alone do not verify Visual Studio UI behavior.
 - The smoke script accepts `-RootSuffix` (default `AlarmlistExp`). Match the suffix
   used for deployment; a separate experimental profile allows validation without
   replacing an extension DLL held by an existing IDE session.
-- Its opt-in `-MeasureAnalysis` mode measures running-IDE buffer-to-diagnostic
+- `eng/measure-visualstudio-live.ps1` (also reached through the compatibility
+  `test-visualstudio.ps1 -MeasureAnalysis` option) measures running-IDE buffer-to-diagnostic
   latency and repeated designer close/process-memory samples. Parameters select
   1-100 measured iterations and 1-10,000 additional fixture alarms. Keep unique
   diagnostic markers, two warmups, source/output preservation, and raw CSV data;
@@ -304,11 +307,22 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.V
   It keeps raw CSV/JSON, summaries, test results and revision/runtime details under
   `artifacts/log/`. Normal tests skip measurements; do not introduce machine-dependent
   timing assertions. These measurements exclude live VS/RDT capture and CPS debounce.
-- Live xUnit wrappers require `ALARMLIST_RUN_LIVE_VS_TESTS=1` and explicit host paths;
-  they run only on net472. Functional smoke belongs in IntegrationTests and live
-  latency/memory in PerformanceTests. Preserve ordinary-run skipping, trait filters,
+- Live performance xUnit wrappers require `ALARMLIST_RUN_LIVE_VS_TESTS=1` and explicit
+  host paths;
+  they run only on net472 in PerformanceTests and use the dedicated live measurement
+  driver. Report/ownership validation tests also belong in PerformanceTests.
+  Preserve ordinary-run skipping, trait filters,
   cross-process serialization, complete-report validation and the driver's ownership
   of its test IDE. Keep the matching deployed configuration/profile explicit.
+- All functional UI integration tests require `ALARMLIST_RUN_UI_VS_TESTS=1` and the
+  same explicit host paths/profile. Their net8.0-windows runner uses FlaUI 5 outside
+  the IDE; keep its dependencies out of the VSIX. Preserve normal-run skipping,
+  the shared live-test mutex, target-field/foreground checks before keyboard input,
+  retained failure artifacts and cleanup of only the owned process. Each case owns
+  a fresh IDE and isolated fixture/feed/cache. These tests
+  require an unlocked desktop and cover project/editor lifecycle as separate xUnit
+  cases; package-consumer coverage remains in IntegrationTests. The PowerShell
+  smoke entry point only launches xUnit; keep functional assertions in C#.
 - `eng/capture-visualstudio-heap.ps1` captures managed object counts, root paths
   and thread stacks from an explicitly selected test process using the optional
   ClrMD tool. Preserve PID/start-time identity checks and new report paths. Keep

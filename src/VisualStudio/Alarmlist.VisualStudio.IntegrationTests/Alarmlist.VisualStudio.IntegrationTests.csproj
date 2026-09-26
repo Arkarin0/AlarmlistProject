@@ -10,8 +10,6 @@
     <AssemblyMetadata Include="LogOutputDir" Value="$(ArtifactsLogDir)VisualStudioTests/$(TargetFramework)/" />
     <AssemblyMetadata Include="RepositoryRoot" Value="$(RepoRoot)" />
     <AssemblyMetadata Include="BuildConfiguration" Value="$(Configuration)" />
-    <Compile Include="../../shared/VisualStudioTesting/LiveVisualStudioRun.cs" Link="LiveVisualStudio/LiveVisualStudioRun.cs" />
-    <Compile Remove="LiveVisualStudio/EditorSmokeTests.cs" Condition="'$(TargetFramework)' != 'net472'" />
     <AssemblyMetadata Include="ExtensionProjectPath" Value="$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj'))" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

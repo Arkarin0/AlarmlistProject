@@ -31,14 +31,14 @@ namespace Alarmlist.VisualStudio.Testing
 
     internal static class LiveVisualStudioRun
     {
-        public static Task ExecuteAsync(string version, bool measure, ITestOutputHelper output)
+        public static Task ExecuteAsync(string version, ITestOutputHelper output)
         {
             // .NET Framework process pipe readers must not inherit xUnit's bounded
             // synchronization context while this caller waits for process completion.
-            return Task.Run(() => ExecuteCore(version, measure, output));
+            return Task.Run(() => ExecuteCore(version, output));
         }
 
-        private static void ExecuteCore(string version, bool measure, ITestOutputHelper output)
+        private static void ExecuteCore(string version, ITestOutputHelper output)
         {
             // Serialize across both test assemblies, not just within an xUnit collection.
             using (var gate = new Mutex(false, "Local\\Alarmlist.LiveVisualStudioTests"))
@@ -47,12 +47,12 @@ namespace Alarmlist.VisualStudio.Testing
                 try { entered = gate.WaitOne(0); }
                 catch (AbandonedMutexException) { entered = true; }
                 Require(entered, "Another live Visual Studio test is running. Run live test projects sequentially.");
-                try { Run(version, measure, output); }
+                try { Run(version, output); }
                 finally { gate.ReleaseMutex(); }
             }
         }
 
-        private static void Run(string version, bool measure, ITestOutputHelper output)
+        private static void Run(string version, ITestOutputHelper output)
         {
             string repository = Metadata("RepositoryRoot");
             string configuration = Metadata("BuildConfiguration");
@@ -72,12 +72,12 @@ namespace Alarmlist.VisualStudio.Testing
             string cancelPath = Path.Combine(directory, "cancel");
             string ownershipPath = Path.Combine(directory, "owned-ide.xml");
             string fixtureRoot = Path.GetFullPath(Path.Combine(repository, "artifacts", "log", configuration, "VisualStudioSmoke")) + Path.DirectorySeparatorChar;
-            string script = Path.Combine(repository, "eng", "test-visualstudio.ps1");
+            string script = Path.Combine(repository, "eng", "measure-visualstudio-live.ps1");
             string arguments = "-NoProfile -NonInteractive -STA -File " + Quote(script)
                 + " -VisualStudioPath " + Quote(installation) + " -Configuration " + Quote(configuration)
                 + " -RootSuffix " + Quote(suffix) + " -ResultFile " + Quote(reportPath) + " -CancellationFile " + Quote(cancelPath)
                 + " -OwnedProcessFile " + Quote(ownershipPath);
-            if (measure) arguments += " -MeasureAnalysis -MeasurementIterations " + iterations + " -MeasurementAlarmCount " + alarms;
+            arguments += " -MeasureAnalysis -MeasurementIterations " + iterations + " -MeasurementAlarmCount " + alarms;
             output.WriteLine("Live VS" + version + " artifacts: " + directory);
             string systemDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),
                 Environment.Is64BitProcess ? "System32" : "Sysnative");
@@ -116,15 +116,14 @@ namespace Alarmlist.VisualStudio.Testing
             XElement report;
             using (XmlReader reader = XmlReader.Create(reportPath, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit }))
                 report = XDocument.Load(reader).Root;
-            Validate(report, major, measure, iterations, alarms);
+            Validate(report, major, iterations, alarms);
             Require(Text(report, "Configuration") == configuration && Text(report, "RootSuffix") == suffix, "The report belongs to another configuration/profile.");
             string runDirectory = Path.GetFullPath(Text(report, "RunDirectory"));
-            Require(runDirectory.StartsWith(fixtureRoot, StringComparison.OrdinalIgnoreCase), "Unexpected smoke artifacts directory.");
+            Require(runDirectory.StartsWith(fixtureRoot, StringComparison.OrdinalIgnoreCase), "Unexpected measurement artifacts directory.");
             Require(File.Exists(Path.Combine(runDirectory, "ActivityLog.xml")), "The IDE activity log is missing.");
-            if (measure)
-                foreach (string file in new[] { "analysis-latency.csv", "designer-close-memory.csv", "measurement-environment.json", "measurement-commit.txt" })
-                    Require(File.Exists(Path.Combine(runDirectory, file)), "Missing measurement artifact: " + file);
-            output.WriteLine("Validated smoke artifacts: " + runDirectory);
+            foreach (string file in new[] { "analysis-latency.csv", "designer-close-memory.csv", "measurement-environment.json", "measurement-commit.txt" })
+                Require(File.Exists(Path.Combine(runDirectory, file)), "Missing measurement artifact: " + file);
+            output.WriteLine("Validated measurement artifacts: " + runDirectory);
         }
 
         private static void StopOwnedIde(string path, int driverId, string executable, string fixtureRoot, ITestOutputHelper output)
@@ -165,15 +164,14 @@ namespace Alarmlist.VisualStudio.Testing
         }
 
         // Also exercised by ordinary tests, without launching an IDE.
-        internal static void Validate(XElement report, int major, bool measure, int iterations, int alarms)
+        internal static void Validate(XElement report, int major, int iterations, int alarms)
         {
             Require(report?.Name == "LiveVisualStudioRun" && Text(report, "SchemaVersion") == "1", "Invalid live test report schema.");
             Require(Boolean(report, "Succeeded"), "Live IDE checks failed: " + Text(report, "Failure"));
             Require(Boolean(report, "CleanupCompleted"), "The owned IDE was not closed.");
             Require(Integer(report, "DriverBitness") == 64, "The IDE driver must run in x64 Windows PowerShell.");
             Require(Version.TryParse(Text(report, "HostVersion"), out Version host) && host.Major == major, "Wrong Visual Studio host in report.");
-            Require(Boolean(report, "Measurements") == measure, "The requested measurement mode did not run.");
-            if (!measure) return;
+            Require(Boolean(report, "Measurements"), "The requested measurement mode did not run.");
             Require(Integer(report, "Iterations") == iterations && Integer(report, "AdditionalAlarms") == alarms, "The measurement scenario does not match the request.");
             Require(Boolean(report, "SourcesPreserved"), "Unsaved measurements did not preserve source/output hashes.");
             XElement[] latencies = report.Element("Latencies")?.Elements("Sample").ToArray() ?? Array.Empty<XElement>();

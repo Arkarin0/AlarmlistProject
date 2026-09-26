@@ -339,6 +339,14 @@ IDE. Logs are retained in `artifacts/log/<Configuration>/VisualStudioTests/`.
 
 ## Experimental IDE smoke test
 
+The separate [UI integration suite](Alarmlist.VisualStudio.UIIntegrationTests/README.md)
+owns all automated functional IDE checks as 14 individual xUnit cases across
+VS2022 and VS2026. It covers template/file lifecycle, shared editors, Save As,
+live diagnostics, build/Clean/Rebuild and actual designer keyboard commit/undo.
+The external net8.0-windows/x64 runner uses DTE/shell APIs and FlaUI. Live cases
+are opt-in and require an unlocked desktop; ordinary solution tests skip them.
+Package-consumer tests and performance measurements remain separate.
+
 For the linked-project semantic UI checks, run
 `powershell.exe -NoProfile -File eng/prepare-visualstudio-acceptance.ps1` after
 building the VSIX. It creates a fresh two-project solution with a shared alarm,
@@ -383,31 +391,28 @@ Use matching custom deployment/smoke suffixes, for example
 when an existing experimental IDE is holding the extension DLL. The smoke waits
 for the duplicate-window command to become available during editor startup.
 
-The smoke script starts a separate `AlarmlistExp` instance, discovers the installed
-templates, creates a project, adds a folder and ALMX item, renames it, closes and
-reopens the solution, deletes the item, checks compilation errors in Error List,
-and exercises Clean/Rebuild. It also opens the custom editor, checks its embedded
-source view, compares document-data identity across New Window and XML-first
-opening, and exercises XML edits, undo/redo, Save All, and XML-view survival after
-designer closure. For both editor types, it checks Save As to local and linked
-files and back to the original path, shared buffer/RDT identity across two views,
-subsequent saves, and preservation of the original disk file. The duplicate-view
-command is resolved by GUID/ID to support VS2022's New Window and VS2026's New Tab.
-It closes only the process it started. Add `-KeepOpen` to retain a successful or
-failed run with interactive prompts enabled for inspection. The generated
-projects, local package feed, and ActivityLog are retained under
-`artifacts/log/<Configuration>/VisualStudioSmoke/`. Initialize the experimental
-instance manually first if Visual Studio requires first-run or sign-in input.
+`eng/test-visualstudio.ps1` is now a launcher for the functional xUnit project.
+It selects the host from the installation, sets/restores the opt-in environment,
+and writes TRX results. Add `-Filter 'Area=SaveAs'` to select a group or use direct
+`dotnet test` invocation as described in the
+[UI suite README](Alarmlist.VisualStudio.UIIntegrationTests/README.md). The tests
+own a fresh IDE and isolated project/feed/cache per case and close their own
+processes. Artifacts are retained under
+`artifacts/log/<Configuration>/VisualStudioUI/<scenario>/<VSVersion>/<run-id>/`.
+Initialize the experimental profile manually if first-run/sign-in input is needed.
+Functional `-KeepOpen` is no longer supported; use the interactive acceptance
+fixture for inspection. The duplicate-view checks use a stable command GUID/ID
+for VS2022's New Window and VS2026's New Tab.
 
-The script also has opt-in xUnit wrappers: functional smoke in the integration
-project and latency/memory validation in the performance project. They validate
-structured completion reports, retained samples and owned-IDE cleanup. See the
-[live wrapper workflow](Alarmlist.VisualStudio.PerformanceTests/README.md#live-visual-studio-wrappers).
-
-Add `-MeasureAnalysis` to measure live analysis while running the same smoke:
+Live latency/memory validation remains in the performance xUnit project, with
+ordinary report/ownership validation tests alongside it. Its dedicated driver
+sets up a project and measures both modes without rerunning functional scenarios.
+See the [live performance workflow](Alarmlist.VisualStudio.PerformanceTests/README.md#live-visual-studio-wrappers).
+Direct measurement remains available; the previous
+`test-visualstudio.ps1 -MeasureAnalysis` command delegates here for compatibility:
 
 ```powershell
-powershell.exe -NoProfile -STA -File eng/test-visualstudio.ps1 -VisualStudioPath '<VS installation>' -RootSuffix AlarmlistM3 -MeasureAnalysis -MeasurementIterations 100
+powershell.exe -NoProfile -STA -File eng/measure-visualstudio-live.ps1 -VisualStudioPath '<VS installation>' -RootSuffix AlarmlistM3 -MeasurementIterations 100
 ```
 
 The default is 20 measured samples per mode after two warmups, with 1,000 extra
@@ -421,7 +426,8 @@ or successful compiled-preview generation, since the probe intentionally contain
 a missing reference.
 
 `analysis-latency.csv`, `designer-close-memory.csv`, and environment/revision
-metadata remain in the smoke directory. Memory samples record the entire IDE's
+metadata remain under `artifacts/log/<Configuration>/VisualStudioSmoke/` for
+continuity with earlier measurements. Memory samples record the entire IDE's
 private bytes, working set, handles, and zero remaining open documents after each
 designer close and restored disk analysis. When available, .NET CLR heap-size and
 generation-two collection counters are matched to the test IDE's process ID;

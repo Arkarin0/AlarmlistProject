@@ -13,11 +13,11 @@ namespace Alarmlist.VisualStudio.PerformanceTests.LiveVisualStudio
         private readonly ITestOutputHelper _output;
         public LiveAnalysisTests(ITestOutputHelper output) { _output = output; }
 
-        // One IDE run yields both latency and memory evidence, avoiding two identical smoke runs.
+        // One IDE run yields both latency and memory evidence, sharing only fixture setup and cleanup.
         [LiveVisualStudioFact("2022"), Trait("VSVersion", "2022")]
-        public Task VisualStudio2022Async() => LiveVisualStudioRun.ExecuteAsync("2022", true, _output);
+        public Task VisualStudio2022Async() => LiveVisualStudioRun.ExecuteAsync("2022", _output);
 
         [LiveVisualStudioFact("2026"), Trait("VSVersion", "2026")]
-        public Task VisualStudio2026Async() => LiveVisualStudioRun.ExecuteAsync("2026", true, _output);
+        public Task VisualStudio2026Async() => LiveVisualStudioRun.ExecuteAsync("2026", _output);
     }
 }

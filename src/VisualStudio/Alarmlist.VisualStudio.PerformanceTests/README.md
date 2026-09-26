@@ -50,14 +50,18 @@ MILESTONE-3.md; the new measurement method establishes a new baseline.
 
 ## Live Visual Studio wrappers
 
-Functional editor smoke belongs to `Alarmlist.VisualStudio.IntegrationTests`.
-Latency and designer-close memory belong here. One performance test runs the full
-smoke plus both measurement modes, avoiding duplicate IDE runs for latency/memory.
-Both wrappers invoke `eng/test-visualstudio.ps1` and validate its completion report.
-Live wrappers only target net472; existing packaged integration tests keep both
-net472 and net8.0. No wall-clock performance limit or memory-growth threshold is
-asserted. The current checks validate complete, correctly identified evidence,
-two warmups per mode, finite samples, source/output preservation and IDE cleanup.
+Functional IDE tests belong to the separate
+[UI integration suite](../Alarmlist.VisualStudio.UIIntegrationTests/README.md).
+Latency and designer-close memory belong here. One performance case per host
+invokes `eng/measure-visualstudio-live.ps1` for fixture setup, both measurement
+modes and cleanup, then validates its completion report. It does not rerun the
+functional suite. Shared C# automation primitives are also compiled by that driver.
+These wrappers target net472; packaged integration tests keep both net472/net8.0,
+and the external functional runner uses net8.0-windows. Ordinary tests in this
+project validate measurement reports and process ownership without launching an IDE.
+No wall-clock performance limit or memory-growth threshold is asserted. Validation
+requires complete host/scenario evidence, two warmups per mode, finite samples,
+source/output preservation and owned-IDE cleanup.
 
 First build and deploy the matching extension/SDK configuration to the experimental
 profile, and complete any Visual Studio first-run screens manually. See the
@@ -73,7 +77,6 @@ $env:ALARMLIST_VS_ROOT_SUFFIX = 'AlarmlistExp'
 $env:ALARMLIST_VS_MEASUREMENT_ITERATIONS = '20'
 $env:ALARMLIST_VS_MEASUREMENT_ALARMS = '1000'
 
-dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj -f net472 --filter 'Host=VisualStudio&VSVersion=2022'
 dotnet test src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/Alarmlist.VisualStudio.PerformanceTests.csproj --filter 'Host=VisualStudio&VSVersion=2022'
 ```
 
@@ -92,7 +95,7 @@ even when the test runner is x86 or launched from PowerShell 7.
 
 Wrapper logs, the IDE ownership receipt and `result.xml` are under
 `artifacts/log/<Configuration>/LiveVisualStudioTests/<run-id>/`. The report links
-the retained smoke fixture, ActivityLog, latency/memory CSVs and measurement
+the retained measurement fixture, ActivityLog, latency/memory CSVs and measurement
 metadata under `VisualStudioSmoke/`. Failures retain logs and cannot pass with an
 empty, partial, wrong-host or unsuccessful report. No collection is forced in the
 measured IDE. Diagnostic polling includes COM overhead and does not measure typing

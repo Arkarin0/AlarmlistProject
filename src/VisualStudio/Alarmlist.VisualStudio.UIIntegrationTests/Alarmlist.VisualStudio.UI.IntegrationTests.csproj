@@ -1,0 +1,36 @@
+<Project>
+  <PropertyGroup>
+    <IsIntegrationTestProject>true</IsIntegrationTestProject>
+  </PropertyGroup>
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+  <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWindowsForms>true</UseWindowsForms>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
+    <Compile Include="../../shared/VisualStudioTesting/VisualStudioAutomation.cs" Link="VisualStudioAutomation.cs" />
+    <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" />
+    <PackageReference Include="FlaUI.UIA3" Version="5.0.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.VisualStudio.Interop" Version="17.9.37000" PrivateAssets="all" />
+    <AssemblyMetadata Include="RepositoryRoot" Value="$(RepoRoot)" />
+    <AssemblyMetadata Include="BuildConfiguration" Value="$(Configuration)" />
+  </ItemGroup>
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Target Name="PrepareUiTestAssets" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_ExtensionAssembly" />
+    </MSBuild>
+    <MSBuild Projects="../../SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" Targets="GetSdkPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_SdkPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_ExtensionAssembly->'%(RootDir)%(Directory)Alarmlist.VisualStudio.vsix')" DestinationFolder="$(TargetDir)testassets" />
+    <Copy SourceFiles="@(_SdkPackage)" DestinationFolder="$(TargetDir)testassets" />
+  </Target>
+</Project>
