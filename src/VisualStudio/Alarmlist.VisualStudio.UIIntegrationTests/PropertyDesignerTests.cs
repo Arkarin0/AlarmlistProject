@@ -55,10 +55,19 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             using var automation = new UIA3Automation();
             using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
             ide.OpenDesigner(workspace.AlarmPath);
-            Window window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            // Process.MainWindowHandle can still identify a temporary startup
+            // window after opening the editor. Wait for the owned designer tree.
+            Window window = null;
+            AutomationElement designer = null;
+            VisualStudioSession.Wait(() =>
+            {
+                window = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.Window)))
+                    .Select(element => element.AsWindow()).SingleOrDefault(candidate =>
+                        candidate.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))) != null);
+                designer = window?.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)));
+                return designer != null;
+            }, "loaded designer window");
             window.SetForeground();
-            AutomationElement designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)));
-            Assert.NotNull(designer);
             designer.Focus(); ide.RequireForeground(); designer.Click();
             TextBox code = null;
             VisualStudioSession.Wait(() => (code = Box(window, "Code"))?.Text == "001", "file fallback before Build");
@@ -104,7 +113,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => Child(ide, workspace).Attribute("abstract") == null, "concrete XML synchronization");
 
             // Copying an inherited expression must leave the tokens editable.
-            AutomationElement copy = window.FindFirstDescendant(cf => cf.ByName("Override Name locally").And(cf.ByControlType(ControlType.Button)));
+            AutomationElement copy = null;
+            VisualStudioSession.Wait(() => (copy = window.FindFirstDescendant(cf => cf.ByName("Override Name locally")
+                .And(cf.ByControlType(ControlType.Button))))?.IsEnabled == true, "override available after abstract analysis");
             Press(ide, copy, VirtualKeyShort.SPACE);
             TextBox name = null;
             VisualStudioSession.Wait(() => (name = Box(window, "Name"))?.Properties.HasKeyboardFocus.Value == true, "override focuses raw expression draft");

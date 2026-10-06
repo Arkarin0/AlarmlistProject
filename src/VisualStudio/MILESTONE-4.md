@@ -1027,3 +1027,38 @@ review rejected a further VS2026 keyboard run while that dialog remained open.
 No foreground checks were weakened and no authentication dialog was automated.
 The remaining manual accessibility, typing/paint, memory and release gates are
 unchanged. This follow-up changes the validation record only, not product code.
+
+### Completed keyboard follow-up (2026-10-06)
+
+After the owner dismissed the sign-in dialog and closed the preparation instance,
+both PropertiesAndCompletion cases passed on the recorded Release deployments:
+VS2022 in 11 seconds and VS2026 in 24 seconds. Both deployed DLL hashes still match
+the earlier records. VS2022 exited normally; VS2026 required the harness's owned-
+process termination fallback after its 15-second normal-exit wait. Cleanup completed
+and the case passed, but this does not close the separate host-lifetime gate.
+
+The first retries exposed two test synchronization gaps. The property case now
+waits for the designer controls in a top-level window belonging to its owned IDE,
+instead of accepting a temporary startup MainWindowHandle. After changing Abstract,
+it also waits for analysis to restore the inherited Name override action. These
+are test-only fixes; physical input, foreground checks, field-focus checks and all
+behavioral assertions remain in place. No product-code changes were required.
+
+Both passing cases exercise focused raw/unfocused evaluated text, explicit empty
+and unassigned values, local parameter editing, Undo/Redo, completion insertion and
+Escape, Abstract toggling, inherited raw-expression overrides, source/output
+preservation before saving, and saved build parity including template exclusion.
+Together with the scalar passes above, all four previously pending keyboard cases
+are complete. There are now 18 distinct passing functional IDE cases across both
+hosts; this count combines the recorded runs, not a single full-suite invocation.
+
+Passing TRX evidence under `artifacts/log/Release/VisualStudioUI/`:
+
+- VS2022: `TestResults/718b96122e1f4d7292c30beda877713c/`; fixture
+  `PropertiesAndCompletion/2022/13a624a481cb4489b289441367327e75/`.
+- VS2026: `TestResults/da0a3fa12ba243eb9c44c6311941cff8/`; fixture
+  `PropertiesAndCompletion/2026/b1e44c01a72940b68e01c1000c2f9999/`.
+
+The failed retries and their captures remain retained. Actual screen-reader speech,
+native high contrast, mixed DPI, typing/paint measurements, longer host-memory
+acceptance and release checks remain open; the keyboard passes do not replace them.
