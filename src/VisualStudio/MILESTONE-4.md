@@ -995,10 +995,35 @@ build/deployed DLL hashes match and are retained in `deployment2022.json` and
 different DLL hashes, so comparing a later dotnet build against both deployments
 is not the deployment identity check.
 
-Remaining gates: the two physical property/completion keyboard cases and the two
-existing physical scalar-keyboard cases require an unlocked interactive desktop.
+Gates at iteration-seven close: the two physical property/completion keyboard cases
+and the two existing physical scalar-keyboard cases require an unlocked desktop.
 The VS2022 foreground failure remains retained; no forced input or relaxed keyboard
 focus guard was used. Actual speech, native high contrast, mixed DPI, typing/paint,
 longer host-memory acceptance and the carried-forward release checks remain open.
 No SDK/VSIX publication was performed. The implementation is committed in iterations;
 full milestone/release acceptance remains conditional on these checks.
+
+### Unlocked-desktop follow-up (2026-10-06)
+
+Rechecked both deployed DLL hashes against the recorded Release deployments; both
+match. The physical ScalarCommitAndUndo cases passed on VS2022 and VS2026, including
+real typing, exact shared-buffer commit, retained focus, Undo and disk preservation.
+This raises the distinct passing functional IDE scenarios to 16 of 18.
+
+The property/completion cases did not reach their keyboard assertions. VS2022
+twice stopped in project setup with RPC_E_CALL_REJECTED while the IDE's account
+sign-in dialog was modal. VS2026 stopped at the existing foreground guard before
+the first click. Failure screenshots, UIA trees, cleanup records and TRX results
+are retained under `artifacts/log/Release/VisualStudioUI/`. TRX directories:
+
+- VS2022 scalar pass/property setup failure: `TestResults/2d1347314f0d4538a86190a75240aae7/`.
+- VS2026 scalar pass/property foreground failure: `TestResults/d46cdbb1e94549b18766af216f9bd290/`.
+- VS2022 repeated sign-in setup failure: `TestResults/b5c23da22d13488286aa074b6631a47f/`.
+
+Both property cases remain open. A VS2022 preparation instance was opened for the
+owner to dismiss the account dialog manually; its identity is recorded in
+`artifacts/log/Milestone4/Final/keyboard-profile-preparation.json`. Automatic approval
+review rejected a further VS2026 keyboard run while that dialog remained open.
+No foreground checks were weakened and no authentication dialog was automated.
+The remaining manual accessibility, typing/paint, memory and release gates are
+unchanged. This follow-up changes the validation record only, not product code.
