@@ -19,6 +19,9 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         public ISdkAnalysisBridge Bridge { get; private set; }
         public AnalysisInput[] Inputs { get; private set; }
         public int AlarmCount { get; private set; }
+        public AnalysisContext Context { get; private set; }
+        public AnalysisContext AlternateContext { get; private set; }
+        public bool HasProperties { get; private set; }
 
         public AnalysisFixture(string scenario)
         {
@@ -33,10 +36,16 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                 Bridge = opened.Bridge;
                 string[] size = scenario.Split('-');
                 AlarmCount = int.Parse(size[0]);
-                Inputs = CreateInputs(_directory, AlarmCount, int.Parse(size[1]));
+                HasProperties = size.Length == 3 && size[2] == "properties";
+                Context = CreateContext("Performance");
+                AlternateContext = CreateContext("Changed");
+                Inputs = CreateInputs(_directory, AlarmCount, int.Parse(size[1]), HasProperties);
             }
             catch { Dispose(); throw; }
         }
+
+        private AnalysisContext CreateContext(string configuration) => new AnalysisContext(Path.Combine(_directory, "Performance.almproj"), configuration, "AnyCPU",
+            Enumerable.Range(0, HasProperties ? 32 : 0).Select(index => new AnalysisPropertyDefinition("p" + index, configuration + index)).ToArray());
 
         public void Validate(AnalysisResponse response)
         {
@@ -44,6 +53,10 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                 throw new InvalidOperationException("The benchmark did not produce the expected resolved alarms and compiled XML.");
             if (AppDomain.CurrentDomain.GetAssemblies().Any(assembly => assembly.GetName().Name == "Alarmlist.Core"))
                 throw new InvalidOperationException("The SDK compiler escaped its isolated AppDomain.");
+            if (HasProperties && (!response.Snapshot.Alarms.Any(alarm => alarm.IsAbstract)
+                || response.Snapshot.Alarms.Last().Properties.Count < 32
+                || response.Snapshot.Alarms.Last().Fields.Single(field => field.Name == "Description").EffectiveValue.Contains("$(AlarmlistAlarmCode)")))
+                throw new InvalidOperationException("The property workload did not evaluate templates, parameters and field dependencies.");
         }
 
         public void Dispose()
@@ -55,20 +68,22 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
             if (Directory.Exists(_directory)) Directory.Delete(_directory, true);
         }
 
-        private static AnalysisInput[] CreateInputs(string directory, int count, int perFile)
+        private static AnalysisInput[] CreateInputs(string directory, int count, int perFile, bool properties)
         {
             var inputs = new List<AnalysisInput>();
             for (int first = 0; first < count; first += perFile)
             {
                 var text = new StringBuilder("<Alarmlist>\r\n");
+                if (properties) text.Append("<Properties><Property Name='p1' Value='File'/></Properties>");
                 for (int index = first; index < Math.Min(count, first + perFile); index++)
                 {
-                    text.Append("  <Alarm><FullyQualifiedName>A").Append(index).Append("</FullyQualifiedName>\r\n");
+                    text.Append(properties && index % 4 == 0 ? "  <Alarm abstract='true'>" : "  <Alarm>").Append("<FullyQualifiedName>A").Append(index).Append("</FullyQualifiedName>\r\n");
                     if (index % 4 != 0) text.Append("    <ReferenceName>A").Append(index - 1).Append("</ReferenceName>\r\n");
+                    else if (properties) text.Append("<Properties><Property Name='p0' Value='ignored'/><Property Name='p2'/></Properties><Name>Alarm $(p1)</Name><Category>$(p3)</Category><Description>Inspect $(AlarmlistAlarmCode) $(p2) $$(literal)</Description>");
                     else text.Append("    <Name>Base alarm ").Append(index).Append("</Name><Category>Fire</Category><Description>Inspect equipment &amp; record result.</Description>\r\n");
-                    text.Append("    <Code>C").Append(index).Append("</Code>\r\n    <TestProcedure><Instructions>");
+                    text.Append(properties ? "<Code>$(p0)-$(AlarmlistConfiguration)-" : "    <Code>C").Append(index).Append("</Code>\r\n    <TestProcedure><Instructions>");
                     if (index % 4 == 3) text.Append("<Clear/>");
-                    text.Append("<Step>Inspect ").Append(index).Append("</Step><Note>Record</Note></Instructions>");
+                    text.Append(properties ? "<Step>Inspect $(AlarmlistAlarmCode) " : "<Step>Inspect ").Append(index).Append("</Step><Note>Record</Note></Instructions>");
                     if (index % 4 == 0) text.Append("<Reset><Hint>Reset panel</Hint></Reset>");
                     text.Append("</TestProcedure>\r\n  </Alarm>\r\n");
                 }

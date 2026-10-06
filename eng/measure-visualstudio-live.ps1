@@ -89,9 +89,9 @@ function Measure-LiveAnalysis {
   # This exercises the running IDE through its supported automation/SDK APIs.
   # It measures buffer replacement to Error List publication, not keystroke paint.
   $measurementPath = Join-Path $projectDirectory 'Measurement.almx'
-  $sources = [Text.StringBuilder]::new('<Alarmlist>')
+  $sources = [Text.StringBuilder]::new('<Alarmlist><Properties><Property Name="Unit" Value="001" /></Properties>')
   for ($index = 0; $index -lt $MeasurementAlarmCount; $index++) {
-    [void]$sources.Append("<Alarm><FullyQualifiedName>Measurement.$index</FullyQualifiedName><Name>Alarm $index</Name></Alarm>")
+    [void]$sources.Append("<Alarm><FullyQualifiedName>Measurement.$index</FullyQualifiedName><Name>Alarm $index</Name><Code>`$(Unit)</Code><Description>Inspect `$(AlarmlistAlarmCode)</Description></Alarm>")
   }
   [void]$sources.Append('</Alarmlist>')
   [IO.File]::WriteAllText($measurementPath, $sources.ToString())
@@ -102,6 +102,7 @@ function Measure-LiveAnalysis {
     HostVersion = (Get-Item (Join-Path $VisualStudioPath 'Common7/IDE/devenv.exe')).VersionInfo.FileVersion
     Configuration = $Configuration; RootSuffix = $RootSuffix; ProcessId = $ide.Id
     AdditionalAlarms = $MeasurementAlarmCount; Iterations = $MeasurementIterations
+    Workload = 'Scoped file properties and alarm-field dependencies'
     DiagnosticPollMilliseconds = 50; ForcedIdeCollection = $false
     CollectAutomationClientBeforeMemorySample = $true
     StartedUtc = [DateTime]::UtcNow.ToString('O')

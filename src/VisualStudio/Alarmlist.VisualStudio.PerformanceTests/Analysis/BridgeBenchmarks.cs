@@ -12,18 +12,21 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Analysis
         private AnalysisFixture _fixture;
         private AnalysisResponse _response;
 
-        [Params("1000-1000", "1000-100", "10000-100")]
+        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties")]
         public string Scenario { get; set; }
 
         [GlobalSetup]
         public void Setup()
         {
             _fixture = new AnalysisFixture(Scenario);
-            _fixture.Validate(_fixture.Bridge.Analyze(_fixture.Inputs));
+            _fixture.Validate(_fixture.Bridge.Analyze(_fixture.Inputs, context: _fixture.Context));
         }
 
         [Benchmark]
-        public void Analyze() => _response = _fixture.Bridge.Analyze(_fixture.Inputs);
+        public void Analyze() => _response = _fixture.Bridge.Analyze(_fixture.Inputs, context: _fixture.Context);
+
+        [Benchmark]
+        public void AnalyzeAlternateContext() => _response = _fixture.Bridge.Analyze(_fixture.Inputs, context: _fixture.AlternateContext);
 
         [GlobalCleanup]
         public void Cleanup()

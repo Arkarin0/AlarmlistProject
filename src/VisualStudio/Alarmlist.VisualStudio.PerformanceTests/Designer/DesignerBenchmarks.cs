@@ -33,8 +33,9 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         private AlarmFieldViewModel _code;
         private int _generation;
         private bool _queryResult;
+        private PropertyCompletion[] _completionResult;
 
-        [Params("1000-1000", "1000-100", "10000-100")]
+        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties")]
         public string Scenario { get; set; }
 
         [GlobalSetup]
@@ -45,7 +46,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             _fixture = new AnalysisFixture(Scenario);
             AnalysisInput selected = _fixture.Inputs.Last();
             _project = new AnalysisProject(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(selected.FilePath), "Performance.almproj"),
-                "Performance", _fixture.Bridge.CompilerPath, _fixture.Inputs.Select(input => input.FilePath));
+                "Performance", _fixture.Bridge.CompilerPath, _fixture.Inputs.Select(input => input.FilePath), _fixture.Context);
             _captured = _fixture.Inputs.Select(input => new CapturedAnalysisInput(input)).ToArray();
             _analysis = new CapturedDesignerAnalysis(selected.FilePath, _project);
             _model = new AlmxDocumentModel(new ReadOnlyBuffer(selected), new AlmxEditingService());
@@ -70,9 +71,19 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         [IterationSetup(Target = nameof(PublishAndLayout))]
         public void PreparePublication()
         {
-            AnalysisResponse response = _fixture.Bridge.Analyze(_fixture.Inputs);
+            AnalysisResponse response = _fixture.Bridge.Analyze(_fixture.Inputs, context: _fixture.Context);
             _fixture.Validate(response);
             _nextState = new ProjectAnalysisState(++_generation, _project, ProjectAnalysisStatus.Available, null, response, _captured);
+        }
+
+        [IterationSetup(Target = nameof(ContextChangeAndLayout))]
+        public void PrepareContextChange()
+        {
+            AnalysisContext context = _generation % 2 == 0 ? _fixture.Context : _fixture.AlternateContext;
+            AnalysisResponse response = _fixture.Bridge.Analyze(_fixture.Inputs, context: context);
+            _fixture.Validate(response);
+            var project = new AnalysisProject(_project.ProjectPath, context.Configuration, _project.CompilerPath, _project.Inputs, context);
+            _nextState = new ProjectAnalysisState(++_generation, project, ProjectAnalysisStatus.Available, null, response, _captured);
         }
 
         [IterationSetup(Target = nameof(DraftAndLayout))]
@@ -89,6 +100,15 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
 
         [Benchmark, STAThread]
         public void UnchangedRefreshAndLayout() { _analysis.Set(_analysis.Current); Pump(); }
+
+        [Benchmark, STAThread]
+        public void ContextChangeAndLayout() { _analysis.Set(_nextState); Pump(); }
+
+        [Benchmark, STAThread]
+        public void CompletionQueries100()
+        {
+            for (int index = 0; index < 100; index++) _completionResult = ExpressionTextBox.FindMatches(_view.CompletionProperties, "AlarmlistAlarm");
+        }
 
         [Benchmark, STAThread]
         public void CommandQueries100()
@@ -114,6 +134,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
                 ResetDraft();
                 if (_view.ResolvedFields.Count == 0) throw new InvalidOperationException("No resolved fields were displayed.");
                 GC.KeepAlive(_queryResult);
+                if (_completionResult != null && _completionResult.Length == 0) throw new InvalidOperationException("No completion suggestions were produced.");
             }
             finally
             {

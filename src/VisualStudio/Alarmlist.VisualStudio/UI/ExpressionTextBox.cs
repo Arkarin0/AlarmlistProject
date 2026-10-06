@@ -147,13 +147,16 @@ namespace Alarmlist.VisualStudio.UI
                 if (_tokenEnd < raw.Length && raw[_tokenEnd] == ')') _tokenEnd++;
             }
             string selectedName = (_list.SelectedItem as PropertyCompletion)?.Name;
-            PropertyCompletion[] matches = Suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToArray();
+            PropertyCompletion[] matches = FindMatches(Suggestions, prefix);
             if (matches.Length == 0) { CloseCompletion(); return; }
             _list.ItemsSource = BindingCollection.Create(matches);
             _list.SelectedIndex = Math.Max(0, Array.FindIndex(matches, property => property.Name == selectedName));
             _popup.IsOpen = true;
             AnnounceSelection();
         }
+
+        internal static PropertyCompletion[] FindMatches(IEnumerable suggestions, string prefix)
+            => suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToArray();
 
         private void AnnounceSelection()
         {

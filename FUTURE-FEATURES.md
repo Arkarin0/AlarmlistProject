@@ -17,8 +17,9 @@ An `abstract` XML attribute identifies template-only alarms, excluded from compi
 output while remaining usable as reference targets with unresolved parameters.
 The designer includes a parameter table for editing values and an Abstract checkbox.
 Localization and NuGet alarm libraries remain for later milestones;
-XML completion and syntax generation remain unassigned. The plan does not describe
-implemented behavior.
+XML completion and syntax generation remain unassigned. The scoped expression
+implementation and remaining acceptance gates are recorded in the plan's
+[implementation record](src/VisualStudio/MILESTONE-4.md#implementation-record).
 
 ## Well-known properties and custom properties
 
@@ -27,8 +28,8 @@ input using an MSBuild-like property expression, such as `$(PropertyName)`.
 The behavioral reference is
 [MSBuild reserved and well-known properties](https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-reserved-and-well-known-properties?view=visualstudio).
 MSBuild distinguishes reserved properties from well-known properties. The milestone
-four plan proposes an Alarmlist catalog covering project/file identity and alarm
-values; exact names remain implementation design work.
+four implementation uses the Alarmlist catalog covering project/file identity and
+alarm values documented in the [SDK README](src/SDK/Alarmlist.SDK/README.md).
 
 Start with well-known properties, then extend the mechanism to support custom
 properties defined by the programmer.

@@ -1,4 +1,4 @@
-# Milestone-three interactive acceptance
+# Visual Studio interactive acceptance
 
 Use an experimental Visual Studio instance with the matching VSIX deployed, as
 described in [README](README.md#experimental-ide-smoke-test). Repeat on VS2022 and
@@ -16,6 +16,39 @@ The helper creates a fresh local feed/cache, builds both projects, checks their
 resolved output, and retains package hashes, revision, build logs, and baseline
 source/output hashes under `artifacts/log/<Configuration>/VisualStudioAcceptance/`.
 The helper passing does not establish that any IDE checks below passed.
+
+## Milestone-four property workflow
+
+The fixture also links `Shared/Properties.almx` into both projects. The original
+milestone-three scenarios and their historical results below remain unchanged.
+These new checks have **not been accepted interactively**.
+
+1. Select `Property.Child`. North shows Name `North 001`, South shows `South 001`,
+   and both show Code `001` and Description `Inspect 001 - Shared`. The base's
+   assigned `par1` value must not appear. Release changes the project value to `101`.
+2. In the Alarm parameter scope, assign `par1` to `002`. The dependent fields and
+   procedure update without Build. Undo/Redo must restore the exact shared XML.
+   An assigned empty string stops fallback; clearing Assigned resumes it. Repeat
+   at File scope and confirm both linked project contexts share that source edit.
+3. Override Code locally: the editable copy is `$(par1)`. Focus and unfocus it;
+   focus-only interactions leave the document clean. Repeat with procedure text.
+   Make local copy of Instructions and verify `$(par1)` and `$$(literal)` survive.
+4. Type `$(` or press Ctrl+Space. Verify property names, values and origins; use
+   arrows, Enter/Tab, Escape, mouse selection and a subsequent draft cancellation.
+   Observe spoken status and selection with a screen reader, including initial
+   opening and stale-context closure. UIA events alone do not verify speech.
+5. Toggle Abstract. The selected alarm stays editable/referenceable and disappears
+   from compiled preview/output; its unresolved parameters are allowed. Undo the
+   toggle. Check a malformed expression and a scalar cycle through the live Error
+   List without overwriting the prior build output.
+6. Verify native high contrast, narrow layout, mixed-DPI monitor movement and
+   typing/paint response. Close/discard/reopen and unload/reload both projects;
+   compare baseline source/output hashes before accepting the run.
+
+The automated property/linked-context cases are in the functional xUnit suite.
+They complement these observations; skipped or foreground-blocked cases are not
+accepted passes. See the [milestone implementation record](MILESTONE-4.md#implementation-record)
+for the current validation results and outstanding gates.
 
 ## Linked contexts and provenance
 

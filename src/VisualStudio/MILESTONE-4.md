@@ -1,15 +1,16 @@
 # Milestone four: property expressions across compilation and the designer
 
-Status: implementation plan updated on 2026-10-06 with the owner's product
-decisions below. The repository baseline is `de01a69`; the initial proposal was
-recorded on 2026-09-25 against `1ac450a`. This document does not implement the
-feature. The owner selected child-context evaluation (approach A) for inherited
+Status: compiler, SDK, captured-context analysis and designer implementation are
+present. Validation results and remaining interactive-desktop/release gates are
+recorded below; full acceptance is not claimed. The planning baseline is `de01a69`;
+the initial proposal was recorded on 2026-09-25 against `1ac450a`.
+The owner selected child-context evaluation (approach A) for inherited
 expressions, refined so references inherit parameter declarations but not their
 assigned values. An `abstract` XML attribute identifies template-only alarms.
 Exact remaining public names, declaration/assignment syntax, and analysis
 API shape are frozen by the [iteration-one implementation contract](MILESTONE-4-DESIGN.md),
-which takes precedence over provisional spellings below. Implementation is in progress;
-validation and commits are recorded at the end of this document.
+which takes precedence over provisional spellings below. Iteration results are
+recorded at the end of this document.
 
 The outcome is an author who can write `$(PlantName)` in an alarm value, build
 with a project-supplied value, and see the same resolved text in the designer's
@@ -773,10 +774,10 @@ checks satisfied. Release acceptance additionally requires the carried-forward
 host gates, fresh-cache verification, and SDK-first distribution described in
 the [Visual Studio README](README.md#sdk-first-release).
 
-This refresh only updates documentation and roadmap links. The evidence above is
-attributed to existing records, not newly executed checks. Planning validation is
-a diff, relative-link/path, and command review; no build, unit test, IDE acceptance,
-performance measurement, or publication is claimed for this refresh.
+The original planning-only refresh updated documentation and roadmap links, using
+existing evidence and a diff/path/command review. Newly implemented behavior and
+executed checks are recorded in the iterations below. No publication is part of
+this work.
 
 ## Implementation record
 
@@ -894,8 +895,8 @@ states suppress old evaluated values and invalid completion context.
 
 Validation: 246 VS unit tests passed, including 21 new property/source-editing,
 focus/completion, draft, preview and Undo cases. Existing BAML, live-region and
-designer collectibility tests remain green. Added four opt-in functional cases
-(packaged VSIX/template consumer tests also passed: 10 per framework)
+designer collectibility tests remain green. Packaged VSIX/template consumer tests
+also passed: 10 per framework. Added four opt-in functional cases
 (two per host) covering the integrated property workflow and linked project scopes.
 The first UI compile found a test-only ComboBoxItem type mismatch; it was corrected.
 VS2022's matching Debug extension was deployed to the idle AlarmlistExp profile.
@@ -906,3 +907,98 @@ interactive-desktop validation gate, not a reason to weaken focus checks.
 
 Evidence: `artifacts/log/Milestone4/iteration6-unit-final.trx` and
 `artifacts/log/Debug/VisualStudioUI/TestResults/053503e9073c436ca66a0a70d3255179/`.
+
+### Iteration seven: validation workloads and acceptance record
+
+Extended the isolated benchmark fixture with 1,000 alarms across ten files, 32
+project parameters, file shadowing, abstract templates, escapes and field
+dependencies. Added changed-context bridge/UI publication and production
+completion-filter measurements. Extended live measurement inputs with file
+properties and field dependencies, retaining source/output hashes, owned-process
+cleanup and the existing no-threshold/no-forced-IDE-collection rules. The linked
+acceptance fixture now includes a property template and consumer, conditional
+Debug/Release values, and a separate milestone-four interactive checklist.
+
+Ordinary validation: `dotnet test AlarmlistProject.slnx --nologo -v:minimal` passed
+652 tests on all supported target frameworks, with 24 expected opt-in skips.
+The full packaged SDK suite also passed through VS2022 and VS2026 desktop MSBuild,
+20 tests each. Logs are under `artifacts/log/Milestone4/Final/`. Fixture preparation
+passed both project builds and output checks; its sources, hashes and solution are
+under `artifacts/log/Debug/VisualStudioAcceptance/a47bce54827b4ef2aa4f84a3ea3cea39/`.
+Preparation does not accept the interactive checklist.
+
+Release/x64 Short benchmarks passed both xUnit workload cases (eight measurements
+each), with two warmups and five iterations before BenchmarkDotNet outlier handling.
+The comparison uses the same current implementation and ten-file/1,000-alarm size;
+the property workload also adds template and parameter metadata, so it is not an
+isolated estimate of token substitution cost. Means from this machine:
+
+| Operation | Literal workload | Property workload |
+| --- | ---: | ---: |
+| SDK analysis | 271.9 ms | 475.4 ms |
+| SDK analysis with alternate context | 264.0 ms | 481.3 ms |
+| Designer publication/layout | 18.3 ms | 19.4 ms |
+| Unchanged refresh/layout | 4.1 ms | 4.8 ms |
+| Context-change publication/layout | 19.0 ms | 115.7 ms |
+| 100 completion prefix queries | 0.087 ms | 0.142 ms |
+| Draft/layout | 8.5 ms | 36.5 ms |
+
+Raw CSV/JSON and reports are under `artifacts/log/Release/AnalysisPerformance/`:
+property workload `3cc62a543bd745f2b911ee3607b5cb51`, literal comparison
+`38158141994b45afa89bc6340dddbfb2`. These are warm isolated operations; context-change
+layout includes refreshing changed compiled XML. Query batches do not measure
+popup rendering, speech or physical typing/paint. No performance budget is asserted.
+
+Both live wrappers passed against matching Release deployments in AlarmlistExp,
+using 1,000 additional property alarms, two warmups and 20 measured samples per
+mode. VS2022 medians were 450.6 ms (XML buffer) and 447.4 ms (designer reopen);
+VS2026 medians were 449.6 ms and 452.9 ms. These include 50 ms polling/COM and live
+IDE overhead. Both reports confirm preserved sources/output and owned-IDE cleanup:
+`artifacts/log/Milestone4/Final/iteration7-live.trx`. Detailed wrapper evidence is
+under `artifacts/log/Release/LiveVisualStudioTests/e031f1bfc60c453e8b2a13d4bb089cb5/`
+and `85d793fbfe7c431c840e11bf97f74196/`.
+
+The 20 designer-close samples ended with zero open documents. Private bytes grew
+from 917.1 to 1,063.5 MB on VS2022 and 1,032.4 to 1,097.3 MB on VS2026; Gen2 counts
+were 3 -> 3 and 3 -> 4. These short whole-process runs do not establish leak freedom
+or replace the carried-forward memory/lifetime acceptance gate.
+
+The six existing API-driven functional cases passed on each host (12 total),
+covering templates/items, shared editors, both Save As paths, live diagnostics,
+failure-output preservation and Clean/Rebuild. Their Release TRX runs are under
+`artifacts/log/Release/VisualStudioUI/TestResults/405637b771704878a835cad642be8ed9/`
+and `67ef533d46b54c59b6b248f0cc0b778e/`.
+
+The linked-property scenario then used UIA selection instead of physical clicks.
+It exposed an existing mode-selector accessibility defect: selecting a radio button
+through UIA changed its checked state without executing its command. Mode changes
+now use Checked for mouse, keyboard and assistive selection; failed draft commits
+restore the selected mode. A regression verifies actual SelectionItem-provider
+behavior. The scenario also now reselects the project after its XML-only helper
+deliberately closes all designer views, preserving the per-view context contract.
+VS2022's linked scenario passed after both changes, including North/South values,
+configuration reevaluation, unsaved file precedence, diagnostics, discard and reload.
+Evidence: `artifacts/log/Release/VisualStudioUI/TestResults/8d37db03a60e4d7aa2c4eef8522d87c5/`.
+VS2026's linked case and shared-editor regression also passed with the selector fix:
+`artifacts/log/Release/VisualStudioUI/TestResults/1fc2eaf39ab547ad8f91cf876407d627/`.
+There are 14 distinct passing functional IDE scenarios across both hosts; the
+remaining four physical-keyboard cases are tracked separately below.
+
+Final validation after the mode-selector fix: the full solution build succeeded,
+and the full solution test run passed 653 tests with 24 expected opt-in skips,
+including all 247 VS unit tests. Final TRX results are under
+`artifacts/log/Milestone4/FinalAfterAccessibility/`.
+
+Each final host deployment is built with that host's desktop MSBuild. Immediate
+build/deployed DLL hashes match and are retained in `deployment2022.json` and
+`deployment2026.json` under the final log directory. Compiler toolchains produce
+different DLL hashes, so comparing a later dotnet build against both deployments
+is not the deployment identity check.
+
+Remaining gates: the two physical property/completion keyboard cases and the two
+existing physical scalar-keyboard cases require an unlocked interactive desktop.
+The VS2022 foreground failure remains retained; no forced input or relaxed keyboard
+focus guard was used. Actual speech, native high contrast, mixed DPI, typing/paint,
+longer host-memory acceptance and the carried-forward release checks remain open.
+No SDK/VSIX publication was performed. The implementation is committed in iterations;
+full milestone/release acceptance remains conditional on these checks.

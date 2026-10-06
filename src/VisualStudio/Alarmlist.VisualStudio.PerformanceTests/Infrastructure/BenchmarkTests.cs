@@ -24,11 +24,19 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
 
         [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Bridge")]
         [InlineData("1000-1000"), InlineData("1000-100"), InlineData("10000-100")]
-        public void Bridge(string scenario) => Run(typeof(BridgeBenchmarks), scenario, 1);
+        public void Bridge(string scenario) => Run(typeof(BridgeBenchmarks), scenario, 2);
 
         [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Designer")]
         [InlineData("1000-1000"), InlineData("1000-100"), InlineData("10000-100")]
-        public void Designer(string scenario) => Run(typeof(DesignerBenchmarks), scenario, 4);
+        public void Designer(string scenario) => Run(typeof(DesignerBenchmarks), scenario, 6);
+
+        [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Properties")]
+        [InlineData("1000-100-properties")]
+        public void PropertyBridge(string scenario) => Run(typeof(BridgeBenchmarks), scenario, 2);
+
+        [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Properties")]
+        [InlineData("1000-100-properties")]
+        public void PropertyDesigner(string scenario) => Run(typeof(DesignerBenchmarks), scenario, 6);
 
         private void Run(Type benchmark, string scenario, int expectedReports)
         {

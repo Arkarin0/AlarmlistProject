@@ -24,10 +24,23 @@ state changes. CommandQueries100 measures a batch of 100 availability queries.
 The Bridge and Designer xUnit theories each select one of three scenarios:
 1,000 alarms in one file, 1,000 across ten files, or 10,000 across 100 files.
 Designer covers fresh result publication/layout, unchanged refresh/layout,
-command queries, and draft editing/layout. WPF runs on STA with actual designer
+context-change publication/layout, command queries, completion filtering and draft
+editing/layout. WPF runs on STA with actual designer
 BAML. Analysis, input preparation and draft reset are outside the UI measurements.
 Each draft starts from a resolved preview; the measured edit must clear it without
 committing source. Correctness checks run outside the measured interval.
+
+`Area=Properties` selects an additional 1,000-alarm/ten-file workload with 32
+project parameters, file shadowing, abstract templates, literal escapes and
+alarm-field dependencies. Bridge measurements include a changed captured context.
+CompletionQueries100 invokes the production prefix filter 100 times; it measures
+filtering rather than popup rendering or speech. ContextChangeAndLayout publishes
+precomputed results from alternating contexts; compiler work remains outside that
+UI interval. Run this workload with the same Short job for reproducible evidence:
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Properties'
+```
 
 The launcher sets and restores `ALARMLIST_RUN_PERFORMANCE_TESTS`,
 `ALARMLIST_PERFORMANCE_JOB`, and `ALARMLIST_PERFORMANCE_OUTPUT_DIRECTORY`.
@@ -56,6 +69,8 @@ Latency and designer-close memory belong here. One performance case per host
 invokes `eng/measure-visualstudio-live.ps1` for fixture setup, both measurement
 modes and cleanup, then validates its completion report. It does not rerun the
 functional suite. Shared C# automation primitives are also compiled by that driver.
+Additional live fixture alarms now use a file parameter and a resolved alarm-field
+dependency; workload metadata identifies this change from the literal-only baseline.
 These wrappers target net472; packaged integration tests keep both net472/net8.0,
 and the external functional runner uses net8.0-windows. Ordinary tests in this
 project validate measurement reports and process ownership without launching an IDE.

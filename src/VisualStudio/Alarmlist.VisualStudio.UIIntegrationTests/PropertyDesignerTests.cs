@@ -157,7 +157,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Window window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
             window.SetForeground();
             AutomationElement designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)));
-            designer.Focus(); ide.RequireForeground(); designer.Click();
+            // This context scenario uses UIA selection and DTE buffer operations,
+            // not physical input. Keyboard workflows retain their foreground guard.
+            designer.Patterns.SelectionItem.Pattern.Select();
             ComboBox context = null;
             VisualStudioSession.Wait(() => (context = window.FindFirstDescendant(cf => cf.ByName("Analysis project context"))?.AsComboBox())?.Items.Length == 2, "both linked project contexts");
             SelectContext(context, "Plant.almproj");
@@ -169,6 +171,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             string fileValue = original.Replace("<Alarmlist>", "<Alarmlist><Properties><Property Name='region' Value='File'/></Properties>");
             VisualStudioSession.Wait(() => VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, shared, fileValue), "unsaved linked file assignment");
             ide.OpenDesigner(shared);
+            // ReplaceXmlBuffer deliberately closes every designer view. Project
+            // context is per view, so select it again on the newly opened one.
+            VisualStudioSession.Wait(() => (context = window.FindFirstDescendant(cf => cf.ByName("Analysis project context"))?.AsComboBox())?.Items.Length == 2, "reopened linked contexts");
+            SelectContext(context, "South.almproj");
             VisualStudioSession.Wait(() => Box(window, "Code")?.Text == "File", "unsaved file scope overrides South");
             SelectContext(context, "Plant.almproj");
             VisualStudioSession.Wait(() => Box(window, "Code")?.Text == "File", "same buffer overrides North");

@@ -47,7 +47,9 @@ with current-alarm -> current-file -> project value lookup. Bases supply templat
 content and custom parameter declarations, but their parameter assignments are
 not inherited. The `abstract` XML attribute marks template-only alarms, which remain
 referenceable but are excluded from compiled output. A parameter table and Abstract
-checkbox provide designer editing for these settings. Milestone four is not implemented yet.
+checkbox provide designer editing for these settings. The implementation is present;
+its validation record distinguishes passing automated checks from the remaining
+interactive-desktop and release acceptance gates.
 Alarm-field properties read resolved values; custom parameter assignments remain
 literal. Explicit-empty assignments stop fallback, while unassigned parameters
 use outer scopes and cause errors only when used unresolved by a concrete alarm.
@@ -69,8 +71,8 @@ without a compiler project reference or additional VSIX assemblies.
 Contract 2 requires captured-context analysis and compiled preview support. It
 copies raw expressions, evaluated values, abstract state, availability, and separate
 parameter declaration/assignment origins. Older SDK contracts receive explicit
-update guidance. CPS context capture and designer presentation are being implemented
-in the following milestone-four iterations.
+update guidance. CPS captures project parameters/configuration, and the designer
+uses those results for property completion, scoped values and expression displays.
 
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax
