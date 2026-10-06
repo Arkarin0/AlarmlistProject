@@ -100,6 +100,69 @@ when read from ALMX files. Missing, self, and circular references point to the
 compilation leaves any previous compiled output unchanged. Live analysis of
 unsaved editor buffers is a separate milestone-three feature still in development.
 
+## Property expressions and templates
+
+Expressions are always enabled in Name, Code, Category, Description and procedure
+Step/Hint/Warning/Note text. `$(Name)` inserts a property; `$$` emits a literal
+dollar, so `$$(Name)` remains literal. Inserted custom values are not expanded
+again. FullyQualifiedName and ReferenceName remain literal identifiers.
+
+Declare project parameters with evaluated items (MSBuild escaping rules apply):
+
+```xml
+<ItemGroup>
+  <AlarmlistProperty Include="par1" Value="001" />
+  <AlarmlistProperty Include="unassigned" />
+  <AlarmlistProperty Include="empty" Value="" />
+  <AlarmlistProperty Include="literalToken" Value="%24(par1)" />
+</ItemGroup>
+```
+
+ALMX file and alarm scopes use the same declaration shape:
+
+```xml
+<Alarmlist>
+  <Properties><Property Name="par1" Value="001" /></Properties>
+  <Alarm abstract="true">
+    <FullyQualifiedName>Template</FullyQualifiedName>
+    <Properties><Property Name="par1" /></Properties>
+    <Code>$(par1)</Code>
+    <Description>Inspect $(AlarmlistAlarmCode)</Description>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Child</FullyQualifiedName>
+    <ReferenceName>Template</ReferenceName>
+  </Alarm>
+</Alarmlist>
+```
+
+Only Child is emitted, with Code `001` and Description `Inspect 001`. References
+inherit raw content and parameter declarations; base-alarm assignments and base-file
+values do not flow to descendants. Value lookup uses the current alarm, its own
+file, then the project. Missing Value falls through; `Value=""` stops fallback.
+Unused unassigned parameters are allowed. Names are case-insensitive identifiers
+(`A-Z`, `a-z`, `_`, followed by those characters or digits); `Alarmlist` is reserved.
+Duplicates in one scope are errors. Abstract is local and defaults to false.
+
+Well-known project values are `AlarmlistProjectName`, `AlarmlistProjectFile`,
+`AlarmlistProjectFullPath`, `AlarmlistProjectDirectory`, `AlarmlistProjectExtension`,
+`AlarmlistConfiguration`, and `AlarmlistPlatform`. File equivalents use
+`AlarmlistThisFileName`, `AlarmlistThisFile`, `AlarmlistThisFileFullPath`,
+`AlarmlistThisFileDirectory`, and `AlarmlistThisFileExtension`. Alarm properties use
+`AlarmlistAlarmFullyQualifiedName`, `AlarmlistAlarmReferenceName`, `AlarmlistAlarmName`,
+`AlarmlistAlarmCode`, `AlarmlistAlarmCategory`, and `AlarmlistAlarmDescription`.
+Names omit the extension, File includes it, Extension includes the dot, and Directory
+has no trailing separator except for roots. Inherited expressions use the consuming
+alarm and file. Scalar alarm properties read evaluated values; cycles are errors.
+
+The SDK passes captured project path, Configuration, Platform and AlarmlistProperty
+items to the task. Direct compiler callers use `CompilationContext` overloads of
+Compile, CompileFiles or CompileSnapshots; missing context diagnoses only on use.
+No environment variables or ambient project properties are imported. ALM0005-ALM0012
+cover invalid abstract/expression syntax, unknown or unassigned values, unavailable
+context, scalar cycles, and invalid/duplicate declarations. Failed compilation
+preserves previous output. Source serialization retains raw expressions.
+
 ## Compiler analysis API
 
 The compiler in each SDK task-runtime directory exposes

@@ -1,0 +1,13 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Properties.almx" />
+    <AlarmlistProperty Include="par1" Value="001" Condition="'$(Configuration)' != 'Release'" />
+    <AlarmlistProperty Include="par1" Value="002" Condition="'$(Configuration)' == 'Release'" />
+    <AlarmlistProperty Include="empty" Value="" />
+    <AlarmlistProperty Include="unassigned" />
+    <AlarmlistProperty Include="literal" Value="%24(par1)" />
+  </ItemGroup>
+</Project>

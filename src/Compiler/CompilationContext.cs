@@ -33,14 +33,21 @@ namespace Alarmlist.Compiler
     public sealed class PropertyDefinition
     {
         public PropertyDefinition(string name, string value = null, SourceLocation location = null)
+            : this(name, value, location, false)
+        {
+        }
+
+        internal PropertyDefinition(string name, string value, SourceLocation location, bool invalidContent)
         {
             Name = name;
             Value = value;
             Location = location;
+            HasInvalidContent = invalidContent;
         }
 
         public string Name { get; }
         public string Value { get; }
         public SourceLocation Location { get; }
+        internal bool HasInvalidContent { get; }
     }
 }

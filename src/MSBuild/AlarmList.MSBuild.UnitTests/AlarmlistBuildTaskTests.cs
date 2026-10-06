@@ -172,6 +172,14 @@ namespace AlarmList.MSBuild.UnitTests
             yield return new Diagnostic(DiagnosticDescriptors.MissingReference, "Plant.Alarm", "Plant.Missing");
             yield return new Diagnostic(DiagnosticDescriptors.SelfReference, "Plant.Alarm");
             yield return new Diagnostic(DiagnosticDescriptors.CircularReference, "Plant.A -> Plant.B -> Plant.A");
+            yield return new Diagnostic(DiagnosticDescriptors.InvalidAbstract, "Plant.A", "yes");
+            yield return new Diagnostic(DiagnosticDescriptors.InvalidExpression, "Plant.A", "$(");
+            yield return new Diagnostic(DiagnosticDescriptors.UnknownProperty, "Plant.A", "missing");
+            yield return new Diagnostic(DiagnosticDescriptors.UnassignedProperty, "Plant.A", "p");
+            yield return new Diagnostic(DiagnosticDescriptors.MissingPropertyContext, "Plant.A", "AlarmlistConfiguration");
+            yield return new Diagnostic(DiagnosticDescriptors.CircularFieldDependency, "Plant.A", "Name -> Name");
+            yield return new Diagnostic(DiagnosticDescriptors.InvalidProperty, "bad-name");
+            yield return new Diagnostic(DiagnosticDescriptors.DuplicateProperty, "p");
         }
     }
 }

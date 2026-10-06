@@ -1,0 +1,14 @@
+<Alarmlist>
+  <Alarm abstract="true">
+    <FullyQualifiedName>Template</FullyQualifiedName>
+    <Properties><Property Name="par1" Value="ignored" /></Properties>
+    <Code>$(par1)</Code>
+    <Description>Inspect $(AlarmlistAlarmCode):$(AlarmlistProjectName):$(AlarmlistConfiguration):$(AlarmlistPlatform)</Description>
+    <Name>Empty[$(empty)]</Name>
+    <Category>$(literal)</Category>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Child</FullyQualifiedName>
+    <ReferenceName>Template</ReferenceName>
+  </Alarm>
+</Alarmlist>

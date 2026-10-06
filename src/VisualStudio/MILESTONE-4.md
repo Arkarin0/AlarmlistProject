@@ -825,3 +825,22 @@ the final invalid-path/direct-tree checks. The ordinary solution regression run
 passed with 578 tests and 18 expected opt-in skips before those last two tests and
 the path guard; the final focused compiler run passed afterward. No live IDE or
 performance measurement was run. Existing CA1416 shared-test-helper warnings remain.
+
+### Iteration three: scoped parameters and SDK transport
+
+Added file/alarm Properties parsing and source serialization, immutable parameter
+definitions with assignment presence, same-scope validation, and source-file scope
+retention through binding. Resolution uses current alarm -> current file -> project;
+references contribute declarations only. Explicit empty assignments stop fallback.
+The task and SDK now pass evaluated AlarmlistProperty items and captured project,
+configuration, and platform context. The SDK README documents syntax, well-known
+values, escaping, template behavior, and diagnostics.
+
+Validation: `dotnet test AlarmlistProject.slnx --nologo -v:minimal` passed with 620
+tests and 18 expected opt-in skips. Compiler coverage is 147 per framework; SDK
+coverage is 20 per framework. The new packaged Properties scenario verifies both
+configurations, literal inserted values, empty-versus-absent metadata, template
+exclusion, and preservation of prior output on ALM0008. That scenario also passed
+with desktop MSBuild from VS2022 and VS2026, using net472 tests and the already
+rebuilt package. The temporary host-selection environment variable was restored.
+No live IDE or performance measurement was run.

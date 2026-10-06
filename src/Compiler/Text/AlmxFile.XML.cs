@@ -32,6 +32,7 @@ namespace Alarmlist.Text
         {
             writer.WriteStartElement(WellKnownNodeNames.Alarm);
             if (alarm.IsAbstract) writer.WriteAttributeString("abstract", "true");
+            WriteProperties(alarm.Properties, writer);
             writer.WriteElementString(nameof(alarm.FullyQualifiedName), alarm.FullyQualifiedName);
             writer.WriteElementString(nameof(alarm.ReferenceName), alarm.ReferenceName);
             writer.WriteElementString(nameof(alarm.Name), alarm.GetLocalFieldValue(nameof(alarm.Name)));
@@ -130,6 +131,10 @@ namespace Alarmlist.Text
 
                 switch (reader.LocalName)
                 {
+                    case "Properties":
+                        ReadProperties(reader, result.Properties, filePath, version);
+                        break;
+
                     case nameof(AlarmSyntaxNode.FullyQualifiedName):
                         result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
                         result.FullyQualifiedName = reader.ReadElementContentAsString();
@@ -323,6 +328,7 @@ namespace Alarmlist.Text
         public static bool WriteAlarmlistNode(Syntax.AlarmSyntaxTree value, XmlWriter writer)
         {
             writer.WriteStartElement(WellKnownNodeNames.Alarmlist);
+            WriteProperties(value.Properties, writer);
             foreach (var alarm in value.Alarms)
             {
                 WriteAlarmSyntaxNode(alarm, writer);
@@ -390,10 +396,15 @@ namespace Alarmlist.Text
 
                 switch (reader.LocalName)
                 {
+                    case "Properties":
+                        ReadProperties(reader, result.Properties, filePath, version);
+                        break;
+
                     case WellKnownNodeNames.Alarm:
                         if (ReadAlarmSyntaxNode(reader, filePath, version, out var alarm))
                         {
                             result.Alarms.Add(alarm);
+                            alarm.SourceFile = result;
                         }
                         break;
 
@@ -408,6 +419,49 @@ namespace Alarmlist.Text
 
             value = result;
             return true;
+        }
+
+        private static void WriteProperties(IEnumerable<PropertyDefinition> properties, XmlWriter writer)
+        {
+            if (!properties.Any()) return;
+            writer.WriteStartElement("Properties");
+            foreach (PropertyDefinition property in properties)
+            {
+                writer.WriteStartElement("Property");
+                writer.WriteAttributeString("Name", property.Name);
+                if (property.Value != null) writer.WriteAttributeString("Value", property.Value);
+                writer.WriteEndElement();
+            }
+            writer.WriteEndElement();
+        }
+
+        private static void ReadProperties(XmlReader reader, List<PropertyDefinition> properties, string filePath, int? version)
+        {
+            bool empty = reader.IsEmptyElement;
+            reader.ReadStartElement();
+            if (empty) return;
+            while (reader.MoveToContent() != XmlNodeType.EndElement)
+            {
+                if (reader.NodeType != XmlNodeType.Element) { reader.Read(); continue; }
+                if (reader.LocalName != "Property") { reader.Skip(); continue; }
+                SourceLocation location = GetLocation(reader, filePath, version);
+                string name = reader.GetAttribute("Name");
+                string value = reader.GetAttribute("Value");
+                bool invalidContent = false;
+                bool emptyProperty = reader.IsEmptyElement;
+                reader.ReadStartElement();
+                if (!emptyProperty)
+                {
+                    while (reader.MoveToContent() != XmlNodeType.EndElement)
+                    {
+                        if (reader.NodeType == XmlNodeType.Element || !string.IsNullOrWhiteSpace(reader.Value)) invalidContent = true;
+                        reader.Skip();
+                    }
+                    reader.ReadEndElement();
+                }
+                properties.Add(new PropertyDefinition(name, value, location, invalidContent));
+            }
+            reader.ReadEndElement();
         }
     }
 }

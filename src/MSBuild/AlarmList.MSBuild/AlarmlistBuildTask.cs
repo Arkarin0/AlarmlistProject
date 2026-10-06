@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Alarmlist.Compiler;
 using Alarmlist.Diagnostics;
 using Alarmlist.Output;
@@ -20,11 +21,15 @@ namespace Alarmlist.MSBuild
         [Required]
         public ITaskItem[] Compile { get; set; }
 
+        public string ProjectPath { get; set; }
+        public string Configuration { get; set; }
+        public string Platform { get; set; }
+        public ITaskItem[] Properties { get; set; } = Array.Empty<ITaskItem>();
+
         [Output]
         public string OutputFile { get; set; }
 
         public AlarmlistBuildTask()
-            : this(filePaths => new AlarmCompiler().CompileFiles(filePaths))
         {
         }
 
@@ -49,7 +54,11 @@ namespace Alarmlist.MSBuild
                 var sourceFiles = Compile.ToIncludeList();
                 Log.LogMessage(MessageImportance.High, "Compiling {0} ALMX file(s).", sourceFiles.Length);
 
-                var result = _compileAction(sourceFiles);
+                var context = new CompilationContext(ProjectPath, Configuration, Platform,
+                    (Properties ?? Array.Empty<ITaskItem>()).Select(item => new PropertyDefinition(item.ItemSpec,
+                        item.MetadataNames.Cast<string>().Any(name => string.Equals(name, "Value", StringComparison.OrdinalIgnoreCase))
+                            ? item.GetMetadata("Value") : null)));
+                var result = _compileAction == null ? new AlarmCompiler().CompileFiles(sourceFiles, context) : _compileAction(sourceFiles);
                 LogDiagnostics(result);
 
                 if (!result.Success)

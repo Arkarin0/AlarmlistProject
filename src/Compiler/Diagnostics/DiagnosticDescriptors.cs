@@ -17,7 +17,7 @@ namespace Alarmlist.Diagnostics
         public static readonly DiagnosticDescriptor CircularFieldDependency = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.CircularFieldDependency, "Circular field dependency", "Alarm '{0}' has a circular field dependency: {1}.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidProperty = new DiagnosticDescriptor(
-            DiagnosticWellKnownIds.InvalidProperty, "Invalid parameter declaration", "Invalid parameter declaration '{0}': use an identifier outside the reserved Alarmlist prefix.", DiagnosticSeverity.Error);
+            DiagnosticWellKnownIds.InvalidProperty, "Invalid parameter declaration", "Invalid parameter declaration '{0}': expected an identifier outside the reserved Alarmlist prefix, optional Value attribute, and no content.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor DuplicateProperty = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.DuplicateProperty, "Duplicate parameter", "Parameter '{0}' is declared more than once in the same scope.", DiagnosticSeverity.Error);
 

@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Alarmlist.Compiler;
 using Alarmlist.Syntax;
 
 namespace Alarmlist.Text
@@ -18,6 +19,7 @@ namespace Alarmlist.Text
         }
 
         public ObservableCollection<AlarmSyntaxNode> Alarms { get; protected set; }
+        public ObservableCollection<PropertyDefinition> Properties { get; protected set; } = new ObservableCollection<PropertyDefinition>();
 
         /// <summary>
         /// Reads this instance.
@@ -38,6 +40,7 @@ namespace Alarmlist.Text
         {
             tree = tree ?? new AlarmSyntaxTree();
             Alarms = new ObservableCollection<AlarmSyntaxNode>(tree.Alarms);
+            Properties = new ObservableCollection<PropertyDefinition>(tree.Properties);
         }
 
         /// <summary>
@@ -60,6 +63,7 @@ namespace Alarmlist.Text
         protected virtual AlarmSyntaxTree OnRead()
         {
             var tree = new AlarmSyntaxTree();
+            tree.Properties.AddRange(Properties);
             foreach (var alarm in Alarms)
                 tree.Alarms.Add(alarm);
 

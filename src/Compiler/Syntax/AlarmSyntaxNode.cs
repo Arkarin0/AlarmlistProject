@@ -19,6 +19,10 @@ namespace Alarmlist.Syntax
 
         internal string InvalidAbstractValue { get; set; }
 
+        public List<PropertyDefinition> Properties { get; } = new List<PropertyDefinition>();
+
+        internal AlarmSyntaxTree SourceFile { get; set; }
+
         /// <summary>Gets the local field's declaration location, without following references.</summary>
         public SourceLocation GetFieldLocation(string fieldName)
         {

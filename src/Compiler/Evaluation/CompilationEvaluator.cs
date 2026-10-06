@@ -25,8 +25,11 @@ namespace Alarmlist.Evaluation
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _order = tree.Alarms.ToList();
             ValidateProperties(context.Properties);
+            foreach (AlarmSyntaxTree file in tree.Files.Count == 0 ? new[] { tree } : (IEnumerable<AlarmSyntaxTree>)tree.Files)
+                ValidateProperties(file.Properties);
             foreach (AlarmSyntaxNode alarm in tree.Alarms)
             {
+                ValidateProperties(alarm.Properties);
                 if (alarm.InvalidAbstractValue != null)
                     Report(DiagnosticDescriptors.InvalidAbstract, alarm, alarm.GetFieldLocation("abstract"), alarm.InvalidAbstractValue);
                 var fields = new Dictionary<string, PropertyExpression>();
@@ -64,7 +67,7 @@ namespace Alarmlist.Evaluation
             var names = new Dictionary<string, PropertyDefinition>(StringComparer.OrdinalIgnoreCase);
             foreach (PropertyDefinition property in properties)
             {
-                if (!PropertyExpression.IsValidName(property.Name) || property.Name.StartsWith("Alarmlist", StringComparison.OrdinalIgnoreCase))
+                if (property.HasInvalidContent || !PropertyExpression.IsValidName(property.Name) || property.Name.StartsWith("Alarmlist", StringComparison.OrdinalIgnoreCase))
                 {
                     Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidProperty, property.Name).WithLocation(property.Location));
                     continue;
@@ -158,11 +161,23 @@ namespace Alarmlist.Evaluation
                     if (value == null) _owner.Report(DiagnosticDescriptors.MissingPropertyContext, _alarm, location, name);
                     return value;
                 }
-                PropertyDefinition property = _owner._context.Properties.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
-                if (property?.Value != null) return property.Value;
-                _owner.Report(property == null ? DiagnosticDescriptors.UnknownProperty : DiagnosticDescriptors.UnassignedProperty, _alarm, location, name);
+                PropertyDefinition declaration = null;
+                for (AlarmSyntaxNode current = _alarm; current != null; current = current.Reference)
+                {
+                    PropertyDefinition inherited = Find(current.Properties, name);
+                    if (declaration == null) declaration = inherited;
+                }
+                PropertyDefinition local = Find(_alarm.Properties, name);
+                PropertyDefinition file = Find(_alarm.SourceFile?.Properties ?? Enumerable.Empty<PropertyDefinition>(), name);
+                PropertyDefinition project = Find(_owner._context.Properties, name);
+                value = local?.Value ?? file?.Value ?? project?.Value;
+                if (value != null) return value;
+                _owner.Report(declaration == null && file == null && project == null ? DiagnosticDescriptors.UnknownProperty : DiagnosticDescriptors.UnassignedProperty, _alarm, location, name);
                 return null;
             }
+
+            private static PropertyDefinition Find(IEnumerable<PropertyDefinition> properties, string name)
+                => properties.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
 
             internal Alarm ToAlarm()
             {

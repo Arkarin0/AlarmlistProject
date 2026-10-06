@@ -21,7 +21,8 @@
   <Target Name="Compile" Condition="'$(DesignTimeBuild)' != 'true'">
     <Error Condition="'@(Compile)' == ''" Text="No ALMX files were provided to the Alarmlist compiler." />
     <Error Condition="!Exists('$(AlarmlistTasksAssembly)')" Text="Alarmlist task assembly was not found: $(AlarmlistTasksAssembly). Rebuild or restore the Alarmlist.MSBuild.SDK package." />
-    <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Compile="@(Compile)">
+    <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Compile="@(Compile)"
+                       ProjectPath="$(MSBuildProjectFullPath)" Configuration="$(Configuration)" Platform="$(Platform)" Properties="@(AlarmlistProperty)">
       <Output TaskParameter="OutputFile" PropertyName="CompiledAlarmlistFile" />
     </AlarmlistBuildTask>
     <ItemGroup>
