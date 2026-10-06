@@ -44,15 +44,15 @@ namespace Alarmlist.Analysis
             binder.AddSourceTexts(snapshots.Select(snapshot => snapshot.CreateSourceText()));
             BindingResult binding = binder.Bind();
             var analyzer = new SnapshotAnalyzer(binding);
+            CompilationResult compilation = new AlarmCompiler().CompileBound(binding.SyntaxTree, CompilationContext.Empty);
             string xml = null;
             if (includeCompiledXml && !binding.Diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
             {
                 // Reuse the already-bound syntax and the normal output writer.
                 // Neither a second parse/bind nor editor-side serialization is needed.
-                CompilationResult compilation = new AlarmCompiler().Compile(binding.SyntaxTree);
                 if (compilation.Success) xml = new XmlAlarmlistOutputWriter().WriteToString(compilation.AlarmList);
             }
-            return new AnalysisResult(snapshots, binding.SyntaxTree.Alarms.Select(analyzer.AnalyzeAlarm), binding.Diagnostics, xml);
+            return new AnalysisResult(snapshots, binding.SyntaxTree.Alarms.Select(analyzer.AnalyzeAlarm), binding.Diagnostics.Concat(compilation.Diagnostics), xml);
         }
 
         private void AddEntryOrigins(ReferenceableCollection<ITestProcedureItem> entries, AlarmOrigin alarm, string section)

@@ -31,12 +31,13 @@ namespace Alarmlist.Text
         public static bool WriteAlarmSyntaxNode(Syntax.AlarmSyntaxNode alarm, XmlWriter writer)
         {
             writer.WriteStartElement(WellKnownNodeNames.Alarm);
+            if (alarm.IsAbstract) writer.WriteAttributeString("abstract", "true");
             writer.WriteElementString(nameof(alarm.FullyQualifiedName), alarm.FullyQualifiedName);
             writer.WriteElementString(nameof(alarm.ReferenceName), alarm.ReferenceName);
-            writer.WriteElementString(nameof(alarm.Name), alarm.Name);
-            writer.WriteElementString(nameof(alarm.Code), alarm.Code);
-            writer.WriteElementString(nameof(alarm.Category), alarm.Category);
-            writer.WriteElementString(nameof(alarm.Description), alarm.Description);
+            writer.WriteElementString(nameof(alarm.Name), alarm.GetLocalFieldValue(nameof(alarm.Name)));
+            writer.WriteElementString(nameof(alarm.Code), alarm.GetLocalFieldValue(nameof(alarm.Code)));
+            writer.WriteElementString(nameof(alarm.Category), alarm.GetLocalFieldValue(nameof(alarm.Category)));
+            writer.WriteElementString(nameof(alarm.Description), alarm.GetLocalFieldValue(nameof(alarm.Description)));
             WriteTestProcedureNode(alarm.TestProcedure, writer);
             writer.WriteEndElement();
             return true;
@@ -94,12 +95,29 @@ namespace Alarmlist.Text
             SourceLocation location = GetLocation(reader, filePath, version);
             bool isEmptyElement = reader.IsEmptyElement;
 
+            var result = new Syntax.AlarmSyntaxNode { Location = location };
+            string abstractValue = reader.GetAttribute("abstract");
+            if (abstractValue != null)
+            {
+                reader.MoveToAttribute("abstract");
+                result.SetFieldLocation("abstract", GetLocation(reader, filePath, version));
+                reader.MoveToElement();
+                switch (abstractValue.Trim())
+                {
+                    case "true": case "1": result.IsAbstract = true; break;
+                    case "false": case "0": break;
+                    default: result.InvalidAbstractValue = abstractValue; break;
+                }
+            }
+
             reader.ReadStartElement(); // always consume start
 
             if (isEmptyElement)
-                return false;
-
-            var result = new Syntax.AlarmSyntaxNode { Location = location };
+            {
+                if (abstractValue == null) return false;
+                alarm = result;
+                return true;
+            }
 
             // Read all child elements in a loop (order-independent, version-tolerant)
             while (reader.NodeType != XmlNodeType.EndElement)

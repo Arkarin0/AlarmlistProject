@@ -15,6 +15,10 @@ namespace Alarmlist.Syntax
         /// <summary>The parsed alarm declaration, or null for syntax constructed without source information.</summary>
         public SourceLocation Location { get; internal set; }
 
+        public bool IsAbstract { get; set; }
+
+        internal string InvalidAbstractValue { get; set; }
+
         /// <summary>Gets the local field's declaration location, without following references.</summary>
         public SourceLocation GetFieldLocation(string fieldName)
         {

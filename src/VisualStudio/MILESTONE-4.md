@@ -803,3 +803,25 @@ acceptance, or performance measurement was executed. Existing host acceptance
 remains the milestone-three record. Documentation XML/link checks and
 `git diff --check` also passed. Unrelated playground/launcher work is excluded
 from this iteration's commit.
+
+### Iteration two: compiler expressions and abstract templates
+
+Implemented the compiler-owned Evaluation layer, immutable captured context,
+single-pass token/escape parsing, well-known project/file/alarm properties,
+resolved scalar dependencies and cycle diagnostics. Abstract alarms remain bound
+but are omitted from output; concrete children evaluate inherited raw expressions
+in their own context. Clear-excluded procedure values are not evaluated. Source
+serialization retains local raw expressions and the abstract flag.
+
+All compiler entry points use the evaluator; direct syntax-tree compilation now
+binds references as well. Invalid reference chains no longer contribute partial
+compiled alarms (the prior failure-result assertion was updated); diagnostics and
+the no-output-on-errors build behavior remain. Analysis now includes evaluator
+diagnostics and suppresses failed previews; detached evaluated field/provenance
+data and the context-aware bridge remain iteration four.
+
+Validation: compiler tests pass on net472 and net8.0, 129 per framework, including
+the final invalid-path/direct-tree checks. The ordinary solution regression run
+passed with 578 tests and 18 expected opt-in skips before those last two tests and
+the path guard; the final focused compiler run passed afterward. No live IDE or
+performance measurement was run. Existing CA1416 shared-test-helper warnings remain.
