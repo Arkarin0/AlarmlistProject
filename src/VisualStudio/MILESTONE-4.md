@@ -863,3 +863,19 @@ solution run exposed an outdated package-test log assertion; after correcting it
 expected opt-in skips (compiler 150 per framework, VS units 221). The expanded
 packaged AnalysisContract scenario also passed through desktop MSBuild from both
 VS2022 and VS2026 using the rebuilt assets. No live IDE or measurement was run.
+
+### Iteration five: captured CPS context and invalidation
+
+CPS captures evaluated Configuration, Platform and ordered AlarmlistProperty items
+from the same ProjectInstance as Compile and the SDK path, preserving empty versus
+absent Value metadata. Project snapshots own immutable context data; equality and
+bridge replacement include its values and assignment presence. Analysis forwards
+the captured context through the bridge and retains the existing generation,
+buffer-identity and input-revalidation gates.
+
+Validation: 38 focused project-analysis cases passed, then all 225 VS unit tests
+and 10 VS package-consumer tests per framework passed. New cases cover conditional
+items, duplicates/order, detachment from mutable MSBuild items, linked unsaved
+North/South context isolation, and property-only changes during a non-cancellable
+analysis call. Functional IDE scope cases are grouped with iteration six's completed
+designer workflow; they have not run yet. No live IDE or measurement was run.

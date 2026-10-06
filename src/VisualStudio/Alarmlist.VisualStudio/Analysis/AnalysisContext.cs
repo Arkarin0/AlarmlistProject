@@ -19,6 +19,11 @@ namespace Alarmlist.VisualStudio.Analysis
         public string Configuration { get; }
         public string Platform { get; }
         public IReadOnlyList<AnalysisPropertyDefinition> Properties { get; }
+
+        public bool Matches(AnalysisContext other)
+            => other != null && ProjectPath == other.ProjectPath && Configuration == other.Configuration && Platform == other.Platform
+                && Properties.Count == other.Properties.Count && Properties.Select((property, index) =>
+                    property.Name == other.Properties[index].Name && property.Value == other.Properties[index].Value).All(equal => equal);
     }
 
     [Serializable]

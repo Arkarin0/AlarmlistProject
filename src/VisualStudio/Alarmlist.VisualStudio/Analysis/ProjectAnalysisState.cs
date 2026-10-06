@@ -14,18 +14,21 @@ namespace Alarmlist.VisualStudio.Analysis
         public string Configuration { get; }
         public string CompilerPath { get; }
         public IReadOnlyList<string> Inputs { get; }
+        public AnalysisContext Context { get; }
 
-        public AnalysisProject(string projectPath, string configuration, string compilerPath, IEnumerable<string> inputs)
+        public AnalysisProject(string projectPath, string configuration, string compilerPath, IEnumerable<string> inputs, AnalysisContext context = null)
         {
             ProjectPath = projectPath;
             Configuration = configuration;
             CompilerPath = compilerPath;
             Inputs = Array.AsReadOnly(inputs.ToArray());
+            Context = context ?? new AnalysisContext(projectPath, configuration);
         }
 
         public bool HasSameCompilerContext(AnalysisProject other)
         {
-            return other != null && ProjectPath == other.ProjectPath && Configuration == other.Configuration && CompilerPath == other.CompilerPath;
+            return other != null && ProjectPath == other.ProjectPath && Configuration == other.Configuration && CompilerPath == other.CompilerPath
+                && Context.Matches(other.Context);
         }
     }
 

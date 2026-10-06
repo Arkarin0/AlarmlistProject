@@ -126,7 +126,7 @@ namespace Alarmlist.VisualStudio.Analysis
 
                     var captured = await _inputs.CaptureAsync(project.Inputs, token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();
-                    AnalysisResponse response = _bridge.Analyze(captured.Select(input => input.Input), token);
+                    AnalysisResponse response = _bridge.Analyze(captured.Select(input => input.Input), token, project.Context);
                     token.ThrowIfCancellationRequested();
                     var verified = await _inputs.CaptureAsync(project.Inputs, token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();

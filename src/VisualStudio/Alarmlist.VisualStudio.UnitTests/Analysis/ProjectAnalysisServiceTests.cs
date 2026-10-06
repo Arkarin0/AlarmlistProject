@@ -157,6 +157,54 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Fact]
+        public async Task PropertyChangeInvalidatesInFlightResultsWithoutAnAlmxEditAsync()
+        {
+            var started = NewSignal();
+            using (var release = new ManualResetEventSlim())
+            {
+                var files = new Inputs();
+                files.Set("A", "unchanged", 1);
+                int calls = 0;
+                var factory = new Factory { OnAnalyze = count => { if (Interlocked.Increment(ref calls) == 1) { started.TrySetResult(true); Assert.True(release.Wait(10000)); } } };
+                var service = Create(files, factory);
+                var published = new ConcurrentQueue<string>();
+                service.Changed += (sender, args) =>
+                {
+                    ProjectAnalysisState state = service.Current;
+                    if (state.Status == ProjectAnalysisStatus.Available) published.Enqueue(state.Project.Context.Properties[0].Value);
+                };
+                try
+                {
+                    var oldContext = new AnalysisContext("Plant", "Debug", "AnyCPU", new[] { new AnalysisPropertyDefinition("p", "old") });
+                    service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" }, oldContext));
+                    await WithTimeoutAsync(started.Task);
+                    var newContext = new AnalysisContext("Plant", "Debug", "AnyCPU", new[] { new AnalysisPropertyDefinition("p", "new") });
+                    service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" }, newContext));
+                    Assert.Null(service.Current.Response);
+                    release.Set();
+                    await AvailableAsync(service);
+                    Assert.Equal("new", factory.Bridges.Last().Context.Properties[0].Value);
+                    Assert.Equal(1, factory.Bridges.First().Disposals);
+                    Assert.DoesNotContain("old", published);
+                    Assert.Equal(1, Assert.Single(service.Current.Inputs).Input.Version);
+                }
+                finally { release.Set(); await service.StopAsync(); }
+            }
+        }
+
+        [Fact]
+        public void ContextEqualityPreservesAssignmentPresenceOrderAndConfigurationDimensions()
+        {
+            var original = new AnalysisContext("Plant", "Debug", "AnyCPU", new[] { new AnalysisPropertyDefinition("p", null), new AnalysisPropertyDefinition("q", "1") });
+            Assert.True(original.Matches(new AnalysisContext("Plant", "Debug", "AnyCPU", original.Properties)));
+            Assert.False(original.Matches(new AnalysisContext("Plant", "Debug", "x64", original.Properties)));
+            Assert.False(original.Matches(new AnalysisContext("Plant", "Release", "AnyCPU", original.Properties)));
+            Assert.False(original.Matches(new AnalysisContext("Renamed", "Debug", "AnyCPU", original.Properties)));
+            Assert.False(original.Matches(new AnalysisContext("Plant", "Debug", "AnyCPU", original.Properties.Reverse())));
+            Assert.False(original.Matches(new AnalysisContext("Plant", "Debug", "AnyCPU", new[] { new AnalysisPropertyDefinition("p", ""), original.Properties[1] })));
+        }
+
+        [Fact]
         public async Task InvalidXmlAndReferenceDiagnosticsHaveDifferentStatesAsync()
         {
             var files = new Inputs();
@@ -327,12 +375,14 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             private readonly Factory _factory;
             public int Calls;
             public int Disposals;
+            public AnalysisContext Context;
             public string CompilerPath { get; }
             public string CompilerIdentity => "test";
             public Bridge(string path, Factory factory) { CompilerPath = path; _factory = factory; }
             public AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken token = default, AnalysisContext context = null)
             {
                 AnalysisInput[] captured = inputs.ToArray();
+                Context = context;
                 int count = Interlocked.Increment(ref Calls);
                 _factory.OnAnalyze?.Invoke(count);
                 // Intentionally ignores cancellation to exercise stale-result gates.
