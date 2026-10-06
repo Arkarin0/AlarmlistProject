@@ -45,14 +45,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             using (var model = new AlmxDocumentModel(buffer, _editing))
             using (var view = new EditFileControlViewModel(model, new AlarmViewModelFactory()))
             {
-                view.ParameterScope = "File";
-                view.NewParameterName = "par1";
-                view.AddParameterCommand.Execute(null);
+                view.FileParameters.AddCommand.Execute(null);
                 Assert.Null(view.Error);
                 Assert.Null(Assert.Single(model.Projection.Properties.Properties).Value);
                 var xml = System.Xml.Linq.XDocument.Parse(buffer.Current.Text);
                 Assert.All(xml.Root.Descendants(), element => Assert.Equal(xml.Root.Name.Namespace, element.Name.Namespace));
-                ParameterViewModel row = Assert.Single(view.Parameters);
+                ParameterViewModel row = Assert.Single(view.FileParameters.Rows);
                 row.HasValue = true;
                 Assert.True(view.CommitPending(), view.Error);
                 Assert.Equal("", Assert.Single(model.Projection.Properties.Properties).Value);
@@ -83,20 +81,20 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             using (var view = new EditFileControlViewModel(model, new AlarmViewModelFactory()))
             {
                 view.Fields.Single(field => field.Name == "Code").Value = "$(p)";
-                Assert.Single(view.Parameters).Value = "001";
+                Assert.Single(view.AlarmParameters.Rows).Value = "001";
                 Assert.True(view.CommitPending(), view.Error);
                 Assert.Equal(1, buffer.Edits);
                 Assert.Contains("<Code>$(p)</Code>", buffer.Current.Text);
                 Assert.Contains("Value='001'", buffer.Current.Text);
                 buffer.Undo();
                 Assert.Equal(source, buffer.Current.Text);
-                Assert.Single(view.Parameters).Value = "draft";
+                Assert.Single(view.AlarmParameters.Rows).Value = "draft";
                 buffer.SetText(source.Replace("Value='old'", "Value='external'"));
-                Assert.Equal("draft", Assert.Single(view.Parameters).Value);
+                Assert.Equal("draft", Assert.Single(view.AlarmParameters.Rows).Value);
                 Assert.False(view.CommitPending());
                 Assert.Contains("another view", view.Error);
                 view.CancelPending();
-                Assert.Equal("external", Assert.Single(view.Parameters).Value);
+                Assert.Equal("external", Assert.Single(view.AlarmParameters.Rows).Value);
             }
         }
 
@@ -124,30 +122,30 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             using (var session = new SemanticSession(PropertyChild))
             {
                 session.Analyze(PropertyBase);
-                ParameterViewModel row = Assert.Single(session.View.Parameters);
+                ParameterViewModel row = Assert.Single(session.View.AlarmParameters.Rows);
                 Assert.False(row.IsLocal);
                 Assert.Equal("001", row.EffectiveDisplay);
                 Assert.Contains("Declaration: Alarm Base", row.OriginText);
                 Assert.Contains("Assignment: File", row.OriginText);
                 row.DeclareCommand.Execute(null);
                 session.Analyze(PropertyBase);
-                row = Assert.Single(session.View.Parameters);
+                row = Assert.Single(session.View.AlarmParameters.Rows);
                 Assert.True(row.IsLocal);
                 Assert.False(row.HasValue);
                 Assert.Equal("001", row.EffectiveDisplay);
                 row.HasValue = true;
                 Assert.True(session.View.CommitPending(), session.View.Error);
                 session.Analyze(PropertyBase);
-                Assert.Equal("(empty)", Assert.Single(session.View.Parameters).EffectiveDisplay);
+                Assert.Equal("(empty)", Assert.Single(session.View.AlarmParameters.Rows).EffectiveDisplay);
                 Assert.Equal("", session.Field("Code").EffectiveValue);
-                row = Assert.Single(session.View.Parameters);
+                row = Assert.Single(session.View.AlarmParameters.Rows);
                 row.HasValue = false;
                 Assert.True(session.View.CommitPending(), session.View.Error);
                 session.Analyze(PropertyBase);
                 Assert.Equal("001", row.EffectiveDisplay);
                 row.DeleteCommand.Execute(null);
                 session.Analyze(PropertyBase);
-                Assert.False(Assert.Single(session.View.Parameters).IsLocal);
+                Assert.False(Assert.Single(session.View.AlarmParameters.Rows).IsLocal);
                 Assert.DoesNotContain("ignored", session.Buffer.Current.Text);
             }
         }
@@ -168,8 +166,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 await session.View.PendingAnalysisAction;
                 Assert.Contains("<Clear", session.Buffer.Current.Text);
                 Assert.Contains("Check $(par1) $$(escaped)", session.Buffer.Current.Text);
-                session.View.ParameterScope = "File";
-                Assert.Single(session.View.Parameters).Value = "002";
+                Assert.Single(session.View.FileParameters.Rows).Value = "002";
                 Assert.True(session.View.CommitPending(), session.View.Error);
                 session.Analyze(PropertyBase);
                 Assert.Equal("002", session.Field("Code").ResolvedValue);

@@ -127,11 +127,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             using (var session = new SemanticSession(PropertyChild))
             {
                 session.Analyze(PropertyBase);
-                session.View.ParameterScope = "File";
-                ParameterViewModel row = Assert.Single(session.View.Parameters);
+                ParameterViewModel row = Assert.Single(session.View.FileParameters.Rows);
                 row.Value = "draft";
                 session.Analyze(PropertyBase);
-                Assert.Same(row, Assert.Single(session.View.Parameters));
+                Assert.Same(row, Assert.Single(session.View.FileParameters.Rows));
                 Assert.Equal("draft", row.Value);
                 Assert.Contains("Waiting", row.EffectiveDisplay);
                 Assert.Empty(session.View.CompletionProperties);

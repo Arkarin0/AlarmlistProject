@@ -35,19 +35,22 @@ namespace Alarmlist.VisualStudio.Documents
 
         public bool SetValues(AlmxProjection baseline, AlarmSource original, IReadOnlyDictionary<string, string> values,
             IReadOnlyList<ProcedureValueChange> procedures, IReadOnlyList<PropertyValueChange> properties, bool fileProperties, out string error)
+            => SetValues(baseline, original, values, procedures,
+                fileProperties ? Array.Empty<PropertyValueChange>() : properties,
+                fileProperties ? properties : Array.Empty<PropertyValueChange>(), out error);
+
+        public bool SetValues(AlmxProjection baseline, AlarmSource original, IReadOnlyDictionary<string, string> values,
+            IReadOnlyList<ProcedureValueChange> procedures, IReadOnlyList<PropertyValueChange> alarmProperties,
+            IReadOnlyList<PropertyValueChange> fileProperties, out string error)
         {
             return Apply(() =>
             {
-                AlarmSource current = original == null ? null : FindCurrent(baseline, original);
-                if (current == null && (values.Count != 0 || procedures.Count != 0 || (!fileProperties && properties.Count != 0)))
+                bool editsAlarm = values.Count != 0 || procedures.Count != 0 || alarmProperties.Count != 0;
+                AlarmSource current = !editsAlarm || original == null ? null : FindCurrent(baseline, original);
+                if (current == null && editsAlarm)
                     throw new InvalidOperationException("Select an alarm to edit its values.");
-                if (properties.Count != 0)
-                {
-                    PropertyScopeSource beforeScope = fileProperties ? baseline.Properties : original.Properties;
-                    PropertyScopeSource afterScope = fileProperties ? Projection.Properties : current.Properties;
-                    if (beforeScope.GetText(baseline) != afterScope.GetText(Projection))
-                        throw new InvalidOperationException("These parameters changed in another view. Press Escape to reload them.");
-                }
+                if (alarmProperties.Count != 0) CheckPropertyBaseline(baseline, original.Properties, current.Properties);
+                if (fileProperties.Count != 0) CheckPropertyBaseline(baseline, baseline.Properties, Projection.Properties);
                 foreach (string field in values.Keys)
                     if (current.GetValue(field) != original.GetValue(field) || current.HasField(field) != original.HasField(field))
                         throw new InvalidOperationException("This field changed in another view. Press Escape to reload its current value.");
@@ -67,9 +70,15 @@ namespace Alarmlist.VisualStudio.Documents
                     updated = _editing.Parse(edit.Apply(updated.Text));
                     if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
                 }
-                foreach (PropertyValueChange change in properties)
+                foreach (PropertyValueChange change in alarmProperties)
                 {
-                    SourceEdit edit = _editing.SetProperty(updated, fileProperties ? null : updated.Alarms[index], change);
+                    SourceEdit edit = _editing.SetProperty(updated, updated.Alarms[index], change);
+                    updated = _editing.Parse(edit.Apply(updated.Text));
+                    if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
+                }
+                foreach (PropertyValueChange change in fileProperties)
+                {
+                    SourceEdit edit = _editing.SetProperty(updated, null, change);
                     updated = _editing.Parse(edit.Apply(updated.Text));
                     if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
                 }
@@ -82,6 +91,12 @@ namespace Alarmlist.VisualStudio.Documents
                 while (end < before.Length - start && end < after.Length - start && before[before.Length - end - 1] == after[after.Length - end - 1]) end++;
                 return new SourceEdit(start, before.Length - start - end, after.Substring(start, after.Length - start - end));
             }, "Edit alarm fields", out error);
+        }
+
+        private void CheckPropertyBaseline(AlmxProjection baseline, PropertyScopeSource before, PropertyScopeSource after)
+        {
+            if (before.GetText(baseline) != after.GetText(Projection))
+                throw new InvalidOperationException("These parameters changed in another view. Press Escape to reload them.");
         }
 
         public bool AddAlarm(out string error) => Apply(() => _editing.AddAlarm(Projection), "Add alarm", out error);

@@ -1062,3 +1062,27 @@ Passing TRX evidence under `artifacts/log/Release/VisualStudioUI/`:
 The failed retries and their captures remain retained. Actual screen-reader speech,
 native high contrast, mixed DPI, typing/paint measurements, longer host-memory
 acceptance and release checks remain open; the keyboard passes do not replace them.
+
+### Parameter-list redesign: iteration one (2026-10-07)
+
+The owner approved previews replacing the parameter cards and scope selector with
+two simultaneous Name/Value ListViews. File parameters now span the top of the file
+editor above alarm filtering; alarm parameters remain below the two previews in
+the selected alarm pane. Each list has Add, Remove and Row actions, an independently
+selected row, assignment-origin details, and explicit empty/fallback actions.
+File parameters remain editable without a selected alarm. Editing does not change
+the compiler's scope, template, or assignment rules.
+
+The document model commits file parameters, alarm parameters, scalar fields and
+procedure drafts in one atomic edit, checking both parameter scopes for concurrent
+changes. Refresh-driven list selection cannot commit drafts. Parameter cells retain
+focus through commits; row-action popups close and release their context on unload.
+
+Validation: all 254 VS unit tests passed (seven new cases), including scope isolation,
+combined Undo, concurrent edits, WPF cell editing, UIA's two-column grid contract,
+toolbar focus, popup cleanup and the existing collectibility coverage. Two focused
+layout cases passed again after the final scrollbar adjustment. Actual WPF renders
+at 900/dark and 440/light are under `artifacts/log/Milestone4/ParameterLists/Render/`;
+unit TRX files are under the adjacent `Unit/` directory. These are isolated themed
+renders, not native-IDE theme or DPI acceptance. IDE test adaptation and execution
+follow in the next iteration.

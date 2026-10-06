@@ -1,0 +1,145 @@
+<UserControl x:Class="Alarmlist.VisualStudio.UI.ParameterListControl"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
+  xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+  Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visibility" />
+    <Style x:Key="CellEditor" TargetType="TextBox">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListViewItem}}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="6,4" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="IsUndoEnabled" Value="False" />
+      <EventSetter Event="GotKeyboardFocus" Handler="OnCellFocus" />
+      <Style.Triggers>
+        <Trigger Property="IsKeyboardFocused" Value="True">
+          <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
+          <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+          <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+          <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /></Trigger>
+          <Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /></Trigger>
+          <Trigger Property="IsPressed" Value="True"><Setter Property="Opacity" Value="0.75" /></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5" /></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style TargetType="GridViewColumnHeader">
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Padding" Value="8,5" />
+    </Style>
+    <Style TargetType="ContextMenu">
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+    </Style>
+  </UserControl.Resources>
+  <Grid>
+    <Expander x:Name="Section" Header="{Binding Heading}" IsExpanded="True" Padding="0,4,0,0"
+              Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
+      <StackPanel Margin="0,8,0,0">
+        <ListView x:Name="ParameterList" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}"
+                  IsEnabled="{Binding CanEdit}" SelectionMode="Single" MaxHeight="170" MinHeight="36"
+                  Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+                  Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+                  BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  AutomationProperties.Name="{Binding Heading}" SizeChanged="OnListSizeChanged" ScrollViewer.ScrollChanged="OnListScrollChanged">
+          <ListView.ItemContainerStyle><Style TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+            <Setter Property="AutomationProperties.HelpText" Value="{Binding OriginText}" />
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListViewItem">
+              <Border Background="{TemplateBinding Background}" BorderThickness="0,0,0,1"
+                      BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}">
+                <GridViewRowPresenter Content="{TemplateBinding Content}"
+                                      Columns="{Binding View.Columns, RelativeSource={RelativeSource AncestorType=ListView}}" />
+              </Border>
+            </ControlTemplate></Setter.Value></Setter>
+            <Style.Triggers><Trigger Property="IsSelected" Value="True">
+              <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
+              <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}" />
+            </Trigger></Style.Triggers>
+          </Style></ListView.ItemContainerStyle>
+          <ListView.View>
+            <GridView AllowsColumnReorder="False">
+              <GridViewColumn x:Name="NameColumn" Header="Name" Width="180">
+                <GridViewColumn.CellTemplate><DataTemplate>
+                  <TextBox Style="{StaticResource CellEditor}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                           IsReadOnly="{Binding IsNameReadOnly}"
+                           AutomationProperties.Name="{Binding NameAutomationName}" AutomationProperties.HelpText="{Binding OriginText}" />
+                </DataTemplate></GridViewColumn.CellTemplate>
+              </GridViewColumn>
+              <GridViewColumn x:Name="ValueColumn" Header="Value" Width="280">
+                <GridViewColumn.CellTemplate><DataTemplate>
+                  <Grid>
+                    <TextBox x:Name="ValueEditor" Style="{StaticResource CellEditor}" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
+                             Visibility="{Binding CanEditValue, Converter={StaticResource Visibility}}"
+                             AutomationProperties.Name="{Binding ValueAutomationName}" AutomationProperties.HelpText="{Binding OriginText}" />
+                    <TextBlock Text="(empty)" FontStyle="Italic" Opacity="0.7" Margin="7,5" IsHitTestVisible="False">
+                      <TextBlock.Style><Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding IsEmpty}" Value="True" />
+                          <Condition Binding="{Binding ElementName=ValueEditor, Path=IsKeyboardFocused}" Value="False" />
+                          <Condition Binding="{Binding CanEditValue}" Value="True" />
+                        </MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible" /></MultiDataTrigger></Style.Triggers>
+                      </Style></TextBlock.Style>
+                    </TextBlock>
+                    <DockPanel Visibility="{Binding IsValueReadOnly, Converter={StaticResource Visibility}}">
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding ValueSourceHint}" VerticalAlignment="Center" Margin="6,0" Opacity="0.7" />
+                      <TextBox Style="{StaticResource CellEditor}" Text="{Binding DisplayValue, Mode=OneWay}" IsReadOnly="True"
+                               AutomationProperties.Name="{Binding ValueAutomationName}" AutomationProperties.HelpText="{Binding OriginText}" />
+                    </DockPanel>
+                  </Grid>
+                </DataTemplate></GridViewColumn.CellTemplate>
+              </GridViewColumn>
+            </GridView>
+          </ListView.View>
+        </ListView>
+        <TextBlock Text="{Binding SelectionDetails}" TextWrapping="Wrap" Margin="4,5,0,0" Opacity="0.8" />
+        <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" Margin="4,2,0,0" />
+      </StackPanel>
+    </Expander>
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+      <Button Content="+ Add" Command="{Binding AddCommand}" Click="OnAdd" Padding="7,2" Margin="0,0,4,0"
+              AutomationProperties.Name="{Binding ScopeName, StringFormat=Add {0} parameter}" />
+      <Button Content="Remove" Command="{Binding RemoveCommand}" Padding="7,2" Margin="0,0,4,0"
+              AutomationProperties.Name="{Binding ScopeName, StringFormat=Remove {0} parameter}" />
+      <Button x:Name="RowActionsButton" Content="Row actions ▾" Click="OnRowActions" Padding="7,2" Margin="0"
+              AutomationProperties.Name="{Binding ScopeName, StringFormat=Row actions for {0} parameters}">
+        <Button.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="Assign value…" Command="{Binding AssignCommand}" Click="OnAssign" />
+            <MenuItem Header="Assign empty value" Command="{Binding AssignEmptyCommand}" />
+            <MenuItem Header="{Binding FallbackLabel}" Command="{Binding UseFallbackCommand}" IsChecked="{Binding UsesFallback, Mode=OneWay}" />
+            <Separator />
+            <MenuItem Header="Declare here" Command="{Binding DeclareCommand}" />
+            <MenuItem Header="Remove local declaration" Command="{Binding RemoveCommand}" />
+          </ContextMenu>
+        </Button.ContextMenu>
+      </Button>
+    </StackPanel>
+  </Grid>
+</UserControl>

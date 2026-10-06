@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using Alarmlist.VisualStudio.Analysis;
 using Alarmlist.VisualStudio.Editing;
@@ -11,27 +10,10 @@ namespace Alarmlist.VisualStudio.UI
 {
     internal sealed partial class EditFileControlViewModel
     {
-        private string _parameterScope = "Alarm";
-        public IReadOnlyList<string> ParameterScopes { get; } = BindingCollection.Create(new[] { "Alarm", "File" });
-        public ObservableCollection<ParameterViewModel> Parameters { get; } = new ObservableCollection<ParameterViewModel>();
+        public ParameterListViewModel FileParameters { get; private set; }
+        public ParameterListViewModel AlarmParameters { get; private set; }
+        private IEnumerable<ParameterViewModel> AllParameters => FileParameters.Rows.Concat(AlarmParameters.Rows);
         public IReadOnlyList<PropertyCompletion> CompletionProperties { get; private set; } = Array.Empty<PropertyCompletion>();
-        public string ParameterError { get; private set; }
-        public string NewParameterName { get; set; } = "par1";
-        public bool CanEditParameters => IsValid && (FileParameters || CanEdit) && ParameterError == null;
-        private bool FileParameters => ParameterScope == "File";
-        public string ParameterScope
-        {
-            get => _parameterScope;
-            set
-            {
-                if (value == _parameterScope || (value != "File" && value != "Alarm")) return;
-                if (!CommitPending()) { Notify(); return; }
-                _parameterScope = value;
-                Parameters.Clear();
-                RefreshAnalysis();
-                Notify();
-            }
-        }
         public bool IsAbstract
         {
             get => _original?.IsAbstract == true;
@@ -42,54 +24,53 @@ namespace Alarmlist.VisualStudio.UI
                 Notify(); Notify(nameof(Error));
             }
         }
-        public DelegateCommand AddParameterCommand { get; private set; }
 
         private void InitializeProperties()
         {
-            AddParameterCommand = new DelegateCommand(() =>
-            {
-                if (!CommitPending() || !CanEditParameters) return;
-                _model.SetProperty(_baseline, _original, new PropertyValueChange(null, NewParameterName, null), FileParameters, out _error);
-                Notify(nameof(Error));
-            }, () => CanEditParameters);
+            FileParameters = new ParameterListViewModel(true, CommitPending, OnDraftChanged, EditParameter);
+            AlarmParameters = new ParameterListViewModel(false, CommitPending, OnDraftChanged, EditParameter);
         }
 
-        private void EditParameterDeclaration(ParameterViewModel row, bool delete)
+        private void EditParameter(ParameterListViewModel list, ParameterViewModel row, ParameterAction action)
         {
-            string name = row.Name;
-            if (!CommitPending() || !CanEditParameters) return;
-            _model.SetProperty(_baseline, _original, new PropertyValueChange(delete ? name : null, delete ? null : name, null), FileParameters, out _error);
+            string name = row?.Name;
+            if (!CommitPending() || !list.CanEdit) return;
+            if (action == ParameterAction.Add)
+            {
+                int index = 1;
+                do { name = "par" + index++; } while (list.Rows.Any(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase)));
+                _model.SetProperty(_baseline, _original, new PropertyValueChange(null, name, null), list.IsFile, out _error);
+            }
+            else
+            {
+                row = list.Rows.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
+                if (row == null || (row.IsLocal && !row.CanEdit)) return;
+                if (action == ParameterAction.Declare && row.IsLocal) return;
+                if (action == ParameterAction.Remove && !row.IsLocal) return;
+                string value = action == ParameterAction.AssignEmpty ? ""
+                    : action == ParameterAction.Assign ? row.HasValue ? row.Value : "" : null;
+                _model.SetProperty(_baseline, _original, new PropertyValueChange(row.OriginalName,
+                    action == ParameterAction.Remove ? null : name, value), list.IsFile, out _error);
+            }
+            list.SelectName(name);
             Notify(nameof(Error));
         }
 
+        private static PropertyValueChange[] ParameterChanges(ParameterListViewModel list) => list.Rows.Where(row => row.HasChanges)
+            .Select(row => new PropertyValueChange(row.OriginalName, row.Name, row.HasValue ? row.Value : null)).ToArray();
+
         private void RefreshProperties(ProjectAnalysisState state, AnalysisAlarm alarm)
         {
-            PropertyScopeSource scope = FileParameters ? _model.Projection.Properties : _original?.Properties;
-            ParameterError = scope?.Error;
             bool current = state?.Status == ProjectAnalysisStatus.Available && state.Response?.Snapshot != null && DiagnosticDocumentMatches(state);
-            IReadOnlyList<AnalysisProperty> properties = current ? FileParameters
-                ? state.Response.Snapshot.Sources.FirstOrDefault(source => string.Equals(source.FilePath, _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase))?.Properties
-                : alarm?.Properties : null;
-            PropertySource[] local = scope?.Properties.ToArray() ?? Array.Empty<PropertySource>();
-            if (!Parameters.Any(row => row.HasChanges))
-            {
-                string[] names = local.Select(property => property.Name).Concat((properties ?? Array.Empty<AnalysisProperty>())
-                    .Where(property => !property.IsWellKnown).Select(property => property.Name)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-                if (!Parameters.Select(row => row.Name).SequenceEqual(names, StringComparer.OrdinalIgnoreCase))
-                {
-                    Parameters.Clear();
-                    foreach (string name in names) Parameters.Add(new ParameterViewModel(name, OnDraftChanged, EditParameterDeclaration));
-                }
-                foreach (ParameterViewModel row in Parameters)
-                    row.Load(local.FirstOrDefault(property => string.Equals(property.Name, row.Name, StringComparison.OrdinalIgnoreCase)), scope?.Error == null);
-            }
-            foreach (ParameterViewModel row in Parameters)
-                row.SetAnalysis(properties?.FirstOrDefault(property => string.Equals(property.Name, row.OriginalName ?? row.Name, StringComparison.OrdinalIgnoreCase)));
+            bool parameterDraft = AllParameters.Any(row => row.HasChanges);
+            IReadOnlyList<AnalysisProperty> fileProperties = current ? state.Response.Snapshot.Sources
+                .FirstOrDefault(source => string.Equals(source.FilePath, _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase))?.Properties : null;
+            FileParameters.Refresh(_model.Projection.Properties, fileProperties, IsValid, current && !parameterDraft);
+            AlarmParameters.Refresh(_original?.Properties, current ? alarm?.Properties : null, CanEdit, current && !parameterDraft);
             bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
-            CompletionProperties = BindingCollection.Create(current && alarm?.IsResolved == true && !identityDraft && !Parameters.Any(row => row.HasChanges)
+            CompletionProperties = BindingCollection.Create(current && alarm?.IsResolved == true && !identityDraft && !parameterDraft
                 ? alarm.Properties.Select(property => new PropertyCompletion(property, !HasPending)) : Enumerable.Empty<PropertyCompletion>());
-            Notify(nameof(CompletionProperties)); Notify(nameof(ParameterError)); Notify(nameof(CanEditParameters)); Notify(nameof(IsAbstract));
-            AddParameterCommand?.Refresh();
+            Notify(nameof(CompletionProperties)); Notify(nameof(IsAbstract));
         }
     }
 }

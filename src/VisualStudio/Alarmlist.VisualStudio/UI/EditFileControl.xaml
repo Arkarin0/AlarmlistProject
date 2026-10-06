@@ -41,8 +41,9 @@
     </DataTemplate>
   </UserControl.Resources>
   <Grid Margin="12">
-    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-    <DockPanel Margin="0,0,0,8">
+    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+    <ui:ParameterListControl DataContext="{Binding FileParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,0,12" />
+    <DockPanel Grid.Row="1" Margin="0,0,0,8">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
         <Button Content="_Add alarm" Command="{Binding AddCommand}" />
         <Button Content="_Delete" Command="{Binding DeleteCommand}" />
@@ -50,7 +51,7 @@
       <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
       <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter alarms" ToolTip="Filter alarms by name or identifier" Margin="0,0,10,0" />
     </DockPanel>
-    <StackPanel Grid.Row="1" Margin="0,0,0,8">
+    <StackPanel Grid.Row="2" Margin="0,0,0,8">
       <ComboBox ItemsSource="{Binding Projects}" SelectedValuePath="ProjectPath" SelectedValue="{Binding SelectedProjectPath}"
                 AutomationProperties.Name="Analysis project context" Margin="0,0,0,4">
         <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem">
@@ -89,7 +90,7 @@
         </ScrollViewer>
       </Expander>
     </StackPanel>
-    <Grid Grid.Row="2">
+    <Grid Grid.Row="3">
       <Grid.ColumnDefinitions><ColumnDefinition x:Name="ListColumn" Width="220" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
       <ListBox x:Name="AlarmList" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" Background="Transparent" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,12,0" AutomationProperties.Name="Alarms">
         <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Title}" /></Style></ListBox.ItemContainerStyle>
@@ -142,37 +143,7 @@
                        AutomationProperties.Name="Compiled project XML" AutomationProperties.HelpText="{Binding XmlPreviewMessage}" />
             </StackPanel>
           </Expander>
-          <Expander Header="Parameters" IsExpanded="True" Margin="0,0,8,12">
-            <StackPanel Margin="0,6,0,0">
-              <WrapPanel Margin="0,0,0,6">
-                <TextBlock Text="Edit scope" VerticalAlignment="Center" Margin="0,0,8,0" />
-                <ComboBox ItemsSource="{Binding ParameterScopes}" SelectedItem="{Binding ParameterScope}" MinWidth="90" AutomationProperties.Name="Parameter scope" />
-              </WrapPanel>
-              <TextBlock Text="Assigned empty values stop fallback. Clear Assigned to use the file or project value. Template assignments are not inherited." TextWrapping="Wrap" Margin="0,0,0,6" />
-              <ui:LiveStatusTextBlock Text="{Binding ParameterError}" TextWrapping="Wrap" />
-              <ItemsControl ItemsSource="{Binding Parameters}" IsEnabled="{Binding CanEditParameters}">
-                <ItemsControl.ItemTemplate><DataTemplate>
-                  <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" Padding="6" Margin="0,0,0,6">
-                    <StackPanel>
-                      <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" LostKeyboardFocus="OnFieldLostFocus" IsUndoEnabled="False" AutomationProperties.Name="Parameter name" />
-                      <CheckBox Content="Assigned" IsChecked="{Binding HasValue}" IsEnabled="{Binding CanEdit}" Click="OnPresenceChanged" Margin="0,4,0,4" AutomationProperties.Name="{Binding Name, StringFormat=Assign {0}}" />
-                      <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEditValue}" LostKeyboardFocus="OnFieldLostFocus" IsUndoEnabled="False" AutomationProperties.Name="{Binding Name, StringFormat=Value of {0}}" />
-                      <TextBlock Text="{Binding EffectiveDisplay, StringFormat=Effective: {0}}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                      <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
-                      <WrapPanel Margin="0,4,0,0">
-                        <Button Content="Declare here" Command="{Binding DeclareCommand}" AutomationProperties.Name="{Binding Name, StringFormat=Declare {0} here}" />
-                        <Button Content="Remove local" Command="{Binding DeleteCommand}" AutomationProperties.Name="{Binding Name, StringFormat=Remove local {0}}" />
-                      </WrapPanel>
-                    </StackPanel>
-                  </Border>
-                </DataTemplate></ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <WrapPanel Margin="0,4,0,0">
-                <TextBox Text="{Binding NewParameterName, UpdateSourceTrigger=PropertyChanged}" MinWidth="120" Margin="0,0,6,0" AutomationProperties.Name="New parameter name" />
-                <Button Content="Add parameter" Command="{Binding AddParameterCommand}" />
-              </WrapPanel>
-            </StackPanel>
-          </Expander>
+          <ui:ParameterListControl DataContext="{Binding AlarmParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,8,12" />
           <StackPanel IsEnabled="{Binding CanEdit}">
           <CheckBox Content="Abstract template (excluded from output)" IsChecked="{Binding IsAbstract}" Margin="0,0,8,12" AutomationProperties.Name="Abstract template" />
           <StackPanel Margin="0,0,8,12">
