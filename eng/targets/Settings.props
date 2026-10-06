@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
-  <Import Project="UnitTests.props" Condition="$(IsUnitTestProject)"/>
+  <Import Project="UnitTests.props" Condition="'$(IsUnitTestProject)' == 'true'"/>
 
     <!--Shared Nuget and Project properties.-->
 	<PropertyGroup>

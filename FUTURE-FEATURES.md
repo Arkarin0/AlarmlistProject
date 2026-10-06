@@ -4,12 +4,21 @@ Status: ideas for future development, recorded on 2026-09-24. These notes captur
 intent and open design questions; they do not define implemented behavior,
 committed milestones, or a delivery schedule.
 
-Planning update (2026-09-25): the proposed
+Planning update (2026-10-06): the
 [milestone-four plan](src/VisualStudio/MILESTONE-4.md) selects well-known and custom
-string properties plus their designer completion as its scope. It supplies
-recommended answers to the property questions below; these notes retain the
-broader ideas. Localization, NuGet alarm libraries, XML completion, and syntax
-generation remain unassigned. The proposal does not describe implemented behavior.
+string properties plus their designer completion as its scope. The owner confirmed
+Project/File/Alarm declarations, resolved well-known alarm values, literal parameter substitution,
+focus-dependent raw/resolved display, expression-preserving copies, and integrated
+support without activation or backward-compatibility requirements for unreleased
+versions. References inherit custom parameter declarations but not assigned values.
+Inherited expressions evaluate with current-alarm -> current-file -> project value
+lookup, preserving the selected child-context approach.
+An `abstract` XML attribute identifies template-only alarms, excluded from compiled
+output while remaining usable as reference targets with unresolved parameters.
+The designer includes a parameter table for editing values and an Abstract checkbox.
+Localization and NuGet alarm libraries remain for later milestones;
+XML completion and syntax generation remain unassigned. The plan does not describe
+implemented behavior.
 
 ## Well-known properties and custom properties
 
@@ -17,21 +26,53 @@ Introduce `wellknownProperties`: predefined values that can be referenced in ALM
 input using an MSBuild-like property expression, such as `$(PropertyName)`.
 The behavioral reference is
 [MSBuild reserved and well-known properties](https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-reserved-and-well-known-properties?view=visualstudio).
-MSBuild distinguishes reserved properties from well-known properties; Alarmlist's
-property names and override rules remain to be defined.
+MSBuild distinguishes reserved properties from well-known properties. The milestone
+four plan proposes an Alarmlist catalog covering project/file identity and alarm
+values; exact names remain implementation design work.
 
 Start with well-known properties, then extend the mechanism to support custom
 properties defined by the programmer.
 
-Open questions:
+Confirmed direction (2026-10-06):
 
-- Which predefined properties should exist, and where do their values come from?
-- Which alarm fields and procedure values allow property expressions?
-- Where are custom properties declared, and what are their scope and precedence?
-- When does expansion happen relative to reference inheritance and localization?
-- How should escaping, unknown names, nested expressions, and cycles behave?
-- How is the same evaluation context supplied to standalone compilation, MSBuild,
-  and the Visual Studio editor?
+- Property declarations belong to Project, File, or Alarm scopes. PowerShell
+  scope rules inform visibility/shadowing. References inherit parameter declarations
+  through bases, without inheriting assignments. Local and inherited expressions
+  find values through current Alarm -> current alarm's File -> Project. Neither
+  base assignments nor base-file values enter that chain.
+- An `abstract` XML attribute on Alarm marks a template-only definition. Such
+  alarms stay available to references and analysis but produce no compiled alarm
+  entry; parameter values are resolved when concrete alarms use the template.
+- Expressions apply to Name, Code, Category, Description, and procedure text;
+  FullyQualifiedName and ReferenceName keep literal contents, although their
+  values can be exposed as well-known properties.
+- Unassigned parameters fall back to file/project values; explicit empty stops
+  lookup. Used but unresolved parameters fail concrete compilation, while unused
+  parameters may remain unassigned.
+- Raw scalar/procedure content, including literal values, remains inherited;
+  the rule excluding inherited assignments applies only to custom parameters.
+- Custom assignments are literal and inserted strings are never rescanned.
+  Alarm-field properties expose resolved values: Code=`$(par1)` with par1=`001`
+  makes Description=`Inspect $(AlarmlistAlarmCode)` resolve to `Inspect 001`.
+  Field-dependency evaluation and cycle diagnostics belong to the compiler.
+- Fields show resolved text until focused, then edit the raw expression. Local
+  copy actions preserve expressions so property changes continue to flow.
+- Include a designer parameter table and an Abstract checkbox, backed by the
+  same source XML and Undo/Redo workflow as existing editing controls.
+- The feature is integrated without explicit activation. Backward compatibility
+  with earlier unreleased behavior is not required.
+
+The confirmed [inherited-expression context](src/VisualStudio/MILESTONE-4.md#inherited-expression-context)
+makes bases reusable templates: child properties and well-known alarm values
+customize inherited text. A parameter can be inherited without an assignment and
+obtain its value from the child's file or project; a base's own assignment applies
+only to that base alarm. Raw-expression local copies preserve their result while
+the reference/context stay unchanged. Raw alarm fields/procedure content still
+form the inherited template. Implementation design must distinguish declarations,
+assignment presence (including explicit empty), winning value origins, and abstract
+state, and finalize syntax and diagnostics. The plan proposes a local, non-inherited
+abstract flag that defaults to false, with source/reference validation retained for
+templates. Localization remains later work.
 
 ## Localization
 

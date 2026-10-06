@@ -37,11 +37,22 @@ Iteration fourteen adds opt-in running-IDE analysis/lifecycle measurements to th
 smoke script and records final host regressions and the remaining release gates.
 Milestone-two lifecycle validation is recorded below and remains regression coverage.
 
-The proposed [milestone-four plan](MILESTONE-4.md) covers explicitly enabled
-well-known and custom property expressions, shared compiler/build/editor context,
-and property completion in designer fields. It defines compatibility gates and
-seven implementation iterations. Milestone three's remaining release checks stay
-open; milestone four is not implemented yet.
+The [milestone-four plan](MILESTONE-4.md) records the owner's 2026-10-06 decisions:
+integrated property expressions, Project/File/Alarm declarations, well-known alarm values,
+resolved displays that switch to raw expressions on focus, and local copies that
+preserve expressions. Seven implementation iterations cover compiler, SDK, analysis,
+designer completion, and validation; there is no opt-in or unreleased-version
+backward-compatibility requirement. Inherited expressions use the child's context,
+with current-alarm -> current-file -> project value lookup. Bases supply template
+content and custom parameter declarations, but their parameter assignments are
+not inherited. The `abstract` XML attribute marks template-only alarms, which remain
+referenceable but are excluded from compiled output. A parameter table and Abstract
+checkbox provide designer editing for these settings. Milestone four is not implemented yet.
+Alarm-field properties read resolved values; custom parameter assignments remain
+literal. Explicit-empty assignments stop fallback, while unassigned parameters
+use outer scopes and cause errors only when used unresolved by a concrete alarm.
+Milestone three's remaining release checks stay open. Localization and NuGet alarm
+libraries remain for later milestones.
 
 The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
