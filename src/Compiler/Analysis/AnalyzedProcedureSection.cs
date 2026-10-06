@@ -49,6 +49,8 @@ namespace Alarmlist.Analysis
         public TestProcedureStepKind? Kind { get; }
         public bool IsClear => Kind == null;
         public string Text { get; }
+        public string RawText { get; }
+        public bool IsValueAvailable { get; }
         public ProcedureEntryOrigin Origin { get; }
         public bool IsInherited { get; }
 
@@ -56,10 +58,12 @@ namespace Alarmlist.Analysis
         public ProcedureEntryOrigin ExcludedBy { get; }
 
         internal AnalyzedProcedureEntry(TestProcedureStepKind? kind, string text,
-            ProcedureEntryOrigin origin, bool isInherited, ProcedureEntryOrigin excludedBy)
+            ProcedureEntryOrigin origin, bool isInherited, ProcedureEntryOrigin excludedBy, string rawText, bool isValueAvailable)
         {
             Kind = kind;
             Text = text;
+            RawText = rawText;
+            IsValueAvailable = isValueAvailable;
             Origin = origin;
             IsInherited = isInherited;
             ExcludedBy = excludedBy;

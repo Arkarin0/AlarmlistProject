@@ -175,9 +175,17 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   in editor code. The SDK's `AnalysisContract` consumer asset verifies this API
   from the restored package without a compiler project reference.
 - The optional `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` overload
-  uses the same bound inputs and normal XML output writer. Keep contract 1 and
-  the original analysis-only overload compatible. `CompiledXml` is unavailable
+  uses the same bound inputs and normal XML output writer. Contract 2 also accepts
+  captured CompilationContext. Preserve raw expressions separately from evaluated
+  values, abstract state, availability, and declaration/assignment origins. The
+  unreleased contract 1 is no longer supported by the bridge. `CompiledXml` is unavailable
   on errors; in-memory previews must never save source or write build output.
+- Expressions evaluate in the compiler after binding. References inherit parameter
+  declarations and raw content, never parameter assignments. Assignment lookup uses
+  the current alarm, its file, then captured project items; explicit empty stops
+  fallback. Abstract alarms bind but do not emit output. Preserve source-file scope,
+  single-pass escaping/substitution, scalar dependency diagnostics, and local raw
+  source serialization. Keep literal identity/reference fields out of evaluation.
 - ALMX source serialization and compiled output serialization are distinct.
   Source XML uses an `Alarmlist` root and supports references and procedure
   directives; compiled XML uses an `AlarmList` root and resolved values. Preserve
@@ -224,7 +232,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   ProjectFileFolderItems so persisted empty folders can reload in CPS.
 - The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
   SDK's net472 compiler independently of the build task runtime. The extension's
-  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-1 data
+  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-2 data
   into host-owned results. Do not load compiler types in the VS host domain, add a
   compiler project reference, or substitute another SDK on failure. Call bridge
   operations off the UI thread; owners must dispose on SDK/configuration changes
@@ -252,8 +260,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   and analysis snapshots. Keep analysis DTOs independent of UI notification types.
 - Resolved previews use SDK effective fields and surviving procedure entries.
   Clear both previews during drafts or stale/unavailable analysis; project XML
-  requires whole-project success. Keep preview support optional for older SDKs,
-  and copy XML as a string outside the required contract-1 property map.
+  requires whole-project success. Require context-aware contract 2 and preview
+  support, and copy XML as a string outside the required property map.
 - Designer lookup caches must validate current text/version before reuse and be
   keyed by immutable analysis state, captured input, and selected source. Keep
   unchanged preview controls stable so text selection/focus survives refreshes,

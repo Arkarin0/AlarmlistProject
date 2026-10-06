@@ -844,3 +844,22 @@ exclusion, and preservation of prior output on ALM0008. That scenario also passe
 with desktop MSBuild from VS2022 and VS2026, using net472 tests and the already
 rebuilt package. The temporary host-selection environment variable was restored.
 No live IDE or performance measurement was run.
+
+### Iteration four: detached contract 2 and isolated bridge
+
+Compiler analysis now returns raw and evaluated fields/procedure text, local
+abstract state, per-value availability, and visible custom/well-known properties.
+Declaration and assignment origins remain distinct; source-level properties are
+available even in files without alarms. Context-aware analysis uses the same
+evaluator and scoped resolver as compilation. The AppDomain worker constructs SDK
+context objects by reflection and returns only host-owned serializable data.
+Contract 2 and compiled preview support are required together; contract 1 receives
+explicit update guidance. Updated the repository/SDK documentation accordingly.
+
+Validation: 22 focused bridge cases passed, including captured context, raw/value
+separation, origins, domain unload, and rejection of older contracts. The first
+solution run exposed an outdated package-test log assertion; after correcting it,
+`dotnet test AlarmlistProject.slnx --nologo -v:minimal` passed with 627 tests and 18
+expected opt-in skips (compiler 150 per framework, VS units 221). The expanded
+packaged AnalysisContract scenario also passed through desktop MSBuild from both
+VS2022 and VS2026 using the rebuilt assets. No live IDE or measurement was run.

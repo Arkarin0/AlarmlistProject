@@ -11,7 +11,7 @@ namespace Alarmlist.Analysis
     /// <summary>A detached, read-only result for one complete set of source snapshots.</summary>
     public sealed class AnalysisResult
     {
-        public const int CurrentContractVersion = 1;
+        public const int CurrentContractVersion = 2;
         public int ContractVersion => CurrentContractVersion;
         public IReadOnlyList<AnalyzedSource> Sources { get; }
         public IReadOnlyList<AnalyzedAlarm> Alarms { get; }
@@ -20,9 +20,9 @@ namespace Alarmlist.Analysis
         /// <summary>Resolved project XML, or null when not requested or compilation failed.</summary>
         public string CompiledXml { get; }
 
-        internal AnalysisResult(IEnumerable<AlmxTextSnapshot> sources, IEnumerable<AnalyzedAlarm> alarms, IEnumerable<Diagnostic> diagnostics, string compiledXml = null)
+        internal AnalysisResult(IEnumerable<AnalyzedSource> sources, IEnumerable<AnalyzedAlarm> alarms, IEnumerable<Diagnostic> diagnostics, string compiledXml = null)
         {
-            Sources = Array.AsReadOnly(sources.Select(source => new AnalyzedSource(source)).ToArray());
+            Sources = Array.AsReadOnly(sources.ToArray());
             Alarms = Array.AsReadOnly(alarms.ToArray());
             Diagnostics = Array.AsReadOnly(diagnostics.Select(diagnostic => new AnalysisDiagnostic(diagnostic)).ToArray());
             CompiledXml = Success ? compiledXml : null;
@@ -33,11 +33,13 @@ namespace Alarmlist.Analysis
     {
         public string FilePath { get; }
         public int Version { get; }
+        public IReadOnlyList<AnalyzedProperty> Properties { get; }
 
-        internal AnalyzedSource(AlmxTextSnapshot source)
+        internal AnalyzedSource(AlmxTextSnapshot source, IEnumerable<AnalyzedProperty> properties)
         {
             FilePath = source.FilePath;
             Version = source.Version;
+            Properties = Array.AsReadOnly(properties.ToArray());
         }
     }
 

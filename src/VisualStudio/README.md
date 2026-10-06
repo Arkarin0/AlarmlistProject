@@ -54,7 +54,7 @@ use outer scopes and cause errors only when used unresolved by a concrete alarm.
 Milestone three's remaining release checks stay open. Localization and NuGet alarm
 libraries remain for later milestones.
 
-The bridge accepts analysis contract 1 and loads the resolved SDK's net472 compiler
+The bridge accepts analysis contract 2 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off
 the UI thread, recreating the bridge after SDK/configuration changes. The project
@@ -66,6 +66,11 @@ keeps linked projects separate; each view can choose its owning project context.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
+Contract 2 requires captured-context analysis and compiled preview support. It
+copies raw expressions, evaluated values, abstract state, availability, and separate
+parameter declaration/assignment origins. Older SDK contracts receive explicit
+update guidance. CPS context capture and designer presentation are being implemented
+in the following milestone-four iterations.
 
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax

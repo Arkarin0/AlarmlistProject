@@ -79,11 +79,14 @@ namespace Alarmlist.Compiler
 
         /// <summary>Optionally includes resolved XML from the same bound inputs. Errors suppress XML output.</summary>
         public AnalysisResult AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot> snapshots, bool includeCompiledXml)
+            => AnalyzeSnapshots(snapshots, CompilationContext.Empty, includeCompiledXml);
+
+        public AnalysisResult AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot> snapshots, CompilationContext context, bool includeCompiledXml = false)
         {
             if (snapshots == null) throw new ArgumentNullException(nameof(snapshots));
             AlmxTextSnapshot[] inputs = snapshots.ToArray();
             if (inputs.Any(snapshot => snapshot == null)) throw new ArgumentException("A source snapshot must not be null.", nameof(snapshots));
-            return SnapshotAnalyzer.Analyze(inputs, includeCompiledXml);
+            return SnapshotAnalyzer.Analyze(inputs, context, includeCompiledXml);
         }
 
         public CompilationResult Compile(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree)

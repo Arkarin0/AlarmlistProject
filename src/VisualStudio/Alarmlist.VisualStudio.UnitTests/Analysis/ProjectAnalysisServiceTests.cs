@@ -330,7 +330,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             public string CompilerPath { get; }
             public string CompilerIdentity => "test";
             public Bridge(string path, Factory factory) { CompilerPath = path; _factory = factory; }
-            public AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken token = default)
+            public AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken token = default, AnalysisContext context = null)
             {
                 AnalysisInput[] captured = inputs.ToArray();
                 int count = Interlocked.Increment(ref Calls);

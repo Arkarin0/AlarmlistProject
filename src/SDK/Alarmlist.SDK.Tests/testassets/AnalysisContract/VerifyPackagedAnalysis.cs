@@ -40,7 +40,7 @@ public sealed class VerifyPackagedAnalysis : Task
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 1, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 2, "Unexpected analysis contract version.");
         Require((bool)Value(result, "Success"), "Valid unsaved inputs did not resolve.");
         Require(Value(result, "CompiledXml") == null, "Default analysis unexpectedly generated XML.");
         MethodInfo preview = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType, typeof(bool) });
@@ -70,8 +70,32 @@ public sealed class VerifyPackagedAnalysis : Task
         object failed = preview.Invoke(compiler, new object[] { snapshots, true });
         Require(!(bool)Value(failed, "Success") && Value(failed, "CompiledXml") == null, "Failed compilation exposed project XML.");
         Require((string)Value(previewResult, "CompiledXml") == xml, "A later analysis mutated earlier XML.");
+        Type contextType = assembly.GetType("Alarmlist.Compiler.CompilationContext", true);
+        Type propertyType = assembly.GetType("Alarmlist.Compiler.PropertyDefinition", true);
+        Array properties = Array.CreateInstance(propertyType, 1);
+        properties.SetValue(Activator.CreateInstance(propertyType, new object[] { "p", "001", null }), 0);
+        object context = Activator.CreateInstance(contextType, Path.Combine(ProjectDirectory, "Plant.almproj"), "Release", "AnyCPU", properties);
+        MethodInfo contextual = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType, contextType, typeof(bool) });
+        Require(contextual != null, "The packaged compiler has no captured-context analysis API.");
+        Array scoped = Array.CreateInstance(snapshotType, 1);
+        scoped.SetValue(Activator.CreateInstance(snapshotType, "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName>"
+            + "<Properties><Property Name='p' Value='ignored'/></Properties><Code>$(p)</Code>"
+            + "<Description>Inspect $(AlarmlistAlarmCode):$(AlarmlistConfiguration)</Description></Alarm>"
+            + "<Alarm><ReferenceName>A</ReferenceName></Alarm></Alarmlist>", childPath, 30), 0);
+        object scopedResult = contextual.Invoke(compiler, new[] { scoped, context, (object)true });
+        Require((bool)Value(scopedResult, "Success"), "Captured project properties did not resolve.");
+        object scopedChild = Items(scopedResult, "Alarms")[1];
+        object code = Items(scopedChild, "Fields").Single(field => (string)Value(field, "Name") == "Code");
+        Require((string)Value(code, "EffectiveExpression") == "$(p)" && (string)Value(code, "EffectiveValue") == "001",
+            "Raw and evaluated values were not kept separately.");
+        object parameter = Items(scopedChild, "Properties").Single(property => (string)Value(property, "Name") == "p");
+        Require((string)Value(Value(parameter, "DeclarationOrigin"), "Scope") == "Alarm"
+            && (string)Value(Value(parameter, "ValueOrigin"), "Scope") == "Project", "Parameter provenance was lost.");
+        Require((bool)Value(Items(scopedResult, "Alarms")[0], "IsAbstract") && (bool)Value(scopedChild, "HasEvaluatedValues"),
+            "Template and evaluated availability were lost.");
+        Require(((string)Value(scopedResult, "CompiledXml")).Contains("Inspect 001:Release"), "Preview ignored captured context.");
         Require(!File.Exists(basePath) && !File.Exists(childPath), "Analysis wrote snapshot text to disk.");
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 1 passed: origins, Clear, immutable results, unsaved inputs, and compiled XML preview.");
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 2 passed: origins, Clear, immutable results, unsaved inputs, and compiled XML preview.");
         return true;
     }
 

@@ -103,6 +103,7 @@ namespace Alarmlist.Evaluation
             private readonly CompilationEvaluator _owner;
             private readonly AlarmSyntaxNode _alarm;
             private readonly Dictionary<string, string> _wellKnown;
+            private readonly Dictionary<string, PropertyBinding> _properties;
             private readonly Dictionary<string, string> _fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             private readonly List<string> _visiting = new List<string>();
             private readonly HashSet<string> _failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -114,6 +115,8 @@ namespace Alarmlist.Evaluation
                 _owner = owner;
                 _alarm = alarm;
                 _wellKnown = WellKnownProperties.Capture(owner._context, alarm);
+                _properties = PropertyResolver.Resolve(alarm, alarm.SourceFile, owner._context)
+                    .ToDictionary(property => property.Declaration.Definition.Name, StringComparer.OrdinalIgnoreCase);
             }
 
             internal void Evaluate()
@@ -161,23 +164,12 @@ namespace Alarmlist.Evaluation
                     if (value == null) _owner.Report(DiagnosticDescriptors.MissingPropertyContext, _alarm, location, name);
                     return value;
                 }
-                PropertyDefinition declaration = null;
-                for (AlarmSyntaxNode current = _alarm; current != null; current = current.Reference)
-                {
-                    PropertyDefinition inherited = Find(current.Properties, name);
-                    if (declaration == null) declaration = inherited;
-                }
-                PropertyDefinition local = Find(_alarm.Properties, name);
-                PropertyDefinition file = Find(_alarm.SourceFile?.Properties ?? Enumerable.Empty<PropertyDefinition>(), name);
-                PropertyDefinition project = Find(_owner._context.Properties, name);
-                value = local?.Value ?? file?.Value ?? project?.Value;
+                _properties.TryGetValue(name, out PropertyBinding property);
+                value = property?.Assignment?.Definition.Value;
                 if (value != null) return value;
-                _owner.Report(declaration == null && file == null && project == null ? DiagnosticDescriptors.UnknownProperty : DiagnosticDescriptors.UnassignedProperty, _alarm, location, name);
+                _owner.Report(property == null ? DiagnosticDescriptors.UnknownProperty : DiagnosticDescriptors.UnassignedProperty, _alarm, location, name);
                 return null;
             }
-
-            private static PropertyDefinition Find(IEnumerable<PropertyDefinition> properties, string name)
-                => properties.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
 
             internal Alarm ToAlarm()
             {

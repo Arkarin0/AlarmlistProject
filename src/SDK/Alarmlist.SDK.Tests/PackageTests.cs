@@ -41,7 +41,7 @@ namespace Alarmlist.MSBuild.SDK.Tests
             var app = _fixture.CreateTestApp("AnalysisContract");
             var result = app.Run(_output, "/t:VerifyAnalysis");
             Assert.True(result.ExitCode == 0, result.Output);
-            Assert.Contains("Packaged analysis contract 1 passed", result.Output);
+            Assert.Contains("Packaged analysis contract 2 passed", result.Output);
             Assert.False(File.Exists(app.OutputPath));
         }
 

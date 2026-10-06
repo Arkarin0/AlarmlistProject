@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
-    /// <summary>Contract 1 adapter. Copies compiler answers without reimplementing resolution.</summary>
+    /// <summary>Contract 2 adapter. Copies compiler answers without reimplementing resolution.</summary>
     internal sealed class AnalysisContractReader
     {
         private readonly Dictionary<Type, Type> _types = new Dictionary<Type, Type>();
@@ -17,12 +17,14 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             Add<AnalysisSnapshot>(assembly, "Alarmlist.Analysis.AnalysisResult");
             FieldInfo version = _types[typeof(AnalysisSnapshot)].GetField("CurrentContractVersion", BindingFlags.Public | BindingFlags.Static);
-            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 1))
-                throw new NotSupportedException("Only analysis contract 1 is supported by this extension.");
+            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 2))
+                throw new NotSupportedException("Only analysis contract 2 is supported by this extension.");
             Add<AnalysisSource>(assembly, "Alarmlist.Analysis.AnalyzedSource");
             Add<AnalysisAlarm>(assembly, "Alarmlist.Analysis.AnalyzedAlarm");
             Add<AnalysisAlarmOrigin>(assembly, "Alarmlist.Analysis.AlarmOrigin");
             Add<AnalysisField>(assembly, "Alarmlist.Analysis.AnalyzedField");
+            Add<AnalysisProperty>(assembly, "Alarmlist.Analysis.AnalyzedProperty");
+            Add<AnalysisPropertyOrigin>(assembly, "Alarmlist.Analysis.PropertyOrigin");
             Add<AnalysisSection>(assembly, "Alarmlist.Analysis.AnalyzedProcedureSection");
             Add<AnalysisEntry>(assembly, "Alarmlist.Analysis.AnalyzedProcedureEntry");
             Add<AnalysisEntryOrigin>(assembly, "Alarmlist.Analysis.ProcedureEntryOrigin");
@@ -63,10 +65,10 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public AnalysisSnapshot Read(object result)
         {
-            if (result == null || Value<int>(result, "ContractVersion") != 1)
+            if (result == null || Value<int>(result, "ContractVersion") != 2)
                 throw new NotSupportedException("The SDK returned an unsupported analysis contract.");
-            return new AnalysisSnapshot(1, Value<bool>(result, "Success"), List(result, "Sources", source =>
-                new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"))),
+            return new AnalysisSnapshot(2, Value<bool>(result, "Success"), List(result, "Sources", source =>
+                new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"), List(source, "Properties", Property))),
                 List(result, "Alarms", Alarm), List(result, "Diagnostics", diagnostic => new AnalysisDiagnostic(
                     Value<string>(diagnostic, "Id"), EnumValue<AnalysisSeverity>(diagnostic, "Severity"), Value<string>(diagnostic, "Message"),
                     Location(Value<object>(diagnostic, "Location")), List(diagnostic, "RelatedLocations", Location))));
@@ -78,8 +80,10 @@ namespace Alarmlist.VisualStudio.Analysis
                 Value<bool>(alarm, "IsResolved"), List(alarm, "ReferenceChain", AlarmOrigin), List(alarm, "Fields", field =>
                     new AnalysisField(Value<string>(field, "Name"), Value<bool>(field, "IsPresent"), Value<string>(field, "LocalValue"),
                         Location(Value<object>(field, "LocalLocation")), Value<string>(field, "EffectiveValue"),
-                        AlarmOrigin(Value<object>(field, "DefiningAlarm")), Location(Value<object>(field, "ValueLocation")), Value<bool>(field, "IsInherited"))),
-                Section(Value<object>(alarm, "Instructions")), Section(Value<object>(alarm, "Reset")));
+                        AlarmOrigin(Value<object>(field, "DefiningAlarm")), Location(Value<object>(field, "ValueLocation")), Value<bool>(field, "IsInherited"),
+                        Value<string>(field, "EffectiveExpression"), Value<bool>(field, "IsValueAvailable"))),
+                Section(Value<object>(alarm, "Instructions")), Section(Value<object>(alarm, "Reset")), Value<bool>(alarm, "IsAbstract"),
+                Value<bool>(alarm, "HasEvaluatedValues"), List(alarm, "Properties", Property));
         }
 
         private static AnalysisSection Section(object section)
@@ -92,8 +96,17 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             AnalysisStepKind? kind = Value<object>(entry, "Kind") == null ? (AnalysisStepKind?)null : EnumValue<AnalysisStepKind>(entry, "Kind");
             return new AnalysisEntry(kind, Value<bool>(entry, "IsClear"), Value<string>(entry, "Text"),
-                EntryOrigin(Value<object>(entry, "Origin")), Value<bool>(entry, "IsInherited"), EntryOrigin(Value<object>(entry, "ExcludedBy")));
+                EntryOrigin(Value<object>(entry, "Origin")), Value<bool>(entry, "IsInherited"), EntryOrigin(Value<object>(entry, "ExcludedBy")),
+                Value<string>(entry, "RawText"), Value<bool>(entry, "IsValueAvailable"));
         }
+
+        private static AnalysisProperty Property(object property)
+            => new AnalysisProperty(Value<string>(property, "Name"), Value<bool>(property, "IsWellKnown"), Value<bool>(property, "IsLocallyDeclared"),
+                Value<string>(property, "LocalValue"), Location(Value<object>(property, "LocalLocation")), Value<string>(property, "EffectiveValue"),
+                Value<bool>(property, "IsValueAvailable"), PropertyOrigin(Value<object>(property, "DeclarationOrigin")), PropertyOrigin(Value<object>(property, "ValueOrigin")));
+
+        private static AnalysisPropertyOrigin PropertyOrigin(object origin)
+            => origin == null ? null : new AnalysisPropertyOrigin(Value<string>(origin, "Scope"), AlarmOrigin(Value<object>(origin, "Alarm")), Location(Value<object>(origin, "Location")));
 
         private static AnalysisEntryOrigin EntryOrigin(object origin)
         {

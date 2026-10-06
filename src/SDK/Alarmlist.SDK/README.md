@@ -168,14 +168,21 @@ preserves previous output. Source serialization retains raw expressions.
 The compiler in each SDK task-runtime directory exposes
 `AlarmCompiler.AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot>)` for host adapters.
 It returns a detached, read-only `Alarmlist.Analysis.AnalysisResult` with contract
-version 1, input versions, local/effective fields, defining alarms and locations,
+version 2, input versions, local/effective fields, defining alarms and locations,
 reference chains, procedure origins, Clear exclusions, and located diagnostics.
 It shares the compiler's resolution rules and never reads or writes snapshot paths.
 
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and contract version 1.
+The original overload keeps its analysis-only behavior and returns contract 2.
+`AnalyzeSnapshots(snapshots, context, includeCompiledXml)` captures the same
+CompilationContext as compilation. EffectiveExpression and procedure RawText retain
+source tokens; EffectiveValue and surviving procedure Text carry evaluated results.
+Check IsValueAvailable and HasEvaluatedValues independently of IsResolved: an abstract
+alarm or a field-dependency error can have a valid reference chain. IsAbstract marks
+templates. Alarm and source Properties contain visible custom and well-known values,
+local declaration/assignment presence, and separate declaration/value origins.
 `XmlAlarmlistOutputWriter.WriteToString(AlarmList)` is the in-memory output sink;
 its text matches file output, including the UTF-8 declaration and `AlarmList`
 root. Neither API saves source files or changes existing build output.
@@ -194,14 +201,14 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 1 and a CPS
+The extension now has an isolated AppDomain bridge for contract 2 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear
 exclusions, section copies, live designer/Error List diagnostics, and resolved
-previews. The bridge detects the optional XML overload/property; older contract-1
-SDKs keep analysis working and show XML-preview update guidance. Release the
-matching SDK before distributing a VSIX that uses these capabilities.
+previews. The bridge requires context-aware analysis and compiled XML preview;
+older SDK contracts report explicit update guidance. No alternate compiler is
+loaded. Release the matching SDK before distributing a VSIX using these capabilities.
 
 ## Build and test this repository
 
