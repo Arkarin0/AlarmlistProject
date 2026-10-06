@@ -185,6 +185,10 @@ The Abstract checkbox updates only the selected alarm's source attribute.
 Normal fields show evaluated text when unfocused and raw source/draft when focused.
 Read-only inherited fields stay read-only until Override locally starts a draft.
 Focus-only changes never save or dirty source. Copies preserve raw tokens/escapes.
+Completion opens after an unescaped `$(` or Ctrl+Space. Arrow keys choose a
+property; Enter or Tab inserts its token without committing, and Escape closes
+the popup before a subsequent Escape cancels the draft. The popup keeps keyboard
+focus in the editor and announces the selected property's value and origin.
 Use the existing one-edit Undo, validation, notification, lifetime, and accessibility
 patterns. Completion inserts tokens and shows scope/value availability without
 committing. An incomplete expression draft remains editable until commit/cancel.

@@ -54,6 +54,8 @@ namespace Alarmlist.VisualStudio
         private void OnPreviewKeyDown(object sender, KeyEventArgs args)
         {
             _inputVersion++;
+            if (args.OriginalSource is ExpressionTextBox expression && expression.HandleCompletionKey(args.Key, Keyboard.Modifiers))
+            { args.Handled = true; return; }
             if (args.Key == Key.Escape) { ViewModel.CancelPending(); args.Handled = true; }
             else if (args.Key == Key.Enter && Keyboard.Modifiers != ModifierKeys.Shift && args.OriginalSource is TextBox text && !text.IsReadOnly)
             { ViewModel.CommitPending(); args.Handled = true; }

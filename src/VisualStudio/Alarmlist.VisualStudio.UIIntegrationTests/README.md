@@ -10,7 +10,7 @@ measurements remain in `Alarmlist.VisualStudio.PerformanceTests`.
 
 ## Coverage
 
-Each scenario has separate VS2022 and VS2026 xUnit cases (14 live cases total):
+Each scenario has separate VS2022 and VS2026 xUnit cases (18 live cases total):
 
 | Scenario | Observable checks | Area trait |
 | --- | --- | --- |
@@ -21,11 +21,13 @@ Each scenario has separate VS2022 and VS2026 xUnit cases (14 live cases total):
 | Live diagnostics | Publication before Build, exact navigation position, unload/reload, XML-only unsaved correction, disk/output preservation, discard and deletion | `LiveDiagnostics` |
 | Build failure/Clean/Rebuild | Error List, failure preserves output, updated live errors preserve Build errors, Clean removes output, Rebuild restores it | `Build` |
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
+| Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, raw override and saved build parity | `Properties` |
+| Linked property contexts | North/South project values, configuration reevaluation, shared unsaved file assignment, property diagnostics before Build, discard and unload/reload | `Properties` |
 
 Project and document lifecycle checks retain the former smoke script's shell/API
 operations. They do not simulate clicks through New Project or Save As dialogs.
 The keyboard case does not replace physical input with buffer/property assignment.
-Linked-project semantics, other fields, dialogs and visual appearance still have
+Dialogs, visual appearance and remaining host interactions still have
 [interactive acceptance checks](../ACCEPTANCE.md).
 
 ## Run

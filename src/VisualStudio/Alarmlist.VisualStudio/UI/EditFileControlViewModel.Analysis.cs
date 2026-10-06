@@ -83,7 +83,7 @@ namespace Alarmlist.VisualStudio.UI
                 field.OverrideCommand = new DelegateCommand(() => StartAnalysisAction((state, alarm) =>
                 {
                     AnalysisField value = alarm.Fields.Single(item => item.Name == field.Name);
-                    field.Value = value.EffectiveValue;
+                    field.Value = value.EffectiveExpression;
                     field.IsPresent = true;
                 }), () => CanUseAnalysis && field.IsInherited);
                 field.UseInheritedCommand = new DelegateCommand(() =>
@@ -110,7 +110,7 @@ namespace Alarmlist.VisualStudio.UI
                     if (!alarm.IsResolved || source == null) return;
                     ProcedureValueChange[] entries = source.EffectiveEntries.Select((entry, index) =>
                         new ProcedureValueChange(section.Name, index,
-                            entry.Kind == AnalysisStepKind.Instruction ? "Step" : entry.Kind.ToString(), entry.Text)).ToArray();
+                            entry.Kind == AnalysisStepKind.Instruction ? "Step" : entry.Kind.ToString(), entry.RawText)).ToArray();
                     _model.MakeProcedureLocalCopy(_original, section.Name, entries, out _error);
                     Notify(nameof(Error));
                 }), () => CanUseAnalysis && CurrentAlarm()?.IsResolved == true && section.HasAnalysis);
@@ -194,14 +194,15 @@ namespace Alarmlist.VisualStudio.UI
                 ProjectAnalysisState state = _analysis?.Current;
                 RefreshDiagnostics(state);
                 AnalysisAlarm alarm = CurrentAlarm(state);
+                RefreshProperties(state, alarm);
                 RefreshPreview(state, alarm);
                 bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
                 foreach (AlarmFieldViewModel field in Fields)
                     field.SetAnalysis(!identityDraft && alarm?.IsResolved == true
-                        ? alarm.Fields.FirstOrDefault(item => item.Name == field.Name) : null);
+                        ? alarm.Fields.FirstOrDefault(item => item.Name == field.Name) : null, !HasPending);
                 foreach (ProcedureSectionViewModel section in ProcedureSections)
                     section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasChanges)
-                        ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry));
+                        ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry), !HasPending);
                 if (!ReferenceEquals(_choicesState, state) || !ReferenceEquals(_choicesAlarm, alarm))
                 {
                     _choicesState = state;

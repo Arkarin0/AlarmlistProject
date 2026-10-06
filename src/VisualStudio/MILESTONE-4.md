@@ -879,3 +879,30 @@ items, duplicates/order, detachment from mutable MSBuild items, linked unsaved
 North/South context isolation, and property-only changes during a non-cancellable
 analysis call. Functional IDE scope cases are grouped with iteration six's completed
 designer workflow; they have not run yet. No live IDE or measurement was run.
+
+### Iteration six: scoped editing, focus display and completion
+
+Implemented the alarm/file parameter table, explicit assignment presence and local
+declaration controls, and the Abstract checkbox. Edits preserve surrounding XML,
+reject ambiguous/unsupported declarations and concurrent changes, and use the
+shared buffer's atomic Undo transaction. Project/template rows show separate
+declaration and assignment origins. Scalar and procedure controls keep raw draft
+bindings separate from evaluated displays. Focus alone does not change source;
+completion supports automatic tokens, Ctrl+Space, arrows, Enter/Tab and Escape.
+Inherited scalar/procedure copies retain raw expressions and escapes. Stale/draft
+states suppress old evaluated values and invalid completion context.
+
+Validation: 246 VS unit tests passed, including 21 new property/source-editing,
+focus/completion, draft, preview and Undo cases. Existing BAML, live-region and
+designer collectibility tests remain green. Added four opt-in functional cases
+(packaged VSIX/template consumer tests also passed: 10 per framework)
+(two per host) covering the integrated property workflow and linked project scopes.
+The first UI compile found a test-only ComboBoxItem type mismatch; it was corrected.
+VS2022's matching Debug extension was deployed to the idle AlarmlistExp profile.
+Both new live scenarios built their isolated projects, but stopped at the foreground
+safety check before keyboard input. Failure screenshots were black; no interactive
+workflow pass is claimed. Both owned IDEs exited normally. These cases remain an
+interactive-desktop validation gate, not a reason to weaken focus checks.
+
+Evidence: `artifacts/log/Milestone4/iteration6-unit-final.trx` and
+`artifacts/log/Debug/VisualStudioUI/TestResults/053503e9073c436ca66a0a70d3255179/`.

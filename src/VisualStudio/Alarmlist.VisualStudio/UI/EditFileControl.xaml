@@ -16,6 +16,7 @@
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
       <Setter Property="Padding" Value="5,3" />
     </Style>
+    <Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
     <Style TargetType="Button"><Setter Property="Padding" Value="9,3" /><Setter Property="Margin" Value="0,0,6,0" /></Style>
     <DataTemplate x:Key="ProcedureAnalysisRow">
       <AdornerDecorator Margin="0,0,0,8">
@@ -141,7 +142,39 @@
                        AutomationProperties.Name="Compiled project XML" AutomationProperties.HelpText="{Binding XmlPreviewMessage}" />
             </StackPanel>
           </Expander>
+          <Expander Header="Parameters" IsExpanded="True" Margin="0,0,8,12">
+            <StackPanel Margin="0,6,0,0">
+              <WrapPanel Margin="0,0,0,6">
+                <TextBlock Text="Edit scope" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox ItemsSource="{Binding ParameterScopes}" SelectedItem="{Binding ParameterScope}" MinWidth="90" AutomationProperties.Name="Parameter scope" />
+              </WrapPanel>
+              <TextBlock Text="Assigned empty values stop fallback. Clear Assigned to use the file or project value. Template assignments are not inherited." TextWrapping="Wrap" Margin="0,0,0,6" />
+              <ui:LiveStatusTextBlock Text="{Binding ParameterError}" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding Parameters}" IsEnabled="{Binding CanEditParameters}">
+                <ItemsControl.ItemTemplate><DataTemplate>
+                  <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" Padding="6" Margin="0,0,0,6">
+                    <StackPanel>
+                      <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEdit}" LostKeyboardFocus="OnFieldLostFocus" IsUndoEnabled="False" AutomationProperties.Name="Parameter name" />
+                      <CheckBox Content="Assigned" IsChecked="{Binding HasValue}" IsEnabled="{Binding CanEdit}" Click="OnPresenceChanged" Margin="0,4,0,4" AutomationProperties.Name="{Binding Name, StringFormat=Assign {0}}" />
+                      <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding CanEditValue}" LostKeyboardFocus="OnFieldLostFocus" IsUndoEnabled="False" AutomationProperties.Name="{Binding Name, StringFormat=Value of {0}}" />
+                      <TextBlock Text="{Binding EffectiveDisplay, StringFormat=Effective: {0}}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                      <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
+                      <WrapPanel Margin="0,4,0,0">
+                        <Button Content="Declare here" Command="{Binding DeclareCommand}" AutomationProperties.Name="{Binding Name, StringFormat=Declare {0} here}" />
+                        <Button Content="Remove local" Command="{Binding DeleteCommand}" AutomationProperties.Name="{Binding Name, StringFormat=Remove local {0}}" />
+                      </WrapPanel>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <WrapPanel Margin="0,4,0,0">
+                <TextBox Text="{Binding NewParameterName, UpdateSourceTrigger=PropertyChanged}" MinWidth="120" Margin="0,0,6,0" AutomationProperties.Name="New parameter name" />
+                <Button Content="Add parameter" Command="{Binding AddParameterCommand}" />
+              </WrapPanel>
+            </StackPanel>
+          </Expander>
           <StackPanel IsEnabled="{Binding CanEdit}">
+          <CheckBox Content="Abstract template (excluded from output)" IsChecked="{Binding IsAbstract}" Margin="0,0,8,12" AutomationProperties.Name="Abstract template" />
           <StackPanel Margin="0,0,8,12">
             <TextBlock Text="Reference selection" FontWeight="SemiBold" Margin="0,0,0,4" />
             <ComboBox ItemsSource="{Binding ReferenceChoices}" SelectedItem="{Binding SelectedReferenceChoice}" DisplayMemberPath="Label"
@@ -156,7 +189,7 @@
               <DataTemplate>
                 <StackPanel Margin="0,0,8,10">
                   <CheckBox Content="{Binding Name}" IsChecked="{Binding IsPresent}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,0,4" Click="OnPresenceChanged" ToolTip="Include a local value for this field" />
-                  <TextBox x:Name="LocalValueEditor" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsPresent}" Visibility="{Binding ShowLocalEditor, Converter={StaticResource Visibility}}" AutomationProperties.Name="{Binding Name}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
+                  <ui:ExpressionTextBox x:Name="LocalValueEditor" RawText="{Binding Value, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" IsEnabled="{Binding IsPresent}" Visibility="{Binding ShowLocalEditor, Converter={StaticResource Visibility}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding ValueStatus}" ToolTip="{Binding ValueStatus}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
                   <AdornerDecorator Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}">
                     <TextBox Text="{Binding EffectiveValue, Mode=OneWay}" IsReadOnly="True" Padding="26,3,5,3"
                              ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" AutomationProperties.Name="{Binding Name}"
@@ -228,7 +261,7 @@
                                 </WrapPanel>
                                 <Separator Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
                                 <TextBlock Text="Clear preceding entries" FontWeight="SemiBold" Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
-                                <TextBox Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsTextEnabled}" Visibility="{Binding ShowText, Converter={StaticResource Visibility}}"
+                                <ui:ExpressionTextBox RawText="{Binding Text, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedText}" HasResolvedValue="{Binding CanShowResolved}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" IsEnabled="{Binding IsTextEnabled}" Visibility="{Binding ShowText, Converter={StaticResource Visibility}}"
                                          AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxHeight="160" VerticalScrollBarVisibility="Auto"
                                          IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus" AutomationProperties.Name="Procedure entry text" />
                                 <TextBlock Text="{Binding Guidance}" TextWrapping="Wrap" Opacity="0.75" />

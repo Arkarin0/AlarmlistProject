@@ -66,6 +66,7 @@ namespace Alarmlist.VisualStudio.UI
             AddCommand = new DelegateCommand(Add, () => IsValid);
             DeleteCommand = new DelegateCommand(Delete, () => CanEdit);
             _model.Changed += OnModelChanged;
+            InitializeProperties();
             InitializeAnalysis(analysis);
             Refresh();
         }
@@ -75,7 +76,7 @@ namespace Alarmlist.VisualStudio.UI
             if (_refreshing) return;
             _pending = Fields.Any(field => field.IsPresent != (_original?.HasField(field.Name) ?? false)
                 || (field.IsPresent && field.Value != (_original?.GetValue(field.Name) ?? string.Empty)))
-                || ProcedureSections.Any(section => section.Items.Any(item => item.HasChanges));
+                || ProcedureSections.Any(section => section.Items.Any(item => item.HasChanges)) || Parameters.Any(row => row.HasChanges);
             PendingChanged?.Invoke(this, EventArgs.Empty);
             Notify(nameof(HasPending));
             _draftVersion++;
@@ -88,18 +89,21 @@ namespace Alarmlist.VisualStudio.UI
             _committing = true;
             try
             {
-                var values = Fields.Where(field => (field.IsPresent ? field.Value : null) != _original.GetValue(field.Name)
-                    || field.IsPresent != _original.HasField(field.Name)).ToDictionary(field => field.Name, field => field.IsPresent ? field.Value : null);
+                var values = Fields.Where(field => _original != null && ((field.IsPresent ? field.Value : null) != _original.GetValue(field.Name)
+                    || field.IsPresent != _original.HasField(field.Name))).ToDictionary(field => field.Name, field => field.IsPresent ? field.Value : null);
                 ProcedureValueChange[] procedures = ProcedureSections.SelectMany(section => section.Items
                     .Where(item => item.HasChanges)
                     .Select(item => new ProcedureValueChange(section.Name, item.Index, item.Kind, item.Text))).ToArray();
-                if (!_model.SetValues(_baseline, _original, values, procedures, out string error))
+                PropertyValueChange[] properties = Parameters.Where(row => row.HasChanges)
+                    .Select(row => new PropertyValueChange(row.OriginalName, row.Name, row.HasValue ? row.Value : null)).ToArray();
+                if (!_model.SetValues(_baseline, _original, values, procedures, properties, FileParameters, out string error))
                 {
                     _error = error;
                     Notify(nameof(Error));
                     return false;
                 }
                 _pending = false;
+                foreach (ParameterViewModel row in Parameters) row.Load(null, false);
                 _error = null;
                 Refresh();
                 PendingChanged?.Invoke(this, EventArgs.Empty);
@@ -112,6 +116,7 @@ namespace Alarmlist.VisualStudio.UI
         public void CancelPending()
         {
             _pending = false;
+            foreach (ParameterViewModel row in Parameters) row.Load(null, false);
             _error = null;
             Refresh();
             PendingChanged?.Invoke(this, EventArgs.Empty);

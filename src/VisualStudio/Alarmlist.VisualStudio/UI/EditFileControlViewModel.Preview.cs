@@ -78,9 +78,11 @@ namespace Alarmlist.VisualStudio.UI
                 AnalysisSnapshot snapshot = state.Response.Snapshot;
                 ResolvedPreviewMessage = alarm == null ? "Select an alarm to inspect its resolved values."
                     : !alarm.IsResolved ? "This alarm could not be resolved. See live project diagnostics."
+                    : alarm.IsAbstract ? "Abstract template: raw expressions remain editable; this alarm is excluded from compiled output."
+                    : !alarm.HasEvaluatedValues ? "Evaluated values are unavailable. See live project diagnostics."
                     : snapshot.Success ? "Resolved values from current project sources, including unsaved XML edits."
                     : "This alarm is resolved. Other project errors prevent compiled XML preview.";
-                if (alarm?.IsResolved == true)
+                if (alarm?.HasEvaluatedValues == true && !alarm.IsAbstract)
                 {
                     ResolvedFields = BindingCollection.Create(new[] { new ResolvedFieldViewModel("FullyQualifiedName", alarm.Origin.FullyQualifiedName,
                         false, alarm.Origin, alarm.Origin.Location, PreviewNavigation(state, alarm, alarm.Origin.Location)) }
