@@ -1086,3 +1086,39 @@ at 900/dark and 440/light are under `artifacts/log/Milestone4/ParameterLists/Ren
 unit TRX files are under the adjacent `Unit/` directory. These are isolated themed
 renders, not native-IDE theme or DPI acceptance. IDE test adaptation and execution
 follow in the next iteration.
+
+### Parameter-list redesign: integration validation (2026-10-07)
+
+The live property scenario now verifies two columns in each list, file declarations
+above the filter, file value editing and Undo, and the alarm row actions for empty
+assignment and fallback. Existing expression focus, completion, Abstract, inherited
+override, source preservation and saved-build assertions remain. Physical input,
+foreground checks and field-focus guards remain in place. The design contract and
+manual acceptance checklist now describe the approved lists instead of scope cards.
+
+Release deployments built with each host's desktop MSBuild were verified by matching
+the immediate build/deployed DLL hashes. Records are in
+`artifacts/log/Milestone4/ParameterLists/deployment2022.json` and `deployment2026.json`.
+All 20 packaged-extension integration tests passed, ten on each of net472 and net8.0;
+TRX results are under `artifacts/log/Milestone4/ParameterLists/Package/`.
+
+All three targeted VS2022 cases passed: PropertiesAndCompletion,
+LinkedPropertyContexts, and ScalarCommitAndUndo. Their owned IDEs exited normally.
+TRX evidence is under
+`artifacts/log/Release/VisualStudioUI/TestResults/8d880908202f4ef8b2a1815dd85eab3f/`.
+The actual IDE capture is
+`PropertiesAndCompletion/2022/1ee4f4ce519043d9ad3db1b8b9f502f7/parameter-lists.png`
+under the same VisualStudioUI directory.
+
+VS2026's linked-context and scalar-keyboard cases passed. Its property/completion
+case stopped at the foreground guard before the first physical input; a focused
+retry stopped at the same guard. A Windows consent prompt for Visual Studio Installer
+was subsequently observed. It was left for the owner to handle; no permission prompt
+was automated. This redesigned property case remains pending on VS2026. The initial
+three-case run and focused retry are retained in `TestResults/af5fcc0cf6c5478ca2a69764df63cb32/`
+and `TestResults/5c17e8f792b44134a6f761e98633df1a/`. These VS2026 runs required the
+harness's owned-process termination fallback, and do not close the host-lifetime gate.
+
+This is targeted redesign validation, not a rerun of all 18 historical functional
+cases. Actual screen-reader speech, native high contrast, mixed DPI, typing/paint,
+longer host-memory acceptance and release checks remain open. No publication occurred.

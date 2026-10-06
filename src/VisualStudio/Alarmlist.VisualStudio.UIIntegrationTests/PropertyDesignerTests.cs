@@ -77,11 +77,25 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal("001", code.Text);
             Assert.Equal(Source, ide.ReadText(workspace.AlarmPath));
 
-            AutomationElement assigned = window.FindFirstDescendant(cf => cf.ByName("Assign par1").And(cf.ByControlType(ControlType.CheckBox)));
-            Press(ide, assigned, VirtualKeyShort.SPACE);
+            AutomationElement fileParameters = ParameterGrid(window, "File parameters");
+            AutomationElement alarmParameters = ParameterGrid(window, "Alarm parameters");
+            Assert.Equal(2, fileParameters.AsGrid().ColumnCount);
+            Assert.Equal(2, alarmParameters.AsGrid().ColumnCount);
+            Assert.True(fileParameters.BoundingRectangle.Top < Box(window, "Filter alarms").BoundingRectangle.Top);
+            TextBox fileValue = Box(window, "File value of par1");
+            Type(ide, fileValue, "003");
+            PressFocused(ide, fileValue, VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => code.Text == "003" && LocalValue(ide, workspace) == null, "file value edit without an alarm assignment");
+            RequireFocus(ide, fileValue);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => fileValue.Text == "001" && code.Text == "001", "file parameter Undo");
+            Focus(ide, alarmParameters);
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "parameter-lists.png"));
+
+            ParameterAction(ide, automation, window, "Alarm", "Assign empty value");
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == "", "explicit empty assignment");
             VisualStudioSession.Wait(() => code.Text == "", "empty stops fallback");
-            TextBox value = Box(window, "Value of par1");
+            TextBox value = Box(window, "Alarm value of par1");
             Type(ide, value, "002");
             PressFocused(ide, value, VirtualKeyShort.RETURN);
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == "002" && code.Text == "002", "alarm parameter commit and dependent field");
@@ -91,7 +105,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             RequireFocus(ide, value);
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Y);
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == "002", "parameter Redo");
-            Press(ide, assigned, VirtualKeyShort.SPACE);
+            ParameterAction(ide, automation, window, "Alarm", "Use file/project value");
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == null && code.Text == "001", "unassign resumes file fallback");
 
             Type(ide, code, "$(par");
@@ -211,6 +225,18 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             context.Collapse();
         }
         private static string LocalValue(VisualStudioSession ide, UiTestWorkspace workspace) => (string)Child(ide, workspace).Element("Properties").Element("Property").Attribute("Value");
+        private static AutomationElement ParameterGrid(Window window, string name) => window.FindAllDescendants(cf => cf.ByName(name))
+            .Single(element => element.Patterns.Grid.IsSupported);
+        private static void ParameterAction(VisualStudioSession ide, UIA3Automation automation, Window window, string scope, string action)
+        {
+            AutomationElement button = window.FindFirstDescendant(cf => cf.ByName("Row actions for " + scope + " parameters").And(cf.ByControlType(ControlType.Button)));
+            Press(ide, button, VirtualKeyShort.SPACE);
+            AutomationElement item = null;
+            VisualStudioSession.Wait(() => (item = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName(action).And(cf.ByControlType(ControlType.MenuItem))))
+                .SingleOrDefault()) != null, "parameter row action menu");
+            Press(ide, item, VirtualKeyShort.RETURN);
+        }
         private static TextBox Box(Window window, string name) => window.FindAllDescendants(cf => cf.ByName(name).And(cf.ByControlType(ControlType.Edit)))
             .Select(element => element.AsTextBox()).SingleOrDefault(element => !element.IsReadOnly && element.IsEnabled);
         private static void Focus(VisualStudioSession ide, AutomationElement element)

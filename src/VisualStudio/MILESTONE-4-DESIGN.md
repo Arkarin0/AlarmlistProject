@@ -175,12 +175,18 @@ package-consumer testing rather than importing new upstream infrastructure.
 
 ## Designer and iteration checks
 
-The parameter table edits the selected alarm or current file scope explicitly,
-with local name/value controls, assignment-presence control, effective value,
-and origin. Inherited/project rows are context, not edits to other sources.
-Add/remove local declarations and remove-assignment operations are explicit.
+Following the owner's 2026-10-07 UI approval, separate two-column Name/Value
+ListViews edit the file and alarm scopes simultaneously. File declarations sit at
+the top of the file editor above alarm browsing, including when no alarm is selected.
+Alarm declarations remain below the previews in the selected alarm pane. Each list
+has Add/Remove and Row actions, and shows declaration/assignment details for its
+selected row. Inherited/project rows are context, not edits to other sources.
+Row actions explicitly assign a value, assign empty, restore outer-scope fallback,
+declare here, or remove a local declaration. No scope selector or third column is needed.
 Clearing an assigned editor writes empty; removing the assignment restores fallback.
 The Abstract checkbox updates only the selected alarm's source attribute.
+Drafts from both lists and alarm fields share one atomic edit/Undo transaction;
+analysis-driven collection or selection refreshes must not commit those drafts.
 
 Normal fields show evaluated text when unfocused and raw source/draft when focused.
 Read-only inherited fields stay read-only until Override locally starts a draft.

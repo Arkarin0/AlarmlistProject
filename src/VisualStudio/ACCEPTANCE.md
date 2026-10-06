@@ -26,10 +26,14 @@ These new checks have **not been accepted interactively**.
 1. Select `Property.Child`. North shows Name `North 001`, South shows `South 001`,
    and both show Code `001` and Description `Inspect 001 - Shared`. The base's
    assigned `par1` value must not appear. Release changes the project value to `101`.
-2. In the Alarm parameter scope, assign `par1` to `002`. The dependent fields and
-   procedure update without Build. Undo/Redo must restore the exact shared XML.
-   An assigned empty string stops fallback; clearing Assigned resumes it. Repeat
-   at File scope and confirm both linked project contexts share that source edit.
+2. In the two-column Alarm parameters list, use Row actions to assign `par1` to
+   `002`. The dependent fields and procedure update without Build. Undo/Redo must
+   restore the exact shared XML.
+   An assigned empty string stops fallback; **Use file/project value** resumes it.
+   Repeat in the File parameters list at the top of the editor and confirm both
+   linked project contexts share that source edit. Both lists must expose exactly
+   Name/Value columns, selected-row origins, Add/Remove and keyboard-accessible row
+   actions. File editing must also work when no alarm matches the filter.
 3. Override Code locally: the editable copy is `$(par1)`. Focus and unfocus it;
    focus-only interactions leave the document clean. Repeat with procedure text.
    Make local copy of Instructions and verify `$(par1)` and `$$(literal)` survive.
