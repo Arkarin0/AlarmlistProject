@@ -77,53 +77,53 @@ templates. Localization remains later work.
 
 ## Localization
 
-Add localization expressions such as `$(loc:MyKeyword)`, replaced with the
-localized value for the selected language or culture.
+Planning decisions (2026-10-07; not implemented):
 
-In Visual Studio, provide a language dropdown combobox on a toolbar, following
-the behavior of Visual Studio's `Configuration` combobox for C# projects.
-Selecting a language updates both the resolved translations displayed in the
-designer and the language used for subsequent compilation.
+- Add localization expressions such as `$(loc:MyKeyword)`, resolved for the selected
+  culture. Editable fields retain raw source while focused and display evaluated
+  text afterward. Language changes never rewrite ALMX expressions.
+- The default displayed language is the special `keyword` mode. It displays the
+  complete literal `$(loc:MyKeyword)`, not just `MyKeyword`. Keyword mode is also
+  allowed as a build output, preserving localization tokens in the compiled text.
+- Permit parent-culture fallback: for each key, `de-DE` may use `de` if no German
+  (Germany) entry exists. Stop before the invariant/unqualified default resource.
+  Never use another language or keyword mode as an automatic fallback. This
+  supersedes the earlier exact-culture-only interpretation.
+- Keys form one project-wide catalogue, including inherited alarm content.
+  Duplicate keys for the same culture are errors; the same key in different
+  cultures is expected.
+- Translation values can contain parameter expressions. For example,
+  `Inspection = "Inspect $(par1)"` evaluates using the consuming alarm's parameters.
+  Custom parameter assignments retain milestone four's literal substitution rules.
+- A shared `AlarmlistCultures` project property selects multiple build cultures,
+  with a separate output folder for each. Keyword mode can be explicitly included.
+  If any requested culture fails validation, the entire build fails without
+  replacing any of the previous culture outputs.
+- Missing translations after permitted parent lookup produce a dedicated compiler
+  error identifying the key, requested culture, and source location where available.
+  Assign its stable diagnostic ID during implementation.
+- CAB support is cancelled. `.resx` and XLIFF remain the formats under discussion.
+  Prefer Visual Studio's built-in editor for `.resx`; verify its integration with
+  the custom `.almproj` project type instead of assuming .NET-project behavior.
 
-When an editable field receives focus, display its raw source string, such as
-`$(loc:MyKeyword)`, instead of the resolved translation. After editing ends and
-focus leaves the field, display the translation for the selected language again.
-Edits apply to the raw source value. Changing the selected language updates the
-active language setting while preserving the localization expressions in ALMX
-source files.
+The proposed toolbar follows Visual Studio's Configuration selector and applies
+to the active project. A singular `AlarmlistCulture` property holds the selected
+designer language, initially `keyword`; the plural `AlarmlistCultures` defines the
+build outputs independently. Build and preview use the same per-culture evaluation
+rules. Designer completion and resource-change invalidation belong in the planned
+workflow. A separate translation-table editor is not currently proposed.
 
-Supply the language used for translation during compilation as a compile-time
-setting (compiler constant), exposed through a project property in the same way
-that C# projects expose `Configuration`. The property name and default remain to
-be defined. The toolbar combobox reflects and changes this same project setting,
-keeping the designer's displayed translations and compiled translations aligned.
+Remaining design details:
 
-When compiling the final translated alarm list, if a localization keyword cannot
-be found in the localization source, the compiler must report an error and fail
-compilation without writing a new compiled output. As part of the future
-implementation, add a dedicated
-missing-localization-keyword error to the compiler's diagnostic classes, with a
-stable diagnostic ID and a message identifying the keyword and compilation
-language. Report the source location of the expression where available. The
-diagnostic ID will be assigned when this feature is implemented.
-
-The supported localization file formats remain undecided. Candidates are:
-
-- CAB-based files; the contained localization format still needs clarification.
-- Resource files supported by Visual Studio, such as `.resx`.
-- XLIFF files.
-
-Open questions:
-
-- Which formats should be supported first, and how are localization files included
-  in a project?
-- What is the compilation-language property's name and default, and how is it
-  passed to standalone compiler callers?
-- How should language fallback behave during display and compilation?
-- What happens when a localization key is duplicated?
-- Which fields can be localized, and how do localization expressions interact with
-  property expansion and inherited values?
-- Does compilation produce one output per culture, or use another output model?
+- Decide whether XLIFF participates directly in compilation or serves as an exchange
+  format for `.resx`, which XLIFF versions/content forms are supported, and how
+  resource files are included and associated with cultures.
+- Define behavior when the build-culture list is absent, key validation in keyword
+  mode, and the difference between missing and intentionally empty translations.
+- Freeze key syntax/case rules, nested localization-expression behavior, and the
+  localizable field set (proposed: the same fields as milestone-four expressions).
+- Define standalone captured resource/context inputs and live observation of
+  unsaved resource edits without coupling compiler evaluation to disk or MSBuild.
 
 ## NuGet packages and alarm libraries
 
