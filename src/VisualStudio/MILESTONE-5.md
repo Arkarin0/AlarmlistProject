@@ -21,6 +21,7 @@ translations with external tools and never becomes a build or preview input.
 | Catalogue | Keys are project-wide, including inherited alarm content. Duplicate keys within a culture are errors; the same key in different cultures is expected. |
 | Parameters | A translation such as `Inspection = "Inspect $(par1)"` uses the consuming alarm's parameter scope. With `par1=001`, it produces `Inspect 001`. Parameter assignments remain literal and replacement text is not rescanned. |
 | Resources | RESX supplies compiler and designer translations. Use the built-in resource editor; do not introduce a custom translation-table editor. |
+| Saved resources only | Build, preview, completion, localization diagnostics, and XLIFF export use saved RESX contents. Unsaved resource edits remain private to the resource editor. Refresh after a save or another change to the saved file; do not save editor buffers automatically. |
 | Build selection | Shared `AlarmlistCultures` lists build cultures. Emit a separate folder for each culture. A validation failure for any requested culture fails the batch and preserves every previous culture output. |
 | Preview selection | The proposed singular `AlarmlistCulture` selects the active project's designer language and initially uses `keyword`. Persist it in the shared project. It does not change the build-culture list. |
 | Exchange | Export RESX to XLIFF and import translated values into RESX. Define conflict and stale-export handling before importing. |
@@ -30,6 +31,8 @@ Milestone four's declaration-only parameter inheritance, explicit-empty paramete
 assignments, abstract alarms, Clear behavior, and literal identity/reference
 fields remain in force. Translation expressions participate in the existing
 compiler evaluation rules rather than introducing a second evaluator in the IDE.
+The saved-resource rule supersedes the earlier proposal to expose unsaved RESX
+edits. It does not change milestone four's existing unsaved ALMX analysis.
 
 ## Defaults to finalize in iteration one
 
@@ -52,10 +55,11 @@ alternative materially changes the intended workflow.
 | XLIFF profile | Start with a documented XLIFF 2.1 subset supporting string resources, stable keys, notes, and protected expression placeholders. Reject unsupported structures explicitly. |
 
 The native resource editor's behavior in an `.almproj` project is an integration
-question, not a confirmed capability. Its handling of unsaved edits must be proved
-early. The extension supports VS2022 17.9+, while the newer Resource Explorer was
-introduced in 17.11; do not silently raise the minimum version or assume all hosts
-provide the same resource-editing surface.
+question, not a confirmed capability. Verify editing and save-triggered refresh
+early; capturing its unsaved model is not required. The extension supports VS2022
+17.9+, while the newer Resource Explorer was introduced in 17.11; do not silently
+raise the minimum version or assume all hosts provide the same resource-editing
+surface.
 
 ## Implementation sequence
 
@@ -71,7 +75,7 @@ testing is not deferred wholesale to the final iteration.
 | 3 | Localization evaluation and compiler diagnostics | 2 |
 | 4 | Multi-culture SDK builds and output lifecycle | 3 |
 | 5 | Detached localization analysis and SDK bridge | 3-4 |
-| 6 | CPS resource inputs and live resource observation | 4-5 |
+| 6 | CPS resource inputs and saved-resource observation | 4-5 |
 | 7 | Language selector and localization completion | 5-6 |
 | 8 | XLIFF export | 2-4 and the frozen exchange profile |
 | 9 | XLIFF import with conflict protection | 6, 8 |
@@ -83,11 +87,10 @@ testing is not deferred wholesale to the final iteration.
   supported RESX/XLIFF content, diagnostic IDs, and the output ownership model.
 - Exercise a small `.almproj` fixture with the built-in RESX editor on the
   supported VS2022/VS2026 workflows. Check project item association, open/edit/save,
-  undo/discard, and the source available while the resource editor is dirty.
-- Determine whether its unsaved model is exposed through a text buffer or another
-  supported API. Establish how to capture coherent versions without saving files.
-  If this is unavailable on a supported host, document the concrete limitation and
-  resolve the live-preview requirement before implementing dependent behavior.
+  undo/discard, and notification when the saved file changes.
+- Establish coherent capture of saved resource files. Verify that editing or
+  discarding a dirty resource leaves consumers on the saved version and that saving
+  triggers refresh. Unsaved native-editor buffer access is outside the requirement.
 - Confirm the affected test baselines and record the existing deferred IDE check
   separately. Keep prototype code only when it becomes a supported integration
   or a repeatable test; do not leave exploratory product paths enabled.
@@ -101,7 +104,8 @@ Commit: `Define localization contracts and verify native resource editing`.
 ### Iteration 2: captured RESX inputs and culture catalogue
 
 - Add immutable, versioned resource snapshots and explicit culture inputs to the
-  compiler. Keep filesystem access and MSBuild types outside compiler evaluation.
+  compiler. Host adapters capture saved RESX contents; keep filesystem access and
+  MSBuild types outside compiler evaluation.
 - Parse supported string entries, comments, whitespace, and explicit-empty values
   with useful locations. Prohibit DTDs and reject unsupported object/file-reference
   content without deserialization or external resource loading.
@@ -171,8 +175,8 @@ Commit: `Build and manage separate alarm outputs for each culture`.
 - Update the compiler contract, packaged consumer asset, isolated worker, bridge,
   and host-owned DTOs together. Require the new contract rather than retaining an
   unreleased compatibility path. Keep compiler assemblies out of the VS host.
-- Make resource/culture changes invalidate pending results. Preserve cancellation,
-  version/generation checks, AppDomain disposal, and location mapping.
+- Make saved-resource/culture changes invalidate pending results. Preserve
+  cancellation, version/generation checks, AppDomain disposal, and location mapping.
 
 Exit: compiler snapshot tests, package-contract tests, and net472 bridge tests
 verify build/preview parity, missing translations, parent provenance, unavailable
@@ -180,25 +184,29 @@ XML on errors, stale-resource rejection, and SDK/configuration replacement.
 
 Commit: `Expose localization through detached analysis and the SDK bridge`.
 
-### Iteration 6: live project resources and unsaved edits
+### Iteration 6: project resources and saved-file changes
 
 - Capture evaluated resource membership, order, metadata, and selected culture
   through CPS. Use the same project inputs as builds; avoid IDE-only discovery.
-- Integrate the supported native-editor observation path proved in iteration one.
-  Unsaved edits are authoritative. Do not silently use disk when a dirty resource
-  cannot be captured; show an unavailable/pending result instead.
+- Observe saved resource files using the integration proved in iteration one.
+  Always use saved contents, including while the resource editor is dirty. Typing,
+  undoing, or discarding unsaved edits must not publish new translations or make
+  otherwise valid saved translations unavailable.
 - Handle resource add/remove/rename, external edits, linked files, project context
-  changes, and closing/discarding documents. Revalidate resource identity and text
-  before publishing or navigating. Never save a resource merely to obtain preview.
-- Extend watcher and document lifetime tests; retain weak document ownership,
+  changes, and save notifications. Revalidate saved resource identity and content
+  before publishing or navigating. Missing or invalid saved files produce normal
+  input/translation errors; never substitute unsaved content. Do not save a
+  resource merely to obtain preview.
+- Extend watcher and lifetime tests; retain weak document ownership where needed,
   notifying presentation collections, and disposal outside callback locks.
 
 Exit: project-input and observer tests cover membership and stale-result races.
-Functional IDE cases verify native RESX edit/undo/save/discard, external changes,
-and correct behavior for linked resources in two projects on both supported hosts.
+Functional IDE cases verify that native RESX edits remain invisible until saved,
+discard retains saved translations, and save/external changes refresh consumers.
+Cover new unsaved resources and linked resources in two projects on both hosts.
 Closing the resource editor or project releases owned subscriptions and watchers.
 
-Commit: `Refresh localization analysis from live resource edits`.
+Commit: `Refresh localization analysis from saved resource changes`.
 
 ### Iteration 7: language selector and completion
 
@@ -207,7 +215,7 @@ Commit: `Refresh localization analysis from live resource edits`.
   `AlarmlistCulture` through the project system; keep `AlarmlistCultures` independent.
   Handle read-only/global property values without pretending they were changed.
 - Switch focused fields between raw and resolved display using the existing rules.
-  Preserve active drafts, undo, selection, and focus during culture/resource
+  Preserve active drafts, undo, selection, and focus during culture/saved-resource
   changes. Copies retain expressions and previews clear while analysis is stale.
 - Add localization completion with project keys, translated previews, and parent
   provenance where useful. Revalidate inputs before completion or navigation;
@@ -216,7 +224,8 @@ Commit: `Refresh localization analysis from live resource edits`.
 
 Exit: view-model/BAML tests and functional IDE scenarios cover language switching,
 two-project context, persisted selection, dirty ALMX drafts, focus transitions,
-completion after unsaved resource edits, raw expression copies, and error recovery.
+completion remaining on saved resources while edits are pending and refreshing
+after save, raw expression copies, and error recovery.
 The RESX authoring/build/preview workflow is usable after this iteration.
 
 Commit: `Add designer language selection and localization completion`.
@@ -225,6 +234,8 @@ Commit: `Add designer language selection and localization completion`.
 
 - Implement an explicit export command/target for the agreed profile. It must not
   run automatically during Build or become an alternative compilation input.
+- Export saved RESX contents even when an editor has pending changes. Do not read
+  unsaved translation values or trigger a save as part of export.
 - Select the source language explicitly. Preserve stable key mapping, comments,
   whitespace, source/target cultures, and property-expression placeholders. Keep
   missing translations distinguishable from explicit empty values.
@@ -233,8 +244,9 @@ Commit: `Add designer language selection and localization completion`.
   structures and the supported translator workflow.
 
 Exit: deterministic export/profile tests cover multiple cultures, missing and
-empty targets, Unicode, escaping, notes, and placeholders. Export changes neither
-RESX inputs nor compiled outputs. An exported fixture opens in a selected
+empty targets, Unicode, escaping, notes, placeholders, and exclusion of pending
+editor changes. Export changes neither RESX inputs nor compiled outputs.
+An exported fixture opens in a selected
 compatible translation tool; record which interoperability claim was checked.
 
 Commit: `Export RESX translations through the supported XLIFF profile`.
@@ -250,10 +262,11 @@ Commit: `Export RESX translations through the supported XLIFF profile`.
 - Apply accepted translations to RESX while preserving unrelated entries,
   comments, and surrounding format where supported. Preflight the entire import
   before writing and protect against partial updates on ordinary write failures.
-- Define the open-editor boundary: update through a supported undoable buffer
-  operation or refuse conflicting dirty resources with a clear diagnostic. Never
-  overwrite their disk files behind the editor. Refresh native editor/analysis
-  state through the existing integration.
+- Refuse imports targeting dirty resource editors with a clear diagnostic so
+  pending edits can be saved or discarded first. Never overwrite their disk files
+  behind the editor or save their pending edits automatically. Successful imports
+  update saved RESX files and refresh native editor/analysis state through the
+  existing saved-file integration.
 
 Exit: round-trip tests cover export -> translate -> import -> multi-culture build,
 including stale sources, independently edited targets, malformed/unsupported
@@ -268,9 +281,10 @@ Commit: `Import XLIFF translations with conflict and dirty-buffer protection`.
   consumers. Verify both compiler/task frameworks, desktop MSBuild loading, and
   the matching SDK/VSIX pair without publishing either package.
 - Run the localization functional suite in VS2022 and VS2026, including native
-  RESX authoring, culture switching, linked projects, failure recovery, multi-culture
-  output preservation, and XLIFF exchange. Retain failure artifacts and distinguish
-  skipped or blocked checks from passing results.
+  RESX authoring with updates visible only after save, culture switching, linked
+  projects, failure recovery, multi-culture output preservation, and XLIFF exchange.
+  Retain failure artifacts and distinguish skipped or blocked checks from passing
+  results.
 - Measure resource-heavy analysis and repeated open/close behavior with existing
   opt-in tooling. Preserve raw measurements, process ownership, and lifetime
   checks; do not introduce machine-dependent performance thresholds.
@@ -322,7 +336,7 @@ VSIX.
   `Arkarin0.DotNet.Arcade.Sdk` integration.
 - Microsoft's [resource editor documentation](https://learn.microsoft.com/en-us/visualstudio/ide/managing-application-resources-dotnet?view=visualstudio)
   describes .NET-project resource editing and version-specific UI. Custom ALMX
-  project support and unsaved capture still require the iteration-one evidence.
+  project support and save-triggered refresh still require iteration-one evidence.
 - Use the [OASIS XLIFF 2.1 specification](https://docs.oasis-open.org/xliff/xliff-core/v2.1/os/xliff-core-v2.1-os.html)
   to define and test the exchange subset. Supporting that subset must not be
   described as support for arbitrary XLIFF documents.

@@ -110,6 +110,10 @@ acceptance. Remaining defaults are proposals to finalize in its first iteration.
 - `.resx` is the authoritative resource format for builds and designer previews.
   Use Visual Studio's built-in resource editor; verify its integration with the
   custom `.almproj` project type instead of assuming .NET-project behavior.
+- Use only saved RESX contents for build, preview, completion, localization
+  diagnostics, and XLIFF export. Unsaved resource edits remain private to the
+  resource editor; saving refreshes consumers. Do not save buffers automatically.
+  Existing unsaved ALMX analysis remains unchanged.
 - XLIFF serves as an import/export format for exchanging translations. Export
   from `.resx` and import translated values back into `.resx`; XLIFF files are not
   direct build or preview inputs. Define conflict and outdated-export handling
@@ -121,8 +125,9 @@ The proposed toolbar follows Visual Studio's Configuration selector and applies
 to the active project. A singular `AlarmlistCulture` property holds the selected
 designer language, initially `keyword`; the plural `AlarmlistCultures` defines the
 build outputs independently. Build and preview use the same per-culture evaluation
-rules. Designer completion and resource-change invalidation belong in the planned
-workflow. A separate translation-table editor is not currently proposed.
+rules. Designer completion and invalidation after saved-resource changes belong
+in the planned workflow. A separate translation-table editor is not currently
+proposed.
 
 Remaining design details:
 
@@ -132,8 +137,8 @@ Remaining design details:
   mode, and the difference between missing and intentionally empty translations.
 - Freeze key syntax/case rules, nested localization-expression behavior, and the
   localizable field set (proposed: the same fields as milestone-four expressions).
-- Define standalone captured resource/context inputs and live observation of
-  unsaved resource edits without coupling compiler evaluation to disk or MSBuild.
+- Define standalone captured resource/context inputs and observation of saved
+  resource changes without coupling compiler evaluation to disk or MSBuild.
 
 ## NuGet packages and alarm libraries
 
