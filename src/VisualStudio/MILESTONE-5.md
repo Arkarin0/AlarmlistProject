@@ -1,8 +1,8 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: iterations one through four are complete. Captured resources, catalogue
+Status: iterations one through five are complete. Captured resources, catalogue
 validation, localization expression evaluation and multi-culture
-SDK builds are implemented. Detached analysis follows in iteration five. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
+SDK builds and detached analysis are implemented. Saved-resource observation follows in iteration six. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
 `feature/ParametersAndLocalization`. Complete and validate each iteration, then
@@ -430,7 +430,32 @@ VSIX.
   in the shared test helper remain. No power-loss atomicity is claimed.
 - Recorded the owner's exchange decisions and researched Trados/memoQ/Phrase
   compatibility; source defaults to en and every import conflict rejects the batch.
-- Commit: `Build and manage separate alarm outputs for each culture`.
+- Commit: `a897f6e` (`Build and manage separate alarm outputs for each culture`).
+
+## Iteration-five results (2026-10-07)
+
+- Coordinated analysis contract three across the compiler, packaged consumer,
+  isolated worker, bridge and host-owned DTOs. Older unreleased contracts are
+  rejected with update guidance. Existing raw/effective fields, properties,
+  procedure/Clear origins, abstract state and compiled XML gating remain intact.
+- Added captured resource identities/versions, selected culture, raw catalogue
+  declarations, duplicate ambiguity and compiler-owned translation lookup origins.
+  Each alarm records actual localization uses and evaluated availability separately
+  from lookup availability. Results stay immutable after subsequent analyses and
+  after unloading the SDK domain. No compiler types enter the VS host.
+- The bridge accepts captured saved-resource text and delegates filename inference
+  to the SDK. Explicit-empty culture remains distinct. Resource or culture changes
+  invalidate in-flight project results without requiring ALMX changes. CPS capture
+  of resource membership and filesystem refresh remain iteration-six work.
+- Compiler: 244 passed on each framework. Task unit/integration: 36/4 passed on
+  each framework. SDK package suite: 33 passed on each framework. The extended
+  packaged analysis-contract case also passed under VS2026 desktop MSBuild;
+  the prior environment setting was restored.
+- Extension unit suite: all 262 passed on net472, including 26 bridge cases and
+  resource/culture generation-race tests. VSIX/template consumer suite: 10 passed
+  on each framework. No skips in these runs; the existing shared-helper CA1416
+  warning remains. No new IDE interaction is claimed by this bridge iteration.
+- Commit: `Expose localization through detached analysis and the SDK bridge`.
 
 ## Exchange compatibility decision (2026-10-07)
 

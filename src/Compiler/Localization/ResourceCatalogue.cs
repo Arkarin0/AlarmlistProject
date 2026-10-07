@@ -42,6 +42,7 @@ namespace Alarmlist.Localization
                         diagnostics.Add(new Diagnostic(DiagnosticDescriptors.DuplicateResourceKey, entry.Key, culture)
                             .WithLocation(entry.Location, new[] { previous.Location }));
                         _ambiguous.Add(previous); // An ambiguous value can never win by input order.
+                        _ambiguous.Add(entry);
                     }
                     else values.Add(entry.Key, entry);
                 }
@@ -52,6 +53,7 @@ namespace Alarmlist.Localization
 
         internal IReadOnlyList<ResourceEntry> Entries { get; }
         internal IReadOnlyList<Diagnostic> Diagnostics { get; }
+        internal bool IsAmbiguous(ResourceEntry entry) => _ambiguous.Contains(entry);
 
         internal bool TryResolve(string key, string requestedCulture, out ResourceTranslation translation)
         {

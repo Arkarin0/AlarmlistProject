@@ -11,20 +11,30 @@ namespace Alarmlist.Analysis
     /// <summary>A detached, read-only result for one complete set of source snapshots.</summary>
     public sealed class AnalysisResult
     {
-        public const int CurrentContractVersion = 2;
+        public const int CurrentContractVersion = 3;
         public int ContractVersion => CurrentContractVersion;
         public IReadOnlyList<AnalyzedSource> Sources { get; }
         public IReadOnlyList<AnalyzedAlarm> Alarms { get; }
         public IReadOnlyList<AnalysisDiagnostic> Diagnostics { get; }
+        public string Culture { get; }
+        public IReadOnlyList<AnalyzedResource> Resources { get; }
+        public IReadOnlyList<AnalyzedResourceEntry> ResourceEntries { get; }
+        public IReadOnlyList<AnalyzedTranslation> Translations { get; }
         public bool Success => !Diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
         /// <summary>Resolved project XML, or null when not requested or compilation failed.</summary>
         public string CompiledXml { get; }
 
-        internal AnalysisResult(IEnumerable<AnalyzedSource> sources, IEnumerable<AnalyzedAlarm> alarms, IEnumerable<Diagnostic> diagnostics, string compiledXml = null)
+        internal AnalysisResult(IEnumerable<AnalyzedSource> sources, IEnumerable<AnalyzedAlarm> alarms, IEnumerable<Diagnostic> diagnostics,
+            string culture, IEnumerable<AnalyzedResource> resources, IEnumerable<AnalyzedResourceEntry> entries,
+            IEnumerable<AnalyzedTranslation> translations, string compiledXml = null)
         {
             Sources = Array.AsReadOnly(sources.ToArray());
             Alarms = Array.AsReadOnly(alarms.ToArray());
             Diagnostics = Array.AsReadOnly(diagnostics.Select(diagnostic => new AnalysisDiagnostic(diagnostic)).ToArray());
+            Culture = culture;
+            Resources = Array.AsReadOnly(resources.ToArray());
+            ResourceEntries = Array.AsReadOnly(entries.ToArray());
+            Translations = Array.AsReadOnly(translations.ToArray());
             CompiledXml = Success ? compiledXml : null;
         }
     }

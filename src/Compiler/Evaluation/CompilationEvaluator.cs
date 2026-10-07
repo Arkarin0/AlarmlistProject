@@ -23,6 +23,8 @@ namespace Alarmlist.Evaluation
         private readonly Dictionary<TestProcedureStepSyntax, PropertyExpression> _steps = new Dictionary<TestProcedureStepSyntax, PropertyExpression>();
         internal DiagnosticBag Diagnostics { get; } = new DiagnosticBag();
         internal Dictionary<AlarmSyntaxNode, AlarmEvaluation> Alarms { get; } = new Dictionary<AlarmSyntaxNode, AlarmEvaluation>();
+        internal ResourceCatalogue Resources => _resources;
+        internal string Culture => _culture;
 
         internal CompilationEvaluator(AlarmSyntaxTree tree, CompilationContext context)
         {
@@ -118,6 +120,7 @@ namespace Alarmlist.Evaluation
             private readonly HashSet<string> _failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             private readonly List<SourceLocation> _activeResources = new List<SourceLocation>();
             internal Dictionary<TestProcedureStepSyntax, string> Steps { get; } = new Dictionary<TestProcedureStepSyntax, string>();
+            internal List<LocalizationEvaluation> LocalizationUses { get; } = new List<LocalizationEvaluation>();
             internal bool IsAvailable => _failed.Count == 0 && Steps.Values.All(value => value != null);
 
             internal AlarmEvaluation(CompilationEvaluator owner, AlarmSyntaxNode alarm)
@@ -186,6 +189,14 @@ namespace Alarmlist.Evaluation
 
             private string Localize(string key, SourceLocation location)
             {
+                string value = LocalizeCore(key, location, out ResourceEntry entry);
+                LocalizationUses.Add(new LocalizationEvaluation(key, entry, location ?? _alarm.Location, value));
+                return value;
+            }
+
+            private string LocalizeCore(string key, SourceLocation location, out ResourceEntry entry)
+            {
+                entry = null;
                 if (_owner._culture == LocalizationCulture.Keyword) return "$(loc:" + key + ")";
                 if (_owner._culture == null) return null; // Invalid culture already has a diagnostic.
                 if (!_owner._resources.TryResolve(key, _owner._culture, out ResourceTranslation translation))
@@ -194,7 +205,7 @@ namespace Alarmlist.Evaluation
                         .WithLocation(location ?? _alarm.Location, _owner._resources.GetLookupLocations(key, _owner._culture)));
                     return null;
                 }
-                ResourceEntry entry = translation.Entry;
+                entry = translation.Entry;
                 if (!_owner._translations.TryGetValue(entry, out PropertyExpression expression))
                     _owner._translations.Add(entry, expression = PropertyExpression.Parse(entry.Value));
                 if (expression == null)

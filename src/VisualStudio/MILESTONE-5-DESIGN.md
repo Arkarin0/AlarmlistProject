@@ -76,8 +76,8 @@ The compiler owns parsing, catalogue validation, parent lookup, and evaluation.
 
 The resource-aware overload is `CompilationContext(resources, culture: null,
 projectPath: null, configuration: null, platform: null, properties: null)`.
-Resources are optional through the original constructor, which remains available
-to the current bridge until iteration five. Culture validation uses the runtime's
+Resources are optional through the original constructor. Contract three uses the
+resource-aware overload in the bridge. Culture validation uses the runtime's
 supported `CultureInfo.GetCultures(AllCultures)` catalogue, ignoring case; it does
 not accept arbitrary names just because a runtime can construct a CultureInfo.
 
@@ -183,6 +183,17 @@ resource identities/versions, selected culture, catalogue entries for completion
 and per-use translation provenance. Preserve existing raw/effective alarm and
 procedure fields, abstract state, and compiled XML error gating. The SDK compiler
 remains outside the VS host AppDomain; no host compiler reference is introduced.
+
+Contract-three result names are Culture, Resources, ResourceEntries and Translations.
+Resources retain captured path, version and input culture. ResourceEntries preserve
+raw declarations, comments, locations and ambiguity. Translations contain the
+compiler-selected requested/supplying culture and raw value for each catalogue key;
+IsAvailable describes lookup, not expression evaluation. Keyword records expose
+literal tokens without fabricated resource origins. Invalid selection yields null
+Culture and its diagnostic. Each alarm's LocalizationUses stores actual uses,
+usage locations and evaluated values/availability in that alarm's scope. Excluded
+procedure content and abstract templates have no evaluated uses. These read-only
+records must survive later analyses and SDK AppDomain unloads unchanged.
 
 Native RESX editing remains Visual Studio-owned. Watch saved files rather than
 retaining resource-editor graphs. Revalidate saved input versions before using

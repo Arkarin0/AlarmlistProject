@@ -7,6 +7,7 @@ using Alarmlist.Binding;
 using Alarmlist.Compiler;
 using Alarmlist.Diagnostics;
 using Alarmlist.Evaluation;
+using Alarmlist.Localization;
 using Alarmlist.Output;
 using Alarmlist.Syntax;
 using Alarmlist.Text;
@@ -59,7 +60,15 @@ namespace Alarmlist.Analysis
             }
             IEnumerable<AnalyzedSource> sources = snapshots.Select((snapshot, index) => new AnalyzedSource(snapshot,
                 analyzer.AnalyzeProperties(null, binding.SyntaxTree.Files[index], true, snapshot.FilePath)));
-            return new AnalysisResult(sources, binding.SyntaxTree.Alarms.Select(analyzer.AnalyzeAlarm), binding.Diagnostics.Concat(compilation.Diagnostics), xml);
+            ResourceCatalogue catalogue = analyzer._evaluation.Resources;
+            return new AnalysisResult(sources, binding.SyntaxTree.Alarms.Select(analyzer.AnalyzeAlarm), binding.Diagnostics.Concat(compilation.Diagnostics),
+                analyzer._evaluation.Culture, context.Resources.Select(resource => new AnalyzedResource(resource)),
+                catalogue.Entries.Select(entry => new AnalyzedResourceEntry(entry, catalogue.IsAmbiguous(entry))),
+                catalogue.Entries.Select(entry => entry.Key).Where(ResourceCatalogue.IsValidKey).Distinct(StringComparer.Ordinal).Select(key =>
+                {
+                    catalogue.TryResolve(key, analyzer._evaluation.Culture, out ResourceTranslation translation);
+                    return new AnalyzedTranslation(key, analyzer._evaluation.Culture, translation?.Entry);
+                }), xml);
         }
 
         private void AddEntryOrigins(ReferenceableCollection<ITestProcedureItem> entries, AlarmOrigin alarm, string section)
@@ -87,7 +96,9 @@ namespace Alarmlist.Analysis
 
             return new AnalyzedAlarm(_alarms[alarm], alarm.ReferenceName, resolved, chain, fields,
                 AnalyzeSection(alarm, "Instructions", resolved), AnalyzeSection(alarm, "Reset", resolved),
-                alarm.IsAbstract, evaluation?.IsAvailable == true, AnalyzeProperties(alarm, alarm.SourceFile, resolved));
+                alarm.IsAbstract, evaluation?.IsAvailable == true, AnalyzeProperties(alarm, alarm.SourceFile, resolved),
+                (evaluation?.LocalizationUses ?? Enumerable.Empty<LocalizationEvaluation>()).Select(use =>
+                    new AnalyzedLocalizationUse(new AnalyzedTranslation(use.Key, _evaluation.Culture, use.Entry), use.Location, use.Value)));
         }
 
         private IEnumerable<AnalyzedProperty> AnalyzeProperties(AlarmSyntaxNode alarm, AlarmSyntaxTree file, bool resolved, string filePath = null)

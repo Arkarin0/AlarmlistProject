@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
-    /// <summary>Contract 2 adapter. Copies compiler answers without reimplementing resolution.</summary>
+    /// <summary>Contract 3 adapter. Copies compiler answers without reimplementing resolution.</summary>
     internal sealed class AnalysisContractReader
     {
         private readonly Dictionary<Type, Type> _types = new Dictionary<Type, Type>();
@@ -17,8 +17,12 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             Add<AnalysisSnapshot>(assembly, "Alarmlist.Analysis.AnalysisResult");
             FieldInfo version = _types[typeof(AnalysisSnapshot)].GetField("CurrentContractVersion", BindingFlags.Public | BindingFlags.Static);
-            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 2))
-                throw new NotSupportedException("Only analysis contract 2 is supported by this extension.");
+            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 3))
+                throw new NotSupportedException("Only analysis contract 3 is supported by this extension.");
+            Add<AnalysisResource>(assembly, "Alarmlist.Analysis.AnalyzedResource");
+            Add<AnalysisResourceEntry>(assembly, "Alarmlist.Analysis.AnalyzedResourceEntry");
+            Add<AnalysisTranslation>(assembly, "Alarmlist.Analysis.AnalyzedTranslation");
+            Add<AnalysisLocalizationUse>(assembly, "Alarmlist.Analysis.AnalyzedLocalizationUse");
             Add<AnalysisSource>(assembly, "Alarmlist.Analysis.AnalyzedSource");
             Add<AnalysisAlarm>(assembly, "Alarmlist.Analysis.AnalyzedAlarm");
             Add<AnalysisAlarmOrigin>(assembly, "Alarmlist.Analysis.AlarmOrigin");
@@ -65,13 +69,19 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public AnalysisSnapshot Read(object result)
         {
-            if (result == null || Value<int>(result, "ContractVersion") != 2)
+            if (result == null || Value<int>(result, "ContractVersion") != 3)
                 throw new NotSupportedException("The SDK returned an unsupported analysis contract.");
-            return new AnalysisSnapshot(2, Value<bool>(result, "Success"), List(result, "Sources", source =>
+            return new AnalysisSnapshot(3, Value<bool>(result, "Success"), List(result, "Sources", source =>
                 new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"), List(source, "Properties", Property))),
                 List(result, "Alarms", Alarm), List(result, "Diagnostics", diagnostic => new AnalysisDiagnostic(
                     Value<string>(diagnostic, "Id"), EnumValue<AnalysisSeverity>(diagnostic, "Severity"), Value<string>(diagnostic, "Message"),
-                    Location(Value<object>(diagnostic, "Location")), List(diagnostic, "RelatedLocations", Location))));
+                    Location(Value<object>(diagnostic, "Location")), List(diagnostic, "RelatedLocations", Location))),
+                Value<string>(result, "Culture"), List(result, "Resources", resource =>
+                    new AnalysisResource(Value<string>(resource, "FilePath"), Value<int>(resource, "Version"), Value<string>(resource, "Culture"))),
+                List(result, "ResourceEntries", entry => new AnalysisResourceEntry(Value<string>(entry, "Key"), Value<string>(entry, "Culture"),
+                    Value<string>(entry, "RawValue"), Value<string>(entry, "Comment"), Location(Value<object>(entry, "Location")),
+                    Location(Value<object>(entry, "ValueLocation")), Value<bool>(entry, "IsValid"), Value<bool>(entry, "IsAmbiguous"))),
+                List(result, "Translations", Translation));
         }
 
         private static AnalysisAlarm Alarm(object alarm)
@@ -83,8 +93,15 @@ namespace Alarmlist.VisualStudio.Analysis
                         AlarmOrigin(Value<object>(field, "DefiningAlarm")), Location(Value<object>(field, "ValueLocation")), Value<bool>(field, "IsInherited"),
                         Value<string>(field, "EffectiveExpression"), Value<bool>(field, "IsValueAvailable"))),
                 Section(Value<object>(alarm, "Instructions")), Section(Value<object>(alarm, "Reset")), Value<bool>(alarm, "IsAbstract"),
-                Value<bool>(alarm, "HasEvaluatedValues"), List(alarm, "Properties", Property));
+                Value<bool>(alarm, "HasEvaluatedValues"), List(alarm, "Properties", Property), List(alarm, "LocalizationUses", use =>
+                    new AnalysisLocalizationUse(Translation(Value<object>(use, "Translation")), Location(Value<object>(use, "UsageLocation")),
+                        Value<string>(use, "Value"), Value<bool>(use, "IsValueAvailable"))));
         }
+
+        private static AnalysisTranslation Translation(object translation) => new AnalysisTranslation(
+            Value<string>(translation, "Key"), Value<string>(translation, "RequestedCulture"), Value<string>(translation, "SupplyingCulture"),
+            Value<bool>(translation, "IsKeyword"), Value<bool>(translation, "IsAvailable"), Value<string>(translation, "RawValue"),
+            Value<string>(translation, "Comment"), Location(Value<object>(translation, "Location")), Location(Value<object>(translation, "ValueLocation")));
 
         private static AnalysisSection Section(object section)
         {

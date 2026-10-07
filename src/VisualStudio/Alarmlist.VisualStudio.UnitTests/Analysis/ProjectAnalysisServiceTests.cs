@@ -204,6 +204,62 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             Assert.False(original.Matches(new AnalysisContext("Plant", "Debug", "AnyCPU", new[] { new AnalysisPropertyDefinition("p", ""), original.Properties[1] })));
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ResourceOrCultureChangeRejectsInFlightResultsAsync(bool changeCulture)
+        {
+            var started = NewSignal();
+            using (var release = new ManualResetEventSlim())
+            {
+                var files = new Inputs();
+                files.Set("A", "unchanged", 1);
+                int calls = 0;
+                var factory = new Factory { OnAnalyze = count => { if (Interlocked.Increment(ref calls) == 1) { started.TrySetResult(true); Assert.True(release.Wait(10000)); } } };
+                var service = Create(files, factory);
+                var published = new ConcurrentQueue<AnalysisContext>();
+                service.Changed += (sender, args) =>
+                {
+                    ProjectAnalysisState state = service.Current;
+                    if (state.Status == ProjectAnalysisStatus.Available) published.Enqueue(state.Project.Context);
+                };
+                try
+                {
+                    var oldContext = new AnalysisContext(resources: new[] { new AnalysisResourceInput("old", "Labels.en.resx", 1) }, culture: "en");
+                    var newContext = new AnalysisContext(resources: new[] { new AnalysisResourceInput(changeCulture ? "old" : "new", "Labels.en.resx", changeCulture ? 1 : 2) },
+                        culture: changeCulture ? "keyword" : "en");
+                    service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" }, oldContext));
+                    await WithTimeoutAsync(started.Task);
+                    service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" }, newContext));
+                    Assert.Null(service.Current.Response);
+                    release.Set();
+                    await AvailableAsync(service);
+                    Assert.Same(newContext, factory.Bridges.Last().Context);
+                    Assert.DoesNotContain(oldContext, published);
+                    Assert.Equal(1, Assert.Single(service.Current.Inputs).Input.Version);
+                }
+                finally { release.Set(); await service.StopAsync(); }
+            }
+        }
+
+        [Fact]
+        public void ResourceContextCopiesItsInputsAndComparesTextVersionCultureAndOrder()
+        {
+            var first = new AnalysisResourceInput("saved", "Labels.en.resx", 1);
+            var second = new AnalysisResourceInput("catalogue", "Labels.resx", 2, "");
+            var inputs = new List<AnalysisResourceInput> { first, second };
+            var context = new AnalysisContext(resources: inputs, culture: "en");
+            inputs.Clear();
+            Assert.Equal(2, context.Resources.Count);
+            Assert.True(context.Matches(new AnalysisContext(resources: new[] { first, second }, culture: "en")));
+            Assert.False(context.Matches(new AnalysisContext(resources: new[] { second, first }, culture: "en")));
+            Assert.False(context.Matches(new AnalysisContext(resources: new[] { first, second }, culture: "de")));
+            foreach (AnalysisResourceInput changed in new[] {
+                new AnalysisResourceInput("changed", first.FilePath, 1), new AnalysisResourceInput("saved", first.FilePath, 2),
+                new AnalysisResourceInput("saved", "Renamed.en.resx", 1), new AnalysisResourceInput("saved", first.FilePath, 1, "") })
+                Assert.False(context.Matches(new AnalysisContext(resources: new[] { changed, second }, culture: "en")));
+        }
+
         [Fact]
         public async Task InvalidXmlAndReferenceDiagnosticsHaveDifferentStatesAsync()
         {

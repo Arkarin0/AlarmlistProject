@@ -30,6 +30,7 @@ namespace Alarmlist.Analysis
         public bool IsAbstract { get; }
         public bool HasEvaluatedValues { get; }
         public IReadOnlyList<AnalyzedProperty> Properties { get; }
+        public IReadOnlyList<AnalyzedLocalizationUse> LocalizationUses { get; }
 
         /// <summary>False for invalid or ambiguous identity/reference chains; effective values are then unavailable.</summary>
         public bool IsResolved { get; }
@@ -43,13 +44,14 @@ namespace Alarmlist.Analysis
         internal AnalyzedAlarm(AlarmOrigin origin, string referenceName, bool isResolved,
             IEnumerable<AlarmOrigin> referenceChain, IEnumerable<AnalyzedField> fields,
             AnalyzedProcedureSection instructions, AnalyzedProcedureSection reset, bool isAbstract,
-            bool hasEvaluatedValues, IEnumerable<AnalyzedProperty> properties)
+            bool hasEvaluatedValues, IEnumerable<AnalyzedProperty> properties, IEnumerable<AnalyzedLocalizationUse> localizationUses)
         {
             Origin = origin;
             ReferenceName = referenceName;
             IsAbstract = isAbstract;
             HasEvaluatedValues = hasEvaluatedValues;
             Properties = Array.AsReadOnly(properties.ToArray());
+            LocalizationUses = Array.AsReadOnly(localizationUses.ToArray());
             IsResolved = isResolved;
             ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
             Fields = Array.AsReadOnly(fields.ToArray());

@@ -246,14 +246,14 @@ autosave a committed cell; that saved value is then eligible for capture.
 The compiler in each SDK task-runtime directory exposes
 `AlarmCompiler.AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot>)` for host adapters.
 It returns a detached, read-only `Alarmlist.Analysis.AnalysisResult` with contract
-version 2, input versions, local/effective fields, defining alarms and locations,
+version 3, input versions, local/effective fields, defining alarms and locations,
 reference chains, procedure origins, Clear exclusions, and located diagnostics.
 It shares the compiler's resolution rules and never reads or writes snapshot paths.
 
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and returns contract 2.
+The original overload keeps its analysis-only behavior and returns contract 3.
 `AnalyzeSnapshots(snapshots, context, includeCompiledXml)` captures the same
 CompilationContext as compilation. EffectiveExpression and procedure RawText retain
 source tokens; EffectiveValue and surviving procedure Text carry evaluated results.
@@ -261,6 +261,24 @@ Check IsValueAvailable and HasEvaluatedValues independently of IsResolved: an ab
 alarm or a field-dependency error can have a valid reference chain. IsAbstract marks
 templates. Alarm and source Properties contain visible custom and well-known values,
 local declaration/assignment presence, and separate declaration/value origins.
+Contract 3 adds selected `Culture`, captured `Resources` (path, version and input
+culture), raw `ResourceEntries` with comments/locations/validity/ambiguity, and
+compiler-resolved `Translations` for catalogue keys. Requested and supplying
+cultures are separate. Translation `IsAvailable` means lookup succeeded, not that
+its property expressions can evaluate in every alarm. Keyword entries expose the
+full literal token without inventing a resource origin. Invalid selections expose
+null Culture alongside the culture diagnostic.
+
+Each alarm's `LocalizationUses` records actual evaluated uses: the translation,
+ALMX usage location, evaluated Value and IsValueAvailable. Abstract or excluded
+content does not invent uses. A missing or invalid expression can retain lookup
+provenance while its evaluated value is unavailable. Results are detached and
+read-only; changing resource/culture inputs cannot mutate earlier results.
+The bridge requires contract 3 and copies this data into host-owned serializable
+objects. Resource filename inference is delegated to the SDK's
+`LocalizationCulture.InferResourceCulture`; explicit empty culture stays distinct.
+CPS saved-resource capture and designer localization follow in iterations six/seven.
+
 `XmlAlarmlistOutputWriter.WriteToString(AlarmList)` is the in-memory output sink;
 its text matches file output, including the UTF-8 declaration and `AlarmList`
 root. Neither API saves source files or changes existing build output.
@@ -279,7 +297,7 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 2 and a CPS
+The extension now has an isolated AppDomain bridge for contract 3 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear
