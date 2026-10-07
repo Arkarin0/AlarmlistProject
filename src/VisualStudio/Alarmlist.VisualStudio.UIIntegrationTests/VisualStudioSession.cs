@@ -53,8 +53,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     + "\nPID: " + _process.Id + "\nStarted UTC: " + _process.StartTime.ToUniversalTime().ToString("O"));
                 Wait(() => { _dte = (DTE)VisualStudioAutomation.Find(_process.Id); return _dte != null; }, "owned IDE automation");
                 Wait(() => _dte.Solution.IsOpen, "empty solution startup");
-                _dte.SuppressUI = true;
-                _dte.MainWindow.Visible = true;
+                Wait(() =>
+                {
+                    _dte.SuppressUI = true;
+                    _dte.MainWindow.Visible = true;
+                    return true;
+                }, "IDE automation readiness");
             }
             catch (Exception exception)
             {

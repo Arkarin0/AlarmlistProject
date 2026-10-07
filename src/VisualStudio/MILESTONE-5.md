@@ -1,6 +1,8 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: planned; localization implementation has not started. The planning
+Status: iteration one is complete; localization runtime behavior is not yet
+implemented. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
+decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
 `feature/ParametersAndLocalization`. Complete and validate each iteration, then
 commit it before starting the next. Record actual results here as work proceeds;
@@ -328,6 +330,34 @@ status in [milestone four](MILESTONE-4.md).
 No release publication is part of these iterations. A later release still needs
 the authoritative SDK published and verified before distributing its matching
 VSIX.
+
+## Iteration-one results (2026-10-07)
+
+- Added the implementation contract and separate VS2022/VS2026 native resource
+  editor cases in the existing functional test harness. No localization runtime
+  behavior has been enabled yet.
+- Compiler baseline: 150 tests passed on net472 and 150 on net8.0. CPS rule
+  baseline: all 7 RuleTests passed. The UI test project builds, and both new
+  resource cases skip normally when live testing is not explicitly enabled.
+- The complete VS2022 17.14.36930.0 resource case passed: native table opening,
+  keyboard drafts, Undo, Escape cancellation, cell commit, Save, and reopening.
+  Unfinished drafts remained off disk. The native editor automatically saved
+  committed cells; the contract and test distinguish that save boundary from a
+  pending draft. The owned IDE exited normally. Artifacts:
+  `artifacts/log/Debug/VisualStudioUI/NativeResourceEditor/2022/9190053c2a5f424b985073dea439a70a/`.
+- After adding bounded retry for rejected IDE startup automation calls, the
+  complete VS2022 resource case passed again (one passed, none skipped). TRX:
+  `artifacts/log/Debug/VisualStudioUI/TestResults/5668c9423c7f47adb4a67249e69e8560/`.
+- The complete VS2026 18.10.12217.157 resource case passed on retry (one passed,
+  none skipped), including draft isolation, Undo/Escape, cell commit, Save, and
+  reopening. The owned IDE exited normally. The earlier startup failure is superseded by this
+  successful run. Artifacts:
+  `artifacts/log/Debug/VisualStudioUI/NativeResourceEditor/2026/9f14bcd491074d32813ea993fc2fc065/`.
+- Deployed the current extension to the VS2022 and VS2026 AlarmlistExp profiles.
+  The older VS2022 17.9 surface remains unverified.
+- Iteration one is accepted for the installed hosts. The separate, previously
+  deferred milestone-four test stays pending. Commit:
+  `Define localization contracts and verify native resource editing`.
 
 ## Architecture and reference basis
 
