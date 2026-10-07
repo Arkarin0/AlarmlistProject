@@ -88,6 +88,10 @@ or disable default items and list your inputs explicitly:
 | `EnableDefaultAlarmlistResourceItems` | `true` |
 | `AlarmlistCultures` | `keyword` (semicolon-separated build list) |
 | `AlarmlistCulture` | `keyword` (independent shared preview selection) |
+| `AlarmlistXliffSourceCulture` | `en` (export source language) |
+| `AlarmlistXliffTargetCultures` | Required for export; semicolon-separated real cultures |
+| `AlarmlistXliffOutputPath` | `$(MSBuildProjectDirectory)/xliff` |
+| `AlarmlistXliffOverwrite` | `false`; use a new directory for a new translation job |
 | `AlarmlistTasksAssembly` | Task assembly for the current MSBuild runtime |
 
 `@(CompiledAlarmlistFiles)` exposes absolute output paths with normalized `Culture` metadata. Build and GetTargetPath return these items; GetTargetPath needs no prior build and writes no output. Projects can use
@@ -102,6 +106,42 @@ when read from ALMX files. Missing, self, and circular references point to the
 `ReferenceName` element; duplicate names point to `FullyQualifiedName`. A failed
 compilation leaves any previous compiled output unchanged. Live analysis of
 unsaved ALMX editor buffers is separate from saved RESX resource capture.
+
+## XLIFF translation export
+
+Export is explicit and reads saved RESX files, including when an editor has
+unsaved changes. It does not compile alarms or save editor buffers. Run it from
+a terminal; invoking Build/Save All in Visual Studio may save documents first.
+
+```powershell
+dotnet msbuild Plant.almproj /t:ExportAlarmlistXliff /p:AlarmlistXliffTargetCultures=de
+dotnet msbuild Plant.almproj /t:ExportAlarmlistXliff /p:AlarmlistXliffTargetCultures=de%3Bfr /p:AlarmlistXliffOutputPath=translation-job-2
+```
+
+The second command uses MSBuild's escaped semicolon for multiple cultures.
+Configure AlarmlistXliffSourceCulture in the project (also exposed on the project
+property page), or override it for a command with `/p:AlarmlistXliffSourceCulture=en-US`.
+Build/preview selections and their fallback rules are unaffected.
+
+Each language pair produces `Alarmlist.<source>.<target>.xlf` and an adjacent
+`.xlf.baseline.xml`. Send only the XLIFF to the translator; retain the baseline
+unchanged for conflict checking on import. Existing exchange files are protected
+unless AlarmlistXliffOverwrite is explicitly true. All pairs validate before any
+file is replaced, with rollback for ordinary write failures. Build and Clean do
+not create or remove translation exchanges. Export evaluates GetTargetPath to
+protect compiled destinations, without building them. `@(AlarmlistXliffFiles)`
+returns paths with SourceCulture, Culture and BaselineFile metadata.
+
+The [exchange profile](../../VisualStudio/MILESTONE-5-DESIGN.md#xliff-export-profile-version-one)
+uses XLIFF 2.0, exact culture entries, stable case-sensitive keys, comments and
+protected parameter expressions. Every key needs a nonempty source translation
+in the selected source culture. Export does not fill missing target entries from
+parents. Existing nonempty targets must contain the same parameter-expression
+occurrences as their source; reordering is allowed. Missing and explicitly empty
+targets remain distinct in the baseline.
+
+Import is a later iteration. Trados Studio, memoQ and Phrase TMS are the intended
+tools; vendor round trips remain unverified until recorded in the milestone.
 
 ## Property expressions and templates
 

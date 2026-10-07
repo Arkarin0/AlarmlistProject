@@ -260,3 +260,53 @@ RESX remains the master. Export saved values only. Preflight the entire import;
 any stale source or conflicting target edit rejects all changes and produces a
 conflict report. Do not apply nonconflicting entries from a rejected batch.
 Preserve explicit dry-run/apply and dirty-resource-editor protection.
+
+## XLIFF export profile version one
+
+The compiler's XliffExport.Create consumes captured saved RESX snapshots and
+returns detached XLIFF/baseline strings. The task owns capture and transactional
+file installation; the SDK exposes ExportAlarmlistXliff as an explicit target.
+This follows the existing captured-text and task/output boundaries. It adds no
+compiler file access, IDE evaluator, dependency or normal Build input.
+
+Export one XLIFF 2.0 document per exact source/target culture pair, with one file
+and one segment per key. Keys are ordinal-sorted stable unit IDs. Preserve source
+and target comments as categorized unit notes, and whitespace through xml:space.
+Property expressions use originalData and non-copyable/non-deletable ph elements
+with distinct occurrence IDs; existing target expressions may reorder but must
+match the source's occurrence multiset exactly. Escaped dollar text remains raw
+text. Invalid expressions and nested localization fail export. Segmentation is
+disabled with canResegment=no. Inline markup, segmentation and additional modules
+are outside this initial profile; later import must reject unsupported structures.
+
+Source defaults to en and must have a nonempty exact-culture value for every
+catalogue key. No parent/default substitution occurs during exchange. A missing
+target has no target element; an explicit empty value has an empty target. Both
+start untranslated. Whitespace-only values remain values. Export uses source and
+target comments; unqualified catalogue values never become source translations.
+
+Keep a local AlarmlistXliffBaseline version-one sidecar with each key's source and
+target presence, raw value and optional comment. It contains no file paths,
+timestamps or unsaved text. The XLIFF file ID includes a SHA-256 digest of the
+deterministic baseline bytes to pair the returned document with the retained
+sidecar; this is a consistency check, not authentication. The sidecar stays out
+of translator tools so vendor metadata rewriting cannot remove conflict data.
+Do not regenerate it when translations return. Later import must compare all
+baseline entries with current saved resources before applying any change, reject
+conflicts for the whole batch, and resolve destinations only from current project
+resource selection. For a previously missing key, multiple possible target files
+require explicit destination selection rather than a guessed file.
+
+The SDK exposes AlarmlistXliffSourceCulture, required AlarmlistXliffTargetCultures,
+AlarmlistXliffOutputPath and AlarmlistXliffOverwrite. The default output folder is
+xliff under the project; filenames are Alarmlist.<source>.<target>.xlf with
+.baseline.xml appended for the sidecar. Reject source/target equality, keyword,
+empty/duplicate target selections, protected input/output collisions and implicit
+overwriting of an existing job. Compile and Clean do not own exchange files.
+
+Translator setup: select the XLIFF 2.0 filter, retain one segment per unit,
+preserve whitespace and notes, preserve inline codes, and return the translated
+XLIFF with the same IDs. In Phrase, disable resegmentation, HTML/ICU subfilters,
+target-language overrides and automatic copying of source into empty targets.
+These settings follow vendor documentation; actual Trados, memoQ and Phrase
+round trips must still be recorded before claiming verified interoperability.

@@ -141,6 +141,22 @@ Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
 6. With an actual screen reader, verify names, origins, read-only status, and
    status announcements. UI Automation inspection alone is a separate check.
 
+## Translation exchange
+
+1. Export a synthetic fixture with the SDK's ExportAlarmlistXliff target. Include
+   Unicode, leading/trailing whitespace, comments, repeated parameter expressions,
+   a missing target and an explicitly empty target. Keep the generated baseline
+   unchanged. The source culture defaults to en; also verify a configured override.
+2. In each available target tool (Trados Studio, memoQ, Phrase TMS), open the XLIFF
+   2.0 file using the documented profile settings. Verify the key IDs, notes,
+   whitespace and protected tags. Edit ordinary target text, preserve parameter
+   tags, and export the translated XLIFF. Record the exact tool version/settings
+   and retain both exported files. Opening XML in a text editor or validating its
+   schema is not evidence of vendor interoperability.
+3. Keep vendor round trips pending when no target tool is available. The owner
+   explicitly accepted that deferral on 2026-10-08. Import conflict, dirty-editor
+   protection and build/preview checks are added with the import iteration.
+
 ## Closeout and evidence
 
 Discard test edits and compare all files in `baseline-hashes.json` to the recorded

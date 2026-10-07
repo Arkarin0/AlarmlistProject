@@ -102,6 +102,13 @@ Escape first closes completion, then cancels the draft. Saved inputs are checked
 again before displaying and accepting localization suggestions. RESX diagnostics
 open the XML source editor for line navigation without saving resource buffers.
 
+For translation handoff, the SDK's explicit `ExportAlarmlistXliff` target exports
+saved RESX values while unsaved resource buffers stay private. The project
+property page exposes **XLIFF source culture**, defaulting to English (`en`).
+See the [SDK export commands](../SDK/Alarmlist.SDK/README.md#xliff-translation-export).
+Use a terminal for export so an IDE Build/Save All cannot save documents first.
+XLIFF import follows in a later iteration; vendor interoperability remains pending.
+
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax
 generation, including open questions about UI integration and collection values.

@@ -10,6 +10,9 @@
   <StringProperty Name="AlarmlistCulture" DisplayName="Preview culture" Description="Project preview language, independent of build cultures. Empty defaults to keyword.">
     <StringProperty.DataSource><DataSource Persistence="ProjectFile" HasConfigurationCondition="False" /></StringProperty.DataSource>
   </StringProperty>
+  <StringProperty Name="AlarmlistXliffSourceCulture" DisplayName="XLIFF source culture" Description="Source language for explicit translation export. Defaults to English (en); does not affect build or preview fallback.">
+    <StringProperty.DataSource><DataSource Persistence="ProjectFile" HasConfigurationCondition="False" /></StringProperty.DataSource>
+  </StringProperty>
   <BoolProperty Name="EnableDefaultAlarmlistResourceItems" DisplayName="Include RESX files automatically"
                 Description="Include RESX translation files in this project and its subdirectories, except excluded directories.">
     <BoolProperty.DataSource><DataSource Persistence="ProjectFile" HasConfigurationCondition="False" /></BoolProperty.DataSource>

@@ -4,6 +4,9 @@
     <CompiledAlarmlistFileName Condition="'$(CompiledAlarmlistFileName)' == ''">$(AssemblyName).Alarmlist.xml</CompiledAlarmlistFileName>
     <AlarmlistCultures Condition="'$(AlarmlistCultures)' == ''">keyword</AlarmlistCultures>
     <AlarmlistCulture Condition="'$(AlarmlistCulture)' == ''">keyword</AlarmlistCulture>
+    <AlarmlistXliffSourceCulture Condition="'$(AlarmlistXliffSourceCulture)' == ''">en</AlarmlistXliffSourceCulture>
+    <AlarmlistXliffOutputPath Condition="'$(AlarmlistXliffOutputPath)' == ''">$(MSBuildProjectDirectory)/xliff</AlarmlistXliffOutputPath>
+    <AlarmlistXliffOverwrite Condition="'$(AlarmlistXliffOverwrite)' == ''">false</AlarmlistXliffOverwrite>
     <_AlarmlistOutputManifest>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', '$(MSBuildProjectFile).$(Configuration).$(Platform).outputs.xml'))</_AlarmlistOutputManifest>
     <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_AlarmlistTaskFramework>
     <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_AlarmlistTaskFramework>
@@ -17,6 +20,17 @@
   <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistBuildTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
   <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistGetOutputsTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
   <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistCleanTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
+  <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistExportXliffTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
+
+  <!-- Explicit exchange only; Build and Clean do not create or remove translator work. -->
+  <Target Name="ExportAlarmlistXliff" DependsOnTargets="GetTargetPath" Condition="'$(DesignTimeBuild)' != 'true'" Returns="@(AlarmlistXliffFiles)">
+    <ItemGroup><AlarmlistXliffFiles Remove="@(AlarmlistXliffFiles)" /></ItemGroup>
+    <AlarmlistExportXliffTask Resources="@(AlarmlistResource)" SourceCulture="$(AlarmlistXliffSourceCulture)"
+                             TargetCultures="$(AlarmlistXliffTargetCultures)" OutputDirectory="$(AlarmlistXliffOutputPath)"
+                             Overwrite="$(AlarmlistXliffOverwrite)" ProtectedFiles="@(Compile);$(MSBuildProjectFullPath);@(CompiledAlarmlistFiles);$(_AlarmlistOutputManifest)">
+      <Output TaskParameter="ExportFiles" ItemName="AlarmlistXliffFiles" />
+    </AlarmlistExportXliffTask>
+  </Target>
 
   <Target Name="Build" DependsOnTargets="$(BuildDependsOn)" Returns="@(CompiledAlarmlistFiles)" />
   <Target Name="BeforeBuild" />

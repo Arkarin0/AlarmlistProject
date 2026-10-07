@@ -1,9 +1,12 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: iterations one through seven are complete. Captured resources, catalogue
+Status: iterations one through eight are implemented and have passed automated
+validation. Vendor interoperability remains pending at the owner's request.
+Captured resources, catalogue
 validation, localization expression evaluation, multi-culture SDK builds, detached
 analysis, saved-resource observation, language selection and completion are
-implemented. XLIFF exchange follows in iterations eight and nine.
+implemented. XLIFF export is available; import and integrated acceptance follow
+in iterations nine and ten.
 The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
@@ -516,7 +519,44 @@ VSIX.
   case closed its owned IDE. Minimum VS2022 17.9, screen-reader/high-contrast and
   other recorded release checks remain unverified. The separately deferred
   milestone-four test was not run.
-- Commit: `Add designer language selection and localization completion`.
+- Commit: `472e8ac` (`Add designer language selection and localization completion`).
+
+## Iteration-eight results (2026-10-08)
+
+- Implemented captured-input XLIFF 2.0 export in the compiler and an explicit
+  ExportAlarmlistXliff SDK target. Source culture defaults to en, with project and
+  command overrides. Build/Clean do not own exchange files. The target returns
+  AlarmlistXliffFiles with source/target culture and local baseline metadata.
+- Export preserves ordinal keys, Unicode/whitespace, source/target comments and
+  protected parameter-expression occurrences. Exact source/target entries never
+  use parent/default fallback. Missing and explicitly empty targets remain distinct.
+  Sidecars record source/target values, presence and comments without paths; the
+  XLIFF file identity pairs it with its deterministic baseline digest.
+- Captured saved inputs are shared by all requested pairs. Every pair validates
+  before transactional installation. Tests cover prior-output preservation,
+  ordinary-write rollback, explicit overwrite, protected destinations and cancellation.
+- Compiler suite: 259 passed on each framework. Task unit/integration suites:
+  43/4 passed on each framework. SDK package suite: 35 passed on each framework,
+  plus all 35 through VS2026 desktop MSBuild on net472. The previous MSBuild host
+  environment setting was restored. No skips; existing shared-helper CA1416 remains.
+- Saved-only export passed in owned VS2022 and VS2026 IDEs, one case each with no
+  skips. RESX XML buffers remained dirty and retained their unsaved content while
+  export used disk values; source and compiled output bytes were unchanged.
+  TRX directories: `artifacts/log/Debug/VisualStudioUI/TestResults/e54c7f355437455eb23d0f4ce1634264/`
+  and `artifacts/log/Debug/VisualStudioUI/TestResults/f7d8394b9f0f47cf8692ad4cb61157a0/`.
+- A representative export passed the official OASIS XLIFF 2.0 core schema,
+  including protected expressions, notes, Unicode, whitespace, missing and empty
+  targets. Fixture: `artifacts/log/Debug/XliffInteroperability/20261008/Alarmlist.en.de.xlf`;
+  its adjacent baseline is retained locally. Schema downloads are ignored artifacts.
+- The owner confirmed no translation tool is available and explicitly left
+  vendor testing pending. Trados Studio, memoQ and Phrase TMS interoperability is
+  not claimed. This defers the external-tool exit check; automated export coverage
+  remains required. XLIFF import and integrated acceptance are still later work.
+- Extension unit suite: 275 passed; VSIX/template consumers: 10 passed on each
+  framework, all without skips. An existing parameter-toolbar WPF focus test
+  failed in the first full run, then passed in isolation and in the full rerun
+  without product or test changes. No new performance measurements were run.
+- Commit: `Export RESX translations through the supported XLIFF profile`.
 
 ## Exchange compatibility decision (2026-10-07)
 

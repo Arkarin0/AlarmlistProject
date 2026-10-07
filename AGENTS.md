@@ -241,6 +241,12 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Build/GetTargetPath expose `@(CompiledAlarmlistFiles)` with Culture metadata;
   the task exposes OutputFiles. Preserve explicit-empty resource Culture metadata,
   linked/conditional items and output exclusions. Preview AlarmlistCulture is separate.
+- Explicit ExportAlarmlistXliff reads saved resources and writes XLIFF 2.0 plus
+  local baseline sidecars, independently of Build/Clean. Keep exact culture values,
+  protected expressions, stable keys and baseline presence/comments. Validate all
+  target pairs before transactional installation; preserve input/output collision
+  guards and explicit overwrite. XLIFF is never a compilation input. Vendor
+  interoperability requires actual tool evidence, not schema validation alone.
 - `Clean` deletes configured/tracked outputs and owned temporary files and preserves unrelated files.
   Keep `Build`, `Clean`, `Rebuild`, `Restore`, `GetTargetPath`, custom build hooks,
   and consumer `Directory.Build.props/targets` imports working.
