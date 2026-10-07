@@ -39,6 +39,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `eng/` | Repository build settings, version properties, and common build tooling. |
 | `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
+| `example/` | Persistent two-project designer playground opened by the launchers; `eng/prepare-example.ps1` prepares the SDK matching the built VSIX without replacing sample sources. |
 | `template/` | Reference XML implementation/tests outside the current solution; active implementation lives in `src/`. |
 
 Read `src/SDK/Alarmlist.SDK/README.md` for SDK usage and
@@ -297,6 +298,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - The smoke script accepts `-RootSuffix` (default `AlarmlistExp`). Match the suffix
   used for deployment; a separate experimental profile allows validation without
   replacing an extension DLL held by an existing IDE session.
+- The manual `scripts/start-vs2022.bat` and `scripts/start-vs2026.bat` launchers
+  prepare and open `example/Example.sln`. Keep its generated SDK pin/NuGet config
+  ignored, its cache tied to package contents, and its source files persistent.
+  Its local Directory.Build files isolate this consumer from repository policy.
 - `eng/measure-visualstudio-live.ps1` (also reached through the compatibility
   `test-visualstudio.ps1 -MeasureAnalysis` option) measures running-IDE buffer-to-diagnostic
   latency and repeated designer close/process-memory samples. Parameters select

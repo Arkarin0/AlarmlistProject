@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <!-- Both projects link this file and supply their own Plant.Pump.Base. -->
+  <Alarm>
+    <FullyQualifiedName>Plant.Pump.PressureLow</FullyQualifiedName>
+    <ReferenceName>Plant.Pump.Base</ReferenceName>
+    <Name />
+    <!-- This is local even though its text equals the code in both bases. -->
+    <Code>P-001</Code>
+    <TestProcedure>
+      <Instructions>
+        <Note>Record the pressure reading in the shift log.</Note>
+      </Instructions>
+      <Reset>
+        <Step>This local step is excluded by the following Clear.</Step>
+        <Clear />
+        <Step>Restore pressure, then acknowledge at the shared control panel.</Step>
+      </Reset>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>

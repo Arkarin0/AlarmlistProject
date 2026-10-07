@@ -1,0 +1,10 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{301BE86B-718D-44FB-BA93-929F7686E197}</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/PressureLow.almx">
+      <Link>PressureLow.almx</Link>
+    </Compile>
+  </ItemGroup>
+</Project>

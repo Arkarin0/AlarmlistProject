@@ -33,13 +33,21 @@ if errorlevel 1 (
   exit /b 1
 )
 
-echo SDK package feed: %CD%\artifacts\packages\Debug\NonShipping
+echo Preparing the example solution with the matching SDK...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "eng\prepare-example.ps1" -MSBuildPath "%AlarmlistVsPath%\MSBuild\Current\Bin\MSBuild.exe"
+if errorlevel 1 (
+  popd
+  echo ERROR: Example preparation failed.
+  exit /b 1
+)
+rem Let the example's NuGet.Config select its isolated cache in the child IDE.
+set "NUGET_PACKAGES="
 if /i "%~1"=="--deploy-only" (
   popd
   exit /b 0
 )
 echo Starting Visual Studio 2026 with the Alarmlist extension...
-start "" "%AlarmlistVsPath%\Common7\IDE\devenv.exe" /RootSuffix AlarmlistExp
+start "" "%AlarmlistVsPath%\Common7\IDE\devenv.exe" /RootSuffix AlarmlistExp "%CD%\example\Example.sln"
 set "AlarmlistLaunchResult=%ERRORLEVEL%"
 popd
 exit /b %AlarmlistLaunchResult%

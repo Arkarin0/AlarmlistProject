@@ -1,0 +1,3 @@
+<Project>
+  <!-- Keep repository build targets out of this standalone SDK consumer. -->
+</Project>

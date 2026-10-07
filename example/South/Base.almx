@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Plant.Pump.Base</FullyQualifiedName>
+    <Name>South pump pressure low</Name>
+    <Code>P-001</Code>
+    <Category>South utilities</Category>
+    <Description>South standby pump pressure is below its limit. Check the filter &amp; bypass valve.</Description>
+    <TestProcedure>
+      <Instructions>
+        <Step>Inspect the South pump and bypass valve.</Step>
+        <Warning>Isolate the South pump before maintenance.</Warning>
+      </Instructions>
+      <Reset>
+        <Step>Acknowledge the alarm at the South station.</Step>
+      </Reset>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>

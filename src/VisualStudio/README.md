@@ -375,10 +375,13 @@ automated smoke; creating the fixture does not validate the UI.
 
 For manual testing, run `scripts/start-vs2022.bat` or `scripts/start-vs2026.bat`.
 Each launcher finds the matching installed Visual Studio, builds and deploys the
-extension, then opens its `AlarmlistExp` instance. Close that experimental instance
-before rerunning the launcher. Add `--deploy-only` to build and deploy without
-opening the IDE. The launcher prints the SDK package feed to configure for your
-test solution as described above.
+extension, prepares the matching SDK for [the example playground](../../example/README.md),
+then opens `example/Example.sln` in its `AlarmlistExp` instance. The example contains
+local alarms, multi-file inheritance, linked North/South contexts, and procedure
+Clear cases. Its SDK feed/version/cache are configured automatically; exploratory
+source edits are preserved. Close that experimental instance before rerunning the
+launcher. Add `--deploy-only` to build, deploy, and prepare without opening the IDE.
+For other test solutions, configure the SDK package feed as described above.
 
 For F5 debugging, open the solution in **Visual Studio 2022 or 2026**, set
 `Alarmlist.VisualStudio` as the startup project, and build/start it. IDE builds

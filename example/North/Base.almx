@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Plant.Pump.Base</FullyQualifiedName>
+    <Name>North pump pressure low</Name>
+    <Code>P-001</Code>
+    <Category>North utilities</Category>
+    <Description>North pump supply pressure is below its limit. Inspect inlet &amp; outlet gauges.</Description>
+    <TestProcedure>
+      <Instructions>
+        <Step>Inspect the North pump and inlet valve.</Step>
+        <Warning>Isolate the North pump before maintenance.</Warning>
+      </Instructions>
+      <Reset>
+        <Step>Acknowledge the alarm at the North station.</Step>
+      </Reset>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>
