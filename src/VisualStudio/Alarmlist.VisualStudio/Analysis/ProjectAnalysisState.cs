@@ -17,9 +17,10 @@ namespace Alarmlist.VisualStudio.Analysis
         public AnalysisContext Context { get; }
         public IReadOnlyList<AnalysisResourceItem> Resources { get; }
         public string BuildCultures { get; }
+        public bool IsPreviewCultureGlobal { get; }
 
         public AnalysisProject(string projectPath, string configuration, string compilerPath, IEnumerable<string> inputs, AnalysisContext context = null,
-            IEnumerable<AnalysisResourceItem> resources = null, string buildCultures = null)
+            IEnumerable<AnalysisResourceItem> resources = null, string buildCultures = null, bool isPreviewCultureGlobal = false)
         {
             ProjectPath = projectPath;
             Configuration = configuration;
@@ -28,6 +29,7 @@ namespace Alarmlist.VisualStudio.Analysis
             Context = context ?? new AnalysisContext(projectPath, configuration);
             Resources = Array.AsReadOnly((resources ?? Array.Empty<AnalysisResourceItem>()).ToArray());
             BuildCultures = string.IsNullOrWhiteSpace(buildCultures) ? "keyword" : buildCultures;
+            IsPreviewCultureGlobal = isPreviewCultureGlobal;
         }
 
         public bool HasSameCompilerContext(AnalysisProject other)

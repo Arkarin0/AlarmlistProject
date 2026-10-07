@@ -281,6 +281,12 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Preserve linked project contexts and resource locations without retaining native
   resource-editor graphs. Resource capture must never save buffers or build output.
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
+  Preview culture changes persist shared AlarmlistCulture through CPS without
+  changing build cultures or committing ALMX drafts. Global overrides disable the
+  selector; write failures retain evaluated state. Localization completion uses
+  SDK catalogue/provenance, revalidates saved inputs before display and insertion,
+  and discards late results after editing, focus or context changes. Navigate RESX
+  diagnostics through the XML editor without saving pending resource edits.
   Keep source presence/local drafts separate from inherited effective displays.
   Only the SDK's provenance determines inheritance; equal text is not evidence.
   Revalidate current project inputs before copying/picking/navigating, preserve

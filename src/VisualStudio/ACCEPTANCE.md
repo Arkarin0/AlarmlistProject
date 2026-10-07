@@ -56,6 +56,23 @@ for the current validation results and outstanding gates.
 
 ## Linked contexts and provenance
 
+For localization, use the isolated fixtures retained by the `Area=Localization`
+functional cases. Choose **Preview language** beside **Analysis project context**:
+keyword displays complete `$(loc:Key)` tokens; de-DE may use a saved de translation.
+Verify that each project's choice survives solution reopen without altering build
+cultures or compiled output. Change the language while an ALMX field has a draft;
+the draft and Undo history must remain intact. A read-only project must report a
+failure and keep its evaluated language; a global AlarmlistCulture disables selection.
+
+Edit a resource value in the native editor, undo/discard the unfinished cell and
+then commit it. Only the saved value should reach preview. In a dirty RESX XML
+buffer, keep an unsaved value while invoking `$(loc:` completion in the designer;
+its label must still describe the saved value. Save and repeat to see the update.
+Use arrows and Enter/Tab to insert a full token, then Escape/Undo. With a screen
+reader, verify the suggestion name, translated text, parent language and status.
+Check a resource diagnostic opens the XML location without saving a dirty buffer.
+Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
+
 1. Open `North/Child.almx` in the designer. This is a link to `Shared/Child.almx`,
    also included by South. Wait for both projects to finish loading. With no
    context selected, the designer should ask for a project context instead of

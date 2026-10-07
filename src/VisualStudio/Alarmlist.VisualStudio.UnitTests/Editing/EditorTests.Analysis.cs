@@ -362,6 +362,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             public AnalysisLocation Navigation { get; private set; }
             public string NavigationText { get; private set; }
             public Task<bool> IsCurrentAsync(ProjectAnalysisState state, CancellationToken token) => Validation ?? Task.FromResult(Valid && ReferenceEquals(state, Current));
+            public Func<AnalysisProject, string, Task> CultureWriter { get; set; }
+            public Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token)
+                => CultureWriter?.Invoke(project, culture) ?? Task.CompletedTask;
             public void Navigate(AnalysisLocation location, string text) { Navigation = location; NavigationText = text; }
             public void Set(ProjectAnalysisState state) { _current = state; Changed?.Invoke(this, EventArgs.Empty); }
             public void Dispose() { Disposed = true; }

@@ -162,7 +162,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             do
             {
                 try { if (condition()) return; }
-                catch (COMException exception) when (exception.HResult == unchecked((int)0x80010001) || exception.HResult == unchecked((int)0x8001010A)) { }
+                // The UIA provider can time out while the first designer tree is
+                // being created. Retry within the same bounded readiness wait.
+                catch (COMException exception) when (exception.HResult == unchecked((int)0x80010001)
+                    || exception.HResult == unchecked((int)0x8001010A) || exception.HResult == unchecked((int)0x80131505)) { }
                 Thread.Sleep(100);
             } while (timer.Elapsed < TimeSpan.FromSeconds(60));
             throw new TimeoutException("Timed out: " + description);

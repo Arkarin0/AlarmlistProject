@@ -47,8 +47,7 @@ namespace Alarmlist.VisualStudio.UI
         private AnalysisAlarm _currentAlarm;
         private ProjectAnalysisState _choicesState;
         private AnalysisAlarm _choicesAlarm;
-        public IReadOnlyList<AnalysisProjectChoice> Projects => BindingCollection.Create(
-            _analysis?.Projects.Select(project => new AnalysisProjectChoice(project)));
+        public IReadOnlyList<AnalysisProjectChoice> Projects { get; private set; } = BindingCollection.Create(Array.Empty<AnalysisProjectChoice>());
         public IReadOnlyList<ReferenceChoice> ReferenceChoices { get; private set; } = Array.Empty<ReferenceChoice>();
         public ReferenceChoice SelectedReferenceChoice
         {
@@ -74,6 +73,7 @@ namespace Alarmlist.VisualStudio.UI
         private void InitializeAnalysis(IDesignerAnalysis analysis)
         {
             _analysis = analysis;
+            ValidateCompletion = ValidateCompletionAsync;
             ApplyReferenceCommand = new DelegateCommand(() => StartAnalysisAction(ApplyReference),
                 () => CanUseAnalysis && _referenceChoice != null && ReferenceChoices.Contains(_referenceChoice));
             GoToReferenceCommand = new DelegateCommand(() => StartAnalysisAction(GoToReference),
@@ -192,6 +192,14 @@ namespace Alarmlist.VisualStudio.UI
             try
             {
                 ProjectAnalysisState state = _analysis?.Current;
+                var projects = _analysis?.Projects ?? Array.Empty<AnalysisProject>();
+                if (Projects.Count != projects.Count || Projects.Where((choice, index) => choice.ProjectPath != projects[index].ProjectPath
+                    || choice.Configuration != projects[index].Configuration).Any())
+                {
+                    Projects = BindingCollection.Create(projects.Select(project => new AnalysisProjectChoice(project)));
+                    Notify(nameof(Projects));
+                }
+                RefreshLocalization(state);
                 RefreshDiagnostics(state);
                 AnalysisAlarm alarm = CurrentAlarm(state);
                 RefreshProperties(state, alarm);
@@ -225,7 +233,7 @@ namespace Alarmlist.VisualStudio.UI
                     : alarm == null ? "Waiting for analysis of the current document."
                     : !alarm.IsResolved ? "This alarm's reference could not be resolved. Check ReferenceName."
                     : "Values from " + Path.GetFileName(state.Project.ProjectPath) + " (" + state.Project.Configuration + ").";
-                Notify(nameof(Projects)); Notify(nameof(SelectedProjectPath)); Notify(nameof(AnalysisMessage));
+                Notify(nameof(SelectedProjectPath)); Notify(nameof(AnalysisMessage));
                 ApplyReferenceCommand?.Refresh(); GoToReferenceCommand?.Refresh();
             }
             finally { _refreshingAnalysis = false; }

@@ -18,7 +18,11 @@ namespace Alarmlist.VisualStudio
             DataContext = viewModel;
         }
         private EditFileControlViewModel ViewModel => (EditFileControlViewModel)DataContext;
-        private void OnFieldLostFocus(object sender, KeyboardFocusChangedEventArgs args) => ViewModel.CommitPending();
+        private void OnFieldLostFocus(object sender, KeyboardFocusChangedEventArgs args)
+        {
+            // Selecting a preview culture must not commit the ALMX draft.
+            if (!PreviewCultureSelector.IsKeyboardFocusWithin) ViewModel.CommitPending();
+        }
         private void OnPresenceChanged(object sender, RoutedEventArgs args) => ViewModel.CommitPending();
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
         private void OnUnloaded(object sender, RoutedEventArgs args) => _inputVersion++;
@@ -63,6 +67,8 @@ namespace Alarmlist.VisualStudio
         private void OnSizeChanged(object sender, SizeChangedEventArgs args)
         {
             bool narrow = ActualWidth < 600;
+            DockPanel.SetDock(CultureToolbar, narrow ? Dock.Top : Dock.Right);
+            CultureToolbar.Margin = new Thickness(narrow ? 0 : 12, 0, 0, 4);
             ListColumn.Width = new GridLength(narrow ? 0 : 220);
             AlarmList.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
             AlarmSelector.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;

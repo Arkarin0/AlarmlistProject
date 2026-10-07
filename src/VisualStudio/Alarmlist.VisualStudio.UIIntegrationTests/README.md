@@ -10,7 +10,7 @@ measurements remain in `Alarmlist.VisualStudio.PerformanceTests`.
 
 ## Coverage
 
-Each scenario has separate VS2022 and VS2026 xUnit cases (20 live cases total):
+Each scenario has separate VS2022 and VS2026 xUnit cases (24 live cases total):
 
 | Scenario | Observable checks | Area trait |
 | --- | --- | --- |
@@ -24,6 +24,8 @@ Each scenario has separate VS2022 and VS2026 xUnit cases (20 live cases total):
 | Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, raw override and saved build parity | `Properties` |
 | Linked property contexts | North/South project values, configuration reevaluation, shared unsaved file assignment, property diagnostics before Build, discard and unload/reload | `Properties` |
 | Native resource editor | Open RESX in an ALMX project, retain saved disk contents during cell drafts, Undo/Escape drafts, commit a cell, Save, and reopen | `Resources` |
+| Saved localization and linked contexts | Native drafts stay private, save/external changes refresh two project scopes, independent language choices persist after reopening | `Localization` |
+| Language and saved completion | Keyword default, culture choice during ALMX drafts, saved-only completion while RESX XML is dirty, token insertion/Undo, save refresh and resource diagnostic navigation | `Localization` |
 
 Project and document lifecycle checks retain the former smoke script's shell/API
 operations. They do not simulate clicks through New Project or Save As dialogs.
@@ -31,8 +33,8 @@ The keyboard case does not replace physical input with buffer/property assignmen
 Dialogs, visual appearance and remaining host interactions still have
 [interactive acceptance checks](../ACCEPTANCE.md).
 
-The resource case verifies Visual Studio's native authoring/save boundary. It does
-not yet verify localization preview or completion refresh. It uses the Resource
+The resource case verifies Visual Studio's native authoring/save boundary. The
+localization cases verify preview and completion refresh. They use the Resource
 Explorer table on the installed VS2022/VS2026 hosts; the older VS2022 17.9 resource
 editor surface remains a separate support check.
 Resource Explorer saves a committed cell automatically on the verified VS2022

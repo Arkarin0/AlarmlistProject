@@ -1,6 +1,7 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.IO;
 using Alarmlist.VisualStudio.Analysis;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Editor;
@@ -16,8 +17,21 @@ namespace Alarmlist.VisualStudio.Editor
         public static void Navigate(IServiceProvider services, IVsEditorAdaptersFactoryService adapters, AnalysisLocation location, string expectedText)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            VsShellUtilities.OpenDocument(services, location.FilePath, VSConstants.LOGVIEWID_Code, out IVsUIHierarchy hierarchy,
-                out uint itemId, out IVsWindowFrame frame, out IVsTextView view);
+            IVsWindowFrame frame;
+            IVsTextView view;
+            if (string.Equals(Path.GetExtension(location.FilePath), ".resx", StringComparison.OrdinalIgnoreCase))
+            {
+                // Resource Explorer also handles the Code logical view. Diagnostic
+                // line/column navigation needs the XML editor, without closing or
+                // saving any existing resource document.
+                frame = VsShellUtilities.OpenDocumentWithSpecificEditor(services, location.FilePath,
+                    new Guid("fa3cd31e-987b-443a-9b81-186104e8dac1"), VSConstants.LOGVIEWID_Primary);
+                view = frame == null ? null : VsShellUtilities.GetTextView(frame);
+            }
+            else
+                VsShellUtilities.OpenDocument(services, location.FilePath, VSConstants.LOGVIEWID_Code, out IVsUIHierarchy hierarchy,
+                    out uint itemId, out frame, out view);
+            if (view == null) throw new InvalidOperationException("The source text editor is not available for navigation.");
             ErrorHandler.ThrowOnFailure(view.GetBuffer(out IVsTextLines lines));
             ITextSnapshot snapshot = adapters.GetDocumentBuffer(lines)?.CurrentSnapshot;
             if (snapshot == null || snapshot.GetText() != expectedText)

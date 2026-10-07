@@ -87,6 +87,21 @@ Content is recaptured before publication and navigation to reject stale results.
 Run `eng/test-visualstudio.ps1 -Filter 'Area=Localization'` with the documented
 host path/profile options to exercise saved-resource behavior in the owned IDE.
 
+The **Preview language** selector sits beside the project context (above it in
+narrow views). It lists keyword, resource cultures and configured build cultures.
+Changes persist the shared AlarmlistCulture through CPS; global values are fixed,
+and read-only/overridden project settings report an error. Choosing a language
+does not commit an ALMX draft or change AlarmlistCultures. Focused expression
+fields retain their raw text and selection during analysis refresh.
+
+Type `$(loc:` or use Ctrl+Space in expression fields for case-sensitive key
+completion. Suggestions show saved translation text, parent-culture provenance
+and comments; used translations can show evaluated values outside drafts. Enter
+or Tab inserts the full token into the draft; a subsequent Enter commits it.
+Escape first closes completion, then cancels the draft. Saved inputs are checked
+again before displaying and accepting localization suggestions. RESX diagnostics
+open the XML source editor for line navigation without saving resource buffers.
+
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax
 generation, including open questions about UI integration and collection values.

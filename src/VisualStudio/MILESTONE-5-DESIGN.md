@@ -127,6 +127,20 @@ also defaulting to keyword. Persist changes through CPS in the shared project.
 Build cultures are not changed by preview selection. Supply available resource
 cultures and explicitly configured build cultures in the selector, plus keyword.
 
+The designer writes an unconditional shared property through CPS and saves only
+the project. Global overrides disable the selector; read-only projects or later
+overrides report the failure and retain the evaluated selection. Choosing a
+language does not commit an ALMX field draft. Keep context and culture choices
+stable during semantic refreshes so an open dropdown and keyboard focus survive.
+
+Localization completion uses ordinal key matching and inserts the complete raw
+token. Show the SDK's evaluated value only when the current alarm has a matching
+valid use and no draft; otherwise show its saved translation template, comment
+and requested/supplying culture. Revalidate captured inputs before displaying or
+inserting suggestions, and abandon late results after text, focus, selection,
+context or lifetime changes. Resource diagnostic navigation explicitly opens the
+XML editor because Resource Explorer also handles the Code logical view.
+
 ## Build outputs and failure behavior
 
 Keep `OutputPath` as the output root and `CompiledAlarmlistFileName` as the base

@@ -18,6 +18,7 @@ namespace Alarmlist.VisualStudio.UI
         string SelectedProjectPath { get; set; }
         ProjectAnalysisState Current { get; }
         Task<bool> IsCurrentAsync(ProjectAnalysisState state, CancellationToken token);
+        Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token);
         void Navigate(AnalysisLocation location, string expectedText);
     }
 }

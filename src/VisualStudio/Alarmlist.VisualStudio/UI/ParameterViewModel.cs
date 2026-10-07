@@ -87,6 +87,19 @@ namespace Alarmlist.VisualStudio.UI
         public string Name { get; }
         public string Detail { get; }
         public string Label => Name + " — " + Detail;
+        public bool IsLocalization { get; }
+        public PropertyCompletion(AnalysisTranslation translation, AnalysisLocalizationUse use, bool currentValues)
+        {
+            Name = "loc:" + translation.Key;
+            IsLocalization = true;
+            string value = !translation.IsAvailable ? "missing translation" : translation.IsKeyword ? translation.RawValue
+                : currentValues && use?.IsValueAvailable == true ? use.Value : translation.RawValue;
+            Detail = value + (translation.IsKeyword ? " — keyword" : " — " + translation.RequestedCulture
+                + (translation.SupplyingCulture == null ? "" : translation.SupplyingCulture == translation.RequestedCulture ? ""
+                    : " from " + translation.SupplyingCulture))
+                + (translation.ValueLocation == null ? "" : " — " + Path.GetFileName(translation.ValueLocation.FilePath))
+                + (string.IsNullOrEmpty(translation.Comment) ? "" : " — " + translation.Comment);
+        }
         public PropertyCompletion(AnalysisProperty property, bool currentValues)
         {
             Name = property.Name;

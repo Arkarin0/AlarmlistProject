@@ -1,9 +1,10 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: iterations one through six are complete. Captured resources, catalogue
-validation, localization expression evaluation and multi-culture
-SDK builds, detached analysis and saved-resource observation are implemented.
-Language selection and completion follow in iteration seven. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
+Status: iterations one through seven are complete. Captured resources, catalogue
+validation, localization expression evaluation, multi-culture SDK builds, detached
+analysis, saved-resource observation, language selection and completion are
+implemented. XLIFF exchange follows in iterations eight and nine.
+The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
 `feature/ParametersAndLocalization`. Complete and validate each iteration, then
@@ -27,7 +28,7 @@ translations with external tools and never becomes a build or preview input.
 | Resources | RESX supplies compiler and designer translations. Use the built-in resource editor; do not introduce a custom translation-table editor. An unqualified keyword catalogue such as `Translations.resx` is optional. Language-specific files may define the catalogue; unqualified values never supply translation fallback. |
 | Saved resources only | Build, preview, completion, localization diagnostics, and XLIFF export use saved RESX contents. Unsaved resource edits remain private to the resource editor. Refresh after a save or another change to the saved file; do not save editor buffers automatically. |
 | Build selection | Shared `AlarmlistCultures` lists build cultures. Default to `keyword` when the property is absent or empty. Emit a separate folder for each culture. A validation failure for any requested culture fails the batch and preserves every previous culture output. |
-| Preview selection | The proposed singular `AlarmlistCulture` selects the active project's designer language and initially uses `keyword`. Persist it in the shared project. It does not change the build-culture list. |
+| Preview selection | Singular `AlarmlistCulture` selects the active project's designer language and initially uses `keyword`. Persist it in the shared project. It does not change the build-culture list. |
 | Exchange | Export RESX to XLIFF 2.0 and import translations into RESX. Target Trados Studio, memoQ, and Phrase TMS. Source culture is configurable and defaults to en. Any conflict rejects the whole import with a conflict report. |
 | Exclusions | CAB support is cancelled. NuGet alarm libraries and release publication are outside this milestone. |
 
@@ -480,7 +481,42 @@ VSIX.
   VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/16ba8d5946e4427b8d8ec88916a9837c/`.
   Each run closed its owned IDE. The deferred milestone-four test was not run;
   minimum VS2022 17.9 remains unverified.
-- Commit: `Refresh localization analysis from saved resource changes`.
+- Commit: `e1de42e` (`Refresh localization analysis from saved resource changes`).
+
+## Iteration-seven results (2026-10-07)
+
+- Added the project preview-language selector, shared CPS persistence, independent
+  linked-project choices, global/read-only failure handling and draft preservation.
+  Project choices remain stable during analysis refresh. The toolbar uses existing
+  responsive layout and accessibility conventions.
+- Added case-sensitive localization completion from SDK catalogue/provenance,
+  saved-input validation before display and insertion, late-result guards, full
+  raw token insertion and one-edit Undo. Resource diagnostics explicitly open the
+  XML editor, preserving resource drafts and compiled outputs.
+- Extension unit suite: 275 passed on net472. VSIX/template consumers: 10 passed
+  on each framework. Performance harness: 26 passed, six opt-in measurements
+  skipped; no new performance measurements are claimed.
+- VS2022 linked-context/language persistence passed in TRX directory
+  `artifacts/log/Debug/VisualStudioUI/TestResults/d641577d34d9486ca44fd92dd706eb59/`.
+  Completion, dirty-RESX isolation, save refresh, Undo and exact resource navigation
+  passed in `artifacts/log/Debug/VisualStudioUI/TestResults/8819ffc388f74da18293bd1eb8bf26ea/`.
+  Completion and keyword-selector screenshots were inspected.
+- VS2026 linked-context/language persistence passed in
+  `artifacts/log/Debug/VisualStudioUI/TestResults/17127d763242455090eb731c2c288d33/`.
+  The completion case passed on the owner's requested retry in
+  `artifacts/log/Debug/VisualStudioUI/TestResults/4889625e8f444e2796f4aab4525209b7/`
+  (one passed, zero skipped), including dirty-resource isolation, completion/Undo,
+  save refresh, keyword mode and exact XML diagnostic navigation. Earlier attempts
+  encountered UIA readiness timeouts or stopped at the foreground safeguard while
+  installer permission prompts were present. No security prompt was automated.
+  UIA readiness timeouts retry within the existing bounded wait; keyboard focus
+  safeguards remain intact. Both VS2026 screenshots were inspected. This retry's
+  cleanup used the harness's bounded forced termination of its owned IDE.
+- Both hosts have the current iteration deployed to AlarmlistExp. Each functional
+  case closed its owned IDE. Minimum VS2022 17.9, screen-reader/high-contrast and
+  other recorded release checks remain unverified. The separately deferred
+  milestone-four test was not run.
+- Commit: `Add designer language selection and localization completion`.
 
 ## Exchange compatibility decision (2026-10-07)
 

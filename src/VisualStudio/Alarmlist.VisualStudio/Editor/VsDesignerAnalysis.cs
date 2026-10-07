@@ -103,6 +103,12 @@ namespace Alarmlist.VisualStudio.Editor
             if (!_disposed) VsSourceNavigation.Navigate(_services, _adapters, location, expectedText);
         }
 
+        public Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(VsDesignerAnalysis));
+            return _registry.SetPreviewCultureAsync(project, culture, token);
+        }
+
         public void Dispose()
         {
             if (_disposed) return;

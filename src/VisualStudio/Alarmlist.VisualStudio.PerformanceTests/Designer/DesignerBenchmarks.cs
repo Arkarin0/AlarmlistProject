@@ -179,6 +179,8 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             public ProjectAnalysisState Current { get; private set; }
             public CapturedDesignerAnalysis(string path, AnalysisProject project) { DocumentPath = path; Projects = new[] { project }; }
             public Task<bool> IsCurrentAsync(ProjectAnalysisState state, CancellationToken token) => Task.FromResult(ReferenceEquals(state, Current));
+            public Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token)
+                => throw new InvalidOperationException("A measurement must not change project properties.");
             public void Set(ProjectAnalysisState state) { Current = state; Changed?.Invoke(this, EventArgs.Empty); }
             public void Navigate(AnalysisLocation location, string expectedText) => throw new InvalidOperationException("Unexpected navigation.");
             public void Dispose() { Changed = null; }

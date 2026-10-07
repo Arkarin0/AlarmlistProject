@@ -52,7 +52,17 @@
       <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter alarms" ToolTip="Filter alarms by name or identifier" Margin="0,0,10,0" />
     </DockPanel>
     <StackPanel Grid.Row="2" Margin="0,0,0,8">
-      <ComboBox ItemsSource="{Binding Projects}" SelectedValuePath="ProjectPath" SelectedValue="{Binding SelectedProjectPath}"
+      <DockPanel x:Name="ContextToolbar" LastChildFill="True">
+        <StackPanel x:Name="CultureToolbar" DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,4">
+          <TextBlock Text="Preview language" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <ComboBox x:Name="PreviewCultureSelector" ItemsSource="{Binding PreviewCultures}" SelectedItem="{Binding SelectedPreviewCulture}"
+                    IsEnabled="{Binding CanChangePreviewCulture}" MinWidth="110" AutomationProperties.Name="Preview language"
+                    AutomationProperties.HelpText="{Binding CultureGuidance}" ToolTip="{Binding CultureGuidance}">
+            <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding}" /></Style></ComboBox.ItemContainerStyle>
+            <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" /></DataTemplate></ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <ComboBox ItemsSource="{Binding Projects}" SelectedValuePath="ProjectPath" SelectedValue="{Binding SelectedProjectPath}"
                 AutomationProperties.Name="Analysis project context" Margin="0,0,0,4">
         <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem">
           <Setter Property="AutomationProperties.Name"><Setter.Value>
@@ -63,6 +73,8 @@
           <MultiBinding StringFormat="{}{0} ({1})"><Binding Path="ProjectPath" /><Binding Path="Configuration" /></MultiBinding>
         </TextBlock.Text></TextBlock></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
+      </DockPanel>
+      <ui:LiveStatusTextBlock Text="{Binding CultureGuidance}" TextWrapping="Wrap" />
       <ui:LiveStatusTextBlock Text="{Binding AnalysisMessage}" TextWrapping="Wrap" />
       <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
       <Expander Header="{Binding DiagnosticsHeading}" Margin="0,4,0,0">
@@ -160,7 +172,7 @@
               <DataTemplate>
                 <StackPanel Margin="0,0,8,10">
                   <CheckBox Content="{Binding Name}" IsChecked="{Binding IsPresent}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,0,4" Click="OnPresenceChanged" ToolTip="Include a local value for this field" />
-                  <ui:ExpressionTextBox x:Name="LocalValueEditor" RawText="{Binding Value, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" IsEnabled="{Binding IsPresent}" Visibility="{Binding ShowLocalEditor, Converter={StaticResource Visibility}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding ValueStatus}" ToolTip="{Binding ValueStatus}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
+                  <ui:ExpressionTextBox x:Name="LocalValueEditor" RawText="{Binding Value, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" IsEnabled="{Binding IsPresent}" Visibility="{Binding ShowLocalEditor, Converter={StaticResource Visibility}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding ValueStatus}" ToolTip="{Binding ValueStatus}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
                   <AdornerDecorator Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}">
                     <TextBox Text="{Binding EffectiveValue, Mode=OneWay}" IsReadOnly="True" Padding="26,3,5,3"
                              ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" AutomationProperties.Name="{Binding Name}"
@@ -232,7 +244,7 @@
                                 </WrapPanel>
                                 <Separator Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
                                 <TextBlock Text="Clear preceding entries" FontWeight="SemiBold" Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
-                                <ui:ExpressionTextBox RawText="{Binding Text, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedText}" HasResolvedValue="{Binding CanShowResolved}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" IsEnabled="{Binding IsTextEnabled}" Visibility="{Binding ShowText, Converter={StaticResource Visibility}}"
+                                <ui:ExpressionTextBox RawText="{Binding Text, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedText}" HasResolvedValue="{Binding CanShowResolved}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" IsEnabled="{Binding IsTextEnabled}" Visibility="{Binding ShowText, Converter={StaticResource Visibility}}"
                                          AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxHeight="160" VerticalScrollBarVisibility="Auto"
                                          IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus" AutomationProperties.Name="Procedure entry text" />
                                 <TextBlock Text="{Binding Guidance}" TextWrapping="Wrap" Opacity="0.75" />

@@ -21,7 +21,7 @@ using Window = FlaUI.Core.AutomationElements.Window;
 namespace Alarmlist.VisualStudio.UIIntegrationTests
 {
     [Trait("Category", "UIIntegration"), Trait("Host", "VisualStudio"), Trait("Area", "Localization")]
-    public sealed class LocalizationResourceTests
+    public sealed partial class LocalizationResourceTests
     {
         private readonly ITestOutputHelper _output;
         public LocalizationResourceTests(ITestOutputHelper output) { _output = output; }
@@ -83,6 +83,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => (contexts = window.FindFirstDescendant(cf => cf.ByName("Analysis project context"))?.AsComboBox())?.Items.Length == 2, "linked localization contexts");
             SelectContext(contexts, "Plant.almproj");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Inspect 001", "saved parent-language preview");
+            SelectCulture(window, "keyword");
+            VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)"
+                && XDocument.Load(projectPath).Descendants("AlarmlistCulture").Single().Value == "keyword", "persisted keyword preview");
+            Assert.Equal("keyword;de-DE", XDocument.Load(projectPath).Descendants("AlarmlistCultures").Single().Value);
+            Assert.All(XDocument.Load(projectPath).Descendants("AlarmlistCulture"), property =>
+            { Assert.Null(property.Attribute("Condition")); Assert.Null(property.Parent.Attribute("Condition")); });
+            SelectCulture(window, "de-DE");
+            VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Inspect 001", "selected parent-language preview");
             TextBox name = Box(window, "Name");
             name.Focus();
             VisualStudioSession.Wait(() => name.Text == "$(loc:Inspection)", "focused localization expression");
@@ -133,6 +141,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(previousOutput, File.ReadAllBytes(translatedOutput));
             WriteResource(resourcePath, "Recovered $(par1)");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Recovered 002" && !VisualStudioAutomation.HasErrorDescription(ide.Automation, missing), "translation recovery");
+            SelectCulture(window, "keyword");
+            VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "South uses its own preview language");
             SelectContext(contexts, "Plant.almproj");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Recovered 001", "independent linked project state");
             Assert.Equal(Source, File.ReadAllText(workspace.AlarmPath));
@@ -143,6 +153,20 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => (contexts = window.FindFirstDescendant(cf => cf.ByName("Analysis project context"))?.AsComboBox())?.Items.Length == 2, "contexts after resource watcher disposal/reload");
             SelectContext(contexts, "Plant.almproj");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Recovered 001", "saved translation after reload");
+            SelectContext(contexts, "South.almproj");
+            VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "South preview language persists after reload");
+        }
+
+        private static void SelectCulture(Window window, string culture)
+        {
+            ComboBox selector = null;
+            VisualStudioSession.Wait(() => (selector = window.FindFirstDescendant(cf => cf.ByName("Preview language").And(cf.ByControlType(ControlType.ComboBox)))?.AsComboBox())?.IsEnabled == true, "preview language selector");
+            selector.Expand();
+            AutomationElement choice = null;
+            VisualStudioSession.Wait(() => (choice = selector.FindFirstDescendant(cf => cf.ByName(culture).And(cf.ByControlType(ControlType.ListItem)))) != null,
+                "preview language choice " + culture);
+            choice.Patterns.SelectionItem.Pattern.Select();
+            selector.Collapse();
         }
 
         private static void AssertSavedPreviewWhileDraftFocused(VisualStudioSession ide, TextBox draft, TextBox preview, string expected)

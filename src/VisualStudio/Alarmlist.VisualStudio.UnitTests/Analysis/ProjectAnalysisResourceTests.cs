@@ -40,6 +40,11 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 Assert.Equal(Path.GetFullPath(Path.Combine(directory.Path, "../Shared.resx")), snapshot.Resources[4].FilePath);
                 Assert.Equal("de-DE", snapshot.Context.Culture);
                 Assert.Equal("en;keyword", snapshot.BuildCultures);
+                Assert.False(snapshot.IsPreviewCultureGlobal);
+                var global = new ProjectInstance(root, new Dictionary<string, string> { ["AlarmlistCulture"] = "keyword" }, null, projects);
+                AnalysisProject fixedCulture = AlarmlistProjectSnapshot.Capture(global, root.FullPath, "Release|AnyCPU");
+                Assert.True(fixedCulture.IsPreviewCultureGlobal);
+                Assert.Equal("keyword", fixedCulture.Context.Culture);
                 instance.GetItems("AlarmlistResource").First().SetMetadata("Culture", "changed");
                 Assert.Null(snapshot.Resources[0].Culture);
                 Assert.Empty(Directory.GetFiles(directory.Path));

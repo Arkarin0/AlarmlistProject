@@ -25,7 +25,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             var context = new AnalysisContext(projectPath, EmptyToNull(project.GetPropertyValue("Configuration")),
                 EmptyToNull(project.GetPropertyValue("Platform")), properties, culture: project.GetPropertyValue("AlarmlistCulture"));
             return new AnalysisProject(projectPath, configuration, project.GetPropertyValue(CompilerPathProperty), paths, context,
-                resources, project.GetPropertyValue("AlarmlistCultures"));
+                resources, project.GetPropertyValue("AlarmlistCultures"), project.GlobalProperties.ContainsKey("AlarmlistCulture"));
         }
 
         private static string EmptyToNull(string value) => string.IsNullOrEmpty(value) ? null : value;

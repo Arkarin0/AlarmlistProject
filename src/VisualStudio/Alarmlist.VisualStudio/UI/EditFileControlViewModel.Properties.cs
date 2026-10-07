@@ -69,7 +69,11 @@ namespace Alarmlist.VisualStudio.UI
             AlarmParameters.Refresh(_original?.Properties, current ? alarm?.Properties : null, CanEdit, current && !parameterDraft);
             bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
             CompletionProperties = BindingCollection.Create(current && alarm?.IsResolved == true && !identityDraft && !parameterDraft
-                ? alarm.Properties.Select(property => new PropertyCompletion(property, !HasPending)) : Enumerable.Empty<PropertyCompletion>());
+                ? alarm.Properties.Select(property => new PropertyCompletion(property, !HasPending))
+                    .Concat(state.Response.Snapshot.Translations.OrderBy(translation => translation.Key, StringComparer.Ordinal)
+                        .Select(translation => new PropertyCompletion(translation,
+                            alarm.LocalizationUses.FirstOrDefault(use => use.Translation.Key == translation.Key), !HasPending)))
+                : Enumerable.Empty<PropertyCompletion>());
             Notify(nameof(CompletionProperties)); Notify(nameof(IsAbstract));
         }
     }

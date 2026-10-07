@@ -220,9 +220,10 @@ Missing, empty or whitespace-only AlarmlistCultures selects keyword. Other lists
 trim and normalize entries, rejecting unsupported cultures, duplicates, and empty
 entries within a list. Output paths are
 `<OutputPath>/<culture>/<CompiledAlarmlistFileName>`, including `keyword`.
-The filename must be a basename. `AlarmlistCulture` is reserved for the independent
-IDE preview selection; it does not alter the build list. Designer localization
-support follows in the milestone-five IDE iterations.
+The filename must be a basename. `AlarmlistCulture` selects the independent
+IDE preview selection; it does not alter the build list. The designer's Preview
+language selector persists this shared property through CPS and uses saved RESX
+contents. Resource drafts stay private until saved.
 
 The task captures saved ALMX and RESX inputs once per batch, evaluates and serializes
 all cultures, then stages the outputs. Validation/compilation failures leave every
