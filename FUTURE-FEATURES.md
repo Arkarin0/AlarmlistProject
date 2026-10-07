@@ -102,9 +102,14 @@ Planning decisions (2026-10-07; not implemented):
 - Missing translations after permitted parent lookup produce a dedicated compiler
   error identifying the key, requested culture, and source location where available.
   Assign its stable diagnostic ID during implementation.
-- CAB support is cancelled. `.resx` and XLIFF remain the formats under discussion.
-  Prefer Visual Studio's built-in editor for `.resx`; verify its integration with
-  the custom `.almproj` project type instead of assuming .NET-project behavior.
+- `.resx` is the authoritative resource format for builds and designer previews.
+  Use Visual Studio's built-in resource editor; verify its integration with the
+  custom `.almproj` project type instead of assuming .NET-project behavior.
+- XLIFF serves as an import/export format for exchanging translations. Export
+  from `.resx` and import translated values back into `.resx`; XLIFF files are not
+  direct build or preview inputs. Define conflict and outdated-export handling
+  before implementing imports. The import/export delivery scope remains to be set.
+- CAB support is cancelled.
 
 The proposed toolbar follows Visual Studio's Configuration selector and applies
 to the active project. A singular `AlarmlistCulture` property holds the selected
@@ -115,9 +120,9 @@ workflow. A separate translation-table editor is not currently proposed.
 
 Remaining design details:
 
-- Decide whether XLIFF participates directly in compilation or serves as an exchange
-  format for `.resx`, which XLIFF versions/content forms are supported, and how
-  resource files are included and associated with cultures.
+- Define how `.resx` files are included and associated with cultures. For XLIFF
+  exchange, choose supported versions/content forms, import conflict handling,
+  and whether import/export is included in the first localization milestone.
 - Define behavior when the build-culture list is absent, key validation in keyword
   mode, and the difference between missing and intentionally empty translations.
 - Freeze key syntax/case rules, nested localization-expression behavior, and the
