@@ -3,9 +3,13 @@
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
     <EnableDefaultCompileItems Condition="'$(EnableDefaultCompileItems)' == ''">true</EnableDefaultCompileItems>
+    <EnableDefaultAlarmlistResourceItems Condition="'$(EnableDefaultAlarmlistResourceItems)' == ''">true</EnableDefaultAlarmlistResourceItems>
     <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**;**/bin/**;**/obj/**;**/.*/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup Condition="'$(EnableDefaultCompileItems)' == 'true'">
     <Compile Include="**/*.almx" Exclude="$(DefaultItemExcludes)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(EnableDefaultAlarmlistResourceItems)' == 'true'">
+    <AlarmlistResource Include="**/*.resx" Exclude="$(DefaultItemExcludes)" />
   </ItemGroup>
 </Project>

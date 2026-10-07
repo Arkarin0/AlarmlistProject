@@ -1,6 +1,6 @@
 # Alarmlist.MSBuild.SDK
 
-An MSBuild SDK that compiles `.almx` source files into a single XML alarmlist.
+An MSBuild SDK that compiles `.almx` source files into one XML alarmlist per selected culture.
 It supports `dotnet msbuild` with .NET SDK 8 or later and Visual Studio MSBuild
 with .NET Framework 4.7.2 or later. The package includes the compiler, task
 assemblies, and their runtime dependencies.
@@ -36,7 +36,7 @@ dotnet msbuild Plant.almproj /t:Clean
 dotnet msbuild Plant.almproj /t:Rebuild /p:Configuration=Release
 ```
 
-The default output is `bin/Debug/Plant.Alarmlist.xml`. `Restore` is a no-op
+The default output is `bin/Debug/keyword/Plant.Alarmlist.xml`. `Restore` is a no-op
 after SDK resolution; ALMX projects do not restore managed package references.
 The SDK does not require a `TargetFramework`: it chooses `tasks/net8.0` for
 .NET MSBuild and `tasks/net472` for desktop MSBuild based on the host runtime.
@@ -85,20 +85,23 @@ or disable default items and list your inputs explicitly:
 | `OutputPath` | `$(BaseOutputPath)$(Configuration)/` |
 | `CompiledAlarmlistFileName` | `$(AssemblyName).Alarmlist.xml` |
 | `EnableDefaultCompileItems` | `true` |
+| `EnableDefaultAlarmlistResourceItems` | `true` |
+| `AlarmlistCultures` | `keyword` (semicolon-separated build list) |
+| `AlarmlistCulture` | `keyword` (independent shared preview selection) |
 | `AlarmlistTasksAssembly` | Task assembly for the current MSBuild runtime |
 
-`CompiledAlarmlistFile` exposes the absolute output path. Projects can use
+`@(CompiledAlarmlistFiles)` exposes absolute output paths with normalized `Culture` metadata. Build and GetTargetPath return these items; GetTargetPath needs no prior build and writes no output. Projects can use
 `BeforeTargets="Build"` or `AfterTargets="Build"` for custom targets;
 `Directory.Build.props` and `Directory.Build.targets` are also imported.
 Each build recompiles the selected inputs so changes to conditional items and
 removed files are reflected. Compiler diagnostics fail the build. Clean removes
-the configured compiled output and preserves unrelated files.
+the configured and tracked compiled outputs and preserves unrelated files.
 
 Reference errors ALM0001-ALM0004 include the source file and declaration line/column
 when read from ALMX files. Missing, self, and circular references point to the
 `ReferenceName` element; duplicate names point to `FullyQualifiedName`. A failed
 compilation leaves any previous compiled output unchanged. Live analysis of
-unsaved editor buffers is a separate milestone-three feature still in development.
+unsaved ALMX editor buffers is separate from saved RESX resource capture.
 
 ## Property expressions and templates
 
@@ -162,6 +165,81 @@ No environment variables or ambient project properties are imported. ALM0005-ALM
 cover invalid abstract/expression syntax, unknown or unassigned values, unavailable
 context, scalar cycles, and invalid/duplicate declarations. Failed compilation
 preserves previous output. Source serialization retains raw expressions.
+
+## Localization and multiple outputs
+
+Use `$(loc:Inspection)` in an ALMX text field and define `Inspection` in a saved
+string-only RESX resource. For example, `Translations.en.resx` may contain:
+
+```xml
+<root>
+  <data name="Inspection" xml:space="preserve">
+    <value>Inspect $(par1)</value>
+    <comment>Shown to the operator.</comment>
+  </data>
+</root>
+```
+
+The consuming alarm's parameter scope supplies `par1`; with `par1=001`, the result
+is `Inspect 001`. Keys are case-sensitive, with grammar
+`[A-Za-z_][A-Za-z0-9_.-]*`. The `loc:` prefix is case-sensitive. Nested localization
+inside translations is initially unsupported. Escapes and substituted parameter
+values remain literal; replacement text is never rescanned.
+
+```xml
+<PropertyGroup>
+  <AlarmlistCultures>de-DE;en;keyword</AlarmlistCultures>
+</PropertyGroup>
+<ItemGroup>
+  <AlarmlistResource Remove="obsolete/**/*.resx" />
+  <AlarmlistResource Include="../shared/Operator.resx" Culture="en"
+                     Link="Translations/Operator.en.resx" />
+  <AlarmlistResource Update="My.Catalogue.resx" Culture="" />
+</ItemGroup>
+```
+
+Default resource inclusion is `**/*.resx`, using the same output/intermediate and
+hidden-directory exclusions as ALMX. Explicit Include, Remove, Update, linked
+files, and conditions are supported. Disable the glob with
+`EnableDefaultAlarmlistResourceItems=false`. Explicit `Culture` metadata wins,
+including an explicitly empty value for an optional unqualified key catalogue.
+Otherwise the filename's final dotted suffix is the culture: `Labels.de-DE.resx`
+is German/Germany and `Labels.resx` is unqualified. Invalid dotted suffixes are
+errors. Multiple resources per culture are allowed, but duplicate keys are errors.
+String values and comments are supported; object/file-reference entries and DTDs
+are rejected without deserializing or loading external content.
+
+Culture lookup follows the requested culture and its .NET parents, stopping before
+invariant: `de-DE` can use `de`. Empty values count as missing; whitespace values
+are nonempty. There is no unqualified/default, unrelated-language, or keyword
+fallback. A nonempty translation that evaluates to empty does not restart lookup.
+Keyword mode displays the complete `$(loc:Inspection)` token, even for undeclared
+keys. Resource structure and duplicate keys are still validated in keyword mode.
+
+Missing, empty or whitespace-only AlarmlistCultures selects keyword. Other lists
+trim and normalize entries, rejecting unsupported cultures, duplicates, and empty
+entries within a list. Output paths are
+`<OutputPath>/<culture>/<CompiledAlarmlistFileName>`, including `keyword`.
+The filename must be a basename. `AlarmlistCulture` is reserved for the independent
+IDE preview selection; it does not alter the build list. Designer localization
+support follows in the milestone-five IDE iterations.
+
+The task captures saved ALMX and RESX inputs once per batch, evaluates and serializes
+all cultures, then stages the outputs. Validation/compilation failures leave every
+previous output unchanged. Ordinary install failures and cancellation roll back
+installed files; restoration failures are reported with retained backup paths.
+This does not guarantee atomicity across process termination or power loss.
+A project/configuration/platform ownership manifest under IntermediateOutputPath
+tracks exact output and temporary paths. Successful builds retire outputs removed
+from the selection or moved by output settings. Clean removes configured/tracked
+files, without scanning or deleting culture folders. Unrelated files survive.
+Rebuild explicitly runs Clean first, so a failed Rebuild cannot preserve files that
+Clean already removed. ALM0013-ALM0018 report culture, resource, duplicate-key,
+missing-translation, nested-localization and invalid-key errors.
+
+Build and future localization consumers use saved RESX contents only. Pending
+resource-editor drafts are never read or saved by Alarmlist. The native editor may
+autosave a committed cell; that saved value is then eligible for capture.
 
 ## Compiler analysis API
 

@@ -174,7 +174,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.Solution.SolutionBuild.Build(true);
             Assert.Equal(0, ide.Automation.Solution.SolutionBuild.LastBuildInfo);
             string northOutput = File.ReadAllText(workspace.OutputPath);
-            string southOutputPath = Path.Combine(southDirectory, "bin", "Debug", "South.Alarmlist.xml");
+            string southOutputPath = Path.Combine(southDirectory, "bin", "Debug", "keyword", "South.Alarmlist.xml");
             string southOutput = File.ReadAllText(southOutputPath);
             using var automation = new UIA3Automation();
             using var application = FlaUI.Core.Application.Attach(ide.ProcessId);

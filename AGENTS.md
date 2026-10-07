@@ -229,7 +229,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - Builds currently recompile selected inputs on each invocation so removed or
   conditional inputs are reflected. Do not add incremental skipping without
   covering these cases. Preserve the design-time-build guard.
-- `Clean` deletes the configured compiled file and preserves unrelated files.
+- Localization builds use `AlarmlistResource` saved RESX items and semicolon-separated
+  `AlarmlistCultures` (default keyword). Capture inputs once per batch. Validate and
+  serialize all cultures before output installation; preserve rollback and ownership
+  tracking. Outputs are `<OutputPath>/<culture>/<CompiledAlarmlistFileName>`.
+  Build/GetTargetPath expose `@(CompiledAlarmlistFiles)` with Culture metadata;
+  the task exposes OutputFiles. Preserve explicit-empty resource Culture metadata,
+  linked/conditional items and output exclusions. Preview AlarmlistCulture is separate.
+- `Clean` deletes configured/tracked outputs and owned temporary files and preserves unrelated files.
   Keep `Build`, `Clean`, `Rebuild`, `Restore`, `GetTargetPath`, custom build hooks,
   and consumer `Directory.Build.props/targets` imports working.
 - The SDK test project's conditional `ProjectReference` metadata handles

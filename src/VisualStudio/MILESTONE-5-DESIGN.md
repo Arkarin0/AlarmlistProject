@@ -2,9 +2,9 @@
 
 This contract implements the confirmed choices in [milestone five](MILESTONE-5.md).
 It freezes the core localization behavior for implementation; it does not claim
-that the later compiler, SDK, or designer iterations are complete. XLIFF tool,
-source-language workflow, and import-conflict decisions remain open until the
-exchange iterations.
+that the later compiler, SDK, or designer iterations are complete. The owner has
+confirmed the XLIFF tool targets, source-language workflow, and whole-import
+conflict policy below.
 
 ## Expressions and values
 
@@ -210,3 +210,18 @@ The design follows the existing ALMX captured-input boundary and Roslyn's
 separation, with task/SDK responsibility following the
 [Arcade SDK organization](https://github.com/dotnet/arcade/tree/main/src/Microsoft.DotNet.Arcade.Sdk).
 It introduces no upstream runtime dependency or change to the pinned Arcade SDK.
+
+## XLIFF exchange choices
+
+Target Trados Studio, memoQ, and Phrase TMS using an XLIFF 2.0 subset. The
+[milestone compatibility decision](MILESTONE-5.md#exchange-compatibility-decision-2026-10-07)
+records the industry survey and vendor format references behind this choice.
+Verify real round trips before claiming interoperability with each tool.
+AlarmlistXliffSourceCulture selects the source language and defaults to en; a
+command/export override can select another supported culture. This is independent
+of build and preview selection and never introduces default translation fallback.
+
+RESX remains the master. Export saved values only. Preflight the entire import;
+any stale source or conflicting target edit rejects all changes and produces a
+conflict report. Do not apply nonconflicting entries from a rejected batch.
+Preserve explicit dry-run/apply and dirty-resource-editor protection.

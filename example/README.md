@@ -21,8 +21,8 @@ the IDE; use **File > Open > Project/Solution** to open `Example.sln` yourself.
 4. Expand **Resolved alarm preview**, **Test procedure**, and **Compiled project
    XML preview**. Try **Override locally** on an inherited field or **Make local
    copy** on Instructions, inspect the XML, and Undo.
-5. Build the solution. Outputs are **North/bin/Debug/North.Alarmlist.xml** and
-   **South/bin/Debug/South.Alarmlist.xml**. Try Clean/Rebuild and the project output
+5. Build the solution. Outputs are **North/bin/Debug/keyword/North.Alarmlist.xml** and
+   **South/bin/Debug/keyword/South.Alarmlist.xml**. Try Clean/Rebuild and the project output
    properties. Live previews reflect unsaved XML edits without writing these files.
 
 The initial solution has no compiler errors: North compiles four alarms and South

@@ -1,8 +1,8 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: iterations one through three are complete. Captured resources, catalogue
-validation and localization expression evaluation are implemented. Multi-culture
-SDK builds follow in iteration four. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
+Status: iterations one through four are complete. Captured resources, catalogue
+validation, localization expression evaluation and multi-culture
+SDK builds are implemented. Detached analysis follows in iteration five. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
 `feature/ParametersAndLocalization`. Complete and validate each iteration, then
@@ -27,7 +27,7 @@ translations with external tools and never becomes a build or preview input.
 | Saved resources only | Build, preview, completion, localization diagnostics, and XLIFF export use saved RESX contents. Unsaved resource edits remain private to the resource editor. Refresh after a save or another change to the saved file; do not save editor buffers automatically. |
 | Build selection | Shared `AlarmlistCultures` lists build cultures. Default to `keyword` when the property is absent or empty. Emit a separate folder for each culture. A validation failure for any requested culture fails the batch and preserves every previous culture output. |
 | Preview selection | The proposed singular `AlarmlistCulture` selects the active project's designer language and initially uses `keyword`. Persist it in the shared project. It does not change the build-culture list. |
-| Exchange | Export RESX to XLIFF and import translated values into RESX. Define conflict and stale-export handling before importing. |
+| Exchange | Export RESX to XLIFF 2.0 and import translations into RESX. Target Trados Studio, memoQ, and Phrase TMS. Source culture is configurable and defaults to en. Any conflict rejects the whole import with a conflict report. |
 | Exclusions | CAB support is cancelled. NuGet alarm libraries and release publication are outside this milestone. |
 
 Milestone four's declaration-only parameter inheritance, explicit-empty parameter
@@ -42,11 +42,11 @@ an explicitly empty assignment still stops scope lookup.
 
 ## Remaining implementation details and exchange decisions
 
-Finalize core implementation details in iteration one using the confirmed
-behavior above. The owner-facing questions still open are the intended translation
-tool/source-language workflow and whether import conflicts stop the whole import
-or allow nonconflicting entries to be applied. These can be settled before the
-XLIFF iterations; they do not block the core RESX workflow.
+Core decisions are frozen in the implementation contract. The owner confirmed
+on 2026-10-07 that exchange should support three leading translation tools, use a
+configurable source culture defaulting to English, and reject the entire import
+when conflicts exist. No owner-facing exchange decisions remain open. Tool
+interoperability must still be tested in the exchange iterations.
 
 | Detail | Proposed starting point |
 | --- | --- |
@@ -54,12 +54,12 @@ XLIFF iterations; they do not block the core RESX workflow.
 | Resource inclusion | Introduce an evaluated resource item, provisionally `AlarmlistResource`, with explicit culture metadata and documented filename conventions. Support defaults, exclusions, explicit selection, linked files, and conditions. |
 | Culture identity | Use .NET culture identities and the actual parent chain; stop before invariant. Validate unsupported names, duplicate selections, and output-path collisions before writing. |
 | Public contracts | Freeze captured resource inputs, analysis contract version, diagnostics, output item names, and Clean/GetTargetPath behavior together. Existing diagnostic IDs stay unchanged. |
-| XLIFF workflow/profile | Confirm the intended translation tool and whether the source culture is fixed or selected per export. The proposal is per-export source selection and a documented XLIFF 2.1 subset supporting string resources, stable keys, notes, and protected expression placeholders. Verify tool compatibility and reject unsupported structures explicitly. |
-| XLIFF conflicts | Confirm whole-import rejection versus applying nonconflicting entries. The recommendation is to stop before changing files and report conflicts for explicit resolution. Never silently overwrite newer translations. |
+| XLIFF workflow/profile | Target Trados Studio, memoQ, and Phrase TMS with a documented XLIFF 2.0 subset for string resources, stable keys, notes, and protected expressions. AlarmlistXliffSourceCulture defaults to en and can be overridden per export. Verify round trips and reject unsupported structures explicitly. |
+| XLIFF conflicts | Stop the whole import before changing any file, report all detected conflicts, and require their resolution. Never apply a partial subset or silently overwrite newer translations. |
 
-The native resource editor's behavior in an `.almproj` project is an integration
-question, not a confirmed capability. Verify editing and save-triggered refresh
-early; capturing its unsaved model is not required. The extension supports VS2022
+The native resource editor's behavior in an `.almproj` project was an integration
+question resolved for the installed hosts in iteration one. Verify preview refresh
+in iteration six; capturing its unsaved model is not required. The extension supports VS2022
 17.9+, while the newer Resource Explorer was introduced in 17.11; do not silently
 raise the minimum version or assume all hosts provide the same resource-editing
 surface.
@@ -245,7 +245,7 @@ Commit: `Add designer language selection and localization completion`.
   run automatically during Build or become an alternative compilation input.
 - Export saved RESX contents even when an editor has pending changes. Do not read
   unsaved translation values or trigger a save as part of export.
-- Select the source language explicitly. Preserve stable key mapping, comments,
+- Use configurable AlarmlistXliffSourceCulture (default en). Preserve stable key mapping, comments,
   whitespace, source/target cultures, and property-expression placeholders. Keep
   absent entries distinguishable from explicit empty values for round trips;
   both count as untranslated for culture lookup.
@@ -399,7 +399,52 @@ VSIX.
   suite: 20 passed on each framework. SDK bridge: 22 passed on net472. No skips;
   the existing shared test-helper CA1416 warning remains. The consuming-file test
   uses an absolute captured path, as required by the existing built-in properties.
-- Commit: `Evaluate localization expressions in the compiler`.
+- Commit: `a7ae209` (`Evaluate localization expressions in the compiler`).
+
+## Iteration-four results (2026-10-07)
+
+- Added evaluated AlarmlistResource items, explicit/inferred cultures and default
+  RESX globs with output exclusions. Added build/preview project properties and
+  native resource item rules. Saved XML inputs are captured once for all cultures.
+- Build and GetTargetPath now return CompiledAlarmlistFiles with Culture metadata.
+  Every output, including keyword, has its own culture directory. Updated direct
+  task consumers, SDK tests, IDE fixtures, example instructions and tooling paths.
+- All cultures validate and serialize before installation. Staged replacements,
+  additions and retirements roll back on ordinary write/cancellation failures.
+  Per-project/configuration/platform manifests track exact owned files; Clean
+  preserves unrelated files and supports never-built projects. Retired paths are
+  no longer owned after successful retirement. Input/output collisions are rejected.
+- Compiler: 236 passed on each framework. Task unit/integration: 36/4 passed on
+  each framework. SDK package consumers: 33 passed on each framework through
+  dotnet msbuild, plus all 33 on net472 through VS2026 desktop MSBuild. The previous
+  ALARMLIST_TEST_MSBUILD_PATH value was restored. No skips in these runs.
+- Extension checks: 8 schema and 22 bridge tests passed on net472; 10 VSIX/template
+  consumer tests passed on each framework. Native RESX functional cases passed
+  with the new SDK rules on both installed hosts (one each, zero skipped):
+  VS2022 TRX directory `artifacts/log/Debug/VisualStudioUI/TestResults/0b1e1e9dbdc144f8a65151e4b4c358e7/`;
+  VS2026 `artifacts/log/Debug/VisualStudioUI/TestResults/89a208ba4e6b4d78bcaa032c6a91ee26/`.
+  Each case used and cleaned up its owned IDE. The deferred milestone-four case
+  was not run. Minimum VS2022 17.9 remains unverified.
+- A new Clean-before-build regression initially failed because its directories
+  did not exist; the fix and complete SDK rerun passed. Existing CA1416 warnings
+  in the shared test helper remain. No power-loss atomicity is claimed.
+- Recorded the owner's exchange decisions and researched Trados/memoQ/Phrase
+  compatibility; source defaults to en and every import conflict rejects the batch.
+- Commit: `Build and manage separate alarm outputs for each culture`.
+
+## Exchange compatibility decision (2026-10-07)
+
+The three target tools are Trados Studio, memoQ, and Phrase TMS, selected from
+the leading CAT suites reported by the [ELIS 2026 survey](https://elis-survey.org/wp-content/uploads/2026/03/ELIS-2026-Report.pdf).
+This is an industry-survey basis, not a universal popularity ranking.
+Use XLIFF 2.0 as the common exchange subset: [Trados documentation](https://developers.rws.com/studio-api-docs/apiconcepts/filetypesupport/bilingual_file_type_plugin_introduction.html)
+and [memoQ documentation](https://docs.memoq.com/current/en/Workspace/xliff-2-files.html)
+cover this format, while [Phrase TMS requires the 2.0 version header](https://support.phrase.com/hc/en-us/articles/5709613119516--XLIFF-1-2-and-2-0-XML-Localization-Interchange-File-Format-TMS).
+This replaces the initial 2.1 proposal. Documentation compatibility is not evidence
+of completed round trips; those remain iteration-eight/nine acceptance work.
+Source culture defaults to en, configurable by AlarmlistXliffSourceCulture and a
+per-export override. It has no effect on compilation/preview fallback.
+Any import conflict rejects the whole batch and reports conflicts for resolution.
 
 ## Architecture and reference basis
 
@@ -416,6 +461,6 @@ VSIX.
 - Microsoft's [resource editor documentation](https://learn.microsoft.com/en-us/visualstudio/ide/managing-application-resources-dotnet?view=visualstudio)
   describes .NET-project resource editing and version-specific UI. Custom ALMX
   project support and save-triggered refresh still require iteration-one evidence.
-- Use the [OASIS XLIFF 2.1 specification](https://docs.oasis-open.org/xliff/xliff-core/v2.1/os/xliff-core-v2.1-os.html)
+- Use the [OASIS XLIFF 2.0 specification](https://docs.oasis-open.org/xliff/xliff-core/v2.0/os/xliff-core-v2.0-os.html)
   to define and test the exchange subset. Supporting that subset must not be
   described as support for arbitrary XLIFF documents.
