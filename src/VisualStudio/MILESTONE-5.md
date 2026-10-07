@@ -15,14 +15,14 @@ translations with external tools and never becomes a build or preview input.
 
 | Area | Contract |
 | --- | --- |
-| Expressions | Use `$(loc:Key)` in localizable alarm content. Keep raw expressions in source, edits, and local copies. Show raw text while focused and evaluated text when unfocused. |
-| Keyword mode | The default displayed language is `keyword`. Display the complete literal `$(loc:Key)`. Keyword mode is also an allowed build output. |
-| Culture lookup | Look up the requested culture, then its parents, stopping before invariant resources. For example, `de-DE` may use `de`. Never fall back to an unqualified default RESX, an unrelated language, or keyword mode. An unresolved translation is an error. |
-| Catalogue | Keys are project-wide, including inherited alarm content. Duplicate keys within a culture are errors; the same key in different cultures is expected. |
-| Parameters | A translation such as `Inspection = "Inspect $(par1)"` uses the consuming alarm's parameter scope. With `par1=001`, it produces `Inspect 001`. Parameter assignments remain literal and replacement text is not rescanned. |
-| Resources | RESX supplies compiler and designer translations. Use the built-in resource editor; do not introduce a custom translation-table editor. |
+| Expressions | Use `$(loc:Key)` in Name, Code, Category, Description, and procedure text. FullyQualifiedName and ReferenceName remain literal. Keep raw expressions in source, edits, and local copies. Show raw text while focused and evaluated text when unfocused. |
+| Keyword mode | The default displayed language is `keyword`. Display the complete literal `$(loc:Key)`, including syntactically valid keys not yet declared in any RESX file. Keyword mode is also an allowed build output. Still validate resource structure and duplicate catalogue entries. |
+| Culture lookup | Look up the requested culture, then its parents, stopping before invariant resources. An empty translation counts as missing and continues parent lookup; for example, an empty `de-DE` entry may use `de`. Never fall back to an unqualified default RESX, an unrelated language, or keyword mode. If no nonempty translation is found, report an error. |
+| Catalogue | Keys are project-wide and case-sensitive, including inherited alarm content. Allow dots and hyphens, such as `Alarm.Inspection` and `alarm-inspection`. Duplicate keys within a culture are errors; the same key in different cultures is expected. |
+| Parameters and nesting | A translation such as `Inspection = "Inspect $(par1)"` uses the consuming alarm's parameter scope. With `par1=001`, it produces `Inspect 001`. Parameter assignments remain literal and replacement text is not rescanned. Initially disallow nested localization expressions inside translations; preserve escaped literal tokens. |
+| Resources | RESX supplies compiler and designer translations. Use the built-in resource editor; do not introduce a custom translation-table editor. An unqualified keyword catalogue such as `Translations.resx` is optional. Language-specific files may define the catalogue; unqualified values never supply translation fallback. |
 | Saved resources only | Build, preview, completion, localization diagnostics, and XLIFF export use saved RESX contents. Unsaved resource edits remain private to the resource editor. Refresh after a save or another change to the saved file; do not save editor buffers automatically. |
-| Build selection | Shared `AlarmlistCultures` lists build cultures. Emit a separate folder for each culture. A validation failure for any requested culture fails the batch and preserves every previous culture output. |
+| Build selection | Shared `AlarmlistCultures` lists build cultures. Default to `keyword` when the property is absent or empty. Emit a separate folder for each culture. A validation failure for any requested culture fails the batch and preserves every previous culture output. |
 | Preview selection | The proposed singular `AlarmlistCulture` selects the active project's designer language and initially uses `keyword`. Persist it in the shared project. It does not change the build-culture list. |
 | Exchange | Export RESX to XLIFF and import translated values into RESX. Define conflict and stale-export handling before importing. |
 | Exclusions | CAB support is cancelled. NuGet alarm libraries and release publication are outside this milestone. |
@@ -33,26 +33,26 @@ fields remain in force. Translation expressions participate in the existing
 compiler evaluation rules rather than introducing a second evaluator in the IDE.
 The saved-resource rule supersedes the earlier proposal to expose unsaved RESX
 edits. It does not change milestone four's existing unsaved ALMX analysis.
+The owner confirmed the remaining core choices above on 2026-10-07. Empty
+translations count as missing; this differs from parameter assignments, where
+an explicitly empty assignment still stops scope lookup.
 
-## Defaults to finalize in iteration one
+## Remaining implementation details and exchange decisions
 
-These are implementation proposals, not additional owner decisions. Resolve them
-in the implementation contract before dependent work; ask the owner only if an
-alternative materially changes the intended workflow.
+Finalize core implementation details in iteration one using the confirmed
+behavior above. The owner-facing questions still open are the intended translation
+tool/source-language workflow and whether import conflicts stop the whole import
+or allow nonconflicting entries to be applied. These can be settled before the
+XLIFF iterations; they do not block the core RESX workflow.
 
 | Detail | Proposed starting point |
 | --- | --- |
-| Missing build-culture list | Build `keyword` when `AlarmlistCultures` is absent. Reject malformed entries and define how an explicitly empty list differs from absence. |
-| Missing versus empty | An explicit empty translation is a valid value and stops parent lookup. Only a missing key falls through. |
-| Keyword validation | Preserve syntactically valid localization tokens without requiring a translated value. Still validate resource structure and duplicate catalogue entries. |
-| Keys | Use ordinal, case-sensitive keys; support useful RESX names such as `Alarm.Inspection` and `alarm-inspection`. Freeze delimiters, whitespace, and escaping rules. |
-| Expression targets | Use the same fields as milestone four: Name, Code, Category, Description, and procedure text. FullyQualifiedName and ReferenceName stay literal. |
-| Translation contents | Allow existing property expressions inside translations. Reject nested localization expressions in the first profile rather than introducing recursive localization. Preserve escaped literal tokens. |
+| Key grammar | Freeze delimiters, whitespace, and escaping while preserving the agreed case sensitivity and support for dots/hyphens. |
 | Resource inclusion | Introduce an evaluated resource item, provisionally `AlarmlistResource`, with explicit culture metadata and documented filename conventions. Support defaults, exclusions, explicit selection, linked files, and conditions. |
-| Unqualified RESX | It may hold the key catalogue and authoring context, but its values never supply an implicit translation. Define whether it is optional and how an explicit XLIFF source language obtains source text. |
 | Culture identity | Use .NET culture identities and the actual parent chain; stop before invariant. Validate unsupported names, duplicate selections, and output-path collisions before writing. |
 | Public contracts | Freeze captured resource inputs, analysis contract version, diagnostics, output item names, and Clean/GetTargetPath behavior together. Existing diagnostic IDs stay unchanged. |
-| XLIFF profile | Start with a documented XLIFF 2.1 subset supporting string resources, stable keys, notes, and protected expression placeholders. Reject unsupported structures explicitly. |
+| XLIFF workflow/profile | Confirm the intended translation tool and whether the source culture is fixed or selected per export. The proposal is per-export source selection and a documented XLIFF 2.1 subset supporting string resources, stable keys, notes, and protected expression placeholders. Verify tool compatibility and reject unsupported structures explicitly. |
+| XLIFF conflicts | Confirm whole-import rejection versus applying nonconflicting entries. The recommendation is to stop before changing files and report conflicts for explicit resolution. Never silently overwrite newer translations. |
 
 The native resource editor's behavior in an `.almproj` project is an integration
 question, not a confirmed capability. Verify editing and save-triggered refresh
@@ -83,8 +83,10 @@ testing is not deferred wholesale to the final iteration.
 
 ### Iteration 1: contract and native editor feasibility
 
-- Write the milestone-five implementation contract, settling the proposals above,
-  supported RESX/XLIFF content, diagnostic IDs, and the output ownership model.
+- Write the milestone-five implementation contract, preserving the confirmed
+  behavior and settling core implementation details, supported RESX content,
+  diagnostic IDs, and the output ownership model. Track the exchange decisions
+  for resolution before the XLIFF iterations.
 - Exercise a small `.almproj` fixture with the built-in RESX editor on the
   supported VS2022/VS2026 workflows. Check project item association, open/edit/save,
   undo/discard, and notification when the saved file changes.
@@ -116,8 +118,9 @@ Commit: `Define localization contracts and verify native resource editing`.
   transition; do not break the working extension between iterations.
 
 Exit: compiler tests on `net472` and `net8.0` cover malformed XML, duplicate and
-case-distinct keys, empty versus missing, multiple files per culture, parent
-chains, no default fallback, and detached snapshots that need no disk access.
+case-distinct keys, empty entries following missing-entry lookup, multiple files
+per culture, parent chains, no default fallback, an optional unqualified catalogue,
+and detached snapshots that need no disk access.
 
 Commit: `Add captured RESX resources and culture lookup`.
 
@@ -136,8 +139,10 @@ Commit: `Add captured RESX resources and culture lookup`.
   ALMX/resource locations. Keep existing diagnostic IDs and source serialization.
 
 Exit: compiler, analysis, and output tests on both frameworks cover `Inspect 001`,
-literal keyword output, exact/parent/missing/empty translations, escaped tokens,
-cross-file inheritance, template-only inputs, field cycles, and excluded entries.
+literal keyword output for undeclared keys, exact/parent/missing/empty translations,
+rejected nested localization, escaped tokens, cross-file inheritance, template-only
+inputs, field cycles, and excluded entries. Empty translations either find a
+nonempty parent value or report a missing-translation error.
 Equivalent captured inputs produce the same values in compile and analysis paths.
 
 Commit: `Evaluate localization expressions in the compiler`.
@@ -160,8 +165,9 @@ Commit: `Evaluate localization expressions in the compiler`.
   preservation of files that Clean has already removed.
 
 Exit: task tests and packaged SDK consumers on both frameworks cover multiple
-cultures, keyword output, parent fallback, invalid selection, unchanged output
-bytes after a late culture error, removed/conditional resources, linked files,
+cultures, keyword output including absent/empty build-culture defaults, parent
+fallback, invalid selection, unchanged output bytes after a late culture error,
+removed/conditional resources, linked files,
 custom paths, Clean/Rebuild/GetTargetPath, and unrelated-file preservation.
 Exercise desktop MSBuild task loading as well as `dotnet msbuild`.
 
@@ -238,7 +244,8 @@ Commit: `Add designer language selection and localization completion`.
   unsaved translation values or trigger a save as part of export.
 - Select the source language explicitly. Preserve stable key mapping, comments,
   whitespace, source/target cultures, and property-expression placeholders. Keep
-  missing translations distinguishable from explicit empty values.
+  absent entries distinguishable from explicit empty values for round trips;
+  both count as untranslated for culture lookup.
 - Record source and target baselines sufficient to detect stale/conflicting
   imports, without embedding machine-specific paths. Document unsupported XLIFF
   structures and the supported translator workflow.

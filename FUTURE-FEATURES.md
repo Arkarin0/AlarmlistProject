@@ -82,34 +82,47 @@ Planning decisions (2026-10-07; not implemented):
 The [milestone-five iteration plan](src/VisualStudio/MILESTONE-5.md) sequences
 implementation and validation. Iterations 1-7 establish the RESX compiler/build
 and designer workflow; iterations 8-9 add XLIFF exchange, followed by integrated
-acceptance. Remaining defaults are proposals to finalize in its first iteration.
+acceptance. Core behavior is confirmed; finalize implementation details in the
+first iteration and exchange decisions before the XLIFF iterations.
 
 - Add localization expressions such as `$(loc:MyKeyword)`, resolved for the selected
   culture. Editable fields retain raw source while focused and display evaluated
-  text afterward. Language changes never rewrite ALMX expressions.
+  text afterward. Language changes never rewrite ALMX expressions. Apply them to
+  Name, Code, Category, Description, and procedure text; FullyQualifiedName and
+  ReferenceName remain literal.
 - The default displayed language is the special `keyword` mode. It displays the
   complete literal `$(loc:MyKeyword)`, not just `MyKeyword`. Keyword mode is also
   allowed as a build output, preserving localization tokens in the compiled text.
+  Syntactically valid keys may be used in keyword mode before they are declared
+  in any RESX file.
 - Permit parent-culture fallback: for each key, `de-DE` may use `de` if no German
   (Germany) entry exists. Stop before the invariant/unqualified default resource.
   Never use another language or keyword mode as an automatic fallback. This
   supersedes the earlier exact-culture-only interpretation.
+- Empty translations count as missing: continue permitted parent lookup and
+  report a missing-translation error if no nonempty value is found. This does not
+  change explicit-empty parameter assignments, which still stop scope lookup.
 - Keys form one project-wide catalogue, including inherited alarm content.
   Duplicate keys for the same culture are errors; the same key in different
-  cultures is expected.
+  cultures is expected. Keys are case-sensitive and may contain dots and hyphens.
 - Translation values can contain parameter expressions. For example,
   `Inspection = "Inspect $(par1)"` evaluates using the consuming alarm's parameters.
   Custom parameter assignments retain milestone four's literal substitution rules.
+  Nested localization expressions inside translations are initially disallowed.
 - A shared `AlarmlistCultures` project property selects multiple build cultures,
   with a separate output folder for each. Keyword mode can be explicitly included.
   If any requested culture fails validation, the entire build fails without
-  replacing any of the previous culture outputs.
+  replacing any of the previous culture outputs. An absent or empty
+  `AlarmlistCultures` defaults to `keyword`.
 - Missing translations after permitted parent lookup produce a dedicated compiler
   error identifying the key, requested culture, and source location where available.
   Assign its stable diagnostic ID during implementation.
 - `.resx` is the authoritative resource format for builds and designer previews.
   Use Visual Studio's built-in resource editor; verify its integration with the
   custom `.almproj` project type instead of assuming .NET-project behavior.
+  An unqualified keyword catalogue such as `Translations.resx` is optional;
+  language-specific files can define the catalogue, and unqualified resource
+  values never provide translation fallback.
 - Use only saved RESX contents for build, preview, completion, localization
   diagnostics, and XLIFF export. Unsaved resource edits remain private to the
   resource editor; saving refreshes consumers. Do not save buffers automatically.
@@ -132,11 +145,11 @@ proposed.
 Remaining design details:
 
 - Define how `.resx` files are included and associated with cultures. For XLIFF
-  exchange, choose supported versions/content forms and import conflict handling.
-- Define behavior when the build-culture list is absent, key validation in keyword
-  mode, and the difference between missing and intentionally empty translations.
-- Freeze key syntax/case rules, nested localization-expression behavior, and the
-  localizable field set (proposed: the same fields as milestone-four expressions).
+  exchange, confirm the intended translation tool, source-language selection,
+  supported versions/content forms, and whole-import versus per-entry conflict
+  handling. These exchange decisions can wait until the XLIFF iterations.
+- Freeze key delimiters, whitespace, and escaping rules within the confirmed
+  case-sensitive syntax supporting dots and hyphens.
 - Define standalone captured resource/context inputs and observation of saved
   resource changes without coupling compiler evaluation to disk or MSBuild.
 
