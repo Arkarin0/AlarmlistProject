@@ -1122,3 +1122,22 @@ harness's owned-process termination fallback, and do not close the host-lifetime
 This is targeted redesign validation, not a rerun of all 18 historical functional
 cases. Actual screen-reader speech, native high contrast, mixed DPI, typing/paint,
 longer host-memory acceptance and release checks remain open. No publication occurred.
+
+### Parameter-list redesign: VS2026 startup follow-up (2026-10-07)
+
+After the owner resumed work, the installer permission prompt was absent and the
+installed extension still matched the recorded Release deployment hash. Two focused
+PropertiesAndCompletion2026 attempts stopped during IDE setup at DTE.SuppressUI
+with RPC_E_CALL_REJECTED, before the property assertions. Read-only inspection during
+the second attempt identified the modal Visual Studio account sign-in dialog.
+Neither attempt is a property-test pass; both owned IDEs needed forced cleanup.
+
+TRX evidence is retained under the VisualStudioUI `TestResults/` directory in
+`e46e1b6311bb4d0a9e4dbe45a32ed231/` and `107600c7af8a4860ab4a01afe159dfa6/`.
+A preparation instance was opened for the owner to dismiss the account dialog
+manually and close the IDE. Its identity is recorded under
+`artifacts/log/Milestone4/ParameterLists/ManualPreparation/c50dc7f3997841f0b38ff8119a1d0f93/`.
+No authentication controls were automated and no product code or keyboard guard
+was changed. The owner chose to leave the test pending. Only the recorded preparation
+IDE was stopped after checking its process identity; its cleanup record is alongside
+the identity file. The VS2026 property keyboard case remains pending.
