@@ -79,6 +79,11 @@ templates. Localization remains later work.
 
 Planning decisions (2026-10-07; not implemented):
 
+The [milestone-five iteration plan](src/VisualStudio/MILESTONE-5.md) sequences
+implementation and validation. Iterations 1-7 establish the RESX compiler/build
+and designer workflow; iterations 8-9 add XLIFF exchange, followed by integrated
+acceptance. Remaining defaults are proposals to finalize in its first iteration.
+
 - Add localization expressions such as `$(loc:MyKeyword)`, resolved for the selected
   culture. Editable fields retain raw source while focused and display evaluated
   text afterward. Language changes never rewrite ALMX expressions.
@@ -108,7 +113,8 @@ Planning decisions (2026-10-07; not implemented):
 - XLIFF serves as an import/export format for exchanging translations. Export
   from `.resx` and import translated values back into `.resx`; XLIFF files are not
   direct build or preview inputs. Define conflict and outdated-export handling
-  before implementing imports. The import/export delivery scope remains to be set.
+  before implementing imports. The iteration plan places exchange after the core
+  RESX workflow.
 - CAB support is cancelled.
 
 The proposed toolbar follows Visual Studio's Configuration selector and applies
@@ -121,8 +127,7 @@ workflow. A separate translation-table editor is not currently proposed.
 Remaining design details:
 
 - Define how `.resx` files are included and associated with cultures. For XLIFF
-  exchange, choose supported versions/content forms, import conflict handling,
-  and whether import/export is included in the first localization milestone.
+  exchange, choose supported versions/content forms and import conflict handling.
 - Define behavior when the build-culture list is absent, key validation in keyword
   mode, and the difference between missing and intentionally empty translations.
 - Freeze key syntax/case rules, nested localization-expression behavior, and the
