@@ -273,6 +273,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   and release analysis on CPS scope disposal as well as capability unload. Bridge
   remoting may resolve only the already-loaded extension assembly in the VS host;
   scope its resolver to boundary calls and never resolve SDK assemblies there.
+- CPS owns evaluated resource membership/order/metadata and preview culture.
+  Capture RESX from saved bytes only, never open-document buffers. Ignore resource
+  draft/close notifications; observe saved changes and compare captured resource
+  text/path/order/culture before publication or navigation. Disk resource versions
+  are scoped to the project generation, so version equality alone is insufficient.
+  Preserve linked project contexts and resource locations without retaining native
+  resource-editor graphs. Resource capture must never save buffers or build output.
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
   Keep source presence/local drafts separate from inherited effective displays.
   Only the SDK's provenance determines inheritance; equal text is not evidence.

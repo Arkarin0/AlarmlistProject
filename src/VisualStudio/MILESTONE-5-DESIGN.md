@@ -200,6 +200,16 @@ retaining resource-editor graphs. Revalidate saved input versions before using
 completion or navigating resource diagnostics. Continue existing generation,
 project-context, open-ALMX-buffer, and disposal protections.
 
+CPS supplies resource membership, ordered duplicates and metadata; the extension
+does not discover resources independently. Capture one saved byte sequence per
+physical path in each analysis pass, retaining separate item culture metadata.
+Disk snapshot versions are zero within a project generation; compare captured
+text, path, order and culture again before publication or navigation, including
+same-timestamp rewrites. File watchers invalidate saved-resource changes. Open
+document notifications affect selected ALMX inputs only, so resource drafts and
+editor close cannot make otherwise valid saved translations unavailable. Resource
+diagnostics navigate only when the saved capture and opened text still match.
+
 ## Iteration-one feasibility boundary
 
 The native-editor scenario creates an isolated `.almproj`, explicitly includes a

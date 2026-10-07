@@ -53,8 +53,9 @@ interactive-desktop and release acceptance gates.
 Alarm-field properties read resolved values; custom parameter assignments remain
 literal. Explicit-empty assignments stop fallback, while unassigned parameters
 use outer scopes and cause errors only when used unresolved by a concrete alarm.
-Milestone three's remaining release checks stay open. Localization and NuGet alarm
-libraries remain for later milestones.
+Milestone three's remaining release checks stay open. Milestone five localization
+is in progress; see its [iteration results](MILESTONE-5.md). NuGet alarm libraries
+remain for a later milestone.
 
 The bridge accepts analysis contract 3 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
@@ -62,7 +63,7 @@ incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose 
 the UI thread, recreating the bridge after SDK/configuration changes. The project
 service now owns that lifecycle and input subscriptions, debounces edits by 250 ms,
 and clears stale results immediately. Generation, text, and buffer identity checks
-guard publication. XML-only editor buffers take precedence over disk, and drafts
+guard publication. ALMX XML-only editor buffers take precedence over disk, and drafts
 that have not reached the shared buffer remain outside analysis. A context registry
 keeps linked projects separate; each view can choose its owning project context.
 Unit tests extract the built SDK and VSIX to verify
@@ -75,6 +76,16 @@ evaluated values, abstract state, availability, and separate
 parameter declaration/assignment origins. Older SDK contracts receive explicit
 update guidance. CPS captures project parameters/configuration, and the designer
 uses those results for property completion, scoped values and expression displays.
+
+CPS also captures evaluated AlarmlistResource items and AlarmlistCulture. Resource
+analysis reads saved RESX contents only, including while native or XML resource
+editors contain drafts. Save/external changes refresh preview and diagnostics in
+each linked project context; Undo/discard of unsaved resources retain the saved
+translation. Current Resource Explorer saves when a cell edit is committed.
+Missing/invalid saved resources report errors without substituting buffer contents.
+Content is recaptured before publication and navigation to reject stale results.
+Run `eng/test-visualstudio.ps1 -Filter 'Area=Localization'` with the documented
+host path/profile options to exercise saved-resource behavior in the owned IDE.
 
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax

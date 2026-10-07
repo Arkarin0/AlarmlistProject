@@ -34,8 +34,16 @@ namespace Alarmlist.VisualStudio.Analysis
             CapturedAnalysisInput input = location == null ? null : State.Inputs.FirstOrDefault(item =>
                 string.Equals(item.Input.FilePath, location.FilePath, StringComparison.OrdinalIgnoreCase));
             text = input?.Input.Text;
-            return input != null && location.LineNumber > 0 && location.ColumnNumber > 0
-                && (!location.SourceVersion.HasValue || location.SourceVersion == input.Input.Version);
+            int? version = input?.Input.Version;
+            if (input == null && location != null)
+            {
+                AnalysisResourceInput resource = State.Resources.FirstOrDefault(item =>
+                    string.Equals(item.FilePath, location.FilePath, StringComparison.OrdinalIgnoreCase));
+                text = resource?.Text;
+                version = resource?.Version;
+            }
+            return text != null && location.LineNumber > 0 && location.ColumnNumber > 0
+                && (!location.SourceVersion.HasValue || location.SourceVersion == version);
         }
     }
 }

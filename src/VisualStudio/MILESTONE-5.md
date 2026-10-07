@@ -1,8 +1,9 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: iterations one through five are complete. Captured resources, catalogue
+Status: iterations one through six are complete. Captured resources, catalogue
 validation, localization expression evaluation and multi-culture
-SDK builds and detached analysis are implemented. Saved-resource observation follows in iteration six. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
+SDK builds, detached analysis and saved-resource observation are implemented.
+Language selection and completion follow in iteration seven. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
 `feature/ParametersAndLocalization`. Complete and validate each iteration, then
@@ -455,7 +456,31 @@ VSIX.
   resource/culture generation-race tests. VSIX/template consumer suite: 10 passed
   on each framework. No skips in these runs; the existing shared-helper CA1416
   warning remains. No new IDE interaction is claimed by this bridge iteration.
-- Commit: `Expose localization through detached analysis and the SDK bridge`.
+- Commit: `ccac17f` (`Expose localization through detached analysis and the SDK bridge`).
+
+## Iteration-six results (2026-10-07)
+
+- CPS captures evaluated resource membership, order, duplicates, culture metadata
+  and preview/build selections separately. Analysis captures saved resource bytes
+  once per path, without accessing resource buffers. Native and XML resource drafts,
+  Undo, cancellation and editor close do not invalidate saved translations.
+- Saved changes refresh each linked project context. Resource removal, rename,
+  missing/invalid files and recovery use existing input/SDK diagnostics. Publication
+  and navigation revalidate captured content as well as project generation; resource
+  changes racing ahead of watcher events cannot publish or navigate stale results.
+  Resource diagnostic navigation uses captured saved text and source locations.
+- Extension unit suite: 270 passed on net472. The final malformed-resource recovery
+  assertions also passed in a focused rerun. No skips.
+- VSIX/template consumers: 10 passed on each framework, with no skips.
+- Functional saved-resource/linked-context cases passed on both installed hosts
+  (one each, zero skipped): native draft/Undo/discard/save, parent lookup, project
+  scope, external changes, missing-translation recovery and solution reopen. Preview
+  did not save ALMX or replace compiled outputs. Screenshots were inspected.
+  VS2022 TRX directory: `artifacts/log/Debug/VisualStudioUI/TestResults/4ef76c8a22aa49f9970eb2b5f1ecef9e/`;
+  VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/16ba8d5946e4427b8d8ec88916a9837c/`.
+  Each run closed its owned IDE. The deferred milestone-four test was not run;
+  minimum VS2022 17.9 remains unverified.
+- Commit: `Refresh localization analysis from saved resource changes`.
 
 ## Exchange compatibility decision (2026-10-07)
 

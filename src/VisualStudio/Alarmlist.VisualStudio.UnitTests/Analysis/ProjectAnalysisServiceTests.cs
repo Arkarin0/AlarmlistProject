@@ -214,28 +214,34 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             {
                 var files = new Inputs();
                 files.Set("A", "unchanged", 1);
+                files.SetResource("Labels.en.resx", "old", 1);
+                var resources = new[] { new AnalysisResourceItem("Labels.en.resx") };
                 int calls = 0;
                 var factory = new Factory { OnAnalyze = count => { if (Interlocked.Increment(ref calls) == 1) { started.TrySetResult(true); Assert.True(release.Wait(10000)); } } };
                 var service = Create(files, factory);
-                var published = new ConcurrentQueue<AnalysisContext>();
+                var published = new ConcurrentQueue<string>();
                 service.Changed += (sender, args) =>
                 {
                     ProjectAnalysisState state = service.Current;
-                    if (state.Status == ProjectAnalysisStatus.Available) published.Enqueue(state.Project.Context);
+                    if (state.Status == ProjectAnalysisStatus.Available) published.Enqueue(state.Resources[0].Text + "|" + state.Project.Context.Culture);
                 };
                 try
                 {
-                    var oldContext = new AnalysisContext(resources: new[] { new AnalysisResourceInput("old", "Labels.en.resx", 1) }, culture: "en");
-                    var newContext = new AnalysisContext(resources: new[] { new AnalysisResourceInput(changeCulture ? "old" : "new", "Labels.en.resx", changeCulture ? 1 : 2) },
-                        culture: changeCulture ? "keyword" : "en");
-                    service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" }, oldContext));
+                    service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" }, new AnalysisContext(culture: "en"), resources));
                     await WithTimeoutAsync(started.Task);
-                    service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" }, newContext));
+                    if (changeCulture)
+                        service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" }, new AnalysisContext(culture: "keyword"), resources));
+                    else
+                    {
+                        files.SetResource("Labels.en.resx", "new", 2);
+                        files.Notify("Labels.en.resx");
+                    }
                     Assert.Null(service.Current.Response);
                     release.Set();
                     await AvailableAsync(service);
-                    Assert.Same(newContext, factory.Bridges.Last().Context);
-                    Assert.DoesNotContain(oldContext, published);
+                    Assert.Equal(changeCulture ? "old" : "new", factory.Bridges.Last().Context.Resources[0].Text);
+                    Assert.Equal(changeCulture ? "keyword" : "en", factory.Bridges.Last().Context.Culture);
+                    Assert.DoesNotContain("old|en", published);
                     Assert.Equal(1, Assert.Single(service.Current.Inputs).Input.Version);
                 }
                 finally { release.Set(); await service.StopAsync(); }
@@ -258,6 +264,31 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 new AnalysisResourceInput("changed", first.FilePath, 1), new AnalysisResourceInput("saved", first.FilePath, 2),
                 new AnalysisResourceInput("saved", "Renamed.en.resx", 1), new AnalysisResourceInput("saved", first.FilePath, 1, "") })
                 Assert.False(context.Matches(new AnalysisContext(resources: new[] { changed, second }, culture: "en")));
+        }
+
+        [Fact]
+        public async Task ResourceCaptureRaceWithoutNotificationDiscardsOldResultsAsync()
+        {
+            var files = new Inputs();
+            files.Set("A", "unchanged", 1);
+            files.SetResource("R", "old", 0);
+            files.BeforeResourceCapture = count => { if (count == 2) files.SetResource("R", "new", 0); };
+            var factory = new Factory();
+            var service = Create(files, factory);
+            var published = new ConcurrentQueue<string>();
+            service.Changed += (sender, args) =>
+            {
+                if (service.Current.Status == ProjectAnalysisStatus.Available) published.Enqueue(service.Current.Resources[0].Text);
+            };
+            try
+            {
+                service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" }, resources: new[] { new AnalysisResourceItem("R", "en") }));
+                await AvailableAsync(service);
+                Assert.Equal("new", Assert.Single(service.Current.Resources).Text);
+                Assert.DoesNotContain("old", published);
+                Assert.True(factory.Bridges.Single().Calls >= 2);
+            }
+            finally { await service.StopAsync(); }
         }
 
         [Fact]
@@ -389,6 +420,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         private sealed class Inputs : IProjectAnalysisInputSource
         {
             private readonly ConcurrentDictionary<string, CapturedAnalysisInput> _inputs = new ConcurrentDictionary<string, CapturedAnalysisInput>();
+            private readonly ConcurrentDictionary<string, AnalysisResourceInput> _resources = new ConcurrentDictionary<string, AnalysisResourceInput>();
+            private int _resourceCaptures;
+            public Action<int> BeforeResourceCapture;
             private int _captures;
             public event EventHandler<AnalysisFileChangedEventArgs> Changed;
             public int Subscribers => Changed?.GetInvocationList().Length ?? 0;
@@ -402,6 +436,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 if (notify) Notify(path);
             }
             public void Notify(string path) => Changed?.Invoke(this, new AnalysisFileChangedEventArgs(path));
+            public void SetResource(string path, string text, int version) => _resources[path] = new AnalysisResourceInput(text, path, version);
+            public Task<IReadOnlyList<AnalysisResourceInput>> CaptureResourcesAsync(IReadOnlyList<AnalysisResourceItem> resources, CancellationToken token)
+            {
+                BeforeResourceCapture?.Invoke(Interlocked.Increment(ref _resourceCaptures));
+                return Task.FromResult<IReadOnlyList<AnalysisResourceInput>>(resources.Select(resource =>
+                    new AnalysisResourceInput(_resources[resource.FilePath].Text, resource.FilePath, _resources[resource.FilePath].Version, resource.Culture)).ToArray());
+            }
             public Task<IReadOnlyList<CapturedAnalysisInput>> CaptureAsync(IReadOnlyList<string> paths, CancellationToken token)
             {
                 BeforeCapture?.Invoke(Interlocked.Increment(ref _captures));

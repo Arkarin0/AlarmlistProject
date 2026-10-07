@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -24,6 +25,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private readonly object _lifecycleGate = new object();
         private readonly List<FileSystemWatcher> _watchers = new List<FileSystemWatcher>();
         private string[] _paths = Array.Empty<string>();
+        private string[] _documentPaths = Array.Empty<string>();
         private bool _disposed;
         private bool _restartWatchers;
         public event EventHandler<AnalysisFileChangedEventArgs> Changed;
@@ -37,6 +39,7 @@ namespace Alarmlist.VisualStudio.Analysis
         public void Watch(AnalysisProject project)
         {
             string[] paths = project == null ? Array.Empty<string>() : project.Inputs
+                .Concat(project.Resources.Select(resource => resource.FilePath))
                 .Concat(string.IsNullOrWhiteSpace(project.CompilerPath) ? Array.Empty<string>() : new[] { project.CompilerPath })
                 .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             lock (_lifecycleGate)
@@ -45,6 +48,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 lock (_gate)
                 {
                     if (_disposed) throw new ObjectDisposedException(nameof(ProjectAnalysisInputSource));
+                    _documentPaths = project?.Inputs.ToArray() ?? Array.Empty<string>();
                     if (!_restartWatchers && paths.SequenceEqual(_paths, StringComparer.Ordinal)) return;
                     previous = _watchers.ToArray();
                     _watchers.Clear();
@@ -118,18 +122,55 @@ namespace Alarmlist.VisualStudio.Analysis
 
         internal static string ReadXmlText(string path)
         {
+            byte[] bytes;
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var captured = new MemoryStream())
+            { stream.CopyTo(captured); bytes = captured.ToArray(); }
+            Encoding encoding;
+            using (var stream = new MemoryStream(bytes, false))
             using (var xml = new XmlTextReader(stream) { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null })
             {
-                // Detect the BOM/XML declaration without normalizing the source.
-                xml.Read();
-                var encoding = xml.Encoding;
-                stream.Position = 0;
-                using (var reader = new StreamReader(stream, encoding, true)) return reader.ReadToEnd();
+                // Detect encoding from one captured byte sequence, preserving text.
+                // The SDK diagnoses malformed XML, including located RESX errors.
+                try { xml.Read(); }
+                catch (XmlException) { }
+                encoding = xml.Encoding ?? Encoding.UTF8;
             }
+            string text = Encoding.GetEncoding(encoding.CodePage, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetString(bytes);
+            return text.Length != 0 && text[0] == '\uFEFF' ? text.Substring(1) : text;
         }
 
-        private void OnDocumentChanged(object sender, AnalysisFileChangedEventArgs args) => Notify(args.Path);
+        public Task<IReadOnlyList<AnalysisResourceInput>> CaptureResourcesAsync(IReadOnlyList<AnalysisResourceItem> resources, CancellationToken token)
+        {
+            // Never ask the open-document provider for resource text, even if a
+            // RESX file is open in the XML editor instead of the native editor.
+            var saved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var captured = new List<AnalysisResourceInput>();
+            foreach (AnalysisResourceItem resource in resources)
+            {
+                token.ThrowIfCancellationRequested();
+                try
+                {
+                    if (!saved.TryGetValue(resource.FilePath, out string text)) saved.Add(resource.FilePath, text = ReadXmlText(resource.FilePath));
+                    captured.Add(new AnalysisResourceInput(text, resource.FilePath, 0, resource.Culture));
+                }
+                catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is XmlException || exception is ArgumentException)
+                { throw new IOException("Cannot capture saved RESX input " + resource.FilePath + ": " + exception.Message, exception); }
+            }
+            return Task.FromResult<IReadOnlyList<AnalysisResourceInput>>(captured.AsReadOnly());
+        }
+
+        private void OnDocumentChanged(object sender, AnalysisFileChangedEventArgs args)
+        {
+            string[] selected;
+            lock (_gate)
+            {
+                if (_disposed) return;
+                selected = args.Path == null ? _documentPaths : _documentPaths.Where(path =>
+                    string.Equals(path, args.Path, StringComparison.OrdinalIgnoreCase)).ToArray();
+            }
+            foreach (string path in selected) Notify(path);
+        }
         private void OnDiskChanged(object sender, FileSystemEventArgs args) => Notify(args.FullPath);
         private void OnDiskRenamed(object sender, RenamedEventArgs args) { Notify(args.OldFullPath); Notify(args.FullPath); }
         private void OnWatcherError(object sender, ErrorEventArgs args)
@@ -164,6 +205,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     previous = _watchers.ToArray();
                     _watchers.Clear();
                     _paths = Array.Empty<string>();
+                    _documentPaths = Array.Empty<string>();
                 }
                 _documents.Changed -= OnDocumentChanged;
                 foreach (FileSystemWatcher watcher in previous) watcher.Dispose();

@@ -110,7 +110,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         private static string ReadValue(string path) => XDocument.Load(path).Root.Elements("data")
             .Single(element => (string)element.Attribute("name") == "Inspection").Element("value").Value;
 
-        private static TextBox BeginEdit(VisualStudioSession ide, AutomationElement table, string before)
+        internal static TextBox BeginEdit(VisualStudioSession ide, AutomationElement table, string before)
         {
             AutomationElement cell = FindValue(table, before);
             Assert.NotNull(cell);
@@ -127,7 +127,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             return field;
         }
 
-        private static void ReplaceDraft(VisualStudioSession ide, TextBox field, string after)
+        internal static void ReplaceDraft(VisualStudioSession ide, TextBox field, string after)
         {
             RequireFieldFocus(ide, field);
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A);
@@ -136,7 +136,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => field.Text == after, "typed resource draft");
         }
 
-        private static void RequireFieldFocus(VisualStudioSession ide, TextBox field)
+        internal static void RequireFieldFocus(VisualStudioSession ide, TextBox field)
         {
             ide.RequireForeground();
             Assert.True(field.Properties.HasKeyboardFocus.ValueOrDefault, "Resource field lost focus; refusing keyboard input.");

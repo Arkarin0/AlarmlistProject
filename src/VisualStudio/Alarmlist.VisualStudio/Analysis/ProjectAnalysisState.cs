@@ -15,14 +15,19 @@ namespace Alarmlist.VisualStudio.Analysis
         public string CompilerPath { get; }
         public IReadOnlyList<string> Inputs { get; }
         public AnalysisContext Context { get; }
+        public IReadOnlyList<AnalysisResourceItem> Resources { get; }
+        public string BuildCultures { get; }
 
-        public AnalysisProject(string projectPath, string configuration, string compilerPath, IEnumerable<string> inputs, AnalysisContext context = null)
+        public AnalysisProject(string projectPath, string configuration, string compilerPath, IEnumerable<string> inputs, AnalysisContext context = null,
+            IEnumerable<AnalysisResourceItem> resources = null, string buildCultures = null)
         {
             ProjectPath = projectPath;
             Configuration = configuration;
             CompilerPath = compilerPath;
             Inputs = Array.AsReadOnly(inputs.ToArray());
             Context = context ?? new AnalysisContext(projectPath, configuration);
+            Resources = Array.AsReadOnly((resources ?? Array.Empty<AnalysisResourceItem>()).ToArray());
+            BuildCultures = string.IsNullOrWhiteSpace(buildCultures) ? "keyword" : buildCultures;
         }
 
         public bool HasSameCompilerContext(AnalysisProject other)
@@ -34,6 +39,14 @@ namespace Alarmlist.VisualStudio.Analysis
 
     internal enum ProjectAnalysisStatus { Pending, Available, Incomplete, Unavailable, Stopped }
 
+    internal sealed class AnalysisResourceItem
+    {
+        public string FilePath { get; }
+        // Null requests SDK filename inference; empty is an explicit unqualified catalogue.
+        public string Culture { get; }
+        public AnalysisResourceItem(string filePath, string culture = null) { FilePath = filePath; Culture = culture; }
+    }
+
     internal sealed class ProjectAnalysisState
     {
         public long Generation { get; }
@@ -42,9 +55,10 @@ namespace Alarmlist.VisualStudio.Analysis
         public string Message { get; }
         public AnalysisResponse Response { get; }
         public IReadOnlyList<CapturedAnalysisInput> Inputs { get; }
+        public IReadOnlyList<AnalysisResourceInput> Resources { get; }
 
         public ProjectAnalysisState(long generation, AnalysisProject project, ProjectAnalysisStatus status, string message,
-            AnalysisResponse response = null, IReadOnlyList<CapturedAnalysisInput> inputs = null)
+            AnalysisResponse response = null, IReadOnlyList<CapturedAnalysisInput> inputs = null, IReadOnlyList<AnalysisResourceInput> resources = null)
         {
             Generation = generation;
             Project = project;
@@ -52,6 +66,7 @@ namespace Alarmlist.VisualStudio.Analysis
             Message = message;
             Response = response;
             Inputs = Array.AsReadOnly((inputs ?? Array.Empty<CapturedAnalysisInput>()).ToArray());
+            Resources = Array.AsReadOnly((resources ?? Array.Empty<AnalysisResourceInput>()).ToArray());
         }
     }
 
@@ -83,5 +98,6 @@ namespace Alarmlist.VisualStudio.Analysis
         event EventHandler<AnalysisFileChangedEventArgs> Changed;
         void Watch(AnalysisProject project);
         Task<IReadOnlyList<CapturedAnalysisInput>> CaptureAsync(IReadOnlyList<string> paths, CancellationToken token);
+        Task<IReadOnlyList<AnalysisResourceInput>> CaptureResourcesAsync(IReadOnlyList<AnalysisResourceItem> resources, CancellationToken token);
     }
 }

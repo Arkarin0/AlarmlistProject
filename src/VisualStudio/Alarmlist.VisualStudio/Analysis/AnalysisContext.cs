@@ -27,6 +27,9 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisResourceInput> Resources { get; }
         public string Culture { get; }
 
+        public AnalysisContext WithResources(IEnumerable<AnalysisResourceInput> resources)
+            => new AnalysisContext(ProjectPath, Configuration, Platform, Properties, resources, Culture);
+
         public bool Matches(AnalysisContext other)
             => other != null && ProjectPath == other.ProjectPath && Configuration == other.Configuration && Platform == other.Platform
                 && Culture == other.Culture && Resources.Count == other.Resources.Count
