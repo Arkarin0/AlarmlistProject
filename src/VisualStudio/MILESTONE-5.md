@@ -1,7 +1,8 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: iteration one is complete; localization runtime behavior is not yet
-implemented. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
+Status: iterations one and two are complete. Captured resources and catalogue
+validation are implemented; localization expression evaluation follows in iteration
+three. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
 `feature/ParametersAndLocalization`. Complete and validate each iteration, then
@@ -357,7 +358,28 @@ VSIX.
   The older VS2022 17.9 surface remains unverified.
 - Iteration one is accepted for the installed hosts. The separate, previously
   deferred milestone-four test stays pending. Commit:
-  `Define localization contracts and verify native resource editing`.
+  `c036a4d` (`Define localization contracts and verify native resource editing`).
+
+## Iteration-two results (2026-10-07)
+
+- Added immutable `ResxTextSnapshot` inputs and a copied, read-only resource list
+  on the resource-aware `CompilationContext` overload. The original constructor
+  and analysis contract two remain available to the working IDE bridge.
+- Added string-only RESX parsing with locations, comments, Unicode and whitespace
+  preservation. Object/file references, serialization metadata, DTDs, malformed
+  XML and unsupported structures produce diagnostics without loading resources
+  from disk or deserializing objects.
+- Added ordinal keys, duplicate diagnostics with related locations, normalized
+  culture identities and parent-chain lookup. Empty values continue the parent
+  search; invariant resources and unrelated languages never supply fallback.
+  Compilation and analysis validate resource inputs even in keyword mode.
+- Compiler tests: 203 passed on each of net472 and net8.0. MSBuild task tests:
+  6 unit and 4 integration tests passed on each framework. Packaged SDK suite:
+  20 passed on each framework. Existing SDK bridge tests: all 22 passed on net472.
+  Commands used the affected project paths in AGENTS.md; the bridge run filtered
+  `FullyQualifiedName~SdkAnalysisBridgeTests`. No tests were skipped in these runs.
+  The existing shared test-helper CA1416 warning remains on net8.0.
+- Commit: `Add captured RESX inputs and culture catalogue`.
 
 ## Architecture and reference basis
 

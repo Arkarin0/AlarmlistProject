@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Alarmlist.Compiler;
 using Alarmlist.Diagnostics;
+using Alarmlist.Localization;
 using Alarmlist.Syntax;
 using Alarmlist.Text;
 
@@ -14,6 +15,8 @@ namespace Alarmlist.Evaluation
     {
         internal static readonly string[] Fields = { "Name", "Code", "Category", "Description" };
         private readonly CompilationContext _context;
+        private readonly ResourceCatalogue _resources;
+        private readonly string _culture;
         private readonly List<AlarmSyntaxNode> _order;
         private readonly Dictionary<AlarmSyntaxNode, Dictionary<string, PropertyExpression>> _fields = new Dictionary<AlarmSyntaxNode, Dictionary<string, PropertyExpression>>();
         private readonly Dictionary<TestProcedureStepSyntax, PropertyExpression> _steps = new Dictionary<TestProcedureStepSyntax, PropertyExpression>();
@@ -23,6 +26,10 @@ namespace Alarmlist.Evaluation
         internal CompilationEvaluator(AlarmSyntaxTree tree, CompilationContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _resources = new ResourceCatalogue(context.Resources);
+            Diagnostics.AddRange(_resources.Diagnostics);
+            if (!LocalizationCulture.TryGetSelection(context.Culture, out _culture))
+                Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidLocalizationCulture, context.Culture));
             _order = tree.Alarms.ToList();
             ValidateProperties(context.Properties);
             foreach (AlarmSyntaxTree file in tree.Files.Count == 0 ? new[] { tree } : (IEnumerable<AlarmSyntaxTree>)tree.Files)

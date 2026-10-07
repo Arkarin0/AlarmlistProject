@@ -21,7 +21,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 
 | Location | Responsibility |
 | --- | --- |
-| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, and detached snapshot/provenance results in `Analysis/`. |
+| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, and detached snapshot/provenance results in `Analysis/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
 | `src/MSBuild/AlarmList.MSBuild.UnitTests/` | Task unit tests and mocked build-engine behavior. |
@@ -169,6 +169,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   unsaved text without disk access. Preserve fresh syntax per parse, snapshot
   versions on source locations, and location-free diagnostic callers. Source
   locations use one-based lines/columns and an exclusive end column.
+- `Text/ResxTextSnapshot` captures saved resource text with an explicit culture and
+  version. Hosts supply saved contents; compiler parsing never reads the resource
+  path or deserializes RESX objects. Preserve string-only parsing, DTD prohibition,
+  case-sensitive project-wide keys, duplicate-input diagnostics, and parent-culture
+  lookup that stops before invariant resources. Empty translations continue the
+  parent search; whitespace remains a value. The resource-aware CompilationContext
+  overload must coexist with the original constructor until the coordinated bridge
+  contract transition. Resource validation also runs in keyword mode.
 - `AlarmCompiler.AnalyzeSnapshots` returns the read-only, versioned analysis
   contract from `Analysis/`. Preserve local/effective field separation, procedure
   origins and Clear exclusions, and unavailable effective values for invalid

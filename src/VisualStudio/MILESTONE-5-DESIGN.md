@@ -74,6 +74,13 @@ optional constructor inputs and read-only copied collections. Omitted/empty
 selected culture means keyword. Invalid nonempty culture names are diagnostics.
 The compiler owns parsing, catalogue validation, parent lookup, and evaluation.
 
+The resource-aware overload is `CompilationContext(resources, culture: null,
+projectPath: null, configuration: null, platform: null, properties: null)`.
+Resources are optional through the original constructor, which remains available
+to the current bridge until iteration five. Culture validation uses the runtime's
+supported `CultureInfo.GetCultures(AllCultures)` catalogue, ignoring case; it does
+not accept arbitrary names just because a runtime can construct a CultureInfo.
+
 MSBuild and IDE adapters read saved RESX files and pass captured contents to the
 compiler. Unsaved resource-editor buffers never enter compilation, preview,
 completion, localization diagnostics, or export. A dirty editor does not invalidate

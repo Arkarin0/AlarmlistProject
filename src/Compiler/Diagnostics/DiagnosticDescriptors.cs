@@ -4,6 +4,15 @@ namespace Alarmlist.Diagnostics
 {
     public static class DiagnosticDescriptors
     {
+        public static readonly DiagnosticDescriptor InvalidLocalizationCulture = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidLocalizationCulture, "Invalid localization culture", "Unsupported localization culture '{0}'.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidResource = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidResource, "Invalid RESX resource", "Invalid RESX resource: {0}", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor DuplicateResourceKey = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.DuplicateResourceKey, "Duplicate resource key", "Resource key '{0}' is declared more than once for culture '{1}'.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidLocalizationKey = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidLocalizationKey, "Invalid localization key", "Invalid localization key '{0}'.", DiagnosticSeverity.Error);
+
         public static readonly DiagnosticDescriptor InvalidAbstract = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidAbstract, "Invalid abstract attribute", "Alarm '{0}' has invalid abstract value '{1}'.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidExpression = new DiagnosticDescriptor(

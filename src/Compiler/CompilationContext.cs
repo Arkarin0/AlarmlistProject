@@ -14,6 +14,14 @@ namespace Alarmlist.Compiler
 
         public CompilationContext(string projectPath = null, string configuration = null, string platform = null,
             IEnumerable<PropertyDefinition> properties = null)
+            : this(null, null, projectPath, configuration, platform, properties)
+        {
+        }
+
+        /// <summary>Captures saved resource snapshots and a language selection alongside project inputs.</summary>
+        public CompilationContext(IEnumerable<ResxTextSnapshot> resources, string culture = null,
+            string projectPath = null, string configuration = null, string platform = null,
+            IEnumerable<PropertyDefinition> properties = null)
         {
             ProjectPath = projectPath;
             Configuration = configuration;
@@ -21,12 +29,18 @@ namespace Alarmlist.Compiler
             PropertyDefinition[] definitions = (properties ?? Array.Empty<PropertyDefinition>()).ToArray();
             if (definitions.Any(item => item == null)) throw new ArgumentException("A property must not be null.", nameof(properties));
             Properties = Array.AsReadOnly(definitions);
+            ResxTextSnapshot[] capturedResources = (resources ?? Array.Empty<ResxTextSnapshot>()).ToArray();
+            if (capturedResources.Any(item => item == null)) throw new ArgumentException("A resource must not be null.", nameof(resources));
+            Resources = Array.AsReadOnly(capturedResources);
+            Culture = string.IsNullOrWhiteSpace(culture) ? "keyword" : culture;
         }
 
         public string ProjectPath { get; }
         public string Configuration { get; }
         public string Platform { get; }
         public IReadOnlyList<PropertyDefinition> Properties { get; }
+        public IReadOnlyList<ResxTextSnapshot> Resources { get; }
+        public string Culture { get; }
     }
 
     /// <summary>A declaration and optional literal assignment. Null means unassigned; empty is assigned.</summary>

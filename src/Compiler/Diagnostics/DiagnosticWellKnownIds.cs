@@ -19,5 +19,11 @@ namespace Alarmlist.Diagnostics
         public const string CircularFieldDependency = "ALM0010";
         public const string InvalidProperty = "ALM0011";
         public const string DuplicateProperty = "ALM0012";
+        public const string InvalidLocalizationCulture = "ALM0013";
+        public const string InvalidResource = "ALM0014";
+        public const string DuplicateResourceKey = "ALM0015";
+        public const string MissingTranslation = "ALM0016";
+        public const string NestedLocalizationExpression = "ALM0017";
+        public const string InvalidLocalizationKey = "ALM0018";
     }
 }
