@@ -69,6 +69,14 @@ namespace Alarmlist.Localization
             return false;
         }
 
+        internal IEnumerable<SourceLocation> GetLookupLocations(string key, string requestedCulture)
+        {
+            if (!LocalizationCulture.TryGetCulture(requestedCulture, out CultureInfo requested)) yield break;
+            for (CultureInfo culture = requested; culture.Name.Length != 0; culture = culture.Parent)
+                if (_cultures.TryGetValue(culture.Name, out Dictionary<string, ResourceEntry> values)
+                    && values.TryGetValue(key, out ResourceEntry entry)) yield return entry.ValueLocation;
+        }
+
         internal static bool IsValidKey(string key)
         {
             if (string.IsNullOrEmpty(key) || !IsStart(key[0])) return false;

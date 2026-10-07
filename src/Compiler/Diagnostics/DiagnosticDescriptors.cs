@@ -12,6 +12,10 @@ namespace Alarmlist.Diagnostics
             DiagnosticWellKnownIds.DuplicateResourceKey, "Duplicate resource key", "Resource key '{0}' is declared more than once for culture '{1}'.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidLocalizationKey = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidLocalizationKey, "Invalid localization key", "Invalid localization key '{0}'.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor MissingTranslation = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.MissingTranslation, "Missing translation", "No nonempty translation for key '{0}' in culture '{1}' or its parent cultures.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor NestedLocalizationExpression = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.NestedLocalizationExpression, "Nested localization expression", "Translation for key '{0}' requested in culture '{1}' contains an unsupported nested localization expression.", DiagnosticSeverity.Error);
 
         public static readonly DiagnosticDescriptor InvalidAbstract = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidAbstract, "Invalid abstract attribute", "Alarm '{0}' has invalid abstract value '{1}'.", DiagnosticSeverity.Error);

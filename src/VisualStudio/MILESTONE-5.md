@@ -1,8 +1,8 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: iterations one and two are complete. Captured resources and catalogue
-validation are implemented; localization expression evaluation follows in iteration
-three. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
+Status: iterations one through three are complete. Captured resources, catalogue
+validation and localization expression evaluation are implemented. Multi-culture
+SDK builds follow in iteration four. The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
 `feature/ParametersAndLocalization`. Complete and validate each iteration, then
@@ -379,7 +379,27 @@ VSIX.
   Commands used the affected project paths in AGENTS.md; the bridge run filtered
   `FullyQualifiedName~SdkAnalysisBridgeTests`. No tests were skipped in these runs.
   The existing shared test-helper CA1416 warning remains on net8.0.
-- Commit: `Add captured RESX inputs and culture catalogue`.
+- Commit: `55d986e` (`Add captured RESX inputs and culture catalogue`).
+
+## Iteration-three results (2026-10-07)
+
+- Added `$(loc:Key)` evaluation in all localizable fields and procedure text.
+  Keyword mode retains the full token, including undeclared keys; other property
+  expressions still evaluate normally. Escaping and substitutions remain single-pass.
+- Translations use the consuming alarm/file/project scope, including built-in
+  properties and the existing scalar dependency graph. Raw source expressions,
+  literal identities/references, declaration-only inheritance, abstract templates,
+  and Clear exclusions are preserved. Direct nested localization is rejected.
+- Missing/nested translation diagnostics include the requested culture and key;
+  relevant RESX locations accompany ALMX usage locations. Translated parameter,
+  syntax, context and cycle failures keep the existing diagnostic IDs. Unavailable
+  values do not expose raw expressions as effective values; errors suppress XML.
+- Compiler, analysis and output coverage: 236 tests passed on each framework.
+  MSBuild unit/integration suites: 6/4 passed on each framework. Packaged SDK
+  suite: 20 passed on each framework. SDK bridge: 22 passed on net472. No skips;
+  the existing shared test-helper CA1416 warning remains. The consuming-file test
+  uses an absolute captured path, as required by the existing built-in properties.
+- Commit: `Evaluate localization expressions in the compiler`.
 
 ## Architecture and reference basis
 

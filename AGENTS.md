@@ -177,6 +177,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   parent search; whitespace remains a value. The resource-aware CompilationContext
   overload must coexist with the original constructor until the coordinated bridge
   contract transition. Resource validation also runs in keyword mode.
+- Localization expressions use `$(loc:Key)`. Keyword mode retains the complete
+  literal token; real cultures resolve translations containing property expressions
+  in the consuming alarm scope and field-dependency graph. Never rescan parameter
+  replacement strings. Reject direct nested localization, preserve escaped tokens,
+  and defer contextual lookup for abstract templates and excluded procedure entries.
 - `AlarmCompiler.AnalyzeSnapshots` returns the read-only, versioned analysis
   contract from `Analysis/`. Preserve local/effective field separation, procedure
   origins and Clear exclusions, and unavailable effective values for invalid

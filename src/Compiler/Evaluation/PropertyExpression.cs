@@ -2,13 +2,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using Alarmlist.Localization;
 
 namespace Alarmlist.Evaluation
 {
     internal sealed class PropertyExpression
     {
         private readonly List<Part> _parts = new List<Part>();
+        internal bool HasLocalization => _parts.Any(part => part.Kind == PartKind.Localization);
 
         internal static bool IsValidName(string name)
         {
@@ -46,23 +49,25 @@ namespace Alarmlist.Evaluation
                 int end = raw.IndexOf(')', i + 2);
                 if (end < 0) return null;
                 string name = raw.Substring(i + 2, end - i - 2);
-                if (!IsValidName(name)) return null;
-                expression._parts.Add(new Part(literal.ToString(), false));
+                bool localization = name.StartsWith("loc:", StringComparison.Ordinal);
+                if (localization ? !ResourceCatalogue.IsValidKey(name.Substring(4)) : !IsValidName(name)) return null;
+                expression._parts.Add(new Part(literal.ToString(), PartKind.Literal));
                 literal.Clear();
-                expression._parts.Add(new Part(name, true));
+                expression._parts.Add(new Part(localization ? name.Substring(4) : name, localization ? PartKind.Localization : PartKind.Property));
                 i = end;
             }
-            expression._parts.Add(new Part(literal.ToString(), false));
+            expression._parts.Add(new Part(literal.ToString(), PartKind.Literal));
             return expression;
         }
 
-        internal string Evaluate(Func<string, string> lookup)
+        internal string Evaluate(Func<string, string> lookup, Func<string, string> localize)
         {
             var value = new StringBuilder();
             bool available = true;
             foreach (Part part in _parts)
             {
-                string text = part.IsProperty ? lookup(part.Text) : part.Text;
+                string text = part.Kind == PartKind.Property ? lookup(part.Text)
+                    : part.Kind == PartKind.Localization ? localize(part.Text) : part.Text;
                 if (text == null) available = false;
                 else value.Append(text);
             }
@@ -71,9 +76,11 @@ namespace Alarmlist.Evaluation
 
         private readonly struct Part
         {
-            internal Part(string text, bool isProperty) { Text = text; IsProperty = isProperty; }
+            internal Part(string text, PartKind kind) { Text = text; Kind = kind; }
             internal string Text { get; }
-            internal bool IsProperty { get; }
+            internal PartKind Kind { get; }
         }
+
+        private enum PartKind { Literal, Property, Localization }
     }
 }

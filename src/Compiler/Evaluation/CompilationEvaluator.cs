@@ -17,6 +17,7 @@ namespace Alarmlist.Evaluation
         private readonly CompilationContext _context;
         private readonly ResourceCatalogue _resources;
         private readonly string _culture;
+        private readonly Dictionary<ResourceEntry, PropertyExpression> _translations = new Dictionary<ResourceEntry, PropertyExpression>();
         private readonly List<AlarmSyntaxNode> _order;
         private readonly Dictionary<AlarmSyntaxNode, Dictionary<string, PropertyExpression>> _fields = new Dictionary<AlarmSyntaxNode, Dictionary<string, PropertyExpression>>();
         private readonly Dictionary<TestProcedureStepSyntax, PropertyExpression> _steps = new Dictionary<TestProcedureStepSyntax, PropertyExpression>();
@@ -92,9 +93,10 @@ namespace Alarmlist.Evaluation
             return expression;
         }
 
-        private void Report(DiagnosticDescriptor descriptor, AlarmSyntaxNode alarm, SourceLocation location, string value)
+        private void Report(DiagnosticDescriptor descriptor, AlarmSyntaxNode alarm, SourceLocation location, string value,
+            IEnumerable<SourceLocation> related = null)
         {
-            Diagnostics.Add(new Diagnostic(descriptor, alarm.FullyQualifiedName ?? "<unnamed>", value).WithLocation(location ?? alarm.Location));
+            Diagnostics.Add(new Diagnostic(descriptor, alarm.FullyQualifiedName ?? "<unnamed>", value).WithLocation(location ?? alarm.Location, related));
         }
 
         internal CompilationResult ToCompilationResult()
@@ -114,6 +116,7 @@ namespace Alarmlist.Evaluation
             private readonly Dictionary<string, string> _fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             private readonly List<string> _visiting = new List<string>();
             private readonly HashSet<string> _failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            private readonly List<SourceLocation> _activeResources = new List<SourceLocation>();
             internal Dictionary<TestProcedureStepSyntax, string> Steps { get; } = new Dictionary<TestProcedureStepSyntax, string>();
             internal bool IsAvailable => _failed.Count == 0 && Steps.Values.All(value => value != null);
 
@@ -131,7 +134,7 @@ namespace Alarmlist.Evaluation
                 foreach (string field in Fields) TryGetField(field, out _);
                 TestProcedureSyntax procedure = _alarm.ResolvedTestProcedures;
                 foreach (TestProcedureStepSyntax step in procedure.Instructions.Concat(procedure.Reset).OfType<TestProcedureStepSyntax>())
-                    Steps[step] = _owner._steps[step]?.Evaluate(name => Lookup(name, step.Location));
+                    Steps[step] = EvaluateExpression(_owner._steps[step], step.Location);
             }
 
             internal bool TryGetField(string field, out string value)
@@ -143,7 +146,7 @@ namespace Alarmlist.Evaluation
                 {
                     string trace = string.Join(" -> ", _visiting.SkipWhile(item => item != field).Concat(new[] { field }));
                     AlarmSyntaxNode source = _alarm.GetFieldSource(_visiting.Last());
-                    _owner.Report(DiagnosticDescriptors.CircularFieldDependency, _alarm, source?.GetFieldLocation(_visiting.Last()), trace);
+                    _owner.Report(DiagnosticDescriptors.CircularFieldDependency, _alarm, source?.GetFieldLocation(_visiting.Last()), trace, _activeResources);
                     _failed.Add(field);
                     return false;
                 }
@@ -154,7 +157,7 @@ namespace Alarmlist.Evaluation
                     return true;
                 }
                 _visiting.Add(field);
-                value = _owner._fields[origin][field]?.Evaluate(name => Lookup(name, origin.GetFieldLocation(field)));
+                value = EvaluateExpression(_owner._fields[origin][field], origin.GetFieldLocation(field));
                 _visiting.RemoveAt(_visiting.Count - 1);
                 if (value == null) { _failed.Add(field); return false; }
                 _fields[field] = value;
@@ -168,14 +171,46 @@ namespace Alarmlist.Evaluation
                         return TryGetField(field, out string fieldValue) ? fieldValue ?? string.Empty : null;
                 if (_wellKnown.TryGetValue(name, out string value))
                 {
-                    if (value == null) _owner.Report(DiagnosticDescriptors.MissingPropertyContext, _alarm, location, name);
+                    if (value == null) _owner.Report(DiagnosticDescriptors.MissingPropertyContext, _alarm, location, name, _activeResources);
                     return value;
                 }
                 _properties.TryGetValue(name, out PropertyBinding property);
                 value = property?.Assignment?.Definition.Value;
                 if (value != null) return value;
-                _owner.Report(property == null ? DiagnosticDescriptors.UnknownProperty : DiagnosticDescriptors.UnassignedProperty, _alarm, location, name);
+                _owner.Report(property == null ? DiagnosticDescriptors.UnknownProperty : DiagnosticDescriptors.UnassignedProperty, _alarm, location, name, _activeResources);
                 return null;
+            }
+
+            private string EvaluateExpression(PropertyExpression expression, SourceLocation location)
+                => expression?.Evaluate(name => Lookup(name, location), key => Localize(key, location));
+
+            private string Localize(string key, SourceLocation location)
+            {
+                if (_owner._culture == LocalizationCulture.Keyword) return "$(loc:" + key + ")";
+                if (_owner._culture == null) return null; // Invalid culture already has a diagnostic.
+                if (!_owner._resources.TryResolve(key, _owner._culture, out ResourceTranslation translation))
+                {
+                    _owner.Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.MissingTranslation, key, _owner._culture)
+                        .WithLocation(location ?? _alarm.Location, _owner._resources.GetLookupLocations(key, _owner._culture)));
+                    return null;
+                }
+                ResourceEntry entry = translation.Entry;
+                if (!_owner._translations.TryGetValue(entry, out PropertyExpression expression))
+                    _owner._translations.Add(entry, expression = PropertyExpression.Parse(entry.Value));
+                if (expression == null)
+                {
+                    _owner.Report(DiagnosticDescriptors.InvalidExpression, _alarm, location, entry.Value, new[] { entry.ValueLocation });
+                    return null;
+                }
+                if (expression.HasLocalization)
+                {
+                    _owner.Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.NestedLocalizationExpression, key, _owner._culture)
+                        .WithLocation(location ?? _alarm.Location, new[] { entry.ValueLocation }));
+                    return null;
+                }
+                _activeResources.Add(entry.ValueLocation);
+                try { return expression.Evaluate(name => Lookup(name, location), nested => null); }
+                finally { _activeResources.RemoveAt(_activeResources.Count - 1); }
             }
 
             internal Alarm ToAlarm()
