@@ -14,6 +14,7 @@ namespace Alarmlist.VisualStudio.UI
         public ParameterListViewModel AlarmParameters { get; private set; }
         private IEnumerable<ParameterViewModel> AllParameters => FileParameters.Rows.Concat(AlarmParameters.Rows);
         public IReadOnlyList<PropertyCompletion> CompletionProperties { get; private set; } = Array.Empty<PropertyCompletion>();
+        public IReadOnlyList<ArgumentCompletionBinding> CompletionBindings { get; private set; } = Array.Empty<ArgumentCompletionBinding>();
         public bool IsAbstract
         {
             get => _original?.IsAbstract == true;
@@ -68,6 +69,10 @@ namespace Alarmlist.VisualStudio.UI
             FileParameters.Refresh(_model.Projection.Properties, fileProperties, IsValid, current && !parameterDraft);
             AlarmParameters.Refresh(_original?.Properties, current ? alarm?.Properties : null, CanEdit, current && !parameterDraft);
             bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
+            CompletionBindings = BindingCollection.Create(current && !identityDraft && !parameterDraft
+                ? state.Response.Snapshot.ArgumentBindings.Select(binding => new ArgumentCompletionBinding(binding))
+                : Enumerable.Empty<ArgumentCompletionBinding>());
+            Notify(nameof(CompletionBindings));
             CompletionProperties = BindingCollection.Create(current && alarm?.IsResolved == true && !identityDraft && !parameterDraft
                 ? alarm.Properties.Select(property => new PropertyCompletion(property, !HasPending))
                     .Concat(state.Response.Snapshot.Translations.OrderBy(translation => translation.Key, StringComparer.Ordinal)
@@ -75,6 +80,7 @@ namespace Alarmlist.VisualStudio.UI
                             alarm.LocalizationUses.FirstOrDefault(use => use.Translation.Key == translation.Key), !HasPending)))
                     .Concat(TemplateCompletions(state.Response.Snapshot))
                     .Concat(LookupCompletions(state.Response.Snapshot))
+                    .Concat(ListCompletions(state.Response.Snapshot))
                 : Enumerable.Empty<PropertyCompletion>());
             Notify(nameof(CompletionProperties)); Notify(nameof(IsAbstract));
         }
@@ -107,6 +113,16 @@ namespace Alarmlist.VisualStudio.UI
                     foreach (AnalysisLookupMetadata item in member.Metadata)
                         yield return new PropertyCompletion(item.Expression, item.Value, "stored metadata; inserted only when selected");
                 }
+            }
+        }
+
+        private static IEnumerable<PropertyCompletion> ListCompletions(AnalysisSnapshot snapshot)
+        {
+            foreach (AnalysisLookupList list in snapshot.LookupLists.OrderBy(item => item.Key, StringComparer.Ordinal))
+            {
+                AnalysisArgumentBinding[] bindings = snapshot.ArgumentBindings.Where(binding => binding.IsAvailable && binding.ListKey == list.Key).ToArray();
+                foreach (AnalysisLookupListEntry entry in list.Entries.Where(item => !item.IsAmbiguous).OrderBy(item => item.Key, StringComparer.Ordinal))
+                    yield return new PropertyCompletion(entry, bindings);
             }
         }
     }

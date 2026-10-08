@@ -220,11 +220,14 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisTranslation> Translations { get; }
         public IReadOnlyList<AnalysisLookupFile> LookupFiles { get; }
         public IReadOnlyList<AnalysisLookupPath> LookupPaths { get; }
+        public IReadOnlyList<AnalysisLookupList> LookupLists { get; }
+        public IReadOnlyList<AnalysisArgumentBinding> ArgumentBindings { get; }
 
         public AnalysisSnapshot(int contractVersion, bool success, IReadOnlyList<AnalysisSource> sources, IReadOnlyList<AnalysisAlarm> alarms, IReadOnlyList<AnalysisDiagnostic> diagnostics,
             string culture = "keyword", IReadOnlyList<AnalysisResource> resources = null, IReadOnlyList<AnalysisResourceEntry> entries = null,
             IReadOnlyList<AnalysisTranslation> translations = null, IReadOnlyList<AnalysisLookupFile> lookupFiles = null,
-            IReadOnlyList<AnalysisLookupPath> lookupPaths = null)
+            IReadOnlyList<AnalysisLookupPath> lookupPaths = null, IReadOnlyList<AnalysisLookupList> lookupLists = null,
+            IReadOnlyList<AnalysisArgumentBinding> argumentBindings = null)
         {
             ContractVersion = contractVersion;
             Success = success;
@@ -237,6 +240,8 @@ namespace Alarmlist.VisualStudio.Analysis
             Translations = Array.AsReadOnly((translations ?? Array.Empty<AnalysisTranslation>()).ToArray());
             LookupFiles = Array.AsReadOnly((lookupFiles ?? Array.Empty<AnalysisLookupFile>()).ToArray());
             LookupPaths = Array.AsReadOnly((lookupPaths ?? Array.Empty<AnalysisLookupPath>()).ToArray());
+            LookupLists = Array.AsReadOnly((lookupLists ?? Array.Empty<AnalysisLookupList>()).ToArray());
+            ArgumentBindings = Array.AsReadOnly((argumentBindings ?? Array.Empty<AnalysisArgumentBinding>()).ToArray());
         }
     }
 }

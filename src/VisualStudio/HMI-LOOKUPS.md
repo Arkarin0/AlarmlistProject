@@ -151,6 +151,16 @@ Missing explicit references fail compilation. Keyword mode retains complete toke
 while checking identities. Relationship filtering and multi-selection formatting
 are deferred; two arguments can independently select from the same list.
 
+In the designer, choose the reusable localization template, then press Ctrl+Space
+in its selected empty argument. Only the explicitly bound list is offered. For
+later arguments, place the caret inside the quoted value or select that value and
+press Ctrl+Space. Typing part of a value, description, key, or metadata narrows the
+list; this search ignores case, while stored identities remain case-sensitive.
+Selecting an entry replaces the entire value, including any enclosing quotes,
+with its list expression. This works in scalar fields and procedure rows. Use
+`$(list:Wires#` for direct expression completion outside a mapped template.
+Empty or invalid bound lists never offer entries from unrelated lists.
+
 ## Host integration
 
 The SDK includes `**/*.almlookup` as `AlarmlistLookup` items, with the same output,

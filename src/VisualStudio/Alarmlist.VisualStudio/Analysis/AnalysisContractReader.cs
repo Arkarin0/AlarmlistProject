@@ -28,6 +28,10 @@ namespace Alarmlist.VisualStudio.Analysis
             Add<AnalysisLookupMember>(assembly, "Alarmlist.Analysis.AnalyzedLookupMember");
             Add<AnalysisLookupMetadata>(assembly, "Alarmlist.Analysis.AnalyzedLookupMetadata");
             Add<AnalysisLookupUse>(assembly, "Alarmlist.Analysis.AnalyzedLookupUse");
+            Add<AnalysisLookupList>(assembly, "Alarmlist.Analysis.AnalyzedLookupList");
+            Add<AnalysisLookupListEntry>(assembly, "Alarmlist.Analysis.AnalyzedLookupListEntry");
+            Add<AnalysisListMetadata>(assembly, "Alarmlist.Analysis.AnalyzedListMetadata");
+            Add<AnalysisArgumentBinding>(assembly, "Alarmlist.Analysis.AnalyzedArgumentBinding");
             Add<AnalysisSource>(assembly, "Alarmlist.Analysis.AnalyzedSource");
             Add<AnalysisAlarm>(assembly, "Alarmlist.Analysis.AnalyzedAlarm");
             Add<AnalysisAlarmOrigin>(assembly, "Alarmlist.Analysis.AlarmOrigin");
@@ -88,7 +92,11 @@ namespace Alarmlist.VisualStudio.Analysis
                     Location(Value<object>(entry, "ValueLocation")), Value<bool>(entry, "IsValid"), Value<bool>(entry, "IsAmbiguous"),
                     List(entry, "PlaceholderNames", name => (string)name))),
                 List(result, "Translations", Translation), List(result, "LookupFiles", file =>
-                    new AnalysisLookupFile(Value<string>(file, "FilePath"), Value<int>(file, "Version"))), List(result, "LookupPaths", LookupPath));
+                    new AnalysisLookupFile(Value<string>(file, "FilePath"), Value<int>(file, "Version"))), List(result, "LookupPaths", LookupPath),
+                List(result, "LookupLists", list => new AnalysisLookupList(Value<string>(list, "Key"), List(list, "Entries", ListEntry))),
+                List(result, "ArgumentBindings", binding => new AnalysisArgumentBinding(Value<string>(binding, "TemplateKey"),
+                    Value<string>(binding, "ArgumentName"), Value<string>(binding, "ListKey"), Location(Value<object>(binding, "Location")),
+                    Value<bool>(binding, "IsAvailable"))));
         }
 
         private static AnalysisAlarm Alarm(object alarm)
@@ -107,7 +115,7 @@ namespace Alarmlist.VisualStudio.Analysis
                         Location(Value<object>(use, "UsageLocation")), Value<string>(use, "Value"), Value<bool>(use, "IsValueAvailable"))));
         }
 
-        private static AnalysisTranslation Translation(object translation) => new AnalysisTranslation(
+        private static AnalysisTranslation Translation(object translation) => translation == null ? null : new AnalysisTranslation(
             Value<string>(translation, "Key"), Value<string>(translation, "RequestedCulture"), Value<string>(translation, "SupplyingCulture"),
             Value<bool>(translation, "IsKeyword"), Value<bool>(translation, "IsAvailable"), Value<string>(translation, "RawValue"),
             Value<string>(translation, "Comment"), Location(Value<object>(translation, "Location")), Location(Value<object>(translation, "ValueLocation")),
@@ -122,6 +130,12 @@ namespace Alarmlist.VisualStudio.Analysis
                 Value<bool>(member, "IsValueAvailable"), List(member, "Metadata", metadata => new AnalysisLookupMetadata(
                     Value<string>(metadata, "Name"), Value<string>(metadata, "Value"), Location(Value<object>(metadata, "Location")),
                     Value<string>(metadata, "Expression"))))));
+
+        private static AnalysisLookupListEntry ListEntry(object entry) => new AnalysisLookupListEntry(
+            Value<string>(entry, "Key"), Value<string>(entry, "Value"), Value<string>(entry, "Description"),
+            Translation(Value<object>(entry, "DescriptionTranslation")), Location(Value<object>(entry, "Location")),
+            Value<bool>(entry, "IsAmbiguous"), Value<string>(entry, "Expression"), List(entry, "Metadata", metadata =>
+                new AnalysisListMetadata(Value<string>(metadata, "Name"), Value<string>(metadata, "Value"), Location(Value<object>(metadata, "Location")))));
 
         private static AnalysisSection Section(object section)
         {

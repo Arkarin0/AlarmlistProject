@@ -23,6 +23,7 @@ namespace Alarmlist.VisualStudio.UI
         public static readonly DependencyProperty HasResolvedValueProperty = DependencyProperty.Register(nameof(HasResolvedValue), typeof(bool), typeof(ExpressionTextBox), new PropertyMetadata(false, OnDisplayChanged));
         public static readonly DependencyProperty IsExpressionEnabledProperty = DependencyProperty.Register(nameof(IsExpressionEnabled), typeof(bool), typeof(ExpressionTextBox), new PropertyMetadata(true, OnSuggestionsChanged));
         public static readonly DependencyProperty SuggestionsProperty = DependencyProperty.Register(nameof(Suggestions), typeof(IEnumerable), typeof(ExpressionTextBox), new PropertyMetadata(null, OnSuggestionsChanged));
+        public static readonly DependencyProperty ArgumentBindingsProperty = DependencyProperty.Register(nameof(ArgumentBindings), typeof(IEnumerable), typeof(ExpressionTextBox), new PropertyMetadata(null, OnSuggestionsChanged));
         public static readonly DependencyProperty ValidateSuggestionsProperty = DependencyProperty.Register(nameof(ValidateSuggestions), typeof(Func<Task<bool>>), typeof(ExpressionTextBox));
         private readonly ListBox _list;
         private readonly LiveStatusTextBlock _status;
@@ -39,6 +40,7 @@ namespace Alarmlist.VisualStudio.UI
         public bool HasResolvedValue { get => (bool)GetValue(HasResolvedValueProperty); set => SetValue(HasResolvedValueProperty, value); }
         public bool IsExpressionEnabled { get => (bool)GetValue(IsExpressionEnabledProperty); set => SetValue(IsExpressionEnabledProperty, value); }
         public IEnumerable Suggestions { get => (IEnumerable)GetValue(SuggestionsProperty); set => SetValue(SuggestionsProperty, value); }
+        public IEnumerable ArgumentBindings { get => (IEnumerable)GetValue(ArgumentBindingsProperty); set => SetValue(ArgumentBindingsProperty, value); }
         public Func<Task<bool>> ValidateSuggestions { get => (Func<Task<bool>>)GetValue(ValidateSuggestionsProperty); set => SetValue(ValidateSuggestionsProperty, value); }
         internal Task PendingCompletion { get; private set; } = Task.CompletedTask;
         internal bool IsCompletionOpen => _popup.IsOpen;
@@ -144,22 +146,35 @@ namespace Alarmlist.VisualStudio.UI
             _tokenStart = ExpressionCompletionContext.FindStart(raw, caret, out bool argument);
             string prefix = _tokenStart < 0 ? null : raw.Substring(_tokenStart + 2, caret - _tokenStart - 2);
             if (prefix != null && !IsPrefix(prefix)) prefix = null;
-            if (prefix == null && !_explicitCompletion) { CloseCompletion(); return; }
-            if (prefix == null) { _tokenStart = SelectionStart; _tokenEnd = SelectionStart + SelectionLength; prefix = ""; }
+            ArgumentEdit slot = prefix == null ? ExpressionCompletionContext.FindArgument(raw, SelectionLength == 0 ? caret : SelectionStart, SelectionLength) : null;
+            bool boundSlot = slot != null && ArgumentBindings?.OfType<ArgumentCompletionBinding>()
+                .Any(item => item.TemplateKey == slot.TemplateKey && item.ArgumentName == slot.ArgumentName) == true;
+            if (prefix == null && !_explicitCompletion && (!boundSlot || slot.Query.Length == 0)) { CloseCompletion(); return; }
+            PropertyCompletion[] matches;
+            if (boundSlot)
+            {
+                _tokenStart = slot.Start; _tokenEnd = slot.End;
+                matches = Suggestions.OfType<PropertyCompletion>().Where(item => item.IsBoundTo(slot.TemplateKey, slot.ArgumentName)
+                    && item.MatchesListSearch(slot.Query)).ToArray();
+            }
             else
             {
-                _tokenEnd = caret;
-                while (_tokenEnd < raw.Length && IsTokenCharacter(raw[_tokenEnd])) _tokenEnd++;
-                if (_tokenEnd < raw.Length && raw[_tokenEnd] == ')') _tokenEnd++;
+                if (prefix == null) { _tokenStart = SelectionStart; _tokenEnd = SelectionStart + SelectionLength; prefix = ""; }
+                else
+                {
+                    _tokenEnd = caret;
+                    while (_tokenEnd < raw.Length && IsTokenCharacter(raw[_tokenEnd])) _tokenEnd++;
+                    if (_tokenEnd < raw.Length && raw[_tokenEnd] == ')') _tokenEnd++;
+                }
+                matches = FindMatches(Suggestions, prefix);
+                if (argument) matches = matches.Where(match => !match.IsLocalization).ToArray();
             }
             string selectedName = (_list.SelectedItem as PropertyCompletion)?.Name;
-            PropertyCompletion[] matches = FindMatches(Suggestions, prefix);
-            if (argument) matches = matches.Where(match => !match.IsLocalization).ToArray();
             if (matches.Length == 0) { CloseCompletion(); return; }
             if (matches.Any(match => match.RequiresValidation))
             {
                 _popup.IsOpen = false;
-                PendingCompletion = ShowValidatedCompletionAsync(matches, selectedName, raw, caret, Suggestions, ++_completionVersion);
+                PendingCompletion = ShowValidatedCompletionAsync(matches, selectedName, raw, caret, SelectionLength, Suggestions, ++_completionVersion);
                 return;
             }
             ShowCompletion(matches, selectedName);
@@ -173,14 +188,14 @@ namespace Alarmlist.VisualStudio.UI
             int colon = prefix.IndexOf(':');
             if (colon < 0) return prefix.All(character => char.IsLetterOrDigit(character) || character == '_');
             string kind = prefix.Substring(0, colon);
-            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta")
+            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta" || kind == "list")
                 && prefix.Substring(colon + 1).All(character => IsTokenCharacter(character) && character != ':' && (kind != "loc" || character != '#'));
         }
 
-        private async Task ShowValidatedCompletionAsync(PropertyCompletion[] matches, string selectedName, string raw, int caret, IEnumerable suggestions, int version)
+        private async Task ShowValidatedCompletionAsync(PropertyCompletion[] matches, string selectedName, string raw, int caret, int selectionLength, IEnumerable suggestions, int version)
         {
             if (ValidateSuggestions == null || !await ValidateSuggestions()) return;
-            if (version != _completionVersion || !IsLoaded || !IsKeyboardFocusWithin || RawText != raw || CaretIndex != caret
+            if (version != _completionVersion || !IsLoaded || !IsKeyboardFocusWithin || RawText != raw || CaretIndex != caret || SelectionLength != selectionLength
                 || !ReferenceEquals(Suggestions, suggestions)) return;
             ShowCompletion(matches, selectedName);
         }
@@ -224,10 +239,11 @@ namespace Alarmlist.VisualStudio.UI
         private async Task AcceptValidatedCompletionAsync(PropertyCompletion property, string raw, IEnumerable suggestions, int start, int end)
         {
             int caret = CaretIndex;
+            int selectionLength = SelectionLength;
             CloseCompletion();
             int version = _completionVersion;
             if (ValidateSuggestions == null || !await ValidateSuggestions()) return;
-            if (version == _completionVersion && IsLoaded && IsKeyboardFocusWithin && RawText == raw && CaretIndex == caret
+            if (version == _completionVersion && IsLoaded && IsKeyboardFocusWithin && RawText == raw && CaretIndex == caret && SelectionLength == selectionLength
                 && ReferenceEquals(Suggestions, suggestions)) InsertCompletion(property, start, end);
         }
 

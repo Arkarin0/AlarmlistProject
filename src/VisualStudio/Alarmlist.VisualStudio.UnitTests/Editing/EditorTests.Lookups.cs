@@ -13,11 +13,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
 {
     public partial class EditorTests
     {
-        private static void AnalyzeLookups(SemanticSession session, string culture = "en-GB", bool duplicate = false)
+        private static void AnalyzeLookups(SemanticSession session, string culture = "en-GB", bool duplicate = false,
+            string catalogue = LookupTestData.Catalogue, string resources = LookupTestData.Resources)
         {
             var input = new AnalysisInput(session.Buffer.Current.Text, session.Analysis.DocumentPath, session.Buffer.Current.Version);
-            var lookup = new AnalysisLookupInput(LookupTestData.Catalogue, Path.ChangeExtension(input.FilePath, "almlookup"), 0);
-            var resource = new AnalysisResourceInput(LookupTestData.Resources, Path.ChangeExtension(input.FilePath, "en.resx"), 0, "en");
+            var lookup = new AnalysisLookupInput(catalogue, Path.ChangeExtension(input.FilePath, "almlookup"), 0);
+            var resource = new AnalysisResourceInput(resources, Path.ChangeExtension(input.FilePath, "en.resx"), 0, "en");
             var lookups = duplicate ? new[] { lookup, lookup } : new[] { lookup };
             var context = new AnalysisContext(resources: new[] { resource }, culture: culture, lookups: lookups);
             var project = new AnalysisProject(Path.ChangeExtension(input.FilePath, "almproj"), "Debug", null, new[] { input.FilePath }, context,

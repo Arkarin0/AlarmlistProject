@@ -49,6 +49,35 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Fact]
+        public void NamedListValuesDescriptionsAndBindingsSurviveDomainUnload()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                AnalysisResponse response;
+                var context = new AnalysisContext(culture: "en-GB",
+                    resources: new[] { new AnalysisResourceInput(ListTestData.Resources, "Labels.en.resx", 19) },
+                    lookups: new[] { new AnalysisLookupInput(ListTestData.Catalogue, "Electrical.almlookup", 27) });
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                    response = bridge.Analyze(new[] { new AnalysisInput(ListTestData.Source, "A.almx", 12) }, context: context);
+                Assert.True(response.Snapshot?.Success == true, response.Message);
+                Assert.Contains("Disconnect wire =EC-120W1 from =EC-120K1:12.", response.CompiledXml);
+                AnalysisLookupList list = response.Snapshot.LookupLists.Single(item => item.Key == "Wires");
+                Assert.Equal("=EC-120W1", list.Entries[0].Value);
+                Assert.Equal("Outlet motor cable", list.Entries[0].Description);
+                Assert.Equal("en", list.Entries[0].DescriptionTranslation.SupplyingCulture);
+                Assert.Equal("023", Assert.Single(list.Entries[0].Metadata).Value);
+                Assert.Equal("Spare", list.Entries[1].Description);
+                Assert.Null(list.Entries[1].DescriptionTranslation);
+                Assert.Equal(27, list.Entries[0].Location.SourceVersion);
+                Assert.Equal("Terminals", response.Snapshot.ArgumentBindings.Single(binding => binding.ArgumentName == "connection").ListKey);
+                Assert.All(response.Snapshot.ArgumentBindings, binding => Assert.True(binding.IsAvailable));
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisLookupList>)response.Snapshot.LookupLists).Clear());
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisLookupListEntry>)list.Entries).Clear());
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+            }
+        }
+
+        [Fact]
         public void CapturedResourcesAndParentOriginsRemainUsableAfterDomainUnload()
         {
             using (var sdk = new SdkAsset())

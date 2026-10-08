@@ -229,6 +229,20 @@ per framework; the new case initially assumed no shared fixture alarms, then
 passed on both frameworks after correcting that assertion. The packaged analysis
 contract case passed in the full suite. `git diff --check` passed.
 
+L2 completed: the SDK bridge copies list entries, optional description origins,
+literal metadata and explicit argument bindings. Designer scalar fields and
+procedure rows offer bound list choices, search displayed values/descriptions,
+replace whole argument values with references, and retain normal drafts/Undo.
+Saved-input revalidation and selection/version checks guard display and insertion;
+empty/invalid bindings never offer unrelated entries. Unit suite: 307 passed,
+followed by 4 focused cases covering procedure insertion and empty/invalid lists.
+VSIX/package consumers: 11 passed per framework. ListCompletion (`Area=Lists`)
+passed in VS2026 and VS2022 on matching AlarmlistExp deployments. VS2022's first
+run stopped at the foreground-PID safeguard before typing; a fresh-instance retry
+passed with no safeguard or product changes. The scenarios verify private XML
+drafts, bound and direct insertion, Undo, saved regeneration, and unchanged build
+outputs. Screenshots and TRX are retained under artifacts/log/Debug/VisualStudioUI.
+
 ## Remaining implementation details and exchange decisions
 
 Core decisions are frozen in the implementation contract. The owner confirmed
