@@ -7,9 +7,14 @@ confirmed the XLIFF tool targets, source-language workflow, and whole-import
 conflict policy below.
 
 The [planned generated HMI lookup extension](MILESTONE-5.md#planned-extension-generated-hmi-lookups)
-records the owner's additional scope and current design proposals. Its file
-format, key/display rules, and documentation/HMI culture selection are not yet
-part of this frozen RESX implementation contract.
+records the owner's confirmed additional requirements: reusable named-placeholder
+templates, externally generated XML lookup files with an included XSD, individual
+label translations, literal keyword display, reference-resolution errors, and
+explicit metadata references. It retains the existing single-culture preview and
+build model; mixed-language output and documentation/HMI culture pairs are outside
+scope. The extension is not implemented. Its detailed XML and expression grammar
+must be specified before implementation; the core contract below describes the
+existing RESX behavior and does not yet add argument or lookup syntax.
 
 ## Expressions and values
 

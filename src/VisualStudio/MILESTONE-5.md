@@ -7,8 +7,9 @@ validation, localization expression evaluation, multi-culture SDK builds, detach
 analysis, saved-resource observation, language selection and completion are
 implemented. XLIFF export is available; import and integrated acceptance follow
 in iterations nine and ten.
-The owner has also added generated HMI lookups to this milestone. Their scope is
-recorded below; this extension is still being designed and is not implemented.
+The owner has also added reusable instruction templates and generated HMI lookups
+to this milestone. Their scope is confirmed below; the detailed format and
+implementation sequence remain to be specified. This extension is not implemented.
 The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
@@ -49,54 +50,71 @@ an explicitly empty assignment still stops scope lookup.
 
 ## Planned extension: generated HMI lookups
 
-Owner clarification, 2026-10-08:
+Owner-confirmed requirements, 2026-10-08. These replace the earlier proposals for
+JSON input and separate documentation/HMI culture pairs:
 
 - A generated lookup file describes navigation paths and their properties/buttons.
   The source for its identifiers is the HMI codebase's class names. Those names
   may use any language chosen by the programmer; treat them as technical keys,
   not as a source-culture declaration or a translated display label.
-- Translations can supply the visible path segments and property/button captions.
-  A key remains the same across languages. For example, the generated key
-  `Auslauf` may display as `Outlet` in English and `Sortie` in French.
-- English documentation may describe an HMI available in English or French.
-  The design must distinguish documentation language, HMI label language, and
-  the programmer's naming language rather than deriving one from another.
+- Lookup files use XML. Include an XSD documenting their syntax and supporting
+  editor assistance. Other tools generate these files; a code scanner or generator
+  is outside this milestone. The final file name/extension remains to be specified.
+- Translate individual path segments and property/button captions through RESX,
+  reusing their entries across instructions. Do not require a translation for each
+  complete path. Keys remain the same across languages; for example, `Auslauf`
+  may display as `Outlet` in English and `Sortie` in French. Keep generated
+  structure separate from human-maintained translations so regeneration cannot
+  replace them.
+- Keep the existing single-culture model. `AlarmlistCulture` selects the preview
+  culture and `AlarmlistCultures` selects separate build cultures. The selected
+  culture applies to both the instruction sentence and its HMI labels. There are
+  no culture pairs, mixed-language instructions, additional language selectors,
+  or changes to the existing per-culture output folder layout in this milestone.
+- Use reusable sentence templates with named placeholders, such as
+  `In "{path}", set property "{property}" to "{value}".` One RESX key describes
+  the sentence pattern; each procedure step supplies its own argument bindings.
+  Do not create a separate translation key for every step. Indexed placeholders
+  are outside the initial scope. Extend `$(loc:Key)` with optional named arguments;
+  the proposed form is `$(loc:Key, name="text", value=$(Parameter))`.
+- Keyword mode displays literal expressions, including the complete formatted
+  localization call and standalone lookup expressions, rather than translated
+  captions or rendered technical path names. Preserve the existing parent-only
+  culture lookup and missing-translation errors; keyword display is not fallback.
 - The designer should help select a path and then its property/button, and insert
-  references in procedure text. Minimum, maximum and default values provide
-  selection assistance only: do not check instructed values against these bounds,
-  introduce a typed assignment validator, or automatically substitute a default.
+  references in procedure text or named template arguments. A missing referenced
+  path or member produces a diagnostic and fails compilation; it must not silently
+  become output text. This is reference resolution, not validation of the values
+  an author instructs the operator to enter.
 - Additional properties are named metadata stored in the file. Their meaning is
-  unknown to the compiler; they are not executable calculations or scripts.
+  unknown to the compiler; they are not executable calculations or scripts. Show
+  metadata in selection assistance and allow explicit references to stored values,
+  including Minimum, Maximum, Default, and producer-defined metadata, in instruction
+  arguments. For example, an author may explicitly select a property's Maximum as
+  the value argument. Insert the stored value without interpreting its meaning,
+  checking bounds, or automatically substituting a default.
 
-Proposed design, not yet a frozen format or public API:
+Remaining engineering specification, not additional product-scope questions:
 
-- Prefer XML for consistency with the repository and schema-assisted authoring;
-  JSON remains an option until the owner settles the exchange format. The file
-  name/extension and the provisional term "HMI catalogue" are not final.
-- Keep generated structure separate from human-maintained RESX translations so
-  regeneration does not replace translations. Preserve the existing RESX/XLIFF
-  workflow and use explicit key references for labels.
-- Support a documentation/HMI culture pair, such as en/en or en/fr. Decide how
-  preview selection, build pairs and output folders expose this before coding.
-  Keep the existing single-culture behavior unchanged until this is specified.
-- Define key-display behavior when translation is not requested separately from
-  missing-translation behavior for a requested culture. Do not silently infer an
-  English/default fallback or change the existing parent-only localization rules.
-- Specify generated key grammar, scoping across files, segment representation,
-  and mapping to resource keys. Class renames change class-derived identities
-  unless the producer preserves a separate persistent ID; do not guess renames
-  or overwrite translation entries when a catalogue is regenerated.
+- Define the XML vocabulary, namespace/version, file extension, project items,
+  generated key grammar, scoping across files, segment representation, metadata
+  representation, and mapping to resource keys. Supply the XSD and matching valid
+  and invalid examples. Class renames change class-derived identities unless the
+  producer preserves a separate persistent ID; do not guess rename mappings.
+- Specify the named-argument grammar, literal quoting/escaping, whitespace,
+  placeholder diagnostics, and path/member/metadata reference spelling. Preserve
+  literal parameter replacement strings and explicitly bound argument values;
+  do not enable recursive evaluation or general nested localization implicitly.
+  These spellings are not current compiler features.
 - Extend expression parsing, captured analysis and XLIFF protected placeholders
-  deliberately for path/member references; parameter replacement strings must
-  still remain literal. The previously discussed path/property/button token
-  spellings are proposals, not accepted syntax or current compiler features.
-- Agree the producer boundary: accepting a generated catalogue does not yet
-  specify a code scanner, programming language, or generator implementation.
+  for reusable templates and path/member/metadata references. Keep saved RESX
+  capture, consuming-alarm parameter scope, and non-emitting template/excluded
+  procedure handling. Protect named placeholders during translation exchange.
 
-Add focused catalogue/compiler, SDK/analysis, designer assistance, and exchange
-coverage before the final integrated acceptance iteration. Refine the iteration
-sequence after the file format and culture/key-display choices are settled;
-the existing ten-iteration sequence below covers only the original RESX scope.
+Add focused XML/XSD, catalogue/compiler, SDK/analysis, designer assistance,
+exchange, and sample-project coverage before final integrated acceptance. Define
+the extension's implementation iterations from these confirmed requirements; the
+existing ten-iteration sequence below covers only the original RESX scope.
 
 ## Remaining implementation details and exchange decisions
 
