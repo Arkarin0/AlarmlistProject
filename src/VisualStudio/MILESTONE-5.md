@@ -571,6 +571,26 @@ VSIX.
   black failure capture does not establish resource-editor acceptance. A retry
   and the final registration's live dialog check remain pending desktop access.
 
+## Follow-up: native preview toolbar (2026-10-08)
+
+- Moved Preview language to a separate, dockable **Alarmlist** VS toolbar with
+  editor-context visibility and active-document command routing. It uses the
+  existing CPS writer and the active view's linked-project selection. The package's
+  disabled fallback holds no editor or project references.
+- Removed the designer dropdown. Leaving the designer for shell controls keeps
+  drafts private; intra-designer navigation and explicit commits retain their
+  behavior. Unit checks cover both focus paths, invalid choices and global settings.
+- Extension unit tests: 276 passed. VSIX/template tests: 11 passed per framework.
+- VS2026 language/completion/draft/Undo/diagnostic navigation case passed against
+  the native toolbar. The combined run's other two cases stopped at the resource
+  editor foreground safeguard, so it was **1 passed, 2 failed**, not a full pass.
+  TRX: `artifacts/log/Debug/VisualStudioUI/TestResults/72d957d698d24be09049d54305ab4c72/`.
+  Actual toolbar capture: `artifacts/log/Debug/VisualStudioUI/LanguageAndSavedCompletion/2026/a82662e6d5dd44b393218f720bcbcaf1/preview-language-selector.png`.
+- VS2022 also displayed the toolbar and changed language, but both selected cases
+  stopped before typing because the foreground PID was 0. Full VS2022 acceptance
+  and the resource-editor retries remain pending an available desktop. No focus
+  safeguard was relaxed. TRX: `artifacts/log/Debug/VisualStudioUI/TestResults/28dd732c0cf84b2789ebc95af4096658/`.
+
 ## Exchange compatibility decision (2026-10-07)
 
 The three target tools are Trados Studio, memoQ, and Phrase TMS, selected from

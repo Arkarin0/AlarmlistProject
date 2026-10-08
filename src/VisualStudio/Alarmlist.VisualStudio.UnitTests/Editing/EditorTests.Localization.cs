@@ -8,6 +8,7 @@ using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Alarmlist.VisualStudio.Analysis;
+using Alarmlist.VisualStudio.Editor;
 using Alarmlist.VisualStudio.UI;
 using Xunit;
 
@@ -93,7 +94,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 {
                     AnalyzeLocalization(session);
                     var control = new EditFileControl(session.View) { Width = 900, Height = 850 };
-                    host.RootVisual = control;
+                    var shellControl = new Button { Content = "Shell toolbar", Height = 25 };
+                    var root = new DockPanel();
+                    DockPanel.SetDock(shellControl, Dock.Top);
+                    root.Children.Add(shellControl);
+                    root.Children.Add(control);
+                    host.RootVisual = root;
                     InheritanceAdornerTests.Pump();
                     ExpressionTextBox box = ExpressionBox(control, "Name");
                     box.BringIntoView();
@@ -107,17 +113,42 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Equal("private draft", box.Text);
                     Assert.Equal(2, box.SelectionStart);
                     Assert.Equal(3, box.SelectionLength);
-                    ComboBox selector = VisualChildren(control).OfType<ComboBox>().Single(item => AutomationProperties.GetName(item) == "Preview language");
-                    Assert.True(selector.Focus());
+                    Assert.DoesNotContain(VisualChildren(control).OfType<ComboBox>(), item => AutomationProperties.GetName(item) == "Preview language");
+                    Assert.True(shellControl.Focus());
                     Assert.True(session.View.HasPending);
                     Assert.Equal(0, session.Buffer.Edits);
                     session.Analysis.CultureWriter = (project, culture) => { AnalyzeLocalization(session, culture); return Task.CompletedTask; };
-                    selector.SelectedItem = "de-DE";
+                    Assert.Equal(0, PreviewLanguageCommands.Select(session.View, "de-DE"));
                     Assert.Equal("de-DE", session.View.SelectedPreviewCulture);
                     Assert.Equal("private draft", box.Text);
                     Assert.Equal(0, session.Buffer.Edits);
+                    Assert.Equal("de-DE", PreviewLanguageCommands.Value(session.View, PreviewLanguageCommands.Language));
+                    Assert.Contains("keyword", (string[])PreviewLanguageCommands.Value(session.View, PreviewLanguageCommands.Languages));
+                    Assert.True(box.Focus());
+                    var filter = VisualChildren(control).OfType<TextBox>().Single(item => AutomationProperties.GetName(item) == "Filter alarms");
+                    Assert.True(filter.Focus());
+                    Assert.False(session.View.HasPending);
+                    Assert.Equal(1, session.Buffer.Edits);
                 }
             });
+        }
+
+        [Fact]
+        public void ToolbarCommandRequiresCurrentWritableContextAndRejectsUnknownLanguages()
+        {
+            Assert.Equal(string.Empty, PreviewLanguageCommands.Value(null, PreviewLanguageCommands.Language));
+            Assert.Empty((string[])PreviewLanguageCommands.Value(null, PreviewLanguageCommands.Languages));
+            Assert.NotEqual(0, PreviewLanguageCommands.Select(null, "de"));
+            using (var session = new SemanticSession(LocalizedSource))
+            {
+                AnalyzeLocalization(session);
+                Assert.NotEqual(0, PreviewLanguageCommands.Select(session.View, "fr"));
+                Assert.Equal("de-DE", session.View.SelectedPreviewCulture);
+                AnalyzeLocalization(session, global: true);
+                Assert.NotEqual(0, PreviewLanguageCommands.Select(session.View, "keyword"));
+                Assert.Equal("de-DE", session.View.SelectedPreviewCulture);
+                Assert.Equal(0, session.Buffer.Edits);
+            }
         }
 
         [Fact]

@@ -159,8 +159,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         private static void SelectCulture(Window window, string culture)
         {
+            AutomationElement toolbar = null;
+            VisualStudioSession.Wait(() => (toolbar = window.FindFirstDescendant(cf => cf.ByName("Alarmlist").And(cf.ByControlType(ControlType.ToolBar)))) != null,
+                "native Alarmlist toolbar outside the designer");
             ComboBox selector = null;
-            VisualStudioSession.Wait(() => (selector = window.FindFirstDescendant(cf => cf.ByName("Preview language").And(cf.ByControlType(ControlType.ComboBox)))?.AsComboBox())?.IsEnabled == true, "preview language selector");
+            VisualStudioSession.Wait(() => (selector = toolbar.FindFirstDescendant(cf => cf.ByControlType(ControlType.ComboBox))?.AsComboBox())?.IsEnabled == true, "preview language selector");
             selector.Expand();
             AutomationElement choice = null;
             VisualStudioSession.Wait(() => (choice = selector.FindFirstDescendant(cf => cf.ByName(culture).And(cf.ByControlType(ControlType.ListItem)))) != null,

@@ -92,12 +92,19 @@ Content is recaptured before publication and navigation to reject stale results.
 Run `eng/test-visualstudio.ps1 -Filter 'Area=Localization'` with the documented
 host path/profile options to exercise saved-resource behavior in the owned IDE.
 
-The **Preview language** selector sits beside the project context (above it in
-narrow views). It lists keyword, resource cultures and configured build cultures.
+The **Preview language** selector lives in the native **Alarmlist** toolbar,
+separate from the designer. It follows the active ALMX editor and its selected
+project context, including linked files and XML views. Visual Studio manages its
+docking and customization; it is also available under **View > Toolbars > Alarmlist**.
+It lists keyword, resource cultures and configured build cultures.
 Changes persist the shared AlarmlistCulture through CPS; global values are fixed,
 and read-only/overridden project settings report an error. Choosing a language
 does not commit an ALMX draft or change AlarmlistCultures. Focused expression
 fields retain their raw text and selection during analysis refresh.
+Leaving the designer for a shell control keeps a draft private. Enter, Save,
+layout changes, and moving to another designer field still commit it.
+The toolbar uses the SDK's [native combo command pattern](https://github.com/microsoft/VSSDK-Extensibility-Samples/tree/master/Combo_Box)
+and editor command routing, without a global reference to an editor or project.
 
 Type `$(loc:` or use Ctrl+Space in expression fields for case-sensitive key
 completion. Suggestions show saved translation text, parent-culture provenance

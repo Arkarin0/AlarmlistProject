@@ -20,8 +20,10 @@ namespace Alarmlist.VisualStudio
         private EditFileControlViewModel ViewModel => (EditFileControlViewModel)DataContext;
         private void OnFieldLostFocus(object sender, KeyboardFocusChangedEventArgs args)
         {
-            // Selecting a preview culture must not commit the ALMX draft.
-            if (!PreviewCultureSelector.IsKeyboardFocusWithin) ViewModel.CommitPending();
+            // Shell toolbars live outside this view. Leaving the designer keeps
+            // its draft private; moving to another designer control still commits.
+            // Explicit Save/Enter and editor layout changes also commit as before.
+            if (IsKeyboardFocusWithin) ViewModel.CommitPending();
         }
         private void OnPresenceChanged(object sender, RoutedEventArgs args) => ViewModel.CommitPending();
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
@@ -67,8 +69,6 @@ namespace Alarmlist.VisualStudio
         private void OnSizeChanged(object sender, SizeChangedEventArgs args)
         {
             bool narrow = ActualWidth < 600;
-            DockPanel.SetDock(CultureToolbar, narrow ? Dock.Top : Dock.Right);
-            CultureToolbar.Margin = new Thickness(narrow ? 0 : 12, 0, 0, 4);
             ListColumn.Width = new GridLength(narrow ? 0 : 220);
             AlarmList.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
             AlarmSelector.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;

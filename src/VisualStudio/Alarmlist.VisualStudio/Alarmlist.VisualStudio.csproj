@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
 
   <PropertyGroup>
@@ -33,6 +33,7 @@
       <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
     </ProjectReference>
     <None Include="Templates/**/*" />
+    <VSCTCompile Include="AlarmlistCommands.vsct" ResourceName="Menus.ctmenu" />
     <Content Include="Alarmlist.XmlEditor.pkgdef" IncludeInVSIX="true" />
     <!-- These SDK transitive dependencies are supplied by the VS host and are unused here. -->
     <SuppressFromVsix Include="Microsoft.VisualStudio.Linux.ConnectionManager.Store.dll;System.Text.Encodings.Web.dll" />

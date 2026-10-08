@@ -289,7 +289,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
   Preview culture changes persist shared AlarmlistCulture through CPS without
   changing build cultures or committing ALMX drafts. Global overrides disable the
-  selector; write failures retain evaluated state. Localization completion uses
+  selector; write failures retain evaluated state. Use
+  the native Alarmlist toolbar's active-document command route for preview culture;
+  never retain an editor globally for toolbar state. Leaving the designer for shell
+  controls preserves drafts; explicit commits and intra-designer focus changes still
+  apply. Localization completion uses
   SDK catalogue/provenance, revalidates saved inputs before display and insertion,
   and discards late results after editing, focus or context changes. Navigate RESX
   diagnostics through the XML editor without saving pending resource edits.

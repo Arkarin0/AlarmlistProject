@@ -117,7 +117,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         public void RequireForeground()
         {
             GetWindowThreadProcessId(GetForegroundWindow(), out uint processId);
-            if (processId != _process.Id) throw new InvalidOperationException("The test IDE lost foreground focus; refusing keyboard input.");
+            if (processId != _process.Id) throw new InvalidOperationException(
+                $"The test IDE (PID {_process.Id}) lost foreground focus to PID {processId}; refusing keyboard input.");
         }
 
         public void Dispose()
