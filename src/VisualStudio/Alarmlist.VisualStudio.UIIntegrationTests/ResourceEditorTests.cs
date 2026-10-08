@@ -33,6 +33,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         {
             workspace.CreateProject(ide);
             string path = Path.Combine(workspace.ProjectDirectory, "Translations.de.resx");
+            string template = ((EnvDTE80.Solution2)ide.Automation.Solution).GetProjectItemTemplate("Translations.vstemplate", "Alarmlist");
+            Assert.True(File.Exists(template), "The translations item template is missing from the installed catalogue.");
+            ide.Automation.Solution.Projects.Item(1).ProjectItems.AddFromTemplate(template, "Translations.de.resx");
+            VisualStudioSession.Wait(() => File.Exists(path), "RESX item template creation with the requested culture suffix");
+            Assert.Empty(XDocument.Load(path).Root.Elements("data"));
+            ide.Automation.Documents.Item(path).Close(vsSaveChanges.vsSaveChangesNo);
             File.WriteAllText(path, """
                 <?xml version="1.0" encoding="utf-8"?>
                 <root>
@@ -43,7 +49,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                   <data name="Inspection" xml:space="preserve"><value>Saved translation</value><comment>Resource editor feasibility</comment></data>
                 </root>
                 """);
-            ProjectItem item = ide.Automation.Solution.Projects.Item(1).ProjectItems.AddFromFile(path);
+            ProjectItem item = ide.Automation.Solution.Projects.Item(1).ProjectItems.Item("Translations.de.resx");
             item.Open(Constants.vsViewKindPrimary).Activate();
 
             using var automation = new UIA3Automation();

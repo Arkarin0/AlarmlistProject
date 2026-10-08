@@ -558,6 +558,19 @@ VSIX.
   without product or test changes. No new performance measurements were run.
 - Commit: `Export RESX translations through the supported XLIFF profile`.
 
+## Follow-up: resource item template (2026-10-08)
+
+- Added **Translations (RESX)** to the Alarmlist item catalogue, defaulting to
+  `Translations.en.resx`, with the native resource editor and AlarmlistResource
+  item type. The legacy item-directory registration excludes the parent catalogue
+  file, preventing `templateManifest.noloc` from being offered as a loose item.
+- Packaged template/consumer tests: 11 passed per framework. The new case builds
+  a localized alarm using a saved resource created from the packaged template.
+- VS2026 installed-template creation and native resource editing passed. VS2022
+  created the item but stopped at the foreground safeguard before typing; its
+  black failure capture does not establish resource-editor acceptance. A retry
+  and the final registration's live dialog check remain pending desktop access.
+
 ## Exchange compatibility decision (2026-10-07)
 
 The three target tools are Trados Studio, memoQ, and Phrase TMS, selected from

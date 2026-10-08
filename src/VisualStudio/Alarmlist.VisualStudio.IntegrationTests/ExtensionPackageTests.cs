@@ -43,7 +43,7 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("\"CodeBase\"=\"$PackageFolder$\\Alarmlist.VisualStudio.dll\"", registration);
                 Assert.Contains("\"Language(VsTemplate)\"=\"Alarmlist\"", registration);
                 Assert.Contains("\"ProjectFactoryPackage\"=\"{3347bee8-d7a1-4082-95e4-38a439553cc2}\"", registration);
-                Assert.Contains("ItemTemplates", registration);
+                Assert.Contains("ItemTemplates\\Alarmlist", registration);
                 Assert.Contains("Editors\\{6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f}", registration);
                 Assert.Contains("\"almx\"=dword:00000060", registration);
                 foreach (string logicalView in new[] { "7651a701", "7651a702", "7651a703" }) Assert.Contains(logicalView, registration);
@@ -53,7 +53,7 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("\"almx\"=dword:00000028", xmlRegistration);
                 Assert.Contains("Languages\\File Extensions\\.almx", xmlRegistration);
                 Assert.Contains("{F6819A78-A205-47B5-BE1C-675B3C7F0B8E}", xmlRegistration);
-                Assert.Equal(2, package.Entries.Count(entry => entry.FullName.EndsWith(".vstemplate")));
+                Assert.Equal(3, package.Entries.Count(entry => entry.FullName.EndsWith(".vstemplate")));
                 var projectTemplate = XDocument.Parse(Read(package.Entries.Single(entry =>
                     entry.FullName.StartsWith("ProjectTemplates/", StringComparison.Ordinal)
                     && entry.FullName.EndsWith(".vstemplate", StringComparison.Ordinal))));
@@ -130,6 +130,32 @@ namespace Alarmlist.VisualStudio.IntegrationTests
         }
 
         [Fact]
+        public void ResourceItemTemplateBuildsSavedTranslationsWithAnInferredCulture()
+        {
+            using (var app = CreateApp(nameof(ResourceItemTemplateBuildsSavedTranslationsWithAnInferredCulture)))
+            using (var package = OpenPackage())
+            {
+                Instantiate(package, "ProjectTemplates/", app.WorkingDirectory, "Plant");
+                Instantiate(package, "ItemTemplates/", app.WorkingDirectory, "Translations.de", "Translations.vstemplate");
+                string path = Path.Combine(app.WorkingDirectory, "Translations.de.resx");
+                var resource = XDocument.Load(path);
+                Assert.Empty(resource.Root.Elements("data"));
+                Assert.Equal(4, resource.Root.Elements("resheader").Count());
+                resource.Root.Add(new XElement("data", new XAttribute("name", "Greeting"), new XElement("value", "Druck prüfen")));
+                resource.Save(path);
+                File.WriteAllText(Path.Combine(app.WorkingDirectory, "Alarms.almx"),
+                    "<Alarmlist><Alarm><FullyQualifiedName>Localized</FullyQualifiedName><Name>$(loc:Greeting)</Name></Alarm></Alarmlist>");
+                var result = app.Run(_output, "/t:Build", "/p:AlarmlistCultures=de");
+                Assert.Equal(0, result.ExitCode);
+                Assert.Equal("Druck prüfen", XDocument.Load(Path.Combine(app.WorkingDirectory, "bin", "Debug", "de", "Plant.Alarmlist.xml"))
+                    .Root.Element("Alarm").Element("Name").Value);
+                var template = XDocument.Parse(Read(package.Entries.Single(entry => entry.FullName.EndsWith("/Translations.vstemplate", StringComparison.Ordinal))));
+                Assert.Equal("Translations.en.resx", template.Descendants(s_templateNamespace + "DefaultName").Single().Value);
+                Assert.Equal("AlarmlistResource", template.Descendants(s_templateNamespace + "ProjectItem").Single().Attribute("ItemType").Value);
+            }
+        }
+
+        [Fact]
         public void TemplateBuildReportsCompilerErrorWithoutReplacingOutput()
         {
             using (var app = CreateApp(nameof(TemplateBuildReportsCompilerErrorWithoutReplacingOutput)))
@@ -170,10 +196,11 @@ namespace Alarmlist.VisualStudio.IntegrationTests
 
         // Expand the actual files shipped in the VSIX using the documented VS template tokens.
         // IDE command routing and CPS hierarchy operations are covered by the experimental smoke test.
-        private static void Instantiate(ZipArchive package, string prefix, string destination, string name)
+        private static void Instantiate(ZipArchive package, string prefix, string destination, string name, string templateName = null)
         {
+            templateName = templateName ?? (prefix == "ProjectTemplates/" ? "Alarmlist.vstemplate" : "AlarmList.vstemplate");
             var entry = package.Entries.Single(item => item.FullName.StartsWith(prefix, StringComparison.Ordinal)
-                && item.FullName.EndsWith(".vstemplate", StringComparison.Ordinal));
+                && item.FullName.EndsWith("/" + templateName, StringComparison.Ordinal));
             string directory = entry.FullName.Substring(0, entry.FullName.LastIndexOf('/') + 1);
             var template = XDocument.Parse(Read(entry));
             foreach (var item in template.Descendants().Where(element => element.Name == s_templateNamespace + "Project"

@@ -5,6 +5,11 @@ templates, Solution Explorer file management, project properties, and
 Build/Rebuild/Clean through `Alarmlist.MSBuild.SDK`. Compiler errors are reported
 through the standard MSBuild logger and Visual Studio Error List.
 
+**Add > New Item > Alarmlist > Translations (RESX)** creates a resource file and
+opens Visual Studio's resource editor. Keep a culture suffix in its name, such as
+`Translations.en.resx` (the default) or `Translations.de.resx`. It is included as
+an `AlarmlistResource`; saved string entries are available to `$(loc:Key)` expressions.
+
 Milestone two adds a WPF MVVM editor with **Designer**, **Split**, and **XML**
 modes. The designer and embedded Visual Studio source view share one document
 buffer, including edits made from additional windows. The
