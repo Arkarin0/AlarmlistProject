@@ -6,6 +6,11 @@ that the later compiler, SDK, or designer iterations are complete. The owner has
 confirmed the XLIFF tool targets, source-language workflow, and whole-import
 conflict policy below.
 
+The [planned generated HMI lookup extension](MILESTONE-5.md#planned-extension-generated-hmi-lookups)
+records the owner's additional scope and current design proposals. Its file
+format, key/display rules, and documentation/HMI culture selection are not yet
+part of this frozen RESX implementation contract.
+
 ## Expressions and values
 
 `$(loc:Key)` is supported in Name, Code, Category, Description, and procedure

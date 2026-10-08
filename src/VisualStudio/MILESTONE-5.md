@@ -7,6 +7,8 @@ validation, localization expression evaluation, multi-culture SDK builds, detach
 analysis, saved-resource observation, language selection and completion are
 implemented. XLIFF export is available; import and integrated acceptance follow
 in iterations nine and ten.
+The owner has also added generated HMI lookups to this milestone. Their scope is
+recorded below; this extension is still being designed and is not implemented.
 The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
@@ -44,6 +46,57 @@ edits. It does not change milestone four's existing unsaved ALMX analysis.
 The owner confirmed the remaining core choices above on 2026-10-07. Empty
 translations count as missing; this differs from parameter assignments, where
 an explicitly empty assignment still stops scope lookup.
+
+## Planned extension: generated HMI lookups
+
+Owner clarification, 2026-10-08:
+
+- A generated lookup file describes navigation paths and their properties/buttons.
+  The source for its identifiers is the HMI codebase's class names. Those names
+  may use any language chosen by the programmer; treat them as technical keys,
+  not as a source-culture declaration or a translated display label.
+- Translations can supply the visible path segments and property/button captions.
+  A key remains the same across languages. For example, the generated key
+  `Auslauf` may display as `Outlet` in English and `Sortie` in French.
+- English documentation may describe an HMI available in English or French.
+  The design must distinguish documentation language, HMI label language, and
+  the programmer's naming language rather than deriving one from another.
+- The designer should help select a path and then its property/button, and insert
+  references in procedure text. Minimum, maximum and default values provide
+  selection assistance only: do not check instructed values against these bounds,
+  introduce a typed assignment validator, or automatically substitute a default.
+- Additional properties are named metadata stored in the file. Their meaning is
+  unknown to the compiler; they are not executable calculations or scripts.
+
+Proposed design, not yet a frozen format or public API:
+
+- Prefer XML for consistency with the repository and schema-assisted authoring;
+  JSON remains an option until the owner settles the exchange format. The file
+  name/extension and the provisional term "HMI catalogue" are not final.
+- Keep generated structure separate from human-maintained RESX translations so
+  regeneration does not replace translations. Preserve the existing RESX/XLIFF
+  workflow and use explicit key references for labels.
+- Support a documentation/HMI culture pair, such as en/en or en/fr. Decide how
+  preview selection, build pairs and output folders expose this before coding.
+  Keep the existing single-culture behavior unchanged until this is specified.
+- Define key-display behavior when translation is not requested separately from
+  missing-translation behavior for a requested culture. Do not silently infer an
+  English/default fallback or change the existing parent-only localization rules.
+- Specify generated key grammar, scoping across files, segment representation,
+  and mapping to resource keys. Class renames change class-derived identities
+  unless the producer preserves a separate persistent ID; do not guess renames
+  or overwrite translation entries when a catalogue is regenerated.
+- Extend expression parsing, captured analysis and XLIFF protected placeholders
+  deliberately for path/member references; parameter replacement strings must
+  still remain literal. The previously discussed path/property/button token
+  spellings are proposals, not accepted syntax or current compiler features.
+- Agree the producer boundary: accepting a generated catalogue does not yet
+  specify a code scanner, programming language, or generator implementation.
+
+Add focused catalogue/compiler, SDK/analysis, designer assistance, and exchange
+coverage before the final integrated acceptance iteration. Refine the iteration
+sequence after the file format and culture/key-display choices are settled;
+the existing ten-iteration sequence below covers only the original RESX scope.
 
 ## Remaining implementation details and exchange decisions
 
