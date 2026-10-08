@@ -421,6 +421,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         {
             private readonly ConcurrentDictionary<string, CapturedAnalysisInput> _inputs = new ConcurrentDictionary<string, CapturedAnalysisInput>();
             private readonly ConcurrentDictionary<string, AnalysisResourceInput> _resources = new ConcurrentDictionary<string, AnalysisResourceInput>();
+            private readonly ConcurrentDictionary<string, AnalysisLookupInput> _lookups = new ConcurrentDictionary<string, AnalysisLookupInput>();
+            private int _lookupCaptures;
+            public Action<int> BeforeLookupCapture;
             private int _resourceCaptures;
             public Action<int> BeforeResourceCapture;
             private int _captures;
@@ -437,6 +440,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             }
             public void Notify(string path) => Changed?.Invoke(this, new AnalysisFileChangedEventArgs(path));
             public void SetResource(string path, string text, int version) => _resources[path] = new AnalysisResourceInput(text, path, version);
+            public void SetLookup(string path, string text, int version) => _lookups[path] = new AnalysisLookupInput(text, path, version);
+            public Task<IReadOnlyList<AnalysisLookupInput>> CaptureLookupsAsync(IReadOnlyList<string> paths, CancellationToken token)
+            {
+                BeforeLookupCapture?.Invoke(Interlocked.Increment(ref _lookupCaptures));
+                return Task.FromResult<IReadOnlyList<AnalysisLookupInput>>(paths.Select(path => _lookups[path]).ToArray());
+            }
             public Task<IReadOnlyList<AnalysisResourceInput>> CaptureResourcesAsync(IReadOnlyList<AnalysisResourceItem> resources, CancellationToken token)
             {
                 BeforeResourceCapture?.Invoke(Interlocked.Increment(ref _resourceCaptures));

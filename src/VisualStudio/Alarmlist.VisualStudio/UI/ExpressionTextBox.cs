@@ -141,13 +141,7 @@ namespace Alarmlist.VisualStudio.UI
             { CloseCompletion(); return; }
             string raw = RawText ?? "";
             int caret = Math.Min(CaretIndex, raw.Length);
-            _tokenStart = -1;
-            for (int i = 0; i < caret; i++)
-            {
-                if (raw[i] != '$' || i + 1 >= caret) continue;
-                if (raw[i + 1] == '$') { i++; continue; }
-                if (raw[i + 1] == '(') { _tokenStart = i; i++; }
-            }
+            _tokenStart = ExpressionCompletionContext.FindStart(raw, caret, out bool argument);
             string prefix = _tokenStart < 0 ? null : raw.Substring(_tokenStart + 2, caret - _tokenStart - 2);
             if (prefix != null && !IsPrefix(prefix)) prefix = null;
             if (prefix == null && !_explicitCompletion) { CloseCompletion(); return; }
@@ -160,8 +154,9 @@ namespace Alarmlist.VisualStudio.UI
             }
             string selectedName = (_list.SelectedItem as PropertyCompletion)?.Name;
             PropertyCompletion[] matches = FindMatches(Suggestions, prefix);
+            if (argument) matches = matches.Where(match => !match.IsLocalization).ToArray();
             if (matches.Length == 0) { CloseCompletion(); return; }
-            if (matches.Any(match => match.IsLocalization))
+            if (matches.Any(match => match.RequiresValidation))
             {
                 _popup.IsOpen = false;
                 PendingCompletion = ShowValidatedCompletionAsync(matches, selectedName, raw, caret, Suggestions, ++_completionVersion);
@@ -170,10 +165,17 @@ namespace Alarmlist.VisualStudio.UI
             ShowCompletion(matches, selectedName);
         }
 
-        private static bool IsTokenCharacter(char character) => char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '-' || character == ':';
-        private static bool IsPrefix(string prefix) => prefix.StartsWith("loc:", StringComparison.Ordinal)
-            ? prefix.Substring(4).All(character => IsTokenCharacter(character) && character != ':')
-            : prefix.All(character => char.IsLetterOrDigit(character) || character == '_');
+        private static bool IsTokenCharacter(char character) => char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '-'
+            || character == ':' || character == '#' || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.NonSpacingMark
+            || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.SpacingCombiningMark;
+        private static bool IsPrefix(string prefix)
+        {
+            int colon = prefix.IndexOf(':');
+            if (colon < 0) return prefix.All(character => char.IsLetterOrDigit(character) || character == '_');
+            string kind = prefix.Substring(0, colon);
+            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta")
+                && prefix.Substring(colon + 1).All(character => IsTokenCharacter(character) && character != ':' && (kind != "loc" || character != '#'));
+        }
 
         private async Task ShowValidatedCompletionAsync(PropertyCompletion[] matches, string selectedName, string raw, int caret, IEnumerable suggestions, int version)
         {
@@ -193,7 +195,7 @@ namespace Alarmlist.VisualStudio.UI
 
         internal static PropertyCompletion[] FindMatches(IEnumerable suggestions, string prefix)
             => suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix,
-                property.IsLocalization ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)).ToArray();
+                property.RequiresValidation ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)).ToArray();
 
         private void AnnounceSelection()
         {
@@ -211,7 +213,7 @@ namespace Alarmlist.VisualStudio.UI
         private void AcceptCompletion()
         {
             if (!(_list.SelectedItem is PropertyCompletion property)) return;
-            if (property.IsLocalization)
+            if (property.RequiresValidation)
             {
                 PendingCompletion = AcceptValidatedCompletionAsync(property, RawText, Suggestions, _tokenStart, _tokenEnd);
                 return;
@@ -232,13 +234,14 @@ namespace Alarmlist.VisualStudio.UI
         private void InsertCompletion(PropertyCompletion property, int start, int end)
         {
             string raw = RawText ?? "";
-            string insertion = "$(" + property.Name + ")";
+            string insertion = property.Insertion;
             int caret = start + insertion.Length;
             string result = raw.Substring(0, start) + insertion + raw.Substring(end);
             CloseCompletion();
             _dismissedText = result;
             SetCurrentValue(RawTextProperty, result);
             CaretIndex = caret;
+            if (property.ArgumentOffset >= 0) Select(start + property.ArgumentOffset, 2);
         }
 
         private void CloseCompletion()

@@ -10,7 +10,7 @@ measurements remain in `Alarmlist.VisualStudio.PerformanceTests`.
 
 ## Coverage
 
-Each scenario has separate VS2022 and VS2026 xUnit cases (26 live cases total):
+Each scenario has separate VS2022 and VS2026 xUnit cases (28 live cases total):
 
 | Scenario | Observable checks | Area trait |
 | --- | --- | --- |
@@ -27,6 +27,7 @@ Each scenario has separate VS2022 and VS2026 xUnit cases (26 live cases total):
 | Saved localization and linked contexts | Native drafts stay private, save/external changes refresh two project scopes, independent language choices persist after reopening | `Localization` |
 | Language and saved completion | Keyword default, culture choice during ALMX drafts, saved-only completion while RESX XML is dirty, token insertion/Undo, save refresh and resource diagnostic navigation | `Localization` |
 | Saved XLIFF export | Explicit external MSBuild export uses saved RESX while its XML buffer stays dirty; source and compiled output bytes stay unchanged | `Xliff` |
+| Lookup and template completion | Saved metadata choices while lookup XML is dirty, named argument slots, expression insertion/Undo, keyword and translated preview, saved catalogue regeneration, unchanged source/output bytes | `Lookups` |
 
 Project and document lifecycle checks retain the former smoke script's shell/API
 operations. They do not simulate clicks through New Project or Save As dialogs.

@@ -116,6 +116,25 @@ offers template/argument and path/member/metadata insertion with current-input
 validation and preservation of local drafts. XLIFF protects named placeholders
 and explicit expressions against accidental changes while allowing reordering.
 
+In an expression-enabled designer field or procedure row, type `$(loc:` or use
+Ctrl+Space. A template choice lists its named arguments and inserts, for example,
+`$(loc:Set, path="", property="", value="")`. The first quoted empty value is
+selected. Replace it with a literal, or type `$(path:` and select a path. Select
+each subsequent quoted value (including the quotes) to insert an expression there.
+Type `$(property:Service.Transport.Auslauf.Nockenfenster#` to narrow choices to
+that path's properties; use `button:` for buttons and `meta:` for stored metadata.
+Metadata values appear as selection guidance. Selecting `Default` inserts a
+reference to that stored string; no default is applied automatically.
+
+Completion is case-sensitive for resource and lookup keys. It preserves the
+existing case-insensitive parameter completion. It rechecks saved inputs both
+before showing choices and before insertion. Escape closes completion first;
+Enter inserts into the draft, and the normal next Enter commits one undoable ALMX
+edit. Nested localization choices are excluded inside argument values. In keyword
+mode, distinct template signatures from saved RESX entries are offered explicitly
+without choosing a fallback language; real cultures use the compiler's supplying
+entry. Plain `$(loc:Key)` remains available alongside formatted template choices.
+
 The design follows this repository's captured-input compiler boundary and
 [Roslyn compilation responsibilities](https://github.com/dotnet/roslyn/blob/main/src/Compilers/Core/Portable/Compilation/Compilation.cs).
 Schema packaging uses the existing SDK content layout, following

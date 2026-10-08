@@ -307,6 +307,15 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   are scoped to the project generation, so version equality alone is insufficient.
   Preserve linked project contexts and resource locations without retaining native
   resource-editor graphs. Resource capture must never save buffers or build output.
+- CPS also owns evaluated `AlarmlistLookup` order, duplicates and linked membership.
+  Capture saved lookup bytes only, watch regeneration/deletion, and compare captured
+  text/path/order/version before publication, completion or navigation. Lookup drafts
+  and close notifications must not expose unsealed changes. The bridge requires the
+  lookup-capable contract-3 context and copies catalogue labels, metadata, placeholder
+  names and usage provenance into detached host DTOs. Never parse catalogues or RESX
+  templates in the IDE. Template completion inserts explicit empty named arguments;
+  lookup/member/metadata completion inserts compiler-supplied expressions, with no
+  automatic metadata defaults or range validation. Suppress ambiguous path choices.
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
   Preview culture changes persist shared AlarmlistCulture through CPS without
   changing build cultures or committing ALMX drafts. Global overrides disable the

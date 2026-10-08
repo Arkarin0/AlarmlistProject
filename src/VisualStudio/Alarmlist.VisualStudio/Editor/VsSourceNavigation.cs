@@ -19,7 +19,8 @@ namespace Alarmlist.VisualStudio.Editor
             ThreadHelper.ThrowIfNotOnUIThread();
             IVsWindowFrame frame;
             IVsTextView view;
-            if (string.Equals(Path.GetExtension(location.FilePath), ".resx", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(Path.GetExtension(location.FilePath), ".resx", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(Path.GetExtension(location.FilePath), ".almlookup", StringComparison.OrdinalIgnoreCase))
             {
                 // Resource Explorer also handles the Code logical view. Diagnostic
                 // line/column navigation needs the XML editor, without closing or

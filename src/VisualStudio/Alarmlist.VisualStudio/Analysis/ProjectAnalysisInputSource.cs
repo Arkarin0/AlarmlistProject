@@ -40,6 +40,7 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             string[] paths = project == null ? Array.Empty<string>() : project.Inputs
                 .Concat(project.Resources.Select(resource => resource.FilePath))
+                .Concat(project.Lookups)
                 .Concat(string.IsNullOrWhiteSpace(project.CompilerPath) ? Array.Empty<string>() : new[] { project.CompilerPath })
                 .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             lock (_lifecycleGate)
@@ -158,6 +159,25 @@ namespace Alarmlist.VisualStudio.Analysis
                 { throw new IOException("Cannot capture saved RESX input " + resource.FilePath + ": " + exception.Message, exception); }
             }
             return Task.FromResult<IReadOnlyList<AnalysisResourceInput>>(captured.AsReadOnly());
+        }
+
+        public Task<IReadOnlyList<AnalysisLookupInput>> CaptureLookupsAsync(IReadOnlyList<string> paths, CancellationToken token)
+        {
+            // Generated catalogues are consumed from saved bytes, never editor drafts.
+            var saved = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var captured = new List<AnalysisLookupInput>();
+            foreach (string path in paths)
+            {
+                token.ThrowIfCancellationRequested();
+                try
+                {
+                    if (!saved.TryGetValue(path, out string text)) saved.Add(path, text = ReadXmlText(path));
+                    captured.Add(new AnalysisLookupInput(text, path, 0));
+                }
+                catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException || exception is XmlException || exception is ArgumentException)
+                { throw new IOException("Cannot capture saved lookup input " + path + ": " + exception.Message, exception); }
+            }
+            return Task.FromResult<IReadOnlyList<AnalysisLookupInput>>(captured.AsReadOnly());
         }
 
         private void OnDocumentChanged(object sender, AnalysisFileChangedEventArgs args)

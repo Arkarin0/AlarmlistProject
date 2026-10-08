@@ -162,6 +162,7 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisProperty> Properties { get; }
         public bool IsResolved { get; }
         public IReadOnlyList<AnalysisLocalizationUse> LocalizationUses { get; }
+        public IReadOnlyList<AnalysisLookupUse> LookupUses { get; }
         public IReadOnlyList<AnalysisAlarmOrigin> ReferenceChain { get; }
         public IReadOnlyList<AnalysisField> Fields { get; }
         public AnalysisSection Instructions { get; }
@@ -169,7 +170,7 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public AnalysisAlarm(AnalysisAlarmOrigin origin, string referenceName, bool isResolved, IReadOnlyList<AnalysisAlarmOrigin> referenceChain, IReadOnlyList<AnalysisField> fields, AnalysisSection instructions, AnalysisSection reset,
             bool isAbstract = false, bool hasEvaluatedValues = true, IReadOnlyList<AnalysisProperty> properties = null,
-            IReadOnlyList<AnalysisLocalizationUse> localizationUses = null)
+            IReadOnlyList<AnalysisLocalizationUse> localizationUses = null, IReadOnlyList<AnalysisLookupUse> lookupUses = null)
         {
             Origin = origin;
             ReferenceName = referenceName;
@@ -177,6 +178,7 @@ namespace Alarmlist.VisualStudio.Analysis
             HasEvaluatedValues = hasEvaluatedValues && isResolved;
             Properties = Array.AsReadOnly((properties ?? Array.Empty<AnalysisProperty>()).ToArray());
             LocalizationUses = Array.AsReadOnly((localizationUses ?? Array.Empty<AnalysisLocalizationUse>()).ToArray());
+            LookupUses = Array.AsReadOnly((lookupUses ?? Array.Empty<AnalysisLookupUse>()).ToArray());
             IsResolved = isResolved;
             ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
             Fields = Array.AsReadOnly(fields.ToArray());
@@ -216,10 +218,13 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisResource> Resources { get; }
         public IReadOnlyList<AnalysisResourceEntry> ResourceEntries { get; }
         public IReadOnlyList<AnalysisTranslation> Translations { get; }
+        public IReadOnlyList<AnalysisLookupFile> LookupFiles { get; }
+        public IReadOnlyList<AnalysisLookupPath> LookupPaths { get; }
 
         public AnalysisSnapshot(int contractVersion, bool success, IReadOnlyList<AnalysisSource> sources, IReadOnlyList<AnalysisAlarm> alarms, IReadOnlyList<AnalysisDiagnostic> diagnostics,
             string culture = "keyword", IReadOnlyList<AnalysisResource> resources = null, IReadOnlyList<AnalysisResourceEntry> entries = null,
-            IReadOnlyList<AnalysisTranslation> translations = null)
+            IReadOnlyList<AnalysisTranslation> translations = null, IReadOnlyList<AnalysisLookupFile> lookupFiles = null,
+            IReadOnlyList<AnalysisLookupPath> lookupPaths = null)
         {
             ContractVersion = contractVersion;
             Success = success;
@@ -230,6 +235,8 @@ namespace Alarmlist.VisualStudio.Analysis
             Resources = Array.AsReadOnly((resources ?? Array.Empty<AnalysisResource>()).ToArray());
             ResourceEntries = Array.AsReadOnly((entries ?? Array.Empty<AnalysisResourceEntry>()).ToArray());
             Translations = Array.AsReadOnly((translations ?? Array.Empty<AnalysisTranslation>()).ToArray());
+            LookupFiles = Array.AsReadOnly((lookupFiles ?? Array.Empty<AnalysisLookupFile>()).ToArray());
+            LookupPaths = Array.AsReadOnly((lookupPaths ?? Array.Empty<AnalysisLookupPath>()).ToArray());
         }
     }
 }

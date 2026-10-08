@@ -1,7 +1,9 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Alarmlist.VisualStudio.Analysis;
 using Alarmlist.VisualStudio.Editing;
 
@@ -88,10 +90,15 @@ namespace Alarmlist.VisualStudio.UI
         public string Detail { get; }
         public string Label => Name + " — " + Detail;
         public bool IsLocalization { get; }
+        public bool RequiresValidation { get; }
+        public string Insertion { get; }
+        public int ArgumentOffset { get; } = -1;
         public PropertyCompletion(AnalysisTranslation translation, AnalysisLocalizationUse use, bool currentValues)
         {
             Name = "loc:" + translation.Key;
+            Insertion = "$(" + Name + ")";
             IsLocalization = true;
+            RequiresValidation = true;
             string value = !translation.IsAvailable ? "missing translation" : translation.IsKeyword ? translation.RawValue
                 : currentValues && use?.IsValueAvailable == true ? use.Value : translation.RawValue;
             Detail = value + (translation.IsKeyword ? " — keyword" : " — " + translation.RequestedCulture
@@ -103,10 +110,29 @@ namespace Alarmlist.VisualStudio.UI
         public PropertyCompletion(AnalysisProperty property, bool currentValues)
         {
             Name = property.Name;
+            Insertion = "$(" + Name + ")";
             string value = !currentValues ? "value pending" : !property.IsValueAvailable ? "unassigned/unavailable"
                 : property.EffectiveValue == "" ? "(empty)" : property.EffectiveValue;
             Detail = value + (property.IsWellKnown ? " — well-known property" : " — declaration " + ParameterViewModel.Describe(property.DeclarationOrigin)
                 + "; assignment " + ParameterViewModel.Describe(property.ValueOrigin));
+        }
+
+        public PropertyCompletion(string key, IReadOnlyList<string> arguments)
+        {
+            Name = "loc:" + key + ", " + string.Join(", ", arguments.Select(name => name + "=\"\""));
+            Insertion = "$(" + Name + ")";
+            ArgumentOffset = Insertion.IndexOf("\"\"", StringComparison.Ordinal);
+            IsLocalization = true;
+            RequiresValidation = true;
+            Detail = "template — fill arguments: " + string.Join(", ", arguments) + "; select a value and use Ctrl+Space to insert an expression";
+        }
+
+        public PropertyCompletion(string expression, string value, string detail)
+        {
+            Insertion = expression;
+            Name = expression.Substring(2, expression.Length - 3);
+            RequiresValidation = true;
+            Detail = (value ?? "translation unavailable") + " — " + detail;
         }
     }
 }

@@ -41,6 +41,13 @@ namespace Alarmlist.VisualStudio.Analysis
                     string.Equals(item.FilePath, location.FilePath, StringComparison.OrdinalIgnoreCase));
                 text = resource?.Text;
                 version = resource?.Version;
+                if (resource == null)
+                {
+                    AnalysisLookupInput lookup = State.Lookups.FirstOrDefault(item =>
+                        string.Equals(item.FilePath, location.FilePath, StringComparison.OrdinalIgnoreCase));
+                    text = lookup?.Text;
+                    version = lookup?.Version;
+                }
             }
             return text != null && location.LineNumber > 0 && location.ColumnNumber > 0
                 && (!location.SourceVersion.HasValue || location.SourceVersion == version);

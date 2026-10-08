@@ -23,6 +23,11 @@ namespace Alarmlist.VisualStudio.Analysis
             Add<AnalysisResourceEntry>(assembly, "Alarmlist.Analysis.AnalyzedResourceEntry");
             Add<AnalysisTranslation>(assembly, "Alarmlist.Analysis.AnalyzedTranslation");
             Add<AnalysisLocalizationUse>(assembly, "Alarmlist.Analysis.AnalyzedLocalizationUse");
+            Add<AnalysisLookupFile>(assembly, "Alarmlist.Analysis.AnalyzedLookupFile");
+            Add<AnalysisLookupPath>(assembly, "Alarmlist.Analysis.AnalyzedLookupPath");
+            Add<AnalysisLookupMember>(assembly, "Alarmlist.Analysis.AnalyzedLookupMember");
+            Add<AnalysisLookupMetadata>(assembly, "Alarmlist.Analysis.AnalyzedLookupMetadata");
+            Add<AnalysisLookupUse>(assembly, "Alarmlist.Analysis.AnalyzedLookupUse");
             Add<AnalysisSource>(assembly, "Alarmlist.Analysis.AnalyzedSource");
             Add<AnalysisAlarm>(assembly, "Alarmlist.Analysis.AnalyzedAlarm");
             Add<AnalysisAlarmOrigin>(assembly, "Alarmlist.Analysis.AlarmOrigin");
@@ -80,8 +85,10 @@ namespace Alarmlist.VisualStudio.Analysis
                     new AnalysisResource(Value<string>(resource, "FilePath"), Value<int>(resource, "Version"), Value<string>(resource, "Culture"))),
                 List(result, "ResourceEntries", entry => new AnalysisResourceEntry(Value<string>(entry, "Key"), Value<string>(entry, "Culture"),
                     Value<string>(entry, "RawValue"), Value<string>(entry, "Comment"), Location(Value<object>(entry, "Location")),
-                    Location(Value<object>(entry, "ValueLocation")), Value<bool>(entry, "IsValid"), Value<bool>(entry, "IsAmbiguous"))),
-                List(result, "Translations", Translation));
+                    Location(Value<object>(entry, "ValueLocation")), Value<bool>(entry, "IsValid"), Value<bool>(entry, "IsAmbiguous"),
+                    List(entry, "PlaceholderNames", name => (string)name))),
+                List(result, "Translations", Translation), List(result, "LookupFiles", file =>
+                    new AnalysisLookupFile(Value<string>(file, "FilePath"), Value<int>(file, "Version"))), List(result, "LookupPaths", LookupPath));
         }
 
         private static AnalysisAlarm Alarm(object alarm)
@@ -95,13 +102,26 @@ namespace Alarmlist.VisualStudio.Analysis
                 Section(Value<object>(alarm, "Instructions")), Section(Value<object>(alarm, "Reset")), Value<bool>(alarm, "IsAbstract"),
                 Value<bool>(alarm, "HasEvaluatedValues"), List(alarm, "Properties", Property), List(alarm, "LocalizationUses", use =>
                     new AnalysisLocalizationUse(Translation(Value<object>(use, "Translation")), Location(Value<object>(use, "UsageLocation")),
-                        Value<string>(use, "Value"), Value<bool>(use, "IsValueAvailable"))));
+                        Value<string>(use, "Value"), Value<bool>(use, "IsValueAvailable"))), List(alarm, "LookupUses", use =>
+                    new AnalysisLookupUse(Value<string>(use, "Expression"), Location(Value<object>(use, "DefinitionLocation")),
+                        Location(Value<object>(use, "UsageLocation")), Value<string>(use, "Value"), Value<bool>(use, "IsValueAvailable"))));
         }
 
         private static AnalysisTranslation Translation(object translation) => new AnalysisTranslation(
             Value<string>(translation, "Key"), Value<string>(translation, "RequestedCulture"), Value<string>(translation, "SupplyingCulture"),
             Value<bool>(translation, "IsKeyword"), Value<bool>(translation, "IsAvailable"), Value<string>(translation, "RawValue"),
-            Value<string>(translation, "Comment"), Location(Value<object>(translation, "Location")), Location(Value<object>(translation, "ValueLocation")));
+            Value<string>(translation, "Comment"), Location(Value<object>(translation, "Location")), Location(Value<object>(translation, "ValueLocation")),
+            List(translation, "PlaceholderNames", name => (string)name));
+
+        private static AnalysisLookupPath LookupPath(object path) => new AnalysisLookupPath(
+            Value<string>(path, "Key"), Value<bool>(path, "IsAmbiguous"), Location(Value<object>(path, "Location")),
+            Value<string>(path, "Expression"), Value<string>(path, "Value"), Value<bool>(path, "IsValueAvailable"),
+            List(path, "Segments", Translation), List(path, "Members", member => new AnalysisLookupMember(
+                Value<string>(member, "Key"), Value<string>(member, "Kind"), Location(Value<object>(member, "Location")),
+                Translation(Value<object>(member, "Label")), Value<string>(member, "Expression"), Value<string>(member, "Value"),
+                Value<bool>(member, "IsValueAvailable"), List(member, "Metadata", metadata => new AnalysisLookupMetadata(
+                    Value<string>(metadata, "Name"), Value<string>(metadata, "Value"), Location(Value<object>(metadata, "Location")),
+                    Value<string>(metadata, "Expression"))))));
 
         private static AnalysisSection Section(object section)
         {

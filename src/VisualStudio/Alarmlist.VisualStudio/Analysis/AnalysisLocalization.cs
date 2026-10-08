@@ -1,6 +1,8 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
@@ -25,11 +27,13 @@ namespace Alarmlist.VisualStudio.Analysis
         public AnalysisLocation ValueLocation { get; }
         public bool IsValid { get; }
         public bool IsAmbiguous { get; }
+        public IReadOnlyList<string> PlaceholderNames { get; }
         public AnalysisResourceEntry(string key, string culture, string rawValue, string comment,
-            AnalysisLocation location, AnalysisLocation valueLocation, bool isValid, bool isAmbiguous)
+            AnalysisLocation location, AnalysisLocation valueLocation, bool isValid, bool isAmbiguous, IEnumerable<string> placeholderNames = null)
         {
             Key = key; Culture = culture; RawValue = rawValue; Comment = comment;
             Location = location; ValueLocation = valueLocation; IsValid = isValid; IsAmbiguous = isAmbiguous;
+            PlaceholderNames = Array.AsReadOnly((placeholderNames ?? Array.Empty<string>()).ToArray());
         }
     }
 
@@ -45,12 +49,14 @@ namespace Alarmlist.VisualStudio.Analysis
         public string Comment { get; }
         public AnalysisLocation Location { get; }
         public AnalysisLocation ValueLocation { get; }
+        public IReadOnlyList<string> PlaceholderNames { get; }
         public AnalysisTranslation(string key, string requestedCulture, string supplyingCulture, bool isKeyword, bool isAvailable,
-            string rawValue, string comment, AnalysisLocation location, AnalysisLocation valueLocation)
+            string rawValue, string comment, AnalysisLocation location, AnalysisLocation valueLocation, IEnumerable<string> placeholderNames = null)
         {
             Key = key; RequestedCulture = requestedCulture; SupplyingCulture = supplyingCulture;
             IsKeyword = isKeyword; IsAvailable = isAvailable; RawValue = rawValue; Comment = comment;
             Location = location; ValueLocation = valueLocation;
+            PlaceholderNames = Array.AsReadOnly((placeholderNames ?? Array.Empty<string>()).ToArray());
         }
     }
 

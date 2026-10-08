@@ -10,7 +10,7 @@ in iterations nine and ten.
 The owner has also added reusable instruction templates and generated HMI lookups
 to this milestone. H1-H3 implement XML/XSD, captured catalogues, named expressions,
 lookup evaluation, compiler analysis, SDK build inputs and XLIFF protection. Designer
-integration and sample acceptance follow in H4-H5 below.
+integration is complete in H4; sample acceptance follows in H5 below.
 The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
@@ -167,6 +167,22 @@ tests passed per net472/net8.0. Desktop VS2026 MSBuild passed 7 lookup/package t
 VS rule tests passed 9. The SDK design-time rule-count assertion was updated for
 the new rule and the complete SDK suite rerun successfully. `git diff --check`
 passed. Actual translation-vendor round trips remain pending as previously agreed.
+
+H4 completed: the isolated SDK bridge copies lookup catalogues, metadata, named
+placeholder signatures and usage locations into immutable host DTOs. CPS captures
+evaluated membership in order, saved-only lookup bytes and regeneration/deletion
+notifications. Publication, completion and diagnostic navigation revalidate all
+saved inputs, including same-version rewrites. Lookup XML opens in the native XML
+editor. The designer offers explicit named argument slots and path/property/button/
+metadata completion, preserves drafts and one-edit Undo, and excludes ambiguous
+paths and nested localization choices. Metadata remains selection guidance only.
+Validation: 293 extension unit tests passed, followed by 5 focused checks including
+two added lookup-diagnostic navigation cases. VSIX/package consumers passed 11 per
+net472/net8.0. The new LookupCompletion UI scenario passed in both VS2022 and VS2026
+on matching AlarmlistExp deployments, checking private lookup drafts, metadata
+insertion, template slots, Undo and saved regeneration without changing build
+outputs. Screenshots and TRX reports are retained under artifacts/log. `git diff
+--check` passed.
 
 ## Remaining implementation details and exchange decisions
 

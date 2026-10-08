@@ -17,6 +17,38 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
     public class SdkAnalysisBridgeTests
     {
         [Fact]
+        public void LookupCatalogueNamedTemplatesAndProvenanceSurviveDomainUnload()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                var lookup = new AnalysisLookupInput(LookupTestData.Catalogue, Path.Combine(sdk.DirectoryPath, "Hmi.almlookup"), 27);
+                var resource = new AnalysisResourceInput(LookupTestData.Resources, "Labels.en.resx", 19);
+                var context = new AnalysisContext(resources: new[] { resource }, culture: "en-GB", lookups: new[] { lookup });
+                AnalysisResponse response;
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    response = bridge.Analyze(new[] { new AnalysisInput(LookupTestData.Source, "A.almx", 12) }, context: context);
+                    Assert.True(response.Snapshot?.Success == true, response.Message);
+                    Assert.Contains("In Service -&gt; Vacuum, set ON to 060.", response.CompiledXml);
+                }
+                AnalysisLookupPath path = Assert.Single(response.Snapshot.LookupPaths);
+                Assert.Equal(27, Assert.Single(response.Snapshot.LookupFiles).Version);
+                Assert.Equal("Service -> Vacuum", path.Value);
+                Assert.Equal("en", path.Segments[0].SupplyingCulture);
+                Assert.Equal("ON", path.Members[0].Value);
+                Assert.Equal("060", path.Members[0].Metadata.Single(item => item.Name == "Default").Value);
+                Assert.Equal(new[] { "path", "property", "value" }, response.Snapshot.Translations.Single(item => item.Key == "Set").PlaceholderNames);
+                Assert.Equal(new[] { "path", "property", "value" }, response.Snapshot.ResourceEntries.Single(item => item.Key == "Set").PlaceholderNames);
+                Assert.Equal(3, response.Snapshot.Alarms[0].LookupUses.Count);
+                Assert.All(response.Snapshot.Alarms[0].LookupUses, use => { Assert.Equal(27, use.DefinitionLocation.SourceVersion); Assert.Equal(12, use.UsageLocation.SourceVersion); });
+                Assert.False(File.Exists(lookup.FilePath));
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisLookupPath>)response.Snapshot.LookupPaths).Clear());
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisLookupMember>)path.Members).Clear());
+            }
+        }
+
+        [Fact]
         public void CapturedResourcesAndParentOriginsRemainUsableAfterDomainUnload()
         {
             using (var sdk = new SdkAsset())
