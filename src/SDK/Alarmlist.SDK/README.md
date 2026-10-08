@@ -86,6 +86,8 @@ or disable default items and list your inputs explicitly:
 | `CompiledAlarmlistFileName` | `$(AssemblyName).Alarmlist.xml` |
 | `EnableDefaultCompileItems` | `true` |
 | `EnableDefaultAlarmlistResourceItems` | `true` |
+| `EnableDefaultAlarmlistLookupItems` | `true` |
+| `AlarmlistLookupSchema` | Packaged `tools/Schemas/AlarmlistLookup.xsd` (evaluated absolute path) |
 | `AlarmlistCultures` | `keyword` (semicolon-separated build list) |
 | `AlarmlistCulture` | `keyword` (independent shared preview selection) |
 | `AlarmlistXliffSourceCulture` | `en` (export source language) |
@@ -134,14 +136,75 @@ returns paths with SourceCulture, Culture and BaselineFile metadata.
 
 The [exchange profile](../../VisualStudio/MILESTONE-5-DESIGN.md#xliff-export-profile-version-one)
 uses XLIFF 2.0, exact culture entries, stable case-sensitive keys, comments and
-protected parameter expressions. Every key needs a nonempty source translation
+protected parameter/lookup expressions and named placeholders such as `{value}`.
+Every key needs a nonempty source translation
 in the selected source culture. Export does not fill missing target entries from
-parents. Existing nonempty targets must contain the same parameter-expression
+parents. Existing nonempty targets must contain the same protected-expression and placeholder
 occurrences as their source; reordering is allowed. Missing and explicitly empty
 targets remain distinct in the baseline.
 
 Import is a later iteration. Trados Studio, memoQ and Phrase TMS are the intended
 tools; vendor round trips remain unverified until recorded in the milestone.
+
+## Reusable instruction templates and HMI lookups
+
+Use named arguments to reuse a sentence across procedure steps:
+
+```xml
+<Step>$(loc:Instruction.SetProperty, path=$(path:Service.Vakuum), property=$(property:Service.Vakuum#Ein), value=$(meta:Service.Vakuum#Ein#Default))</Step>
+```
+
+The RESX entry `Instruction.SetProperty` contains
+`In "{path}", set property "{property}" to "{value}".` Translations may reorder
+placeholders. All names must match their supplied arguments; repeated names are
+allowed. Literal arguments use quotes (`value="001"`); parameter arguments use an
+explicit expression (`value=$(Setpoint)`). Inserted text is never expanded again.
+Use `{{` and `}}` for literal braces in formatted templates. Plain `$(loc:Key)`
+keeps its existing behavior; named-argument calls enable formatting.
+
+External tools generate lookup XML; Alarmlist does not scan the HMI codebase:
+
+```xml
+<Lookup xmlns="urn:alarmlist:lookup:1">
+  <Path Key="Service.Vakuum">
+    <Segment LabelKey="Hmi.Service" />
+    <Segment LabelKey="Hmi.Vacuum" />
+    <Property Key="Ein" LabelKey="Hmi.On">
+      <Metadata Name="Default" Value="060" />
+      <Metadata Name="Maximum" Value="100" />
+    </Property>
+  </Path>
+</Lookup>
+```
+
+Save it as `Hmi.almlookup`. The SDK includes `**/*.almlookup` by default, excluding
+output/intermediate and hidden directories. Use `AlarmlistLookup Remove/Update`
+or set `EnableDefaultAlarmlistLookupItems=false` and declare explicit items.
+Linked files and conditions work as for other source inputs:
+
+```xml
+<ItemGroup>
+  <AlarmlistLookup Include="../Shared/Hmi.almlookup" Link="Shared/Hmi.almlookup" />
+</ItemGroup>
+```
+
+The included XSD is at `$(AlarmlistLookupSchema)`; its schema namespace is
+`urn:alarmlist:lookup:1`. See the
+[full format and escaping specification](../../VisualStudio/HMI-LOOKUPS.md).
+Each path segment and member uses its LabelKey in the same RESX catalogue and
+selected culture as the sentence. Parent-culture lookup is allowed; unrelated or
+default-language fallback is not. Paths join their translated labels with ` -> `.
+Properties and buttons use `$(property:Path#Member)` and `$(button:Path#Member)`.
+Explicit `$(meta:Path#Member#Name)` inserts stored metadata verbatim, including
+leading zeros and empty values. Metadata has no executable or numeric semantics:
+there is no bounds validation or automatic default substitution.
+
+Keyword output retains whole localization and lookup tokens literally, including
+argument bindings, while validating referenced catalogue identities. Missing
+paths/members/metadata fail compilation (`ALM0021`); malformed catalogue XML is
+`ALM0019`, duplicate paths are `ALM0020`, and template argument mismatches are
+`ALM0022`. Every culture validates before any output is replaced. Build captures
+saved lookup contents once per batch; Clean preserves lookup and RESX source files.
 
 ## Property expressions and templates
 

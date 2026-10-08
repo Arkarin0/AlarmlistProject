@@ -256,6 +256,12 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Build/GetTargetPath expose `@(CompiledAlarmlistFiles)` with Culture metadata;
   the task exposes OutputFiles. Preserve explicit-empty resource Culture metadata,
   linked/conditional items and output exclusions. Preview AlarmlistCulture is separate.
+- Lookup builds capture saved `AlarmlistLookup` items once with the same input batch.
+  Default `**/*.almlookup` inclusion follows source exclusions; explicit, linked,
+  conditional and duplicate inputs retain their semantics. Protect lookup files
+  from output/manifest/exchange collisions. `AlarmlistLookupSchema` locates the
+  packaged authoritative XSD. XLIFF protects named placeholder occurrences as well
+  as parameter/lookup expressions, preserving text around leading inline codes.
 - Explicit ExportAlarmlistXliff reads saved resources and writes XLIFF 2.0 plus
   local baseline sidecars, independently of Build/Clean. Keep exact culture values,
   protected expressions, stable keys and baseline presence/comments. Validate all

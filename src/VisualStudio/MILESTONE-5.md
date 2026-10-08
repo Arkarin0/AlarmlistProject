@@ -8,9 +8,9 @@ analysis, saved-resource observation, language selection and completion are
 implemented. XLIFF export is available; import and integrated acceptance follow
 in iterations nine and ten.
 The owner has also added reusable instruction templates and generated HMI lookups
-to this milestone. H1-H2 implement XML/XSD, captured catalogues, named expressions,
-lookup evaluation and compiler analysis. Build input wiring and designer integration
-follow in H3-H5 below; the complete extension is not yet available to consumers.
+to this milestone. H1-H3 implement XML/XSD, captured catalogues, named expressions,
+lookup evaluation, compiler analysis, SDK build inputs and XLIFF protection. Designer
+integration and sample acceptance follow in H4-H5 below.
 The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
@@ -60,7 +60,7 @@ JSON input and separate documentation/HMI culture pairs:
   not as a source-culture declaration or a translated display label.
 - Lookup files use XML. Include an XSD documenting their syntax and supporting
   editor assistance. Other tools generate these files; a code scanner or generator
-  is outside this milestone. The final file name/extension remains to be specified.
+  is outside this milestone. The file extension is `.almlookup`.
 - Translate individual path segments and property/button captions through RESX,
   reusing their entries across instructions. Do not require a translation for each
   complete path. Keys remain the same across languages; for example, `Auslauf`
@@ -77,7 +77,7 @@ JSON input and separate documentation/HMI culture pairs:
   the sentence pattern; each procedure step supplies its own argument bindings.
   Do not create a separate translation key for every step. Indexed placeholders
   are outside the initial scope. Extend `$(loc:Key)` with optional named arguments;
-  the proposed form is `$(loc:Key, name="text", value=$(Parameter))`.
+  the form is `$(loc:Key, name="text", value=$(Parameter))`.
 - Keyword mode displays literal expressions, including the complete formatted
   localization call and standalone lookup expressions, rather than translated
   captions or rendered technical path names. Preserve the existing parent-only
@@ -95,7 +95,7 @@ JSON input and separate documentation/HMI culture pairs:
   the value argument. Insert the stored value without interpreting its meaning,
   checking bounds, or automatically substituting a default.
 
-Remaining engineering specification, not additional product-scope questions:
+Implementation constraints (specified in [HMI-LOOKUPS.md](HMI-LOOKUPS.md)):
 
 - Define the XML vocabulary, namespace/version, file extension, project items,
   generated key grammar, scoping across files, segment representation, metadata
@@ -106,7 +106,7 @@ Remaining engineering specification, not additional product-scope questions:
   placeholder diagnostics, and path/member/metadata reference spelling. Preserve
   literal parameter replacement strings and explicitly bound argument values;
   do not enable recursive evaluation or general nested localization implicitly.
-  These spellings are not current compiler features.
+  The compiler and host integration must use the same spelling and semantics.
 - Extend expression parsing, captured analysis and XLIFF protected placeholders
   for reusable templates and path/member/metadata references. Keep saved RESX
   capture, consuming-alarm parameter scope, and non-emitting template/excluded
@@ -153,6 +153,20 @@ Validation: compiler suite passed 315 tests on each framework; MSBuild unit test
 passed 43 per framework; SDK PackageTests and LocalizationTests passed 16 per
 framework. `git diff --check` passed. Host-side lookup inputs and selection UI are
 not part of this iteration.
+
+H3 completed: builds capture saved lookup inputs once per culture batch and protect
+them from output/manifest collisions. The SDK adds default/explicit/linked/conditional
+AlarmlistLookup items, exclusions, a CPS file rule, and AlarmlistLookupSchema. XLIFF
+protects named-placeholder and lookup-expression occurrences with reorder support.
+A regression found and fixed indentation being inserted before a leading inline
+code; empty text nodes preserve mixed content without changing translator text.
+Consumer tests cover per-culture output, metadata regeneration, missing/duplicate
+inputs, design-time guards, exclusions, conditions, Clean/Rebuild and whole-batch
+preservation. Validation: 319 compiler, 46 task unit, 4 task integration and 39 SDK
+tests passed per net472/net8.0. Desktop VS2026 MSBuild passed 7 lookup/package tests;
+VS rule tests passed 9. The SDK design-time rule-count assertion was updated for
+the new rule and the complete SDK suite rerun successfully. `git diff --check`
+passed. Actual translation-vendor round trips remain pending as previously agreed.
 
 ## Remaining implementation details and exchange decisions
 

@@ -1,0 +1,11 @@
+<Lookup xmlns="urn:alarmlist:lookup:1">
+  <Path Key="Service.Vakuum">
+    <Segment LabelKey="Hmi.Service" />
+    <Segment LabelKey="Hmi.Vacuum" />
+    <Property Key="Ein" LabelKey="Hmi.On">
+      <Metadata Name="Minimum" Value="0" />
+      <Metadata Name="Maximum" Value="100" />
+      <Metadata Name="Default" Value="060" />
+    </Property>
+  </Path>
+</Lookup>

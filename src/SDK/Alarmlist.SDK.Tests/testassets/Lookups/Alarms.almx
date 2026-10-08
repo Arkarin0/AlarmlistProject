@@ -1,0 +1,10 @@
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>SetDefault</FullyQualifiedName>
+    <Name>$(loc:Set, path=$(path:Service.Vakuum), property=$(property:Service.Vakuum#Ein), value=$(meta:Service.Vakuum#Ein#Default))</Name>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>SetLiteral</FullyQualifiedName>
+    <Name>$(loc:Set, path=$(path:Service.Vakuum), property=$(property:Service.Vakuum#Ein), value="999")</Name>
+  </Alarm>
+</Alarmlist>

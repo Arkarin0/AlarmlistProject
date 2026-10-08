@@ -137,6 +137,42 @@ namespace Alarmlist.Evaluation
             return names.Length == count && names.All(LookupCatalogue.IsValidKey);
         }
 
+        /// <summary>Original spans to protect during exchange, without evaluating any expression.</summary>
+        internal static IEnumerable<ExpressionSpan> ProtectedSpans(string raw)
+        {
+            for (int i = 0; i < raw.Length;)
+            {
+                if (raw[i] == '$' && i + 1 < raw.Length)
+                {
+                    if (raw[i + 1] == '$')
+                    {
+                        int escaped = i + 1;
+                        i = TryReadToken(raw, ref escaped, out _) ? escaped : i + 2;
+                        continue;
+                    }
+                    int next = i;
+                    if (TryReadToken(raw, ref next, out _))
+                    {
+                        yield return new ExpressionSpan(i, next - i);
+                        i = next;
+                        continue;
+                    }
+                }
+                if (raw[i] == '{')
+                {
+                    if (i + 1 < raw.Length && raw[i + 1] == '{') { i += 2; continue; }
+                    int end = raw.IndexOf('}', i + 1);
+                    if (end >= 0 && IsValidName(raw.Substring(i + 1, end - i - 1)))
+                    {
+                        yield return new ExpressionSpan(i, end - i + 1);
+                        i = end + 1;
+                        continue;
+                    }
+                }
+                i++;
+            }
+        }
+
         private static void SkipWhitespace(string raw, ref int cursor)
         {
             while (cursor < raw.Length && char.IsWhiteSpace(raw[cursor])) cursor++;
@@ -206,5 +242,12 @@ namespace Alarmlist.Evaluation
         internal ExpressionArgument(string literal, ExpressionToken token) { Literal = literal; Token = token; }
         internal string Literal { get; }
         internal ExpressionToken Token { get; }
+    }
+
+    internal readonly struct ExpressionSpan
+    {
+        internal ExpressionSpan(int start, int length) { Start = start; Length = length; }
+        internal int Start { get; }
+        internal int Length { get; }
     }
 }

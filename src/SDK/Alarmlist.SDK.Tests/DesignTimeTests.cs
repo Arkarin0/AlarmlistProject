@@ -36,7 +36,8 @@ namespace Alarmlist.MSBuild.SDK.Tests
             Assert.Equal(new[] { "Debug|AnyCPU", "Release|AnyCPU" }, File.ReadAllLines(Path.Combine(app.WorkingDirectory, "configurations.txt")));
             Assert.Equal(3, File.ReadAllLines(Path.Combine(app.WorkingDirectory, "sources.txt")).Length);
             string[] schemas = File.ReadAllLines(Path.Combine(app.WorkingDirectory, "schemas.txt"));
-            Assert.Equal(8, schemas.Length);
+            Assert.Equal(9, schemas.Length);
+            Assert.Contains(schemas, schema => Path.GetFileName(schema) == "AlarmlistLookup.xaml");
             foreach (string schema in schemas)
             {
                 Assert.StartsWith(app.PackageDirectory, Path.GetFullPath(schema));

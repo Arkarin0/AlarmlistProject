@@ -29,6 +29,7 @@ namespace Alarmlist.MSBuild
         public string Platform { get; set; }
         public ITaskItem[] Properties { get; set; } = Array.Empty<ITaskItem>();
         public ITaskItem[] Resources { get; set; } = Array.Empty<ITaskItem>();
+        public ITaskItem[] Lookups { get; set; } = Array.Empty<ITaskItem>();
         public string Cultures { get; set; }
         public string ManifestFile { get; set; }
 
@@ -76,7 +77,13 @@ namespace Alarmlist.MSBuild
                         ? item.GetMetadata("Culture") : LocalizationCulture.InferResourceCulture(path);
                     return new ResxTextSnapshot(Capture(path), path, 0, culture);
                 }).ToArray();
-                var inputPaths = new HashSet<string>(sourceFiles.Concat(resources.Select(resource => resource.FilePath)), BuildOutputPlan.PathComparer);
+                LookupTextSnapshot[] lookups = (Lookups ?? Array.Empty<ITaskItem>()).Select(item =>
+                {
+                    string path = Factory.GetFullFilePath(item);
+                    return new LookupTextSnapshot(Capture(path), path, 0);
+                }).ToArray();
+                var inputPaths = new HashSet<string>(sourceFiles.Concat(resources.Select(resource => resource.FilePath))
+                    .Concat(lookups.Select(lookup => lookup.FilePath)), BuildOutputPlan.PathComparer);
                 if (outputs.Any(item => inputPaths.Contains(item.ItemSpec))
                     || (!string.IsNullOrEmpty(ManifestFile) && inputPaths.Contains(Path.GetFullPath(ManifestFile))))
                     throw new InvalidOperationException("An output or ownership manifest must not replace a source input.");
@@ -93,7 +100,7 @@ namespace Alarmlist.MSBuild
                     CheckCancellation();
                     string culture = output.GetMetadata("Culture");
                     Log.LogMessage(MessageImportance.High, "Compiling {0} ALMX file(s) for '{1}'.", sources.Length == 0 ? sourceFiles.Length : sources.Length, culture);
-                    var context = new CompilationContext(resources, culture, ProjectPath, Configuration, Platform, properties);
+                    var context = new CompilationContext(resources, lookups, culture, ProjectPath, Configuration, Platform, properties);
                     CompilationResult result = _compileAction == null ? new AlarmCompiler().CompileSnapshots(sources, context) : _compileAction(sourceFiles);
                     LogDiagnostics(result);
                     success &= result.Success;

@@ -95,13 +95,9 @@ namespace Alarmlist.Localization
             var used = new HashSet<int>();
             string raw = entry.Value;
             int start = 0;
-            for (int i = 0; i + 1 < raw.Length; i++)
+            foreach (ExpressionSpan span in PropertyExpression.ProtectedSpans(raw))
             {
-                if (raw[i] != '$') continue;
-                if (raw[i + 1] == '$') { i++; continue; }
-                if (raw[i + 1] != '(') continue;
-                int end = raw.IndexOf(')', i + 2);
-                string code = raw.Substring(i, end - i + 1);
+                string code = raw.Substring(span.Start, span.Length);
                 int index;
                 if (source) { index = codes.Count; codes.Add(code); }
                 else
@@ -111,20 +107,21 @@ namespace Alarmlist.Localization
                     if (index == codes.Count) throw PlaceholderMismatch(entry);
                 }
                 used.Add(index);
-                element.Add(raw.Substring(start, i - start));
+                // Keep even empty text nodes: they mark mixed content before a leading
+                // inline code, preventing XmlWriter indentation from changing the value.
+                element.Add(new XText(raw.Substring(start, span.Start - start)));
                 string id = (index + 1).ToString(CultureInfo.InvariantCulture);
                 element.Add(new XElement(Namespace + "ph", new XAttribute("id", id), new XAttribute("dataRef", "d" + id),
                     new XAttribute("disp", code), new XAttribute("canCopy", "no"), new XAttribute("canDelete", "no")));
-                i = end;
-                start = end + 1;
+                start = span.Start + span.Length;
             }
-            element.Add(raw.Substring(start));
+            element.Add(new XText(raw.Substring(start)));
             if (!source && raw.Length != 0 && used.Count != codes.Count) throw PlaceholderMismatch(entry);
             return element;
         }
 
         private static InvalidOperationException PlaceholderMismatch(ResourceEntry entry)
-            => new InvalidOperationException("Resource '" + entry.Key + "' in '" + entry.Culture + "' must contain the same parameter-expression occurrences as the source for XLIFF export.");
+            => new InvalidOperationException("Resource '" + entry.Key + "' in '" + entry.Culture + "' must contain the same protected expression and named-placeholder occurrences as the source for XLIFF export.");
 
         internal static string Hash(string text)
         {

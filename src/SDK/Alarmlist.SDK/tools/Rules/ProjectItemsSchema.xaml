@@ -2,11 +2,14 @@
 <ProjectSchemaDefinitions xmlns="http://schemas.microsoft.com/build/2009/properties">
   <ContentType Name="Alarmlist" DisplayName="Alarm list" ItemType="Compile" />
   <ContentType Name="AlarmlistResource" DisplayName="Alarm translations" ItemType="AlarmlistResource" />
+  <ContentType Name="AlarmlistLookup" DisplayName="HMI lookup catalogue" ItemType="AlarmlistLookup" />
   <ContentType Name="Text" DisplayName="Text file" ItemType="None" />
   <ItemType Name="Compile" DisplayName="Alarmlist compiler" />
   <ItemType Name="AlarmlistResource" DisplayName="Alarmlist translations" />
+  <ItemType Name="AlarmlistLookup" DisplayName="Alarmlist lookup catalogue" />
   <ItemType Name="None" DisplayName="Does not participate in build" />
   <FileExtension Name=".almx" ContentType="Alarmlist" />
   <FileExtension Name=".resx" ContentType="AlarmlistResource" />
+  <FileExtension Name=".almlookup" ContentType="AlarmlistLookup" />
   <FileExtension Name=".txt" ContentType="Text" />
 </ProjectSchemaDefinitions>

@@ -16,6 +16,7 @@ namespace Alarmlist.VisualStudio.UnitTests
         [InlineData("GeneralFile")]
         [InlineData("Compile")]
         [InlineData("AlarmlistResource")]
+        [InlineData("AlarmlistLookup")]
         [InlineData("None")]
         [InlineData("Folder")]
         public void PropertyRulesCanBeLoadedByMSBuild(string name)
@@ -35,6 +36,10 @@ namespace Alarmlist.VisualStudio.UnitTests
                 && extension.Name == ".almx" && extension.ContentType == "Alarmlist");
             Assert.Contains(schema.Nodes, node => node is ContentType content
                 && content.Name == "Alarmlist" && content.ItemType == "Compile");
+            Assert.Contains(schema.Nodes, node => node is FileExtension extension
+                && extension.Name == ".almlookup" && extension.ContentType == "AlarmlistLookup");
+            Assert.Contains(schema.Nodes, node => node is ContentType content
+                && content.Name == "AlarmlistLookup" && content.ItemType == "AlarmlistLookup");
             // Declared source item types are files. CPS handles folders through
             // ProjectFileFolderItems; declaring Folder here breaks empty-folder
             // reload because its persisted identity ends in a path separator.

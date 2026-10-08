@@ -13,6 +13,7 @@
     <AlarmlistTasksAssembly Condition="'$(AlarmlistTasksAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/$(_AlarmlistTaskFramework)/AlarmList.MSBuild.dll</AlarmlistTasksAssembly>
     <!-- The in-process Visual Studio analysis bridge always runs on .NET Framework. -->
     <AlarmlistAnalysisCompilerAssembly>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '../tasks/net472/Alarmlist.Core.dll'))</AlarmlistAnalysisCompilerAssembly>
+    <AlarmlistLookupSchema>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', 'Schemas/AlarmlistLookup.xsd'))</AlarmlistLookupSchema>
     <BuildDependsOn>BeforeBuild;CoreBuild;AfterBuild;$(BuildDependsOn)</BuildDependsOn>
     <CleanDependsOn>BeforeClean;CoreClean;AfterClean;$(CleanDependsOn)</CleanDependsOn>
   </PropertyGroup>
@@ -27,7 +28,7 @@
     <ItemGroup><AlarmlistXliffFiles Remove="@(AlarmlistXliffFiles)" /></ItemGroup>
     <AlarmlistExportXliffTask Resources="@(AlarmlistResource)" SourceCulture="$(AlarmlistXliffSourceCulture)"
                              TargetCultures="$(AlarmlistXliffTargetCultures)" OutputDirectory="$(AlarmlistXliffOutputPath)"
-                             Overwrite="$(AlarmlistXliffOverwrite)" ProtectedFiles="@(Compile);$(MSBuildProjectFullPath);@(CompiledAlarmlistFiles);$(_AlarmlistOutputManifest)">
+                             Overwrite="$(AlarmlistXliffOverwrite)" ProtectedFiles="@(Compile);@(AlarmlistLookup);$(MSBuildProjectFullPath);@(CompiledAlarmlistFiles);$(_AlarmlistOutputManifest)">
       <Output TaskParameter="ExportFiles" ItemName="AlarmlistXliffFiles" />
     </AlarmlistExportXliffTask>
   </Target>
@@ -41,7 +42,7 @@
     <Error Condition="!Exists('$(AlarmlistTasksAssembly)')" Text="Alarmlist task assembly was not found: $(AlarmlistTasksAssembly). Rebuild or restore the Alarmlist.MSBuild.SDK package." />
     <ItemGroup><CompiledAlarmlistFiles Remove="@(CompiledAlarmlistFiles)" /></ItemGroup>
     <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Compile="@(Compile)"
-                       Resources="@(AlarmlistResource)" Cultures="$(AlarmlistCultures)" ManifestFile="$(_AlarmlistOutputManifest)"
+                       Resources="@(AlarmlistResource)" Lookups="@(AlarmlistLookup)" Cultures="$(AlarmlistCultures)" ManifestFile="$(_AlarmlistOutputManifest)"
                        ProjectPath="$(MSBuildProjectFullPath)" Configuration="$(Configuration)" Platform="$(Platform)" Properties="@(AlarmlistProperty)">
       <Output TaskParameter="OutputFiles" ItemName="CompiledAlarmlistFiles" />
     </AlarmlistBuildTask>

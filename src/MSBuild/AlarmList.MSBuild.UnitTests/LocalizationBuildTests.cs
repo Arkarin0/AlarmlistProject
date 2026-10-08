@@ -247,6 +247,54 @@ namespace AlarmList.MSBuild.UnitTests
             Assert.Empty(Directory.GetFiles(_directory, "*.alarmlist-*"));
         }
 
+        [Fact]
+        public void LookupMetadataIsCapturedOnceAcrossCulturesAndFailuresPreserveTheWholeBatch()
+        {
+            File.WriteAllText(SourcePath, "<Alarmlist><Alarm><Name>$(loc:K, value=$(meta:P#M#Default))</Name></Alarm></Alarmlist>");
+            string lookup = Path.Combine(_directory, "hmi.almlookup");
+            const string xml = "<Lookup xmlns='urn:alarmlist:lookup:1'><Path Key='P'><Segment LabelKey='K'/><Property Key='M' LabelKey='K'><Metadata Name='Default' Value='001'/></Property></Path></Lookup>";
+            File.WriteAllText(lookup, "<?xml version='1.0' encoding='utf-16'?>" + xml, Encoding.Unicode);
+            ITaskItem english = Resource("Labels.en.resx", "Set {value}");
+            ITaskItem german = Resource("Labels.de.resx", "Setze {value}");
+            buildEngine.Setup(engine => engine.LogMessageEvent(It.IsAny<BuildMessageEventArgs>()))
+                .Callback<BuildMessageEventArgs>(message =>
+                {
+                    if (message.Message.StartsWith("Compiling", StringComparison.Ordinal))
+                        File.WriteAllText(lookup, xml.Replace("001", "999"));
+                });
+            var task = Create("en;de", english, german);
+            task.Lookups = new ITaskItem[] { new TaskItem(lookup) };
+            Assert.True(task.Execute());
+            Assert.Equal("Set 001", ReadName(Output("en")));
+            Assert.Equal("Setze 001", ReadName(Output("de")));
+            byte[] previous = File.ReadAllBytes(Output("en")), manifest = File.ReadAllBytes(ManifestPath);
+            File.WriteAllText(lookup, "<Lookup xmlns='urn:alarmlist:lookup:1'><Path/></Lookup>");
+            var failed = Create("en;de", english, german);
+            failed.Lookups = task.Lookups;
+            Assert.False(failed.Execute());
+            Assert.Contains(buildErrors, error => error.Code == "ALM0019" && error.File == lookup);
+            Assert.Equal(previous, File.ReadAllBytes(Output("en")));
+            Assert.Equal("Setze 001", ReadName(Output("de")));
+            Assert.Equal(manifest, File.ReadAllBytes(ManifestPath));
+            Assert.Empty(failed.OutputFiles);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void OutputsAndManifestsCannotReplaceLookupInputs(bool manifest)
+        {
+            string path = manifest ? ManifestPath : Output("keyword");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            const string xml = "<Lookup xmlns='urn:alarmlist:lookup:1'/>";
+            File.WriteAllText(path, xml);
+            var task = Create("keyword");
+            task.Lookups = new ITaskItem[] { new TaskItem(path) };
+            Assert.False(task.Execute());
+            Assert.Equal(xml, File.ReadAllText(path));
+            Assert.Empty(task.OutputFiles);
+        }
+
         private AlarmlistBuildTask Create(string cultures, params ITaskItem[] resources) => new AlarmlistBuildTask
         {
             BuildEngine = buildEngine.Object, Compile = new ITaskItem[] { new TaskItem(SourcePath) }, Resources = resources,

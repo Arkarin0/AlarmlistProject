@@ -56,6 +56,27 @@ namespace Alarmlist.Core.UnitTests.Localization
         }
 
         [Fact]
+        public void NamedPlaceholdersAndLookupReferencesAreProtectedAndCanBeReordered()
+        {
+            const string source = "In {path}, set {property} to {value}. {value} $(meta:P#M#Default) {{literal}} $$(loc:K, value=$(p))";
+            const string target = "{value} {property} {path} {value} $(meta:P#M#Default) {{literal}} $$(loc:K, value=$(p))";
+            var result = XliffExport.Create(new[] { Resource("en", Entry("K", source)), Resource("de", Entry("K", target)) }, "de");
+            XElement unit = XDocument.Parse(result.Xliff).Descendants(Ns + "unit").Single();
+            Assert.Equal(new[] { "{path}", "{property}", "{value}", "{value}", "$(meta:P#M#Default)" }, unit.Descendants(Ns + "data").Select(data => data.Value));
+            Assert.Equal(source, Raw(unit, "source"));
+            Assert.Equal(target, Raw(unit, "target"));
+            Assert.Equal(new[] { "3", "2", "1", "4", "5" }, unit.Descendants(Ns + "target").Single().Elements(Ns + "ph").Select(code => (string)code.Attribute("id")));
+        }
+
+        [Theory]
+        [InlineData("{path} {value}", "{path}")]
+        [InlineData("{value}", "{Value}")]
+        [InlineData("{value}", "{value} {value}")]
+        public void ChangedNamedPlaceholdersRejectExport(string source, string target)
+            => Assert.Throws<InvalidOperationException>(() => XliffExport.Create(new[]
+                { Resource("en", Entry("K", source)), Resource("de", Entry("K", target)) }, "de"));
+
+        [Fact]
         public void BaselineChangesWithSavedSourceTargetAndCommentAndPreservesEntityCarriageReturns()
         {
             var source = new ResxTextSnapshot("<root><data name='K'><value>A&#13;B</value></data></root>", "source", 1, "en");
