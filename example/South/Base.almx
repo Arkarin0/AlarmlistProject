@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Alarmlist>
   <Alarm>
+    <Properties><Property Name="par1" /></Properties>
     <FullyQualifiedName>Plant.Pump.Base</FullyQualifiedName>
-    <Name>South pump pressure low</Name>
+    <Name>$(loc:Pump.Name)</Name>
     <Code>P-001</Code>
-    <Category>South utilities</Category>
-    <Description>South standby pump pressure is below its limit. Check the filter &amp; bypass valve.</Description>
+    <Category>$(loc:Pump.Category)</Category>
+    <Description>$(loc:Pump.Description)</Description>
     <TestProcedure>
       <Instructions>
-        <Step>Inspect the South pump and bypass valve.</Step>
-        <Warning>Isolate the South pump before maintenance.</Warning>
+        <Step>$(loc:Pump.Inspect)</Step>
+        <Warning>$(loc:Pump.Isolate)</Warning>
       </Instructions>
       <Reset>
-        <Step>Acknowledge the alarm at the South station.</Step>
+        <Step>$(loc:Pump.Acknowledge)</Step>
       </Reset>
     </TestProcedure>
   </Alarm>

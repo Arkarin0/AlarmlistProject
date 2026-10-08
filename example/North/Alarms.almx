@@ -1,38 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Alarmlist>
+  <Properties><Property Name="par1" Value="010" /></Properties>
   <!-- A second reference hop with local Name/Code and inherited Category/Description. -->
   <Alarm>
+    <Properties><Property Name="par1" Value="003" /></Properties>
     <FullyQualifiedName>Plant.Pump.PressureLow.Panel</FullyQualifiedName>
     <ReferenceName>Plant.Pump.PressureLow</ReferenceName>
-    <Name>North control panel pressure alarm</Name>
+    <Name>$(loc:Panel.Name)</Name>
     <Code>P-002</Code>
     <TestProcedure>
       <Instructions>
-        <Hint>Use the panel trend to compare the current and previous readings.</Hint>
-        <Step>Confirm the affected pump on the control panel.</Step>
+        <Hint>$(loc:Panel.Compare)</Hint>
+        <Step>$(loc:Panel.Confirm)</Step>
       </Instructions>
     </TestProcedure>
   </Alarm>
   <!-- A standalone alarm for trying scalar and procedure edits. -->
   <Alarm>
     <FullyQualifiedName>Plant.Utility.AirPressureLow</FullyQualifiedName>
-    <Name>Compressed air pressure low</Name>
+    <Name>$(loc:Air.Name)</Name>
     <Code>U-001</Code>
-    <Category>Compressed air</Category>
-    <Description>The compressed air supply pressure is below the configured threshold.</Description>
+    <Category>$(loc:Air.Category)</Category>
+    <Description>$(loc:Air.Description)</Description>
     <TestProcedure>
       <Instructions>
-        <Step>Check compressor availability.</Step>
-        <Step>Inspect the main supply valve.</Step>
+        <Step>$(loc:Air.Compressor)</Step>
+        <Step>$(loc:Air.Valve)</Step>
       </Instructions>
       <Reset>
-        <Step>Restore supply pressure and acknowledge the alarm.</Step>
+        <Step>$(loc:Air.Reset)</Step>
       </Reset>
     </TestProcedure>
   </Alarm>
   <Alarm>
     <FullyQualifiedName>NewAlarm</FullyQualifiedName>
-    <Name>New alarm</Name>
+    <Name>$(loc:NewAlarm.Name)</Name>
     <ReferenceName>Plant.Pump.PressureLow</ReferenceName>
     <Code>P-00A1</Code>
   </Alarm>

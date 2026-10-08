@@ -9,12 +9,12 @@
     <Code>P-001</Code>
     <TestProcedure>
       <Instructions>
-        <Note>Record the pressure reading in the shift log.</Note>
+        <Note>$(loc:Shared.LogPressure)</Note>
       </Instructions>
       <Reset>
         <Step>This local step is excluded by the following Clear.</Step>
         <Clear />
-        <Step>Restore pressure, then acknowledge at the shared control panel.</Step>
+        <Step>$(loc:Shared.Reset)</Step>
       </Reset>
     </TestProcedure>
   </Alarm>

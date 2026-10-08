@@ -2,7 +2,7 @@
 <Alarmlist>
   <Alarm>
     <FullyQualifiedName>Alarms1.Example</FullyQualifiedName>
-    <Name>Example alarm</Name>
-    <Description>Replace this alarm with your own definition.</Description>
+    <Name>$(loc:Example.Name)</Name>
+    <Description>$(loc:Example.Description)</Description>
   </Alarm>
 </Alarmlist>

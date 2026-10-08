@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Shared.LogPressure" xml:space="preserve">
+    <value>Den Druckmesswert im Schichtprotokoll festhalten.</value>
+    <comment>Shared by both projects; de-DE deliberately falls back to this de translation.</comment>
+  </data>
+  <data name="Shared.Reset" xml:space="preserve">
+    <value>Druck wiederherstellen und anschließend am gemeinsamen Bedienpult quittieren.</value>
+    <comment>The de-DE catalogue provides a culture-specific alternative.</comment>
+  </data>
+</root>

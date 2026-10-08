@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Alarmlist>
   <Alarm>
+    <Properties><Property Name="par1" /></Properties>
     <FullyQualifiedName>Plant.Pump.Base</FullyQualifiedName>
-    <Name>North pump pressure low</Name>
+    <Name>$(loc:Pump.Name)</Name>
     <Code>P-001</Code>
-    <Category>North utilities</Category>
-    <Description>North pump supply pressure is below its limit. Inspect inlet &amp; outlet gauges.</Description>
+    <Category>$(loc:Pump.Category)</Category>
+    <Description>$(loc:Pump.Description)</Description>
     <TestProcedure>
       <Instructions>
-        <Step>Inspect the North pump and inlet valve.</Step>
-        <Warning>Isolate the North pump before maintenance.</Warning>
+        <Step>$(loc:Pump.Inspect)</Step>
+        <Warning>$(loc:Pump.Isolate)</Warning>
       </Instructions>
       <Reset>
-        <Step>Acknowledge the alarm at the North station.</Step>
+        <Step>$(loc:Pump.Acknowledge)</Step>
       </Reset>
     </TestProcedure>
   </Alarm>

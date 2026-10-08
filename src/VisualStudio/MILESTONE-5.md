@@ -591,6 +591,21 @@ VSIX.
   and the resource-editor retries remain pending an available desktop. No focus
   safeguard was relaxed. TRX: `artifacts/log/Debug/VisualStudioUI/TestResults/28dd732c0cf84b2789ebc95af4096658/`.
 
+## Follow-up: localized example playground (2026-10-08)
+
+- North and South retain their existing alarm identities and reference/procedure
+  structure, with display text moved into English and German RESX catalogues.
+  Both link common resources, including a deliberately partial de-DE catalogue
+  that demonstrates exact-culture override and parent-only lookup.
+- Preview defaults to keyword; builds emit keyword, en and de-DE outputs.
+  Translated instructions demonstrate project values 001/002, file value 010,
+  and alarm override 003. The README explains editing, saved-only observation,
+  completion, missing translations, new resource items, and toolbar use.
+- The example solution built with dotnet MSBuild and rebuilt with VS2026 desktop
+  MSBuild. All six outputs were inspected and asserted for alarm counts (North 6,
+  South 2), literal keyword tokens, parent/exact culture values, and parameter
+  scopes. Generated SDK configuration, caches and output files remain ignored.
+
 ## Exchange compatibility decision (2026-10-07)
 
 The three target tools are Trados Studio, memoQ, and Phrase TMS, selected from
