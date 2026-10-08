@@ -1,4 +1,4 @@
-# Reusable instruction templates and HMI lookups
+# Reusable instruction templates and lookup catalogues
 
 This is the implementation specification for the confirmed milestone-five
 extension. The iteration log in [milestone five](MILESTONE-5.md) records which

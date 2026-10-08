@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Plant.Outlet.Electrical</FullyQualifiedName>
+    <Name>$(loc:Electrical.AlarmName)</Name>
+    <Code>E-001</Code>
+    <TestProcedure>
+      <Instructions>
+        <Step>$(loc:Instruction.DisconnectWire, wire=$(list:Wires#EC120W1), connection=$(list:ConnectionPoints#EC120K1_12))</Step>
+        <!-- Independent selections from the same list, with distinct argument roles. -->
+        <Step>$(loc:Instruction.MeasureBetween, first=$(list:ConnectionPoints#EC120K1_12), second=$(list:ConnectionPoints#EC120X1_01))</Step>
+        <Step>$(loc:Instruction.CheckSignal, signal=$(list:PlcSignals#OutletVacuumReady))</Step>
+        <!-- Reuse the sentence with free text: bindings assist selection, without restricting values. -->
+        <Hint>$(loc:Instruction.CheckSignal, signal="Auxiliary.Ready[0]")</Hint>
+      </Instructions>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>

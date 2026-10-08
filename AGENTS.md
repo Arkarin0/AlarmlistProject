@@ -21,7 +21,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 
 | Location | Responsibility |
 | --- | --- |
-| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, and detached snapshot/provenance results in `Analysis/`. |
+| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, and detached snapshot/provenance results in `Analysis/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
 | `src/MSBuild/AlarmList.MSBuild.UnitTests/` | Task unit tests and mocked build-engine behavior. |

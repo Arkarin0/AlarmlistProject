@@ -11,6 +11,8 @@ The owner has also added reusable instruction templates and generated HMI lookup
 to this milestone. H1-H3 implement XML/XSD, captured catalogues, named expressions,
 lookup evaluation, compiler analysis, SDK build inputs and XLIFF protection. Designer
 integration and persistent sample acceptance are complete in H4-H5 below.
+General named lists, argument-specific IntelliSense, and electrical/PLC samples
+are complete in L1-L3 below. There is no built-in DeviceTag field.
 The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
@@ -242,6 +244,19 @@ run stopped at the foreground-PID safeguard before typing; a fresh-instance retr
 passed with no safeguard or product changes. The scenarios verify private XML
 drafts, bound and direct insertion, Undo, saved regeneration, and unchanged build
 outputs. Screenshots and TRX are retained under artifacts/log/Debug/VisualStudioUI.
+
+L3 completed: North and South link an electrical catalogue and instruction sample.
+One sentence handles wire disconnection; another selects two independent connection
+points; a third checks PLC symbols including array punctuation and a free literal.
+English/German RESX supplies sentences and suggestion descriptions. Stable literal
+identifiers survive translation and German placeholder reordering. Documentation
+covers generators, XSD, explicit bindings, Ctrl+Space, missing/duplicate identities,
+and regeneration. Both projects built in keyword/en/de-DE with dotnet MSBuild.
+All four electrical instructions and alarm counts (North 8, South 4) were verified
+in all six outputs; VS2026 desktop MSBuild produced byte-identical outputs.
+Both projects exported XLIFF with protected named arguments and German ordering,
+without changing compiled outputs. `git diff --check` passed. Existing changes
+to FUTURE-FEATURES.md and North's project settings remain outside these commits.
 
 ## Remaining implementation details and exchange decisions
 

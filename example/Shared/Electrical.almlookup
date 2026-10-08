@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Example output from electrical/PLC tools. Keep keys stable across regeneration. -->
+<Lookup xmlns="urn:alarmlist:lookup:1">
+  <List Key="Wires">
+    <Entry Key="EC120W1" Value="=EC-120W1" DescriptionKey="Electrical.OutletWire">
+      <Metadata Name="DrawingPage" Value="023" />
+      <Metadata Name="CrossSection" Value="1.5 mm²" />
+    </Entry>
+    <Entry Key="EC120W2" Value="=EC-120W2" DescriptionKey="Electrical.SpareWire">
+      <Metadata Name="DrawingPage" Value="024" />
+    </Entry>
+  </List>
+  <List Key="ConnectionPoints">
+    <Entry Key="EC120K1_12" Value="=EC-120K1:12" DescriptionKey="Electrical.ContactorTerminal" />
+    <Entry Key="EC120X1_01" Value="=EC-120X1:01" DescriptionKey="Electrical.TerminalBlock" />
+  </List>
+  <List Key="PlcSignals">
+    <Entry Key="OutletVacuumReady" Value="Main.Outlets[1].VacuumReady" DescriptionKey="Electrical.VacuumSignal">
+      <Metadata Name="DataType" Value="BOOL" />
+      <Metadata Name="Source" Value="OutletController" />
+    </Entry>
+  </List>
+  <Template Key="Instruction.DisconnectWire">
+    <Argument Name="wire" List="Wires" />
+    <Argument Name="connection" List="ConnectionPoints" />
+  </Template>
+  <Template Key="Instruction.MeasureBetween">
+    <Argument Name="first" List="ConnectionPoints" />
+    <Argument Name="second" List="ConnectionPoints" />
+  </Template>
+  <Template Key="Instruction.CheckSignal">
+    <Argument Name="signal" List="PlcSignals" />
+  </Template>
+</Lookup>

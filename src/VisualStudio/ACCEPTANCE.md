@@ -151,6 +151,13 @@ LookupCompletion xUnit scenario (`Area=Lookups`) checks saved-only catalogue cap
 completion/Undo and regeneration in an isolated fixture on each supported IDE.
 These UI checks passed on VS2022 and VS2026 for iteration H4; see MILESTONE-5.
 
+The ListCompletion scenario (`Area=Lists`) covers explicitly mapped wire and
+terminal suggestions, literal identifiers, descriptions/metadata, replacement of
+quoted slots, direct reference insertion, Undo and saved-only regeneration. It
+passed in both IDE versions for L2. The persistent ElectricalInstructions.almx
+sample also covers two independent selections from one list, PLC punctuation,
+and a free literal argument. Follow its walkthrough in the example README.
+
 1. Export a synthetic fixture with the SDK's ExportAlarmlistXliff target. Include
    Unicode, leading/trailing whitespace, comments, repeated parameter expressions,
    a missing target and an explicitly empty target. Keep the generated baseline

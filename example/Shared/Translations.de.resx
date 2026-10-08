@@ -30,4 +30,22 @@
   <data name="Hmi.Vacuum" xml:space="preserve"><value>Vakuum</value></data>
   <data name="Hmi.On" xml:space="preserve"><value>EIN</value></data>
   <data name="Hmi.Off" xml:space="preserve"><value>AUS</value></data>
+  <data name="Electrical.AlarmName" xml:space="preserve"><value>Elektrische Prüfung am Auslauf</value></data>
+  <data name="Electrical.OutletWire" xml:space="preserve"><value>Motorleitung am Auslauf</value></data>
+  <data name="Electrical.SpareWire" xml:space="preserve"><value>Reserveleitung</value></data>
+  <data name="Electrical.ContactorTerminal" xml:space="preserve"><value>Schützanschluss</value></data>
+  <data name="Electrical.TerminalBlock" xml:space="preserve"><value>Klemmenleiste, Anschluss 01</value></data>
+  <data name="Electrical.VacuumSignal" xml:space="preserve"><value>Signal Vakuum am Auslauf bereit</value></data>
+  <data name="Instruction.DisconnectWire" xml:space="preserve">
+    <value>Trennen Sie am Anschluss {connection} die Leitung {wire}.</value>
+    <comment>The German sentence places connection before wire. Identifiers remain literal.</comment>
+  </data>
+  <data name="Instruction.MeasureBetween" xml:space="preserve">
+    <value>Messen Sie die Spannung zwischen {first} und {second}.</value>
+    <comment>Both argument roles independently select from ConnectionPoints.</comment>
+  </data>
+  <data name="Instruction.CheckSignal" xml:space="preserve">
+    <value>Prüfen Sie das Signal {signal}.</value>
+    <comment>The PLC symbol stays literal in every language.</comment>
+  </data>
 </root>

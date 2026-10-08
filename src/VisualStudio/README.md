@@ -66,7 +66,13 @@ Milestone five also supports reusable named templates such as
 `$(loc:Instruction.Set, path=$(path:Service.Vakuum), value="60")`.
 External tools supply `.almlookup` XML catalogues; the SDK includes the XSD.
 Saved RESX entries translate each path segment and member label in the same
-selected culture. Completion inserts named argument slots and path/member/metadata
+selected culture. General named lists also supply literal identifiers with optional
+translated descriptions and metadata. Explicit Template/Argument mappings provide
+contextual Ctrl+Space choices in quoted argument values; selecting replaces the
+whole value with a `$(list:List#Entry)` reference. Direct list completion is also
+available in scalar fields and procedure rows. See the
+[electrical sample](../../example/README.md#try-supplied-lists-and-electrical-instructions).
+Completion inserts named argument slots and path/member/metadata
 references while preserving local drafts. Saved catalogue regeneration refreshes
 preview; unsaved lookup XML remains private. Metadata provides selection guidance
 without automatic defaults or range validation. See the [format specification](HMI-LOOKUPS.md)

@@ -213,6 +213,44 @@ reference. Visual Studio completion offers named argument slots and catalogue
 expressions from saved files. It neither applies metadata defaults automatically
 nor publishes unsaved catalogue edits.
 
+### General named lists
+
+The same `.almlookup` inputs support arbitrary named lists. For example:
+
+```xml
+<Lookup xmlns="urn:alarmlist:lookup:1">
+  <List Key="Wires">
+    <Entry Key="EC120W1" Value="=EC-120W1" DescriptionKey="Wire.Outlet">
+      <Metadata Name="DrawingPage" Value="023" />
+    </Entry>
+  </List>
+  <Template Key="Instruction.DisconnectWire">
+    <Argument Name="wire" List="Wires" />
+  </Template>
+</Lookup>
+```
+
+Use `$(list:Wires#EC120W1)` directly or as a named localization argument. Values
+are literal text, preserving punctuation, empty values and leading zeros. Optional
+DescriptionKey translates suggestion guidance through the selected culture;
+Description is a mutually exclusive literal alternative. Missing descriptions do
+not invalidate identifiers. Metadata remains literal selection guidance.
+
+Lists merge across files. Duplicate entry identities report ALM0023; ambiguous
+or unknown explicit references fail with ALM0021. Duplicate argument bindings and
+unknown bound lists report ALM0024. Bindings are editor hints only: literal and
+parameter arguments remain allowed. RESX owns the template's placeholder names.
+The XSD and [complete format specification](../../VisualStudio/HMI-LOOKUPS.md)
+describe these rules. No built-in DeviceTag field, relationship validation, or
+multi-selection formatting is introduced.
+
+Analysis contract 3 adds read-only LookupLists and ArgumentBindings. Entries expose
+their literal Value, Expression, Location, ambiguity, optional DescriptionTranslation,
+and metadata; bindings expose TemplateKey, ArgumentName, ListKey and availability.
+Hosts use these detached compiler answers and revalidate saved inputs for completion.
+See the [electrical sample](../../../example/README.md#try-supplied-lists-and-electrical-instructions)
+for wire/connection and PLC-symbol instructions in keyword, English and German.
+
 ## Property expressions and templates
 
 Expressions are always enabled in Name, Code, Category, Description and procedure

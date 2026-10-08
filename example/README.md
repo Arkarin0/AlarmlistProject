@@ -30,8 +30,8 @@ the IDE; use **File > Open > Project/Solution** to open `Example.sln` yourself.
    **South.Alarmlist.xml**. Try Clean/Rebuild and the project output properties.
    Live previews reflect unsaved ALMX edits without writing these files.
 
-The initial solution has no compiler errors: North compiles seven alarms and South
-compiles three in each build culture. With preview language **en**, the shared
+The initial solution has no compiler errors: North compiles eight alarms and South
+compiles four in each build culture. With preview language **en**, the shared
 `Plant.Pump.PressureLow` alarm shows:
 
 | Value | North context | South context |
@@ -135,6 +135,47 @@ translated once per language and reused across instructions; adding another step
 does not require another sentence key. XLIFF export protects their named
 placeholders while allowing translators to reorder them.
 
+## Try supplied lists and electrical instructions
+
+Open **ElectricalInstructions.almx** in either project. Both projects link
+**Shared/Electrical.almlookup**, representing lists supplied by electrical and PLC
+tools. Choose **en** to see:
+
+> Disconnect wire =EC-120W1 from =EC-120K1:12.
+
+The next instruction selects two independent connection points from the same
+list. The third uses **Main.Outlets[1].VacuumReady**, retaining its punctuation.
+The Hint reuses the same CheckSignal sentence with a free literal argument,
+**Auxiliary.Ready[0]**, which need not appear in a list.
+
+Choose **de-DE**. The German sentence reverses the order of wire and connection,
+and the suggestion descriptions translate through **de**. The identifiers remain
+unchanged. **keyword** displays each complete expression.
+
+To try authoring, edit the first local Step:
+
+1. Type `$(loc:Instruction.DisconnectWire` and choose the **template** suggestion.
+2. With the first `""` selected, press **Ctrl+Space**. Only **Wires** are offered,
+   together with descriptions, drawing pages and cross-section metadata. Select
+   an entry and press Enter to insert `$(list:Wires#EC120W1)` without quotes.
+3. Place the caret inside the connection argument's quoted value and press
+   **Ctrl+Space**. Only **ConnectionPoints** are offered. You can type part of an
+   identifier or description to narrow the choices. Selecting replaces the whole
+   argument value. Enter again commits the ALMX edit; Ctrl+Z undoes it.
+
+Direct `$(list:PlcSignals#` completion is also available in scalar fields and
+procedure rows. Explicit Template/Argument mappings in the catalogue choose the
+lists; the editor does not infer them from argument names. Entries are suggestions,
+without membership or relationship validation. No DeviceTag field is added.
+
+Keep an entry's **Key** stable and change its **Value**, then save the catalogue.
+References resolve to the new value in both projects. Unsaved catalogue edits stay
+private. Multiple files may contribute to a list; duplicate entry keys fail the
+build with **ALM0023**. Optional **DescriptionKey** uses RESX; **Description** supplies
+a literal alternative. Missing translated descriptions do not invalidate literal
+identifiers. Removing an explicitly referenced entry fails with **ALM0021** and
+preserves previous outputs. Restore exploratory edits afterward.
+
 ## Try live diagnostics
 
 In North's `Alarms.almx`, temporarily change the panel's ReferenceName to
@@ -171,7 +212,7 @@ local package feed is used. Its cache is under `.packages/<package SHA256>/`, so
 rebuilding the SDK with the same version still loads fresh contents. Local
 `Directory.Build.props/targets` keep the repository's Arcade configuration out of
 these consumer projects, following the existing SDK test/acceptance fixtures.
-The targets file also links the common HMI catalogue and instruction sample.
+The targets file also links the common HMI and electrical catalogues and samples.
 The launchers clear `NUGET_PACKAGES` only in their child process environment so
 the IDE honors this isolated cache; they do not change user NuGet settings.
 
