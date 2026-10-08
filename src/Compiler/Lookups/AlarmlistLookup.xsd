@@ -5,6 +5,8 @@
   <xs:annotation><xs:documentation>
     Alarmlist lookup catalogue version 1. Keys are case-sensitive technical identities.
     LabelKey references a RESX entry. Metadata is literal text with no compiler-defined semantics.
+    List Entry Value is literal. Description and DescriptionKey are mutually exclusive
+    (also enforced by the compiler). Template Argument List is a completion hint.
   </xs:documentation></xs:annotation>
   <xs:simpleType name="Key">
     <xs:restriction base="xs:string">
@@ -28,10 +30,15 @@
     <xs:attribute name="Key" type="l:Key" use="required" />
     <xs:attribute name="LabelKey" type="l:ResourceKey" use="required" />
   </xs:complexType>
+  <xs:simpleType name="ArgumentName">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z_][A-Za-z0-9_]*" />
+    </xs:restriction>
+  </xs:simpleType>
   <xs:element name="Lookup">
     <xs:complexType>
-      <xs:sequence>
-        <xs:element name="Path" minOccurs="0" maxOccurs="unbounded">
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Path">
           <xs:complexType>
             <xs:sequence>
               <xs:element name="Segment" minOccurs="1" maxOccurs="unbounded">
@@ -58,10 +65,61 @@
             <xs:selector xpath="l:Property | l:Button" /><xs:field xpath="@Key" />
           </xs:unique>
         </xs:element>
-      </xs:sequence>
+        <xs:element name="List">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Entry" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="Metadata" minOccurs="0" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="Name" type="l:Key" use="required" />
+                        <xs:attribute name="Value" type="xs:string" use="required" />
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="Key" type="l:Key" use="required" />
+                  <xs:attribute name="Value" type="xs:string" use="required" />
+                  <xs:attribute name="Description" type="xs:string" />
+                  <xs:attribute name="DescriptionKey" type="l:ResourceKey" />
+                </xs:complexType>
+                <xs:unique name="EntryMetadataNames">
+                  <xs:selector xpath="l:Metadata" /><xs:field xpath="@Name" />
+                </xs:unique>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="Key" type="l:Key" use="required" />
+          </xs:complexType>
+          <xs:unique name="EntryKeys">
+            <xs:selector xpath="l:Entry" /><xs:field xpath="@Key" />
+          </xs:unique>
+        </xs:element>
+        <xs:element name="Template">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Argument" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="Name" type="l:ArgumentName" use="required" />
+                  <xs:attribute name="List" type="l:Key" use="required" />
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="Key" type="l:ResourceKey" use="required" />
+          </xs:complexType>
+          <xs:unique name="ArgumentNames">
+            <xs:selector xpath="l:Argument" /><xs:field xpath="@Name" />
+          </xs:unique>
+        </xs:element>
+      </xs:choice>
     </xs:complexType>
     <xs:unique name="PathKeys">
       <xs:selector xpath="l:Path" /><xs:field xpath="@Key" />
+    </xs:unique>
+    <xs:unique name="ListKeys">
+      <xs:selector xpath="l:List" /><xs:field xpath="@Key" />
+    </xs:unique>
+    <xs:unique name="TemplateKeys">
+      <xs:selector xpath="l:Template" /><xs:field xpath="@Key" />
     </xs:unique>
   </xs:element>
 </xs:schema>

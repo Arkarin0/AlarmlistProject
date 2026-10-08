@@ -133,7 +133,7 @@ namespace Alarmlist.Evaluation
         private static bool IsValidLookup(string kind, string key)
         {
             string[] names = key.Split('#');
-            int count = kind == "path" ? 1 : kind == "property" || kind == "button" ? 2 : kind == "meta" ? 3 : 0;
+            int count = kind == "path" ? 1 : kind == "property" || kind == "button" || kind == "list" ? 2 : kind == "meta" ? 3 : 0;
             return names.Length == count && names.All(LookupCatalogue.IsValidKey);
         }
 

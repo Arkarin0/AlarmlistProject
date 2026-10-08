@@ -73,7 +73,8 @@ alignment, numeric format strings, and nested localization arguments are unsuppo
 
 Argument values are double-quoted literal strings or one explicit expression:
 `$(Parameter)`, `$(path:PathKey)`, `$(property:PathKey#MemberKey)`,
-`$(button:PathKey#MemberKey)`, or `$(meta:PathKey#MemberKey#MetadataName)`.
+`$(button:PathKey#MemberKey)`, `$(meta:PathKey#MemberKey#MetadataName)`, or
+`$(list:ListKey#EntryKey)`.
 Whitespace/newlines are allowed around argument separators and equals signs, not
 inside identifiers. Quoted strings support `\"`, `\\`, `\n`, `\r`, and `\t` escapes;
 dollar tokens and braces inside those strings remain literal. All values are text,
@@ -99,6 +100,56 @@ One selected culture applies to the sentence and every HMI label. Keep
 output paths. In keyword mode retain each complete localization/lookup expression
 literally, including arguments, while still checking referenced catalogue entities.
 Ordinary parameter expressions outside these tokens continue evaluating normally.
+
+## Named lists and argument suggestions
+
+Generated catalogues also support independent named lists for wires, terminals,
+PLC symbols, spare parts, and other supplied identifiers. There is no built-in
+DeviceTag field. List entries contain stable keys and literal values:
+
+```xml
+<Lookup xmlns="urn:alarmlist:lookup:1">
+  <List Key="Wires">
+    <Entry Key="EC120W1" Value="=EC-120W1" DescriptionKey="Wire.Outlet">
+      <Metadata Name="DrawingPage" Value="023" />
+    </Entry>
+  </List>
+  <List Key="ConnectionPoints">
+    <Entry Key="EC120K1_12" Value="=EC-120K1:12" Description="Contactor terminal" />
+  </List>
+  <Template Key="Instruction.DisconnectWire">
+    <Argument Name="wire" List="Wires" />
+    <Argument Name="connection" List="ConnectionPoints" />
+  </Template>
+</Lookup>
+```
+
+Store `Disconnect wire {wire} from {connection}.` once in RESX, and use:
+
+```text
+$(loc:Instruction.DisconnectWire, wire=$(list:Wires#EC120W1), connection=$(list:ConnectionPoints#EC120K1_12))
+```
+
+The English result is `Disconnect wire =EC-120W1 from =EC-120K1:12.`
+Values preserve punctuation, case, leading zeros, and empty strings. Values and
+metadata are never translated or rescanned as expressions. Optional Description
+is literal; DescriptionKey uses the selected culture and existing parent lookup.
+These attributes are mutually exclusive. Missing translated descriptions leave
+the description unavailable without making the identifier itself unavailable.
+
+Files can contribute different entries to the same list. Duplicate list keys
+within one file are malformed; duplicate entry keys across contributions report
+ALM0023. Different keys may have the same displayed value. Ambiguous entries are
+unavailable. Duplicate template/argument bindings or bindings to unknown lists
+report ALM0024. Keys and argument names compare case-sensitively.
+
+Bindings supply editor suggestions only. A user can still enter a literal or a
+parameter expression. The RESX template owns its placeholder signature; an unused
+binding does not add a placeholder. Selecting a list entry inserts an explicit
+reference, so regenerating its value updates subsequent compilation and preview.
+Missing explicit references fail compilation. Keyword mode retains complete tokens
+while checking identities. Relationship filtering and multi-selection formatting
+are deferred; two arguments can independently select from the same list.
 
 ## Host integration
 

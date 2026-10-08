@@ -203,6 +203,32 @@ benchmark/live measurement cases were skipped. No performance measurement or
 vendor round-trip claim is made. `git diff --check` passed. Existing edits to
 North's project settings and FUTURE-FEATURES.md were preserved outside these commits.
 
+## Named-list extension iterations (2026-10-09)
+
+The owner approved general supplied lists and the wire/connection instruction
+scenario. Keep identifiers literal, optional descriptions localizable, and explicit
+template-argument bindings for selection assistance. Do not add DeviceTag.
+Relationship filtering and multi-selection formatting remain later work.
+The [lookup specification](HMI-LOOKUPS.md) defines the XML and expression syntax.
+
+| Iteration | Scope | Validation |
+| --- | --- | --- |
+| L1 | XML/XSD lists and bindings; evaluation, diagnostics, detached analysis, package/XLIFF contracts | Compiler and downstream package suites on both frameworks |
+| L2 | VS bridge, argument-aware list completion, saved-input revalidation | VS unit/package tests and functional IDE checks |
+| L3 | Persistent electrical sample and authoring documentation | Multi-culture sample builds with both MSBuild runtimes |
+
+Each successful iteration is committed before the next starts.
+
+L1 completed: captured lists merge across files, preserve literal values and
+optional translated descriptions, and expose immutable entries/bindings through
+analysis contract 3. Explicit list references work in fields and named arguments.
+Duplicate entries and invalid bindings report located diagnostics. The packaged
+schema and XLIFF protection include lists. Validation: compiler 344, task 46, and
+MSBuild integration 4 tests passed on each framework. SDK suite passed 39 cases
+per framework; the new case initially assumed no shared fixture alarms, then
+passed on both frameworks after correcting that assertion. The packaged analysis
+contract case passed in the full suite. `git diff --check` passed.
+
 ## Remaining implementation details and exchange decisions
 
 Core decisions are frozen in the implementation contract. The owner confirmed

@@ -110,6 +110,38 @@ namespace Alarmlist.MSBuild.SDK.Tests
             Assert.False(Directory.Exists(Path.Combine(app.WorkingDirectory, "bin")));
         }
 
+        [Fact]
+        public void NamedListsBuildLiteralIdentifiersAndRegenerationFailuresPreserveOutputs()
+        {
+            var app = _fixture.CreateTestApp("Lookups");
+            const string call = "$(loc:Disconnect, wire=$(list:Wires#W1), connection=$(list:Connections#K1))";
+            File.WriteAllText(Path.Combine(app.WorkingDirectory, "Alarms.almx"),
+                new XElement("Alarmlist", new XElement("Alarm", new XElement("Name", call))).ToString());
+            string lookup = Path.Combine(app.WorkingDirectory, "Electrical.almlookup");
+            const string catalogue = "<Lookup xmlns='urn:alarmlist:lookup:1'><List Key='Wires'><Entry Key='W1' Value='=EC-120W1'/></List>"
+                + "<List Key='Connections'><Entry Key='K1' Value='=EC-120K1:12'/></List>"
+                + "<Template Key='Disconnect'><Argument Name='wire' List='Wires'/><Argument Name='connection' List='Connections'/></Template></Lookup>";
+            File.WriteAllText(lookup, catalogue);
+            foreach (string culture in new[] { "en", "de" })
+                File.WriteAllText(Path.Combine(app.WorkingDirectory, "Lists." + culture + ".resx"),
+                    new XElement("root", new XElement("data", new XAttribute("name", "Disconnect"), new XElement("value",
+                        culture == "en" ? "Disconnect wire {wire} from {connection}." : "Leitung {wire} von {connection} trennen."))).ToString());
+            app.Build(_output);
+            Assert.Contains(call, Names(app, "keyword"));
+            Assert.Contains("Disconnect wire =EC-120W1 from =EC-120K1:12.", Names(app, "en"));
+            Assert.Contains("Leitung =EC-120W1 von =EC-120K1:12 trennen.", Names(app, "de-DE"));
+            File.WriteAllText(lookup, catalogue.Replace("=EC-120W1", "001"));
+            app.Build(_output);
+            Assert.Contains("Disconnect wire 001 from =EC-120K1:12.", Names(app, "en"));
+            string[] cultures = { "keyword", "en", "de-DE" };
+            byte[][] previous = cultures.Select(culture => File.ReadAllBytes(Output(app, culture))).ToArray();
+            File.WriteAllText(lookup, catalogue.Replace("Key='W1'", "Key='Removed'"));
+            var failure = app.Run(_output, "/t:Build");
+            Assert.NotEqual(0, failure.ExitCode);
+            Assert.Contains("ALM0021", failure.Output);
+            for (int i = 0; i < cultures.Length; i++) Assert.Equal(previous[i], File.ReadAllBytes(Output(app, cultures[i])));
+        }
+
         private static string Output(TestApp app, string culture)
             => Path.Combine(app.WorkingDirectory, "bin", "Debug", culture, "Plant.Alarmlist.xml");
         private static string[] Names(TestApp app, string culture)

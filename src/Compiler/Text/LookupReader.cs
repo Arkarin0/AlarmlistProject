@@ -17,7 +17,7 @@ namespace Alarmlist.Text
         internal const string Namespace = "urn:alarmlist:lookup:1";
         private static readonly Lazy<XmlSchemaSet> s_schema = new Lazy<XmlSchemaSet>(LoadSchema);
 
-        internal static IReadOnlyList<LookupPath> Read(LookupTextSnapshot snapshot, DiagnosticBag diagnostics)
+        internal static LookupDocument Read(LookupTextSnapshot snapshot, DiagnosticBag diagnostics)
         {
             XDocument document;
             try
@@ -30,7 +30,7 @@ namespace Alarmlist.Text
             {
                 diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidLookup, exception.Message).WithLocation(
                     new SourceLocation(snapshot.FilePath, Math.Max(1, exception.LineNumber), Math.Max(1, exception.LinePosition), 1, snapshot.Version)));
-                return Array.Empty<LookupPath>();
+                return LookupDocument.Empty;
             }
 
             int before = diagnostics.Count;
@@ -40,10 +40,15 @@ namespace Alarmlist.Text
             else
                 document.Validate(s_schema.Value, (sender, args) => diagnostics.Add(
                     new Diagnostic(DiagnosticDescriptors.InvalidLookup, args.Message).WithLocation(Location(snapshot, sender as XObject))));
-            if (diagnostics.Count != before) return Array.Empty<LookupPath>();
+            if (diagnostics.Count != before) return LookupDocument.Empty;
 
             XNamespace ns = Namespace;
-            return Array.AsReadOnly(document.Root.Elements(ns + "Path").Select(path => new LookupPath(
+            foreach (XElement entry in document.Root.Elements(ns + "List").Elements(ns + "Entry"))
+                if (entry.Attribute("Description") != null && entry.Attribute("DescriptionKey") != null)
+                    diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidLookup, "Entry must use either Description or DescriptionKey, not both.")
+                        .WithLocation(Location(snapshot, entry.Attribute("DescriptionKey"))));
+            if (diagnostics.Count != before) return LookupDocument.Empty;
+            return new LookupDocument(document.Root.Elements(ns + "Path").Select(path => new LookupPath(
                 (string)path.Attribute("Key"),
                 path.Elements(ns + "Segment").Select(segment => Label(snapshot, segment)),
                 path.Elements().Where(member => member.Name != ns + "Segment").Select(member => new LookupMember(
@@ -51,7 +56,17 @@ namespace Alarmlist.Text
                     member.Elements(ns + "Metadata").Select(metadata => new LookupMetadata(
                         (string)metadata.Attribute("Name"), (string)metadata.Attribute("Value"), Location(snapshot, metadata.Attribute("Value")))),
                     Location(snapshot, member.Attribute("Key")))),
-                Location(snapshot, path.Attribute("Key")))).ToArray());
+                Location(snapshot, path.Attribute("Key")))),
+                document.Root.Elements(ns + "List").Select(list => new LookupList((string)list.Attribute("Key"),
+                    list.Elements(ns + "Entry").Select(entry => new LookupListEntry((string)entry.Attribute("Key"), (string)entry.Attribute("Value"),
+                        (string)entry.Attribute("Description"), entry.Attribute("DescriptionKey") == null ? null
+                            : new LookupLabel((string)entry.Attribute("DescriptionKey"), Location(snapshot, entry.Attribute("DescriptionKey"))),
+                        entry.Elements(ns + "Metadata").Select(metadata => new LookupMetadata((string)metadata.Attribute("Name"),
+                            (string)metadata.Attribute("Value"), Location(snapshot, metadata.Attribute("Value")))), Location(snapshot, entry.Attribute("Key")))),
+                    Location(snapshot, list.Attribute("Key")))),
+                document.Root.Elements(ns + "Template").SelectMany(template => template.Elements(ns + "Argument").Select(argument =>
+                    new LookupArgumentBinding((string)template.Attribute("Key"), (string)argument.Attribute("Name"),
+                        (string)argument.Attribute("List"), Location(snapshot, argument.Attribute("Name"))))));
         }
 
         private static LookupLabel Label(LookupTextSnapshot snapshot, XElement element)

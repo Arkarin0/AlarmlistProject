@@ -22,6 +22,8 @@ namespace Alarmlist.Analysis
         public IReadOnlyList<AnalyzedTranslation> Translations { get; }
         public IReadOnlyList<AnalyzedLookupFile> LookupFiles { get; }
         public IReadOnlyList<AnalyzedLookupPath> LookupPaths { get; }
+        public IReadOnlyList<AnalyzedLookupList> LookupLists { get; }
+        public IReadOnlyList<AnalyzedArgumentBinding> ArgumentBindings { get; }
         public bool Success => !Diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
         /// <summary>Resolved project XML, or null when not requested or compilation failed.</summary>
         public string CompiledXml { get; }
@@ -29,7 +31,8 @@ namespace Alarmlist.Analysis
         internal AnalysisResult(IEnumerable<AnalyzedSource> sources, IEnumerable<AnalyzedAlarm> alarms, IEnumerable<Diagnostic> diagnostics,
             string culture, IEnumerable<AnalyzedResource> resources, IEnumerable<AnalyzedResourceEntry> entries,
             IEnumerable<AnalyzedTranslation> translations, IEnumerable<AnalyzedLookupFile> lookupFiles,
-            IEnumerable<AnalyzedLookupPath> lookupPaths, string compiledXml = null)
+            IEnumerable<AnalyzedLookupPath> lookupPaths, IEnumerable<AnalyzedLookupList> lookupLists,
+            IEnumerable<AnalyzedArgumentBinding> argumentBindings, string compiledXml = null)
         {
             Sources = Array.AsReadOnly(sources.ToArray());
             Alarms = Array.AsReadOnly(alarms.ToArray());
@@ -40,6 +43,8 @@ namespace Alarmlist.Analysis
             Translations = Array.AsReadOnly(translations.ToArray());
             LookupFiles = Array.AsReadOnly(lookupFiles.ToArray());
             LookupPaths = Array.AsReadOnly(lookupPaths.ToArray());
+            LookupLists = Array.AsReadOnly(lookupLists.ToArray());
+            ArgumentBindings = Array.AsReadOnly(argumentBindings.ToArray());
             CompiledXml = Success ? compiledXml : null;
         }
     }

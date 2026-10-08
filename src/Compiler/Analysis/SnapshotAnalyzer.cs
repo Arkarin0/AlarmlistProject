@@ -70,7 +70,9 @@ namespace Alarmlist.Analysis
                     return new AnalyzedTranslation(key, analyzer._evaluation.Culture, translation?.Entry);
                 }), context.Lookups.Select(lookup => new AnalyzedLookupFile(lookup)),
                 analyzer._evaluation.Lookups.Paths.Select(path => new AnalyzedLookupPath(path,
-                    analyzer._evaluation.Lookups.IsAmbiguous(path), catalogue, analyzer._evaluation.Culture)), xml);
+                    analyzer._evaluation.Lookups.IsAmbiguous(path), catalogue, analyzer._evaluation.Culture)),
+                analyzer._evaluation.Lookups.Lists.Select(list => new AnalyzedLookupList(list, analyzer._evaluation.Lookups, catalogue, analyzer._evaluation.Culture)),
+                analyzer._evaluation.Lookups.Bindings.Select(binding => new AnalyzedArgumentBinding(binding, analyzer._evaluation.Lookups.IsAvailable(binding))), xml);
         }
 
         private void AddEntryOrigins(ReferenceableCollection<ITestProcedureItem> entries, AlarmOrigin alarm, string section)

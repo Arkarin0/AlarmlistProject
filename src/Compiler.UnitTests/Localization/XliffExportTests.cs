@@ -70,11 +70,22 @@ namespace Alarmlist.Core.UnitTests.Localization
 
         [Theory]
         [InlineData("{path} {value}", "{path}")]
+        [InlineData("$(list:Wires#W1)", "$(list:Wires#W2)")]
         [InlineData("{value}", "{Value}")]
         [InlineData("{value}", "{value} {value}")]
         public void ChangedNamedPlaceholdersRejectExport(string source, string target)
             => Assert.Throws<InvalidOperationException>(() => XliffExport.Create(new[]
                 { Resource("en", Entry("K", source)), Resource("de", Entry("K", target)) }, "de"));
+
+        [Fact]
+        public void ListReferencesAreProtectedWithoutExpandingIdentifiers()
+        {
+            const string source = "Disconnect $(list:Wires#W1) from {connection}.";
+            var result = XliffExport.Create(new[] { Resource("en", Entry("K", source)) }, "de");
+            XElement unit = XDocument.Parse(result.Xliff).Descendants(Ns + "unit").Single();
+            Assert.Equal(new[] { "$(list:Wires#W1)", "{connection}" }, unit.Descendants(Ns + "data").Select(data => data.Value));
+            Assert.Equal(source, Raw(unit, "source"));
+        }
 
         [Fact]
         public void BaselineChangesWithSavedSourceTargetAndCommentAndPreservesEntityCarriageReturns()

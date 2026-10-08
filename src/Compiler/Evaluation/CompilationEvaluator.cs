@@ -276,6 +276,13 @@ namespace Alarmlist.Evaluation
             {
                 definition = null;
                 string[] keys = token.Key.Split('#');
+                if (token.Kind == "list")
+                {
+                    if (!_owner._lookups.TryGetEntry(keys[0], keys[1], out LookupListEntry entry))
+                        return MissingLookup(token, "missing or ambiguous list entry '" + token.Key + "'", location, null);
+                    definition = entry.Location;
+                    return _owner._culture == LocalizationCulture.Keyword ? token.Raw : entry.Value;
+                }
                 if (!_owner._lookups.TryGetPath(keys[0], out LookupPath path))
                     return MissingLookup(token, "missing or ambiguous path '" + keys[0] + "'", location, null);
                 definition = path.Location;

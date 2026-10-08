@@ -29,5 +29,7 @@ namespace Alarmlist.Diagnostics
         public const string DuplicateLookupPath = "ALM0020";
         public const string MissingLookup = "ALM0021";
         public const string InvalidLocalizationArguments = "ALM0022";
+        public const string DuplicateLookupEntry = "ALM0023";
+        public const string InvalidCompletionBinding = "ALM0024";
     }
 }

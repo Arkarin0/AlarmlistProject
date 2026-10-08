@@ -4,6 +4,10 @@ namespace Alarmlist.Diagnostics
 {
     public static class DiagnosticDescriptors
     {
+        public static readonly DiagnosticDescriptor DuplicateLookupEntry = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.DuplicateLookupEntry, "Duplicate list entry", "Lookup entry '{0}#{1}' is declared more than once.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidCompletionBinding = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidCompletionBinding, "Invalid completion binding", "Invalid completion binding for '{0}' argument '{1}': {2}.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidLookup = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidLookup, "Invalid lookup catalogue", "Invalid lookup catalogue: {0}", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor DuplicateLookupPath = new DiagnosticDescriptor(

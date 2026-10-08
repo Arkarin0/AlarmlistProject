@@ -119,6 +119,20 @@ public sealed class VerifyPackagedAnalysis : Task
         Require(!(bool)Value(missingTranslation, "Success") && Value(missingTranslation, "CompiledXml") == null,
             "Missing translation exposed compiled XML.");
         Require(!File.Exists(resourcePath), "Analysis read or wrote a captured resource path.");
+        Type lookupType = assembly.GetType("Alarmlist.Text.LookupTextSnapshot", true);
+        Array lookups = Array.CreateInstance(lookupType, 1);
+        lookups.SetValue(Activator.CreateInstance(lookupType,
+            "<Lookup xmlns='urn:alarmlist:lookup:1'><List Key='Wires'><Entry Key='W1' Value='=EC-120W1'/></List>"
+            + "<Template Key='Inspection'><Argument Name='wire' List='Wires'/></Template></Lookup>", "captured.almlookup", 51), 0);
+        object listContext = Activator.CreateInstance(contextType, resources, lookups, "en", null, null, null, properties);
+        scoped.SetValue(Activator.CreateInstance(snapshotType, "<Alarmlist><Alarm><Name>$(list:Wires#W1)</Name></Alarm></Alarmlist>", childPath, 52), 0);
+        object lists = contextual.Invoke(compiler, new[] { scoped, listContext, (object)true });
+        Require((bool)Value(lists, "Success"), "Captured named list did not resolve.");
+        object listEntry = Items(Items(lists, "LookupLists").Single(), "Entries").Single();
+        Require((string)Value(listEntry, "Value") == "=EC-120W1" && (string)Value(listEntry, "Expression") == "$(list:Wires#W1)", "Literal list identity was lost.");
+        Require((int)Value(Value(listEntry, "Location"), "SourceVersion") == 51, "List provenance was lost.");
+        Require((bool)Value(Items(lists, "ArgumentBindings").Single(), "IsAvailable"), "Completion binding was lost.");
+        Require(((string)Value(lists, "CompiledXml")).Contains("<Name>=EC-120W1</Name>"), "List preview was incorrect.");
         Log.LogMessage(MessageImportance.High, "Packaged analysis contract 3 passed: origins, Clear, immutable results, unsaved inputs, and compiled XML preview.");
         return true;
     }
