@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using System.Xml.Schema;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -59,6 +60,12 @@ namespace Alarmlist.MSBuild.SDK.Tests
                 Assert.Empty(Directory.GetFiles(taskDirectory, "Microsoft.Build*.dll"));
             }
             Assert.False(Directory.Exists(Path.Combine(app.PackageDirectory, "lib")));
+            var schemas = new XmlSchemaSet { XmlResolver = null };
+            schemas.Add("urn:alarmlist:lookup:1", Path.Combine(app.PackageDirectory, "tools", "Schemas", "AlarmlistLookup.xsd"));
+            schemas.Compile();
+            XDocument.Parse("<Lookup xmlns='urn:alarmlist:lookup:1'><Path Key='P'><Segment LabelKey='K'/></Path></Lookup>").Validate(schemas, null);
+            Assert.Throws<XmlSchemaValidationException>(() => XDocument.Parse(
+                "<Lookup xmlns='urn:alarmlist:lookup:1'><Path Key='P'/></Lookup>").Validate(schemas, null));
             var nuspec = XDocument.Load(Path.Combine(app.PackageDirectory, "alarmlist.msbuild.sdk.nuspec"));
             Assert.Empty(nuspec.Descendants().Where(element => element.Name.LocalName == "dependency"));
         }

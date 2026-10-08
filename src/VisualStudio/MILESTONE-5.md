@@ -8,8 +8,9 @@ analysis, saved-resource observation, language selection and completion are
 implemented. XLIFF export is available; import and integrated acceptance follow
 in iterations nine and ten.
 The owner has also added reusable instruction templates and generated HMI lookups
-to this milestone. Their scope is confirmed below; the detailed format and
-implementation sequence remain to be specified. This extension is not implemented.
+to this milestone. The XML/XSD and captured catalogue parser are implemented in
+H1. Named expressions, build inputs, analysis and designer integration follow in
+H2-H5 below; the complete extension is not yet available to consumers.
 The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
@@ -115,6 +116,29 @@ Add focused XML/XSD, catalogue/compiler, SDK/analysis, designer assistance,
 exchange, and sample-project coverage before final integrated acceptance. Define
 the extension's implementation iterations from these confirmed requirements; the
 existing ten-iteration sequence below covers only the original RESX scope.
+
+### Lookup extension iterations
+
+The detailed [lookup specification](HMI-LOOKUPS.md) fixes the XML/XSD vocabulary,
+named-argument grammar and metadata reference syntax. Complete and commit each
+iteration before starting the next; these are additional to the RESX iterations.
+
+| Iteration | Deliverable | Validation |
+| --- | --- | --- |
+| H1 | XML/XSD, captured lookup parser/catalogue, producer specification and SDK schema packaging | Both compiler frameworks; schema/package content checks |
+| H2 | Named template arguments, lookup/member/metadata evaluation and compiler analysis | Both compiler frameworks; scope, escaping, keyword, failure and provenance regressions |
+| H3 | Saved lookup MSBuild inputs, SDK items/rules and XLIFF placeholder protection | Task and SDK consumers on both frameworks; transactional failure preservation |
+| H4 | VS bridge/capture, template arguments and lookup selection assistance | VS unit/package tests and functional IDE scenarios |
+| H5 | Persistent sample coverage, documentation and integrated acceptance | Sample multi-culture outputs and applicable downstream suites |
+
+H1 completed: added the version-one `.almlookup` XSD, immutable captured text and
+catalogue models, secure schema validation with source locations, and duplicate
+path diagnostics. The SDK ships the same XSD used by the compiler. Tests preserve
+Unicode identities, literal/empty metadata, case sensitivity and ambiguity, and
+reject malformed XML, external DTDs, unknown content and duplicate members.
+Validation: compiler suite passed 279 tests on each of net472/net8.0; SDK PackageTests
+passed 3 tests on each framework, including packaged XSD validation. `git diff
+--check` passed. The existing shared-test CA1416 warning remains unchanged.
 
 ## Remaining implementation details and exchange decisions
 

@@ -12,8 +12,8 @@ templates, externally generated XML lookup files with an included XSD, individua
 label translations, literal keyword display, reference-resolution errors, and
 explicit metadata references. It retains the existing single-culture preview and
 build model; mixed-language output and documentation/HMI culture pairs are outside
-scope. The extension is not implemented. Its detailed XML and expression grammar
-must be specified before implementation; the core contract below describes the
+scope. The [lookup specification](HMI-LOOKUPS.md) defines its XML and expression
+grammar; the milestone log records implementation progress. The core contract below describes the
 existing RESX behavior and does not yet add argument or lookup syntax.
 
 ## Expressions and values

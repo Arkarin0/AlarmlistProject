@@ -25,5 +25,7 @@ namespace Alarmlist.Diagnostics
         public const string MissingTranslation = "ALM0016";
         public const string NestedLocalizationExpression = "ALM0017";
         public const string InvalidLocalizationKey = "ALM0018";
+        public const string InvalidLookup = "ALM0019";
+        public const string DuplicateLookupPath = "ALM0020";
     }
 }

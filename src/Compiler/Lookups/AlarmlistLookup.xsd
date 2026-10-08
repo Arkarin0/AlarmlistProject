@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:l="urn:alarmlist:lookup:1" targetNamespace="urn:alarmlist:lookup:1"
+           elementFormDefault="qualified">
+  <xs:annotation><xs:documentation>
+    Alarmlist lookup catalogue version 1. Keys are case-sensitive technical identities.
+    LabelKey references a RESX entry. Metadata is literal text with no compiler-defined semantics.
+  </xs:documentation></xs:annotation>
+  <xs:simpleType name="Key">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[\p{L}_][\p{L}\p{M}\p{N}_.\-]*" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ResourceKey">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[A-Za-z_][A-Za-z0-9_.\-]*" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="Member">
+    <xs:sequence>
+      <xs:element name="Metadata" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="Name" type="l:Key" use="required" />
+          <xs:attribute name="Value" type="xs:string" use="required" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="Key" type="l:Key" use="required" />
+    <xs:attribute name="LabelKey" type="l:ResourceKey" use="required" />
+  </xs:complexType>
+  <xs:element name="Lookup">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Path" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Segment" minOccurs="1" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="LabelKey" type="l:ResourceKey" use="required" />
+                </xs:complexType>
+              </xs:element>
+              <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="Property" type="l:Member">
+                  <xs:unique name="PropertyMetadataNames">
+                    <xs:selector xpath="l:Metadata" /><xs:field xpath="@Name" />
+                  </xs:unique>
+                </xs:element>
+                <xs:element name="Button" type="l:Member">
+                  <xs:unique name="ButtonMetadataNames">
+                    <xs:selector xpath="l:Metadata" /><xs:field xpath="@Name" />
+                  </xs:unique>
+                </xs:element>
+              </xs:choice>
+            </xs:sequence>
+            <xs:attribute name="Key" type="l:Key" use="required" />
+          </xs:complexType>
+          <xs:unique name="MemberKeys">
+            <xs:selector xpath="l:Property | l:Button" /><xs:field xpath="@Key" />
+          </xs:unique>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+    <xs:unique name="PathKeys">
+      <xs:selector xpath="l:Path" /><xs:field xpath="@Key" />
+    </xs:unique>
+  </xs:element>
+</xs:schema>

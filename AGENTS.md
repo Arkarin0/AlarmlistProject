@@ -182,6 +182,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   in the consuming alarm scope and field-dependency graph. Never rescan parameter
   replacement strings. Reject direct nested localization, preserve escaped tokens,
   and defer contextual lookup for abstract templates and excluded procedure entries.
+- Generated `.almlookup` XML uses `urn:alarmlist:lookup:1` and the authoritative
+  `src/Compiler/Lookups/AlarmlistLookup.xsd`, embedded in the compiler and shipped
+  at SDK `tools/Schemas/AlarmlistLookup.xsd`. `LookupTextSnapshot` captures text;
+  `Text/LookupReader` validates without reading its path, external schemas or DTDs.
+  Keep project-wide case-sensitive path identities, per-path member identities,
+  literal metadata and immutable catalogue results. See
+  `src/VisualStudio/HMI-LOOKUPS.md` for the extension contract and iteration status.
 - `AlarmCompiler.AnalyzeSnapshots` returns the read-only, versioned analysis
   contract from `Analysis/`. Preserve local/effective field separation, procedure
   origins and Clear exclusions, and unavailable effective values for invalid

@@ -4,6 +4,10 @@ namespace Alarmlist.Diagnostics
 {
     public static class DiagnosticDescriptors
     {
+        public static readonly DiagnosticDescriptor InvalidLookup = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidLookup, "Invalid lookup catalogue", "Invalid lookup catalogue: {0}", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor DuplicateLookupPath = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.DuplicateLookupPath, "Duplicate lookup path", "Lookup path '{0}' is declared more than once.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidLocalizationCulture = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidLocalizationCulture, "Invalid localization culture", "Unsupported localization culture '{0}'.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidResource = new DiagnosticDescriptor(
