@@ -206,6 +206,13 @@ paths/members/metadata fail compilation (`ALM0021`); malformed catalogue XML is
 `ALM0022`. Every culture validates before any output is replaced. Build captures
 saved lookup contents once per batch; Clean preserves lookup and RESX source files.
 
+The persistent [North/South example](../../../example/README.md#try-reusable-instructions-and-hmi-lookups)
+contains reusable Set/Press instructions, generated-style code identities,
+individually translated labels, project-scoped arguments and an explicit metadata
+reference. Visual Studio completion offers named argument slots and catalogue
+expressions from saved files. It neither applies metadata defaults automatically
+nor publishes unsaved catalogue edits.
+
 ## Property expressions and templates
 
 Expressions are always enabled in Name, Code, Category, Description and procedure

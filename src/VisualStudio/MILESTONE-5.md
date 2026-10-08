@@ -10,7 +10,7 @@ in iterations nine and ten.
 The owner has also added reusable instruction templates and generated HMI lookups
 to this milestone. H1-H3 implement XML/XSD, captured catalogues, named expressions,
 lookup evaluation, compiler analysis, SDK build inputs and XLIFF protection. Designer
-integration is complete in H4; sample acceptance follows in H5 below.
+integration and persistent sample acceptance are complete in H4-H5 below.
 The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
@@ -183,6 +183,25 @@ on matching AlarmlistExp deployments, checking private lookup drafts, metadata
 insertion, template slots, Undo and saved regeneration without changing build
 outputs. Screenshots and TRX reports are retained under artifacts/log. `git diff
 --check` passed.
+
+H5 completed: North and South link a persistent generated-style HMI catalogue and
+one shared ALMX template/consumer. Two RESX sentence patterns cover repeated Set
+and Press instructions; individual segments/members translate independently in
+the same selected culture. Samples cover literal 60, project-scoped 001/002,
+explicit metadata Default 060, buttons ON/OFF, abstract exclusion, keyword literals,
+German parent lookup and reordered placeholders. The sample walkthrough, SDK/VS
+documentation and acceptance notes describe authoring and generator workflows.
+Validation: prepared the matching SDK, built both projects with .NET MSBuild, and
+asserted all six keyword/en/de-DE outputs (seven North alarms, three South alarms).
+Desktop VS2026 MSBuild produced identical bytes for all six. Both projects exported
+XLIFF with protected named placeholders and unchanged compiled output bytes.
+The initial restricted sample invocation exited 1 after North without a diagnostic;
+an explicit serial build completed both projects with zero warnings/errors, and
+the documented default solution build also passed outside the sandbox afterward.
+Performance infrastructure regression tests passed 26 cases; the six opt-in
+benchmark/live measurement cases were skipped. No performance measurement or
+vendor round-trip claim is made. `git diff --check` passed. Existing edits to
+North's project settings and FUTURE-FEATURES.md were preserved outside these commits.
 
 ## Remaining implementation details and exchange decisions
 

@@ -30,8 +30,8 @@ the IDE; use **File > Open > Project/Solution** to open `Example.sln` yourself.
    **South.Alarmlist.xml**. Try Clean/Rebuild and the project output properties.
    Live previews reflect unsaved ALMX edits without writing these files.
 
-The initial solution has no compiler errors: North compiles six alarms and South
-compiles two in each build culture. With preview language **en**, the shared
+The initial solution has no compiler errors: North compiles seven alarms and South
+compiles three in each build culture. With preview language **en**, the shared
 `Plant.Pump.PressureLow` alarm shows:
 
 | Value | North context | South context |
@@ -84,6 +84,57 @@ To inspect a missing translation diagnostic, temporarily remove `Pump.Name` from
 North's German resource and select **de-DE**. The English entry is not used as a
 fallback. Undo or restore the German entry before building again.
 
+## Try reusable instructions and HMI lookups
+
+Open **North > HmiInstructions.almx** and select **Plant.Outlet.Vacuum**. South
+links the same file. The abstract **Templates.Hmi.Vacuum** supplies procedure
+expressions and a parameter declaration, and is excluded from compiled output.
+Both projects link **Shared/Hmi.almlookup** through `Directory.Build.targets`.
+This file represents output from another tool; its German code identifiers stay
+stable while RESX translates each ordered segment and property/button label.
+
+Choose **en** in the Alarmlist toolbar. The first instruction reads:
+
+> In "Service -> Transport -> Outlet -> Parameter 1 Countercheck -> Camwindow" set property "ON" to "60".
+
+The next instruction reuses **Instruction.Set**, with `value=$(par1)`: North
+displays **001**, South **002**. The Hint explicitly references stored metadata
+**Default**, displaying **060** without numeric formatting. No default is inserted
+automatically, and **Minimum/Maximum** are selection guidance only. The following
+Step and Reset reuse **Instruction.Press** with the **ON/OFF** buttons under
+**Service -> Transport -> Outlet -> Manual 1 -> Vacuum**.
+
+Choose **de-DE** to translate the sentence, all path segments, and the member
+labels together through parent **de**. The German Set template changes the order
+of `{property}` and `{path}`. Choose **keyword** to see each complete expression
+with its named argument bindings.
+
+For a local procedure row, type `$(loc:Instruction.Set` and choose the completion
+row marked **template**. It inserts `path="", property="", value=""` and selects
+the first quoted slot. Type `$(path:` to choose a path. Select another quoted slot
+(including its quotes) and type `$(property:` or `$(button:`; include a path key
+and `#` to narrow the member choices. Use `$(meta:` to explicitly insert stored
+metadata. Enter inserts into the draft; the next Enter commits one undoable edit.
+For inherited rows, use **Override locally** or **Make local copy** first.
+
+Change the **Value** attribute of the **Default** metadata entry from **060** to
+**061**, then save the catalogue. Both project previews refresh. An unsaved lookup
+XML draft stays private. Restore **060** afterward. Removing a referenced member
+produces **ALM0021** and fails the whole multi-culture build without replacing any
+previously compiled output.
+
+The authoritative XSD ships in the SDK; query its installed path with:
+
+```powershell
+dotnet msbuild example/North/North.almproj /getProperty:AlarmlistLookupSchema
+```
+
+See the [lookup format and expression grammar](../src/VisualStudio/HMI-LOOKUPS.md)
+for external generators. **Instruction.Set** and **Instruction.Press** are
+translated once per language and reused across instructions; adding another step
+does not require another sentence key. XLIFF export protects their named
+placeholders while allowing translators to reorder them.
+
 ## Try live diagnostics
 
 In North's `Alarms.almx`, temporarily change the panel's ReferenceName to
@@ -117,9 +168,10 @@ desktop MSBuild for preparation, as the launchers do.
 The helper reads the SDK version from the built VSIX template and generates
 ignored `global.json` and `NuGet.Config` files here. Only the repository's matching
 local package feed is used. Its cache is under `.packages/<package SHA256>/`, so
-rebuilding the SDK with the same version still loads fresh contents. Local empty
+rebuilding the SDK with the same version still loads fresh contents. Local
 `Directory.Build.props/targets` keep the repository's Arcade configuration out of
 these consumer projects, following the existing SDK test/acceptance fixtures.
+The targets file also links the common HMI catalogue and instruction sample.
 The launchers clear `NUGET_PACKAGES` only in their child process environment so
 the IDE honors this isolated cache; they do not change user NuGet settings.
 

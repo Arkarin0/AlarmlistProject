@@ -380,6 +380,9 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   prepare and open `example/Example.sln`. Keep its generated SDK pin/NuGet config
   ignored, its cache tied to package contents, and its source files persistent.
   Its local Directory.Build files isolate this consumer from repository policy.
+  The example targets link Shared/Hmi.almlookup and HmiInstructions.almx into both
+  projects; RESX Set/Press patterns demonstrate named arguments, individually
+  translated HMI labels and explicit metadata without duplicating sentence keys.
 - `eng/measure-visualstudio-live.ps1` (also reached through the compatibility
   `test-visualstudio.ps1 -MeasureAnalysis` option) measures running-IDE buffer-to-diagnostic
   latency and repeated designer close/process-memory samples. Parameters select

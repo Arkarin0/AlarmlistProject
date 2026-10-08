@@ -143,6 +143,14 @@ Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
 
 ## Translation exchange
 
+The persistent example also covers reusable instruction templates and generated
+HMI lookups. Follow [its walkthrough](../../example/README.md#try-reusable-instructions-and-hmi-lookups)
+to compare keyword/en/de-DE, project-scoped arguments, reordered named placeholders,
+individual path/member translations and explicitly selected metadata. The
+LookupCompletion xUnit scenario (`Area=Lookups`) checks saved-only catalogue capture,
+completion/Undo and regeneration in an isolated fixture on each supported IDE.
+These UI checks passed on VS2022 and VS2026 for iteration H4; see MILESTONE-5.
+
 1. Export a synthetic fixture with the SDK's ExportAlarmlistXliff target. Include
    Unicode, leading/trailing whitespace, comments, repeated parameter expressions,
    a missing target and an explicitly empty target. Keep the generated baseline

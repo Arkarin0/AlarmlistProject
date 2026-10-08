@@ -62,6 +62,16 @@ Milestone three's remaining release checks stay open. Milestone five localizatio
 is in progress; see its [iteration results](MILESTONE-5.md). NuGet alarm libraries
 remain for a later milestone.
 
+Milestone five also supports reusable named templates such as
+`$(loc:Instruction.Set, path=$(path:Service.Vakuum), value="60")`.
+External tools supply `.almlookup` XML catalogues; the SDK includes the XSD.
+Saved RESX entries translate each path segment and member label in the same
+selected culture. Completion inserts named argument slots and path/member/metadata
+references while preserving local drafts. Saved catalogue regeneration refreshes
+preview; unsaved lookup XML remains private. Metadata provides selection guidance
+without automatic defaults or range validation. See the [format specification](HMI-LOOKUPS.md)
+and the [North/South sample walkthrough](../../example/README.md#try-reusable-instructions-and-hmi-lookups).
+
 The bridge accepts analysis contract 3 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off

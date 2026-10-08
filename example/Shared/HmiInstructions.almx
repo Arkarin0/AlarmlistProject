@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <!-- One template is shared by both projects. par1 has a declaration here;
+       North supplies 001 and South supplies 002 through project scope. -->
+  <Alarm abstract="true">
+    <Properties><Property Name="par1" /></Properties>
+    <FullyQualifiedName>Templates.Hmi.Vacuum</FullyQualifiedName>
+    <Name>$(loc:Hmi.AlarmName)</Name>
+    <TestProcedure>
+      <Instructions>
+        <Step>$(loc:Instruction.Set, path=$(path:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster), property=$(property:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster#Ein), value="60")</Step>
+        <Step>$(loc:Instruction.Set, path=$(path:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster), property=$(property:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster#Ein), value=$(par1))</Step>
+        <!-- Stored Default is used only because this expression selects it. -->
+        <Hint>$(loc:Instruction.Set, path=$(path:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster), property=$(property:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster#Ein), value=$(meta:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster#Ein#Default))</Hint>
+        <Step>$(loc:Instruction.Press, path=$(path:Service.Transport.Auslauf.Hand1.Vakuum), button=$(button:Service.Transport.Auslauf.Hand1.Vakuum#Ein))</Step>
+      </Instructions>
+      <Reset>
+        <Step>$(loc:Instruction.Press, path=$(path:Service.Transport.Auslauf.Hand1.Vakuum), button=$(button:Service.Transport.Auslauf.Hand1.Vakuum#Aus))</Step>
+      </Reset>
+    </TestProcedure>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Plant.Outlet.Vacuum</FullyQualifiedName>
+    <ReferenceName>Templates.Hmi.Vacuum</ReferenceName>
+    <Code>V-001</Code>
+  </Alarm>
+</Alarmlist>

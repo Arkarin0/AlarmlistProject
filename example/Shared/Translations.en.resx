@@ -12,4 +12,22 @@
     <value>Restore pressure, then acknowledge at the shared control panel.</value>
     <comment>The de-DE catalogue provides a culture-specific alternative.</comment>
   </data>
+  <data name="Instruction.Set" xml:space="preserve">
+    <value>In "{path}" set property "{property}" to "{value}".</value>
+    <comment>Reusable instruction. Preserve the named placeholders; their order may change.</comment>
+  </data>
+  <data name="Instruction.Press" xml:space="preserve">
+    <value>In "{path}" press button "{button}".</value>
+    <comment>Reusable for every HMI button; path segments and button labels are translated separately.</comment>
+  </data>
+  <data name="Hmi.AlarmName" xml:space="preserve"><value>Outlet vacuum check</value></data>
+  <data name="Hmi.Service" xml:space="preserve"><value>Service</value></data>
+  <data name="Hmi.Transport" xml:space="preserve"><value>Transport</value></data>
+  <data name="Hmi.Outlet" xml:space="preserve"><value>Outlet</value></data>
+  <data name="Hmi.Countercheck" xml:space="preserve"><value>Parameter 1 Countercheck</value></data>
+  <data name="Hmi.Camwindow" xml:space="preserve"><value>Camwindow</value></data>
+  <data name="Hmi.Manual" xml:space="preserve"><value>Manual 1</value></data>
+  <data name="Hmi.Vacuum" xml:space="preserve"><value>Vacuum</value></data>
+  <data name="Hmi.On" xml:space="preserve"><value>ON</value></data>
+  <data name="Hmi.Off" xml:space="preserve"><value>OFF</value></data>
 </root>

@@ -12,4 +12,22 @@
     <value>Druck wiederherstellen und anschließend am gemeinsamen Bedienpult quittieren.</value>
     <comment>The de-DE catalogue provides a culture-specific alternative.</comment>
   </data>
+  <data name="Instruction.Set" xml:space="preserve">
+    <value>Setzen Sie die Eigenschaft "{property}" unter "{path}" auf "{value}".</value>
+    <comment>Reusable instruction; the German wording puts property before path.</comment>
+  </data>
+  <data name="Instruction.Press" xml:space="preserve">
+    <value>Drücken Sie unter "{path}" die Taste "{button}".</value>
+    <comment>Same named placeholders as English, translated with individual HMI labels.</comment>
+  </data>
+  <data name="Hmi.AlarmName" xml:space="preserve"><value>Vakuumprüfung am Auslauf</value></data>
+  <data name="Hmi.Service" xml:space="preserve"><value>Service</value></data>
+  <data name="Hmi.Transport" xml:space="preserve"><value>Transport</value></data>
+  <data name="Hmi.Outlet" xml:space="preserve"><value>Auslauf</value></data>
+  <data name="Hmi.Countercheck" xml:space="preserve"><value>Parameter 1 Gegenkontrolle</value></data>
+  <data name="Hmi.Camwindow" xml:space="preserve"><value>Nockenfenster</value></data>
+  <data name="Hmi.Manual" xml:space="preserve"><value>Hand 1</value></data>
+  <data name="Hmi.Vacuum" xml:space="preserve"><value>Vakuum</value></data>
+  <data name="Hmi.On" xml:space="preserve"><value>EIN</value></data>
+  <data name="Hmi.Off" xml:space="preserve"><value>AUS</value></data>
 </root>
