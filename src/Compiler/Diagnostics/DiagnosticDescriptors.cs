@@ -8,6 +8,10 @@ namespace Alarmlist.Diagnostics
             DiagnosticWellKnownIds.InvalidLookup, "Invalid lookup catalogue", "Invalid lookup catalogue: {0}", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor DuplicateLookupPath = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.DuplicateLookupPath, "Duplicate lookup path", "Lookup path '{0}' is declared more than once.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor MissingLookup = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.MissingLookup, "Unresolved lookup expression", "Cannot resolve lookup expression '{0}': {1}.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidLocalizationArguments = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidLocalizationArguments, "Invalid localization arguments", "Localization template '{0}': {1}.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidLocalizationCulture = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidLocalizationCulture, "Invalid localization culture", "Unsupported localization culture '{0}'.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidResource = new DiagnosticDescriptor(

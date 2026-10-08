@@ -8,9 +8,9 @@ analysis, saved-resource observation, language selection and completion are
 implemented. XLIFF export is available; import and integrated acceptance follow
 in iterations nine and ten.
 The owner has also added reusable instruction templates and generated HMI lookups
-to this milestone. The XML/XSD and captured catalogue parser are implemented in
-H1. Named expressions, build inputs, analysis and designer integration follow in
-H2-H5 below; the complete extension is not yet available to consumers.
+to this milestone. H1-H2 implement XML/XSD, captured catalogues, named expressions,
+lookup evaluation and compiler analysis. Build input wiring and designer integration
+follow in H3-H5 below; the complete extension is not yet available to consumers.
 The [implementation contract](MILESTONE-5-DESIGN.md) records the core
 decisions and public names. The planning
 baseline is `8034f00` on `dev/localization`, based on
@@ -139,6 +139,20 @@ reject malformed XML, external DTDs, unknown content and duplicate members.
 Validation: compiler suite passed 279 tests on each of net472/net8.0; SDK PackageTests
 passed 3 tests on each framework, including packaged XSD validation. `git diff
 --check` passed. The existing shared-test CA1416 warning remains unchanged.
+
+H2 completed: localization calls accept named literal/parameter/lookup arguments.
+Template parsing handles repeated/reordered names, escaped braces and quoted
+argument escapes without rescanning inserted text. Path/member labels use the
+selected culture and its parents; metadata stays literal. Keyword mode retains
+whole calls and still checks referenced lookup entities. Missing references and
+argument/template mismatches report located errors. Inherited templates retain
+the consuming alarm's scope; excluded/abstract content defers contextual lookup.
+Captured-context overloads and additive analysis data expose immutable lookup
+catalogues, template placeholder names and per-alarm usage/definition provenance.
+Validation: compiler suite passed 315 tests on each framework; MSBuild unit tests
+passed 43 per framework; SDK PackageTests and LocalizationTests passed 16 per
+framework. `git diff --check` passed. Host-side lookup inputs and selection UI are
+not part of this iteration.
 
 ## Remaining implementation details and exchange decisions
 

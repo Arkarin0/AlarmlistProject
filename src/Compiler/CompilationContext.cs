@@ -22,6 +22,14 @@ namespace Alarmlist.Compiler
         public CompilationContext(IEnumerable<ResxTextSnapshot> resources, string culture = null,
             string projectPath = null, string configuration = null, string platform = null,
             IEnumerable<PropertyDefinition> properties = null)
+            : this(resources, null, culture, projectPath, configuration, platform, properties)
+        {
+        }
+
+        /// <summary>Captures saved lookup catalogues alongside resources and scoped project values.</summary>
+        public CompilationContext(IEnumerable<ResxTextSnapshot> resources, IEnumerable<LookupTextSnapshot> lookups,
+            string culture = null, string projectPath = null, string configuration = null, string platform = null,
+            IEnumerable<PropertyDefinition> properties = null)
         {
             ProjectPath = projectPath;
             Configuration = configuration;
@@ -32,6 +40,9 @@ namespace Alarmlist.Compiler
             ResxTextSnapshot[] capturedResources = (resources ?? Array.Empty<ResxTextSnapshot>()).ToArray();
             if (capturedResources.Any(item => item == null)) throw new ArgumentException("A resource must not be null.", nameof(resources));
             Resources = Array.AsReadOnly(capturedResources);
+            LookupTextSnapshot[] capturedLookups = (lookups ?? Array.Empty<LookupTextSnapshot>()).ToArray();
+            if (capturedLookups.Any(item => item == null)) throw new ArgumentException("A lookup must not be null.", nameof(lookups));
+            Lookups = Array.AsReadOnly(capturedLookups);
             Culture = string.IsNullOrWhiteSpace(culture) ? "keyword" : culture;
         }
 
@@ -40,6 +51,7 @@ namespace Alarmlist.Compiler
         public string Platform { get; }
         public IReadOnlyList<PropertyDefinition> Properties { get; }
         public IReadOnlyList<ResxTextSnapshot> Resources { get; }
+        public IReadOnlyList<LookupTextSnapshot> Lookups { get; }
         public string Culture { get; }
     }
 

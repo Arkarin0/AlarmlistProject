@@ -1,5 +1,9 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Alarmlist.Evaluation;
 using Alarmlist.Localization;
 using Alarmlist.Text;
 
@@ -31,6 +35,7 @@ namespace Alarmlist.Analysis
         public SourceLocation ValueLocation { get; }
         public bool IsValid { get; }
         public bool IsAmbiguous { get; }
+        public IReadOnlyList<string> PlaceholderNames { get; }
 
         internal AnalyzedResourceEntry(ResourceEntry entry, bool ambiguous)
         {
@@ -42,6 +47,9 @@ namespace Alarmlist.Analysis
             ValueLocation = entry.ValueLocation;
             IsValid = entry.IsValid;
             IsAmbiguous = ambiguous;
+            PlaceholderNames = Array.AsReadOnly((entry.IsValid
+                ? PropertyExpression.Parse(entry.Value, placeholders: true)?.PlaceholderNames ?? Enumerable.Empty<string>()
+                : Enumerable.Empty<string>()).ToArray());
         }
     }
 
@@ -57,6 +65,7 @@ namespace Alarmlist.Analysis
         public string Comment { get; }
         public SourceLocation Location { get; }
         public SourceLocation ValueLocation { get; }
+        public IReadOnlyList<string> PlaceholderNames { get; }
 
         internal AnalyzedTranslation(string key, string culture, ResourceEntry entry)
         {
@@ -69,6 +78,8 @@ namespace Alarmlist.Analysis
             Comment = entry?.Comment;
             Location = entry?.Location;
             ValueLocation = entry?.ValueLocation;
+            PlaceholderNames = Array.AsReadOnly((entry == null ? Enumerable.Empty<string>()
+                : PropertyExpression.Parse(entry.Value, placeholders: true)?.PlaceholderNames ?? Enumerable.Empty<string>()).ToArray());
         }
     }
 

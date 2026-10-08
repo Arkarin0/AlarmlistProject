@@ -68,7 +68,9 @@ namespace Alarmlist.Analysis
                 {
                     catalogue.TryResolve(key, analyzer._evaluation.Culture, out ResourceTranslation translation);
                     return new AnalyzedTranslation(key, analyzer._evaluation.Culture, translation?.Entry);
-                }), xml);
+                }), context.Lookups.Select(lookup => new AnalyzedLookupFile(lookup)),
+                analyzer._evaluation.Lookups.Paths.Select(path => new AnalyzedLookupPath(path,
+                    analyzer._evaluation.Lookups.IsAmbiguous(path), catalogue, analyzer._evaluation.Culture)), xml);
         }
 
         private void AddEntryOrigins(ReferenceableCollection<ITestProcedureItem> entries, AlarmOrigin alarm, string section)
@@ -98,7 +100,8 @@ namespace Alarmlist.Analysis
                 AnalyzeSection(alarm, "Instructions", resolved), AnalyzeSection(alarm, "Reset", resolved),
                 alarm.IsAbstract, evaluation?.IsAvailable == true, AnalyzeProperties(alarm, alarm.SourceFile, resolved),
                 (evaluation?.LocalizationUses ?? Enumerable.Empty<LocalizationEvaluation>()).Select(use =>
-                    new AnalyzedLocalizationUse(new AnalyzedTranslation(use.Key, _evaluation.Culture, use.Entry), use.Location, use.Value)));
+                    new AnalyzedLocalizationUse(new AnalyzedTranslation(use.Key, _evaluation.Culture, use.Entry), use.Location, use.Value)),
+                (evaluation?.LookupUses ?? Enumerable.Empty<LookupEvaluation>()).Select(use => new AnalyzedLookupUse(use)));
         }
 
         private IEnumerable<AnalyzedProperty> AnalyzeProperties(AlarmSyntaxNode alarm, AlarmSyntaxTree file, bool resolved, string filePath = null)

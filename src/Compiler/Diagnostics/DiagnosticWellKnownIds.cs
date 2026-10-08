@@ -27,5 +27,7 @@ namespace Alarmlist.Diagnostics
         public const string InvalidLocalizationKey = "ALM0018";
         public const string InvalidLookup = "ALM0019";
         public const string DuplicateLookupPath = "ALM0020";
+        public const string MissingLookup = "ALM0021";
+        public const string InvalidLocalizationArguments = "ALM0022";
     }
 }

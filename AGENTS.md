@@ -189,6 +189,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Keep project-wide case-sensitive path identities, per-path member identities,
   literal metadata and immutable catalogue results. See
   `src/VisualStudio/HMI-LOOKUPS.md` for the extension contract and iteration status.
+- Named localization arguments use `$(loc:Key, name="text", value=$(Parameter))`;
+  formatted RESX templates use `{name}` and literal `{{`/`}}`. Lookup expressions
+  use `path:`, `property:`, `button:` and `meta:` with `#`-separated identities.
+  Parse quoted arguments and template placeholders before substitutions; inserted
+  parameter/metadata/argument values remain literal. Preserve single-culture label
+  lookup, complete keyword tokens, reference errors without bounds validation, and
+  deferred contextual resolution for abstract/excluded content. Additive analysis
+  data exposes captured lookup files, immutable entries and usage provenance.
 - `AlarmCompiler.AnalyzeSnapshots` returns the read-only, versioned analysis
   contract from `Analysis/`. Preserve local/effective field separation, procedure
   origins and Clear exclusions, and unavailable effective values for invalid
