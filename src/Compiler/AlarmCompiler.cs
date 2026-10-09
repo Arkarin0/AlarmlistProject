@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Alarmlist.Analysis;
 using Alarmlist.Binding;
@@ -23,17 +24,18 @@ namespace Alarmlist.Compiler
             => Compile(sourceTexts, CompilationContext.Empty);
 
         public CompilationResult Compile(IEnumerable<SourceText> sourceTexts, CompilationContext context)
+            => Compile(sourceTexts, context, CancellationToken.None);
+
+        private CompilationResult Compile(IEnumerable<SourceText> sourceTexts, CompilationContext context, CancellationToken token)
         {
             if (sourceTexts == null)
                 throw new ArgumentNullException(nameof(sourceTexts));
 
+            token.ThrowIfCancellationRequested();
             var binder = new Binder();
             binder.AddSourceTexts(sourceTexts);
             var bindingResult = binder.Bind();
-            var compilationResult = CompileBound(bindingResult.SyntaxTree, context);
-            var diagnostics = bindingResult.Diagnostics.Concat(compilationResult.Diagnostics);
-
-            return new CompilationResult(compilationResult.AlarmList, diagnostics);
+            return SnapshotAnalyzer.Compile(bindingResult, context, token);
         }
 
         public CompilationResult CompileFiles(IEnumerable<string> filePaths)
@@ -63,6 +65,9 @@ namespace Alarmlist.Compiler
             => CompileSnapshots(snapshots, CompilationContext.Empty);
 
         public CompilationResult CompileSnapshots(IEnumerable<AlmxTextSnapshot> snapshots, CompilationContext context)
+            => CompileSnapshots(snapshots, context, CancellationToken.None);
+
+        public CompilationResult CompileSnapshots(IEnumerable<AlmxTextSnapshot> snapshots, CompilationContext context, CancellationToken cancellationToken)
         {
             if (snapshots == null) throw new ArgumentNullException(nameof(snapshots));
 
@@ -70,7 +75,7 @@ namespace Alarmlist.Compiler
             {
                 if (snapshot == null) throw new ArgumentException("A source snapshot must not be null.", nameof(snapshots));
                 return snapshot.CreateSourceText();
-            }), context);
+            }), context, cancellationToken);
         }
 
         /// <summary>Returns detached effective values and their origins for captured document text.</summary>
@@ -82,11 +87,15 @@ namespace Alarmlist.Compiler
             => AnalyzeSnapshots(snapshots, CompilationContext.Empty, includeCompiledXml);
 
         public AnalysisResult AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot> snapshots, CompilationContext context, bool includeCompiledXml = false)
+            => AnalyzeSnapshots(snapshots, context, includeCompiledXml, CancellationToken.None);
+
+        public AnalysisResult AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot> snapshots, CompilationContext context, bool includeCompiledXml, CancellationToken cancellationToken)
         {
             if (snapshots == null) throw new ArgumentNullException(nameof(snapshots));
+            cancellationToken.ThrowIfCancellationRequested();
             AlmxTextSnapshot[] inputs = snapshots.ToArray();
             if (inputs.Any(snapshot => snapshot == null)) throw new ArgumentException("A source snapshot must not be null.", nameof(snapshots));
-            return SnapshotAnalyzer.Analyze(inputs, context, includeCompiledXml);
+            return SnapshotAnalyzer.Analyze(inputs, context, includeCompiledXml, cancellationToken);
         }
 
         public CompilationResult Compile(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree)
@@ -98,11 +107,8 @@ namespace Alarmlist.Compiler
                 throw new ArgumentNullException(nameof(syntaxTree));
 
             BindingResult binding = Binder.Bind(syntaxTree);
-            CompilationResult compilation = CompileBound(syntaxTree, context);
-            return new CompilationResult(compilation.AlarmList, binding.Diagnostics.Concat(compilation.Diagnostics));
+            return SnapshotAnalyzer.Compile(binding, context);
         }
 
-        internal CompilationResult CompileBound(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree, CompilationContext context)
-            => new CompilationEvaluator(syntaxTree, context).ToCompilationResult();
     }
 }

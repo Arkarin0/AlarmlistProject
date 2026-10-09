@@ -75,7 +75,7 @@ namespace Alarmlist.Core.UnitTests.Lookups
         [Fact]
         public void EscapedCallsAreLiteralIncludingNestedArgumentExpressions()
         {
-            Assert.Equal(Formatted, Assert.Single(Compile("$" + Formatted, Context("fr")).AlarmList).Name);
+            Assert.Equal(Formatted.Replace("\r\n", "\n"), Assert.Single(Compile("$" + Formatted, Context("fr")).AlarmList).Name);
         }
 
         [Theory]
@@ -87,7 +87,7 @@ namespace Alarmlist.Core.UnitTests.Lookups
         {
             var context = new CompilationContext(Array.Empty<ResxTextSnapshot>(), Lookups(), "keyword");
             Assert.Equal(expression, Assert.Single(Compile(expression, context).AlarmList).Name);
-            Assert.Equal(Formatted, Assert.Single(Compile(Formatted, context).AlarmList).Name);
+            Assert.Equal(Formatted.Replace("\r\n", "\n"), Assert.Single(Compile(Formatted, context).AlarmList).Name);
             Assert.Equal("""$(loc:Unknown, value=$(unassigned))""",
                 Assert.Single(Compile("""$(loc:Unknown, value=$(unassigned))""", context).AlarmList).Name);
         }

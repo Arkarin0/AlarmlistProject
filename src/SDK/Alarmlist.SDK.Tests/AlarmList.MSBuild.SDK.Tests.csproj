@@ -15,6 +15,10 @@
       <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
     </ProjectReference>
     <Content Include="testassets/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false">
+      <SkipGetTargetFrameworkProperties Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">true</SkipGetTargetFrameworkProperties>
+      <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
+    </ProjectReference>
     <Content Include="../../MSBuild/SampleData/PartA.almx" Link="testassets/boilerplate/PartA.almx" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../MSBuild/SampleData/PartB.almx" Link="testassets/boilerplate/sources/PartB.almx" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../MSBuild/SampleData/Conditional.almx" Link="testassets/ExplicitItems/Conditional.almx" CopyToOutputDirectory="PreserveNewest" />
@@ -35,5 +39,15 @@
     </PropertyGroup>
     <WriteLinesToFile File="$(TargetDir)testassets/boilerplate/global.json" Lines="$(_TestGlobalJson)" Overwrite="true" WriteOnlyWhenDifferent="true" />
     <Copy SourceFiles="@(_SdkPackage)" DestinationFolder="$(TargetDir)testassets/boilerplate/feed" SkipUnchangedFiles="true" />
+    <MSBuild Projects="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);TargetFramework=net472">
+      <Output TaskParameter="TargetOutputs" ItemName="_DesktopSampleAnalyzer" />
+    </MSBuild>
+    <MSBuild Projects="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);TargetFramework=net8.0">
+      <Output TaskParameter="TargetOutputs" ItemName="_CoreSampleAnalyzer" />
+    </MSBuild>
+    <Copy SourceFiles="@(_DesktopSampleAnalyzer)" DestinationFolder="$(TargetDir)testassets/boilerplate/analyzers/net472" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_CoreSampleAnalyzer)" DestinationFolder="$(TargetDir)testassets/boilerplate/analyzers/net8.0" SkipUnchangedFiles="true" />
   </Target>
 </Project>

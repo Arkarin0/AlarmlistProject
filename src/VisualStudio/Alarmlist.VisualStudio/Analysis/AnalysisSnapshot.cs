@@ -9,7 +9,7 @@ namespace Alarmlist.VisualStudio.Analysis
     // These copied values are owned by the host. No SDK types cross the AppDomain
     // boundary, and results remain usable after the compiler domain is unloaded.
     internal enum AnalysisStepKind { Instruction, Hint, Warning, Note }
-    internal enum AnalysisSeverity { Info, Warning, Error }
+    internal enum AnalysisSeverity { Info, Warning, Error, Hidden }
 
     [Serializable]
     internal sealed class AnalysisSource

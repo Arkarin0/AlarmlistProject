@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Alarmlist.ConfigurationInput;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
@@ -11,7 +12,9 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         public static AnalysisContext Empty { get; } = new AnalysisContext();
         public AnalysisContext(string projectPath = null, string configuration = null, string platform = null, IEnumerable<AnalysisPropertyDefinition> properties = null,
-            IEnumerable<AnalysisResourceInput> resources = null, string culture = null, IEnumerable<AnalysisLookupInput> lookups = null)
+            IEnumerable<AnalysisResourceInput> resources = null, string culture = null, IEnumerable<AnalysisLookupInput> lookups = null,
+            AnalysisDiagnosticOptions diagnosticOptions = null, IEnumerable<CapturedEditorConfig> configurations = null,
+            IEnumerable<CapturedAnalyzerReference> analyzers = null)
         {
             ProjectPath = projectPath; Configuration = configuration; Platform = platform;
             Properties = Array.AsReadOnly((properties ?? Array.Empty<AnalysisPropertyDefinition>()).ToArray());
@@ -22,6 +25,9 @@ namespace Alarmlist.VisualStudio.Analysis
             if (capturedLookups.Any(lookup => lookup == null)) throw new ArgumentException("A lookup must not be null.", nameof(lookups));
             Lookups = Array.AsReadOnly(capturedLookups);
             Culture = string.IsNullOrWhiteSpace(culture) ? "keyword" : culture;
+            DiagnosticOptions = diagnosticOptions ?? new AnalysisDiagnosticOptions();
+            Configurations = Array.AsReadOnly((configurations ?? Array.Empty<CapturedEditorConfig>()).ToArray());
+            Analyzers = Array.AsReadOnly((analyzers ?? Array.Empty<CapturedAnalyzerReference>()).ToArray());
         }
         public string ProjectPath { get; }
         public string Configuration { get; }
@@ -30,17 +36,37 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisResourceInput> Resources { get; }
         public IReadOnlyList<AnalysisLookupInput> Lookups { get; }
         public string Culture { get; }
+        public AnalysisDiagnosticOptions DiagnosticOptions { get; }
+        public IReadOnlyList<CapturedEditorConfig> Configurations { get; }
+        public IReadOnlyList<CapturedAnalyzerReference> Analyzers { get; }
 
-        public AnalysisContext WithSavedInputs(IEnumerable<AnalysisResourceInput> resources, IEnumerable<AnalysisLookupInput> lookups)
-            => new AnalysisContext(ProjectPath, Configuration, Platform, Properties, resources, Culture, lookups);
+        public AnalysisContext WithSavedInputs(IEnumerable<AnalysisResourceInput> resources, IEnumerable<AnalysisLookupInput> lookups,
+            IEnumerable<CapturedEditorConfig> configurations = null, IEnumerable<CapturedAnalyzerReference> analyzers = null)
+            => new AnalysisContext(ProjectPath, Configuration, Platform, Properties, resources, Culture, lookups, DiagnosticOptions, configurations ?? Configurations, analyzers ?? Analyzers);
 
         public bool Matches(AnalysisContext other)
             => other != null && ProjectPath == other.ProjectPath && Configuration == other.Configuration && Platform == other.Platform
                 && Culture == other.Culture && Resources.Count == other.Resources.Count
+                && DiagnosticOptions.Matches(other.DiagnosticOptions)
+                && Configurations.Count == other.Configurations.Count && Configurations.Select((input, index) => input.Matches(other.Configurations[index])).All(equal => equal)
+                && Analyzers.Count == other.Analyzers.Count && Analyzers.Select((input, index) => input.Matches(other.Analyzers[index])).All(equal => equal)
                 && Resources.Select((resource, index) => resource.Matches(other.Resources[index])).All(equal => equal)
                 && Lookups.Count == other.Lookups.Count && Lookups.Select((lookup, index) => lookup.Matches(other.Lookups[index])).All(equal => equal)
                 && Properties.Count == other.Properties.Count && Properties.Select((property, index) =>
                     property.Name == other.Properties[index].Name && property.Value == other.Properties[index].Value).All(equal => equal);
+    }
+
+    [Serializable]
+    internal sealed class AnalysisDiagnosticOptions
+    {
+        public AnalysisDiagnosticOptions(bool treatWarningsAsErrors = false, string noWarn = null, string warningsAsErrors = null, string warningsNotAsErrors = null)
+        { TreatWarningsAsErrors = treatWarningsAsErrors; NoWarn = noWarn; WarningsAsErrors = warningsAsErrors; WarningsNotAsErrors = warningsNotAsErrors; }
+        public bool TreatWarningsAsErrors { get; }
+        public string NoWarn { get; }
+        public string WarningsAsErrors { get; }
+        public string WarningsNotAsErrors { get; }
+        public bool Matches(AnalysisDiagnosticOptions other) => other != null && TreatWarningsAsErrors == other.TreatWarningsAsErrors
+            && NoWarn == other.NoWarn && WarningsAsErrors == other.WarningsAsErrors && WarningsNotAsErrors == other.WarningsNotAsErrors;
     }
 
     [Serializable]

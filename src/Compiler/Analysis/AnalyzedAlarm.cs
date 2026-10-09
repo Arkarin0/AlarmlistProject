@@ -41,6 +41,7 @@ namespace Alarmlist.Analysis
         public IReadOnlyList<AnalyzedField> Fields { get; }
         public AnalyzedProcedureSection Instructions { get; }
         public AnalyzedProcedureSection Reset { get; }
+        public IReadOnlyList<AnalyzedProcedureSection> ProcedureSections { get; }
 
         internal AnalyzedAlarm(AlarmOrigin origin, string referenceName, bool isResolved,
             IEnumerable<AlarmOrigin> referenceChain, IEnumerable<AnalyzedField> fields,
@@ -60,6 +61,7 @@ namespace Alarmlist.Analysis
             Fields = Array.AsReadOnly(fields.ToArray());
             Instructions = instructions;
             Reset = reset;
+            ProcedureSections = Array.AsReadOnly(new[] { instructions, reset });
         }
     }
 

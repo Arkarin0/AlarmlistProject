@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Alarmlist.Analyzers;
+using Alarmlist.Diagnostics;
 using Alarmlist.Text;
 
 namespace Alarmlist.Compiler
@@ -30,7 +32,25 @@ namespace Alarmlist.Compiler
         public CompilationContext(IEnumerable<ResxTextSnapshot> resources, IEnumerable<LookupTextSnapshot> lookups,
             string culture = null, string projectPath = null, string configuration = null, string platform = null,
             IEnumerable<PropertyDefinition> properties = null)
+            : this(resources, lookups, culture, projectPath, configuration, platform, properties, DiagnosticOptions.Default)
         {
+        }
+
+        public CompilationContext(IEnumerable<ResxTextSnapshot> resources, IEnumerable<LookupTextSnapshot> lookups,
+            string culture, string projectPath, string configuration, string platform,
+            IEnumerable<PropertyDefinition> properties, DiagnosticOptions diagnosticOptions)
+            : this(resources, lookups, culture, projectPath, configuration, platform, properties, diagnosticOptions, null)
+        {
+        }
+
+        public CompilationContext(IEnumerable<ResxTextSnapshot> resources, IEnumerable<LookupTextSnapshot> lookups,
+            string culture, string projectPath, string configuration, string platform,
+            IEnumerable<PropertyDefinition> properties, DiagnosticOptions diagnosticOptions, IEnumerable<IAlarmAnalyzer> analyzers)
+        {
+            DiagnosticOptions = diagnosticOptions ?? throw new ArgumentNullException(nameof(diagnosticOptions));
+            IAlarmAnalyzer[] capturedAnalyzers = (analyzers ?? Array.Empty<IAlarmAnalyzer>()).ToArray();
+            if (capturedAnalyzers.Any(analyzer => analyzer == null)) throw new ArgumentException("An analyzer must not be null.", nameof(analyzers));
+            Analyzers = Array.AsReadOnly(capturedAnalyzers);
             ProjectPath = projectPath;
             Configuration = configuration;
             Platform = platform;
@@ -53,6 +73,14 @@ namespace Alarmlist.Compiler
         public IReadOnlyList<ResxTextSnapshot> Resources { get; }
         public IReadOnlyList<LookupTextSnapshot> Lookups { get; }
         public string Culture { get; }
+        public DiagnosticOptions DiagnosticOptions { get; }
+        public IReadOnlyList<IAlarmAnalyzer> Analyzers { get; }
+
+        public CompilationContext WithDiagnosticOptions(DiagnosticOptions options)
+            => new CompilationContext(Resources, Lookups, Culture, ProjectPath, Configuration, Platform, Properties, options, Analyzers);
+
+        public CompilationContext WithAnalyzers(IEnumerable<IAlarmAnalyzer> analyzers)
+            => new CompilationContext(Resources, Lookups, Culture, ProjectPath, Configuration, Platform, Properties, DiagnosticOptions, analyzers);
     }
 
     /// <summary>A declaration and optional literal assignment. Null means unassigned; empty is assigned.</summary>

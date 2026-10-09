@@ -1,0 +1,11 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AlarmlistCultures>keyword;en</AlarmlistCultures>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Alarm.almx" />
+    <AlarmlistAnalyzer Include="analyzers/net8.0/Alarmlist.SampleAnalyzer.dll" Condition="'$(MSBuildRuntimeType)' == 'Core'" />
+    <AlarmlistAnalyzer Include="analyzers/net472/Alarmlist.SampleAnalyzer.dll" Condition="'$(MSBuildRuntimeType)' != 'Core'" />
+  </ItemGroup>
+</Project>

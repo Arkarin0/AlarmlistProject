@@ -1,0 +1,131 @@
+// Created/modified by Arkarin0 under one ore more license(s).
+
+using System;
+using System.CodeDom.Compiler;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Alarmlist.ConfigurationInput;
+using Alarmlist.VisualStudio.Analysis;
+using Microsoft.CSharp;
+using Xunit;
+
+namespace Alarmlist.VisualStudio.UnitTests.Analysis
+{
+    public partial class SdkAnalysisBridgeTests
+    {
+        [Fact]
+        public void ExternalAnalyzerRunsInSdkDomainWithConfiguredSeverityAndDetachedResults()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                string path = CompileAnalyzer(sdk, "return new[] { new Alarmlist.Diagnostics.Diagnostic(Rule, \"reported\").WithLocation(context.Alarms[0].Origin.Location) };");
+                string sourcePath = Path.Combine(sdk.DirectoryPath, "A.almx");
+                var references = SavedAnalyzerCapture.Capture(new[] { path }, CancellationToken.None);
+                var context = new AnalysisContext(analyzers: references, diagnosticOptions: new AnalysisDiagnosticOptions(true));
+                AnalysisResponse result;
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    result = bridge.Analyze(new[] { Input("<Name>Alarm</Name>", sourcePath) }, context: context);
+                    Assert.Equal(AnalysisAvailability.Available, result.Availability);
+                    Assert.False(result.Snapshot.Success);
+                    Assert.Equal(AnalysisSeverity.Error, Assert.Single(result.Snapshot.Diagnostics).Severity);
+                    Assert.Null(result.CompiledXml);
+                    var silent = new AnalysisContext(analyzers: references, configurations: new[]
+                    {
+                        new CapturedEditorConfig(Path.Combine(sdk.DirectoryPath, ".editorconfig"), "root=true\n[*.almx]\nAlarmlist_diagnostic.TEST001.severity=silent")
+                    });
+                    AnalysisResponse hidden = bridge.Analyze(new[] { Input("<Name>Alarm</Name>", sourcePath) }, context: silent);
+                    Assert.True(hidden.Snapshot.Success);
+                    Assert.Equal(AnalysisSeverity.Hidden, Assert.Single(hidden.Snapshot.Diagnostics).Severity);
+                    Assert.NotNull(hidden.CompiledXml);
+                    Assert.Empty(LiveDiagnostic.Create(new ProjectAnalysisState(1, new AnalysisProject("Plant", "Debug", sdk.CompilerPath, new[] { sourcePath }),
+                        ProjectAnalysisStatus.Available, null, hidden)));
+                    using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+                }
+                Assert.Equal("reported", Assert.Single(result.Snapshot.Diagnostics).Message);
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Rules" || assembly.GetName().Name == "Alarmlist.Core");
+            }
+        }
+
+        [Fact]
+        public void SameVersionDependencyReplacementRequiresFreshDomainAndNeverRunsStaleCode()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                string directory = Path.Combine(sdk.DirectoryPath, "analyzers");
+                Directory.CreateDirectory(directory);
+                string dependency = Path.Combine(directory, "Helper.dll");
+                CompileLibrary(dependency, "public static class Helper { public static string Message { get { return \"old\"; } } }", "System.dll");
+                string path = CompileAnalyzer(sdk, "return new[] { new Alarmlist.Diagnostics.Diagnostic(Rule, Helper.Message) };", dependency);
+                var oldContext = new AnalysisContext(analyzers: SavedAnalyzerCapture.Capture(new[] { path }, CancellationToken.None));
+                AnalysisContext newContext;
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    Assert.Equal("old", Assert.Single(bridge.Analyze(Array.Empty<AnalysisInput>(), context: oldContext).Snapshot.Diagnostics).Message);
+                    CompileLibrary(dependency, "public static class Helper { public static string Message { get { return \"new\"; } } }", "System.dll");
+                    newContext = new AnalysisContext(analyzers: SavedAnalyzerCapture.Capture(new[] { path }, CancellationToken.None));
+                    AnalysisResponse result = bridge.Analyze(Array.Empty<AnalysisInput>(), context: newContext);
+                    Assert.Equal(AnalysisAvailability.Available, result.Availability);
+                    Assert.False(result.Snapshot.Success);
+                    Assert.Equal("ALM0025", Assert.Single(result.Snapshot.Diagnostics).Id);
+                    Assert.Contains("restart desktop MSBuild", Assert.Single(result.Snapshot.Diagnostics).Message);
+                    Assert.Equal("old", Assert.Single(bridge.Analyze(Array.Empty<AnalysisInput>(), context: oldContext).Snapshot.Diagnostics).Message);
+                }
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                    Assert.Equal("new", Assert.Single(bridge.Analyze(Array.Empty<AnalysisInput>(), context: newContext).Snapshot.Diagnostics).Message);
+            }
+        }
+
+        [Fact]
+        public async Task CancellationReachesAnExecutingAnalyzerWithoutLoadingSdkTypesIntoHostAsync()
+        {
+            using (var sdk = new SdkAsset())
+            using (var cancellation = new CancellationTokenSource())
+            {
+                string project = Path.Combine(sdk.DirectoryPath, "Plant.almproj");
+                string path = CompileAnalyzer(sdk, "System.IO.File.WriteAllText(context.ProjectPath + \".started\", \"started\");"
+                    + " cancellationToken.WaitHandle.WaitOne(10000); cancellationToken.ThrowIfCancellationRequested(); return new Alarmlist.Diagnostics.Diagnostic[0];");
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    var context = new AnalysisContext(projectPath: project, analyzers: SavedAnalyzerCapture.Capture(new[] { path }, CancellationToken.None));
+                    Task<AnalysisResponse> running = Task.Run(() => bridge.Analyze(Array.Empty<AnalysisInput>(), cancellation.Token, context));
+                    for (int i = 0; i < 300 && !File.Exists(project + ".started") && !running.IsCompleted; i++) await Task.Delay(20);
+                    Assert.True(File.Exists(project + ".started"), "The analyzer must start before cancellation.");
+                    cancellation.Cancel();
+                    Assert.Same(running, await Task.WhenAny(running, Task.Delay(5000)));
+#pragma warning disable VSTHRD003 // The task was started above on the pool; no UI join is involved.
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await running);
+#pragma warning restore VSTHRD003
+                    Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
+                }
+            }
+        }
+
+        private static string CompileAnalyzer(SdkAsset sdk, string body, params string[] dependencies)
+        {
+            string directory = Path.Combine(sdk.DirectoryPath, "analyzers");
+            Directory.CreateDirectory(directory);
+            string path = Path.Combine(directory, "Rules.dll");
+            string source = "public sealed class RuleAnalyzer : Alarmlist.Analyzers.IAlarmAnalyzer {"
+                + " private static readonly Alarmlist.Diagnostics.DiagnosticDescriptor Rule = new Alarmlist.Diagnostics.DiagnosticDescriptor(\"TEST001\", \"Test\", \"{0}\", Alarmlist.Diagnostics.DiagnosticSeverity.Warning);"
+                + " public int ContractVersion { get { return 1; } }"
+                + " public System.Collections.Generic.IReadOnlyList<Alarmlist.Diagnostics.DiagnosticDescriptor> SupportedDiagnostics { get { return new[] { Rule }; } }"
+                + " public System.Collections.Generic.IEnumerable<Alarmlist.Diagnostics.Diagnostic> Analyze(Alarmlist.Analyzers.AlarmAnalyzerContext context, System.Threading.CancellationToken cancellationToken) {"
+                + body + " } }";
+            CompileLibrary(path, source, new[] { sdk.CompilerPath, "System.dll", "System.Core.dll" }.Concat(dependencies).ToArray());
+            return path;
+        }
+
+        private static void CompileLibrary(string path, string source, params string[] references)
+        {
+            using (var provider = new CSharpCodeProvider())
+            {
+                var parameters = new CompilerParameters(references) { OutputAssembly = path, GenerateExecutable = false };
+                CompilerResults result = provider.CompileAssemblyFromSource(parameters, source);
+                Assert.False(result.Errors.HasErrors, string.Join(Environment.NewLine, result.Errors.Cast<CompilerError>()));
+            }
+        }
+    }
+}

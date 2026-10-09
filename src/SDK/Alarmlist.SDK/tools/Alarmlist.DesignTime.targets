@@ -22,6 +22,7 @@
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/Compile.xaml" Context="File;BrowseObject" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/AlarmlistResource.xaml" Context="File;BrowseObject" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/AlarmlistLookup.xaml" Context="File;BrowseObject" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/AlarmlistAnalyzer.xaml" Context="File;BrowseObject" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/None.xaml" Context="File;BrowseObject" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/Folder.xaml" Context="File;BrowseObject" />
   </ItemGroup>

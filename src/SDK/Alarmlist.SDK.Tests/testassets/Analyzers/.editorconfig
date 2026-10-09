@@ -1,0 +1,4 @@
+root = true
+
+[*.almx]
+alarmlist_sample.code_prefix = AL-

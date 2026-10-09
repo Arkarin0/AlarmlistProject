@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using Alarmlist.Analyzers;
 using Alarmlist.Compiler;
+using Alarmlist.Configuration;
+using Alarmlist.ConfigurationInput;
 using Alarmlist.Diagnostics;
 using Alarmlist.Localization;
 using Alarmlist.Output;
@@ -15,6 +19,7 @@ namespace Alarmlist.MSBuild
     {
         private readonly Func<string[], CompilationResult> _compileAction;
         private volatile bool _cancelled;
+        private readonly CancellationTokenSource _cancellation = new CancellationTokenSource();
 
         [Required]
         public string OutputDirectory { get; set; }
@@ -30,8 +35,13 @@ namespace Alarmlist.MSBuild
         public ITaskItem[] Properties { get; set; } = Array.Empty<ITaskItem>();
         public ITaskItem[] Resources { get; set; } = Array.Empty<ITaskItem>();
         public ITaskItem[] Lookups { get; set; } = Array.Empty<ITaskItem>();
+        public ITaskItem[] Analyzers { get; set; } = Array.Empty<ITaskItem>();
         public string Cultures { get; set; }
         public string ManifestFile { get; set; }
+        public bool TreatWarningsAsErrors { get; set; }
+        public string NoWarn { get; set; }
+        public string WarningsAsErrors { get; set; }
+        public string WarningsNotAsErrors { get; set; }
 
         [Output]
         public ITaskItem[] OutputFiles { get; private set; } = Array.Empty<ITaskItem>();
@@ -61,6 +71,12 @@ namespace Alarmlist.MSBuild
 
                 ITaskItem[] outputs = BuildOutputPlan.Create(OutputDirectory, OutputFileName, Cultures);
                 string[] sourceFiles = Compile.ToIncludeList();
+                IReadOnlyList<CapturedEditorConfig> configurations = SavedEditorConfigCapture.Capture(sourceFiles, _cancellation.Token);
+                IReadOnlyList<CapturedAnalyzerReference> analyzers = SavedAnalyzerCapture.Capture(
+                    (Analyzers ?? Array.Empty<ITaskItem>()).Select(Factory.GetFullFilePath), _cancellation.Token);
+                var diagnosticOptions = new DiagnosticOptions(new AnalyzerConfiguration(configurations.Where(input => input.Text != null)
+                    .Select(input => new EditorConfigTextSnapshot(input.Text, input.FilePath, 0))), TreatWarningsAsErrors,
+                    new[] { NoWarn }, new[] { WarningsAsErrors }, new[] { WarningsNotAsErrors });
                 var captured = new Dictionary<string, string>(BuildOutputPlan.PathComparer);
                 string Capture(string path)
                 {
@@ -83,7 +99,8 @@ namespace Alarmlist.MSBuild
                     return new LookupTextSnapshot(Capture(path), path, 0);
                 }).ToArray();
                 var inputPaths = new HashSet<string>(sourceFiles.Concat(resources.Select(resource => resource.FilePath))
-                    .Concat(lookups.Select(lookup => lookup.FilePath)), BuildOutputPlan.PathComparer);
+                    .Concat(lookups.Select(lookup => lookup.FilePath)).Concat(configurations.Select(input => input.FilePath))
+                    .Concat(analyzers.SelectMany(analyzer => analyzer.Images).Select(image => image.FilePath)), BuildOutputPlan.PathComparer);
                 if (outputs.Any(item => inputPaths.Contains(item.ItemSpec))
                     || (!string.IsNullOrEmpty(ManifestFile) && inputPaths.Contains(Path.GetFullPath(ManifestFile))))
                     throw new InvalidOperationException("An output or ownership manifest must not replace a source input.");
@@ -95,16 +112,21 @@ namespace Alarmlist.MSBuild
                     throw new InvalidOperationException("A previously owned output is now a source input; resolve its ownership before building.");
                 var changes = new List<OutputTransaction.Change>();
                 bool success = true;
-                foreach (ITaskItem output in outputs)
+                using (var loader = new AnalyzerAssemblyLoader(analyzers.Select(analyzer => new AnalyzerAssemblyReference(analyzer.FilePath,
+                    analyzer.Images.Select(image => new AnalyzerAssemblyImage(image.FilePath, image.GetImage()))))))
                 {
-                    CheckCancellation();
-                    string culture = output.GetMetadata("Culture");
-                    Log.LogMessage(MessageImportance.High, "Compiling {0} ALMX file(s) for '{1}'.", sources.Length == 0 ? sourceFiles.Length : sources.Length, culture);
-                    var context = new CompilationContext(resources, lookups, culture, ProjectPath, Configuration, Platform, properties);
-                    CompilationResult result = _compileAction == null ? new AlarmCompiler().CompileSnapshots(sources, context) : _compileAction(sourceFiles);
-                    LogDiagnostics(result);
-                    success &= result.Success;
-                    if (result.Success) changes.Add(new OutputTransaction.Change(output.ItemSpec, new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList)));
+                    foreach (ITaskItem output in outputs)
+                    {
+                        CheckCancellation();
+                        string culture = output.GetMetadata("Culture");
+                        Log.LogMessage(MessageImportance.High, "Compiling {0} ALMX file(s) for '{1}'.", sources.Length == 0 ? sourceFiles.Length : sources.Length, culture);
+                        var context = new CompilationContext(resources, lookups, culture, ProjectPath, Configuration, Platform, properties, diagnosticOptions, loader.Analyzers);
+                        CompilationResult result = _compileAction == null ? new AlarmCompiler().CompileSnapshots(sources, context, _cancellation.Token) : _compileAction(sourceFiles);
+                        if (_compileAction != null) result = new CompilationResult(result.AlarmList, DiagnosticPolicy.Apply(result.Diagnostics, diagnosticOptions));
+                        LogDiagnostics(result);
+                        success &= result.Success;
+                        if (result.Success) changes.Add(new OutputTransaction.Change(output.ItemSpec, new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList)));
+                    }
                 }
                 if (!success) return false;
 
@@ -135,7 +157,7 @@ namespace Alarmlist.MSBuild
             }
         }
 
-        public void Cancel() => _cancelled = true;
+        public void Cancel() { _cancelled = true; _cancellation.Cancel(); }
 
         private void CheckCancellation()
         {
@@ -159,6 +181,9 @@ namespace Alarmlist.MSBuild
                         Log.LogWarning(null, diagnostic.Id, null, location?.FilePath,
                             location?.LineNumber ?? 0, location?.ColumnNumber ?? 0,
                             location?.EndLineNumber ?? 0, location?.EndColumnNumber ?? 0, "{0}", diagnostic.Message);
+                        break;
+
+                    case DiagnosticSeverity.Hidden:
                         break;
 
                     default:

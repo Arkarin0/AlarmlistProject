@@ -23,10 +23,13 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             var resources = project.GetItems("AlarmlistResource").Select(item => new AnalysisResourceItem(
                 Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude)), item.GetMetadata("Culture")?.EvaluatedValue)).ToArray();
             var context = new AnalysisContext(projectPath, EmptyToNull(project.GetPropertyValue("Configuration")),
-                EmptyToNull(project.GetPropertyValue("Platform")), properties, culture: project.GetPropertyValue("AlarmlistCulture"));
+                EmptyToNull(project.GetPropertyValue("Platform")), properties, culture: project.GetPropertyValue("AlarmlistCulture"),
+                diagnosticOptions: new AnalysisDiagnosticOptions(bool.TryParse(project.GetPropertyValue("TreatWarningsAsErrors"), out bool promote) && promote,
+                    project.GetPropertyValue("NoWarn"), project.GetPropertyValue("WarningsAsErrors"), project.GetPropertyValue("WarningsNotAsErrors")));
             return new AnalysisProject(projectPath, configuration, project.GetPropertyValue(CompilerPathProperty), paths, context,
                 resources, project.GetPropertyValue("AlarmlistCultures"), project.GlobalProperties.ContainsKey("AlarmlistCulture"),
-                project.GetItems("AlarmlistLookup").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))));
+                project.GetItems("AlarmlistLookup").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))),
+                project.GetItems("AlarmlistAnalyzer").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))));
         }
 
         private static string EmptyToNull(string value) => string.IsNullOrEmpty(value) ? null : value;

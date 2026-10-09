@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="AlarmlistAnalyzer" DisplayName="Alarmlist analyzer" PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" ItemType="AlarmlistAnalyzer" HasConfigurationCondition="False" />
+  </Rule.DataSource>
+  <StringProperty Name="Identity" DisplayName="File name" ReadOnly="True">
+    <StringProperty.DataSource><DataSource Persistence="Intrinsic" ItemType="AlarmlistAnalyzer" PersistedName="Identity" /></StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="FullPath" DisplayName="Full path" ReadOnly="True">
+    <StringProperty.DataSource><DataSource Persistence="Intrinsic" ItemType="AlarmlistAnalyzer" PersistedName="FullPath" /></StringProperty.DataSource>
+  </StringProperty>
+  <BoolProperty Name="Visible" Visible="False" />
+  <StringProperty Name="Link" Visible="False" />
+</Rule>

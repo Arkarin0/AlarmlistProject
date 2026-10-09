@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../../shared/Configuration/*.cs" Link="Configuration/%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="AlarmList.MSBuild.UnitTests" />
   </ItemGroup>
 </Project>

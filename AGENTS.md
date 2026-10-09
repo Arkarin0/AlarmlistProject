@@ -23,6 +23,8 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | --- | --- |
 | `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, and detached snapshot/provenance results in `Analysis/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
+| `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-1 sample rule; also a package/UI test asset. |
+| `src/shared/Configuration/` | Saved EditorConfig discovery and analyzer/dependency byte capture shared by build and IDE hosts; no compiler file I/O. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
 | `src/MSBuild/AlarmList.MSBuild.UnitTests/` | Task unit tests and mocked build-engine behavior. |
 | `src/MSBuild/AlarmList.MSBuild.IntegrationTests/` | Integration tests invoking MSBuild against sample projects. |
@@ -161,6 +163,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 
 ## Compiler and file-format contracts
 
+- Milestone six adds captured `.editorconfig` inputs and diagnostic policy in
+  `Configuration/` and `Diagnostics/`. Resolve options without compiler filesystem
+  access. Preserve physical-source scoping, case-sensitive globs, root/unset,
+  literal inline punctuation and immutable captured results. ALM0001-ALM0025
+  remain mandatory errors regardless of NoWarn or per-file severity. Determine
+  success after configurable warning promotion and preserve previous outputs on
+  failure. See `src/VisualStudio/MILESTONE-6.md` for scope and implementation status.
+
 - Keep the existing flow: `Text/AlmxFile` reads source XML into `Syntax` models;
   `Binding/Binder` merges sources and resolves references; `AlarmCompiler`
   produces a `CompilationResult`; `Output` writers serialize resolved alarms.
@@ -243,6 +253,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   output. Test failure paths as well as successful compilation.
 
 ## MSBuild SDK contracts
+
+- Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
+  saved dependency-byte capture, contract-1 detached inputs, cooperative cancellation,
+  ALM0025 failure reporting, and diagnostic policy before output installation. The
+  net472 loader must reject changed/conflicting images in an existing AppDomain;
+  VS replaces the domain on payload changes, while desktop builds need a new process.
+  Do not claim silent reload or load compiler/plugin types into the VS host domain.
 
 - Keep consumer `.almproj` projects usable without a `TargetFramework`.
   Task assembly selection depends on `MSBuildRuntimeType`: .NET MSBuild loads

@@ -3,8 +3,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Versioning;
+using System.Threading;
 using System.Xml;
 
 namespace Alarmlist.VisualStudio.Analysis
@@ -16,6 +18,14 @@ namespace Alarmlist.VisualStudio.Analysis
         private Type _snapshotType;
         private Type _resourceType;
         private Type _lookupType;
+        private Type _editorConfigType;
+        private Type _analyzerConfigurationType;
+        private Type _diagnosticOptionsType;
+        private MethodInfo _withDiagnosticOptions;
+        private Type _analyzerImageType;
+        private Type _analyzerReferenceType;
+        private Type _analyzerLoaderType;
+        private MethodInfo _withAnalyzers;
         private MethodInfo _inferResourceCulture;
         private Type _contextType;
         private Type _propertyType;
@@ -56,12 +66,27 @@ namespace Alarmlist.VisualStudio.Analysis
                     || _inferResourceCulture == null || !_inferResourceCulture.IsStatic || _inferResourceCulture.ReturnType != typeof(string))
                     throw new NotSupportedException("The SDK resource input contract is incompatible.");
                 _contextType = assembly.GetType("Alarmlist.Compiler.CompilationContext", true);
+                _editorConfigType = assembly.GetType("Alarmlist.Text.EditorConfigTextSnapshot", true);
+                _analyzerConfigurationType = assembly.GetType("Alarmlist.Configuration.AnalyzerConfiguration", true);
+                _diagnosticOptionsType = assembly.GetType("Alarmlist.Diagnostics.DiagnosticOptions", true);
+                _analyzerImageType = assembly.GetType("Alarmlist.Analyzers.AnalyzerAssemblyImage", true);
+                _analyzerReferenceType = assembly.GetType("Alarmlist.Analyzers.AnalyzerAssemblyReference", true);
+                _analyzerLoaderType = assembly.GetType("Alarmlist.Analyzers.AnalyzerAssemblyLoader", true);
+                _withAnalyzers = _contextType.GetMethod("WithAnalyzers", new[] { typeof(IEnumerable<>).MakeGenericType(assembly.GetType("Alarmlist.Analyzers.IAlarmAnalyzer", true)) });
+                if (_withAnalyzers == null || _withAnalyzers.ReturnType != _contextType || !typeof(IDisposable).IsAssignableFrom(_analyzerLoaderType))
+                    throw new NotSupportedException("The SDK has no compatible analyzer loading contract.");
+                _withDiagnosticOptions = _contextType.GetMethod("WithDiagnosticOptions", new[] { _diagnosticOptionsType });
+                if (_editorConfigType.GetConstructor(new[] { typeof(string), typeof(string), typeof(int) }) == null
+                    || _analyzerConfigurationType.GetConstructor(new[] { typeof(IEnumerable<>).MakeGenericType(_editorConfigType) }) == null
+                    || _diagnosticOptionsType.GetConstructor(new[] { _analyzerConfigurationType, typeof(bool), typeof(IEnumerable<string>), typeof(IEnumerable<string>), typeof(IEnumerable<string>) }) == null
+                    || _withDiagnosticOptions == null || _withDiagnosticOptions.ReturnType != _contextType)
+                    throw new NotSupportedException("The SDK has no compatible captured diagnostic configuration contract.");
                 _propertyType = assembly.GetType("Alarmlist.Compiler.PropertyDefinition", true);
                 if (_contextType.GetConstructor(new[] { typeof(IEnumerable<>).MakeGenericType(_resourceType), typeof(IEnumerable<>).MakeGenericType(_lookupType), typeof(string),
                     typeof(string), typeof(string), typeof(string), typeof(IEnumerable<>).MakeGenericType(_propertyType) }) == null
                     || _propertyType.GetConstructor(new[] { typeof(string), typeof(string), assembly.GetType("Alarmlist.Text.SourceLocation", true) }) == null)
                     throw new NotSupportedException("The SDK context constructors are incompatible.");
-                _analyze = compilerType.GetMethod("AnalyzeSnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType), _contextType, typeof(bool) });
+                _analyze = compilerType.GetMethod("AnalyzeSnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType), _contextType, typeof(bool), typeof(CancellationToken) });
                 if (_analyze == null || _analyze.IsStatic || _analyze.ReturnType != assembly.GetType("Alarmlist.Analysis.AnalysisResult"))
                     throw new NotSupportedException("The SDK has no compatible AnalyzeSnapshots method.");
                 PropertyInfo xml = _analyze.ReturnType.GetProperty("CompiledXml", BindingFlags.Public | BindingFlags.Instance);
@@ -79,11 +104,17 @@ namespace Alarmlist.VisualStudio.Analysis
                 AnalysisAvailability state = failure is NotSupportedException || failure is TypeLoadException || failure is MissingMemberException
                     ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.LoadFailed;
                 return new AnalysisResponse(state, "Cannot use analysis compiler " + compilerPath
-                    + ". Restore an SDK supporting analysis contract 3 with lookup catalogues and named templates. " + failure.Message);
+                    + ". Restore an SDK supporting analysis contract 3 with captured diagnostic configuration and external analyzers. " + failure.Message);
             }
         }
 
-        public AnalysisResponse Analyze(AnalysisInput[] inputs, AnalysisContext context = null)
+        public AnalysisResponse Analyze(AnalysisInput[] inputs, AnalysisContext context = null, AnalysisCancellationProbe cancellation = null)
+        {
+            using (var cancellationScope = new WorkerCancellation(cancellation))
+                return AnalyzeCore(inputs, context, cancellationScope.Token);
+        }
+
+        private AnalysisResponse AnalyzeCore(AnalysisInput[] inputs, AnalysisContext context, CancellationToken token)
         {
             try
             {
@@ -108,10 +139,32 @@ namespace Alarmlist.VisualStudio.Analysis
                     lookups.SetValue(Activator.CreateInstance(_lookupType, input.Text, input.FilePath, input.Version), i);
                 }
                 object capturedContext = Activator.CreateInstance(_contextType, resources, lookups, context.Culture, context.ProjectPath, context.Configuration, context.Platform, properties);
-                object result = _analyze.Invoke(_compiler, new object[] { snapshots, capturedContext, true });
-                AnalysisSnapshot snapshot = _reader.Read(result);
-                return new AnalysisResponse(AnalysisAvailability.Available, null, snapshot,
-                    snapshot.Success ? (string)_compiledXml.GetValue(result, null) : null);
+                var configurations = context.Configurations.Where(input => input.Text != null).ToArray();
+                Array configurationInputs = Array.CreateInstance(_editorConfigType, configurations.Length);
+                for (int i = 0; i < configurations.Length; i++)
+                    configurationInputs.SetValue(Activator.CreateInstance(_editorConfigType, configurations[i].Text, configurations[i].FilePath, 0), i);
+                object configuration = Activator.CreateInstance(_analyzerConfigurationType, new object[] { configurationInputs });
+                AnalysisDiagnosticOptions policy = context.DiagnosticOptions;
+                object options = Activator.CreateInstance(_diagnosticOptionsType, configuration, policy.TreatWarningsAsErrors,
+                    new[] { policy.NoWarn }, new[] { policy.WarningsAsErrors }, new[] { policy.WarningsNotAsErrors });
+                capturedContext = _withDiagnosticOptions.Invoke(capturedContext, new[] { options });
+                Array analyzerReferences = Array.CreateInstance(_analyzerReferenceType, context.Analyzers.Count);
+                for (int i = 0; i < context.Analyzers.Count; i++)
+                {
+                    var reference = context.Analyzers[i];
+                    Array images = Array.CreateInstance(_analyzerImageType, reference.Images.Count);
+                    for (int j = 0; j < reference.Images.Count; j++)
+                        images.SetValue(Activator.CreateInstance(_analyzerImageType, reference.Images[j].FilePath, reference.Images[j].GetImage()), j);
+                    analyzerReferences.SetValue(Activator.CreateInstance(_analyzerReferenceType, reference.FilePath, images), i);
+                }
+                using (var loader = (IDisposable)Activator.CreateInstance(_analyzerLoaderType, new object[] { analyzerReferences }))
+                {
+                    capturedContext = _withAnalyzers.Invoke(capturedContext, new[] { _analyzerLoaderType.GetProperty("Analyzers").GetValue(loader) });
+                    object result = _analyze.Invoke(_compiler, new object[] { snapshots, capturedContext, true, token });
+                    AnalysisSnapshot snapshot = _reader.Read(result);
+                    return new AnalysisResponse(AnalysisAvailability.Available, null, snapshot,
+                        snapshot.Success ? (string)_compiledXml.GetValue(result, null) : null);
+                }
             }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(Unwrap(exception)))
             {
@@ -126,6 +179,32 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             while (exception is TargetInvocationException && exception.InnerException != null) exception = exception.InnerException;
             return exception;
+        }
+
+        private sealed class WorkerCancellation : IDisposable
+        {
+            private readonly CancellationTokenSource _source = new CancellationTokenSource();
+            private readonly Timer _timer;
+            private readonly object _gate = new object();
+            private bool _disposed;
+            internal WorkerCancellation(AnalysisCancellationProbe probe)
+            {
+                if (probe != null) _timer = new Timer(_ =>
+                {
+                    lock (_gate)
+                    {
+                        if (_disposed || _source.IsCancellationRequested) return;
+                        try { if (probe.IsCancellationRequested) _source.Cancel(); }
+                        catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception)) { _source.Cancel(); }
+                    }
+                }, null, 0, 50);
+            }
+            internal CancellationToken Token => _source.Token;
+            public void Dispose()
+            {
+                _timer?.Dispose();
+                lock (_gate) { _disposed = true; _source.Dispose(); }
+            }
         }
     }
 }

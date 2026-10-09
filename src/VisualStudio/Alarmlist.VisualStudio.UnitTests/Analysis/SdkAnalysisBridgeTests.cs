@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Alarmlist.VisualStudio.UnitTests.Analysis
 {
-    public class SdkAnalysisBridgeTests
+    public partial class SdkAnalysisBridgeTests
     {
         [Fact]
         public void LookupCatalogueNamedTemplatesAndProvenanceSurviveDomainUnload()

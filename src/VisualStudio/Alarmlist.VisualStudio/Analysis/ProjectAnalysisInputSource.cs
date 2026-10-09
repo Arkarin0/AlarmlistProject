@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using Alarmlist.ConfigurationInput;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
@@ -38,11 +39,15 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public void Watch(AnalysisProject project)
         {
-            string[] paths = project == null ? Array.Empty<string>() : project.Inputs
+            string[] inputPaths = project == null ? Array.Empty<string>() : project.Inputs
                 .Concat(project.Resources.Select(resource => resource.FilePath))
                 .Concat(project.Lookups)
+                .Concat(project.Analyzers)
                 .Concat(string.IsNullOrWhiteSpace(project.CompilerPath) ? Array.Empty<string>() : new[] { project.CompilerPath })
                 .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            string[] configurationPaths = project == null ? Array.Empty<string>()
+                : SavedEditorConfigCapture.Capture(project.Inputs, CancellationToken.None).Select(input => input.FilePath).ToArray();
+            string[] paths = inputPaths.Concat(configurationPaths).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             lock (_lifecycleGate)
             {
                 FileSystemWatcher[] previous;
@@ -62,11 +67,14 @@ namespace Alarmlist.VisualStudio.Analysis
                 var created = new List<FileSystemWatcher>();
                 try
                 {
-                    foreach (string directory in paths.Select(ExistingParent).Distinct(StringComparer.OrdinalIgnoreCase))
+                    var directories = inputPaths.Select(path => (Directory: ExistingParent(path), Recursive: true))
+                        .Concat(configurationPaths.Select(path => (Directory: ExistingParent(path), Recursive: false))).Distinct();
+                    foreach (var directory in directories)
                     {
-                        var watcher = new FileSystemWatcher(directory)
+                        var watcher = new FileSystemWatcher(directory.Directory)
                         {
-                            IncludeSubdirectories = true,
+                            IncludeSubdirectories = directory.Recursive,
+                            Filter = directory.Recursive ? "*" : ".editorconfig",
                             NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size
                         };
                         created.Add(watcher);
@@ -180,6 +188,12 @@ namespace Alarmlist.VisualStudio.Analysis
             return Task.FromResult<IReadOnlyList<AnalysisLookupInput>>(captured.AsReadOnly());
         }
 
+        public Task<IReadOnlyList<CapturedEditorConfig>> CaptureConfigurationsAsync(IReadOnlyList<string> sourcePaths, CancellationToken token)
+            => Task.FromResult(SavedEditorConfigCapture.Capture(sourcePaths, token));
+
+        public Task<IReadOnlyList<CapturedAnalyzerReference>> CaptureAnalyzersAsync(IReadOnlyList<string> paths, CancellationToken token)
+            => Task.FromResult(SavedAnalyzerCapture.Capture(paths, token));
+
         private void OnDocumentChanged(object sender, AnalysisFileChangedEventArgs args)
         {
             string[] selected;
@@ -208,7 +222,10 @@ namespace Alarmlist.VisualStudio.Analysis
                 // Directory creation/deletion also invalidates selected descendants.
                 affected = changedPath == null ? new string[] { null } : _paths.Where(path =>
                     string.Equals(path, changedPath, StringComparison.OrdinalIgnoreCase)
-                    || path.StartsWith(changedPath.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)).ToArray();
+                    || path.StartsWith(changedPath.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                    || (string.Equals(Path.GetExtension(changedPath), ".dll", StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(Path.GetExtension(path), ".dll", StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(Path.GetDirectoryName(path), Path.GetDirectoryName(changedPath), StringComparison.OrdinalIgnoreCase))).ToArray();
             }
             foreach (string path in affected) Changed?.Invoke(this, new AnalysisFileChangedEventArgs(path));
         }

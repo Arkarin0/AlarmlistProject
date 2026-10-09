@@ -441,6 +441,22 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             public void Notify(string path) => Changed?.Invoke(this, new AnalysisFileChangedEventArgs(path));
             public void SetResource(string path, string text, int version) => _resources[path] = new AnalysisResourceInput(text, path, version);
             public void SetLookup(string path, string text, int version) => _lookups[path] = new AnalysisLookupInput(text, path, version);
+            public IReadOnlyList<Alarmlist.ConfigurationInput.CapturedEditorConfig> Configurations = Array.Empty<Alarmlist.ConfigurationInput.CapturedEditorConfig>();
+            public Action<int> BeforeConfigurationCapture;
+            private int _configurationCaptures;
+            public Task<IReadOnlyList<Alarmlist.ConfigurationInput.CapturedEditorConfig>> CaptureConfigurationsAsync(IReadOnlyList<string> sourcePaths, CancellationToken token)
+            {
+                BeforeConfigurationCapture?.Invoke(Interlocked.Increment(ref _configurationCaptures));
+                return Task.FromResult(Configurations);
+            }
+            public IReadOnlyList<Alarmlist.ConfigurationInput.CapturedAnalyzerReference> Analyzers = Array.Empty<Alarmlist.ConfigurationInput.CapturedAnalyzerReference>();
+            public Action<int> BeforeAnalyzerCapture;
+            private int _analyzerCaptures;
+            public Task<IReadOnlyList<Alarmlist.ConfigurationInput.CapturedAnalyzerReference>> CaptureAnalyzersAsync(IReadOnlyList<string> paths, CancellationToken token)
+            {
+                BeforeAnalyzerCapture?.Invoke(Interlocked.Increment(ref _analyzerCaptures));
+                return Task.FromResult(Analyzers);
+            }
             public Task<IReadOnlyList<AnalysisLookupInput>> CaptureLookupsAsync(IReadOnlyList<string> paths, CancellationToken token)
             {
                 BeforeLookupCapture?.Invoke(Interlocked.Increment(ref _lookupCaptures));

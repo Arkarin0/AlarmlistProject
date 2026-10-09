@@ -1,0 +1,7 @@
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Plant.Pump</FullyQualifiedName>
+    <Name>Pump</Name>
+    <Code>P-001</Code>
+  </Alarm>
+</Alarmlist>

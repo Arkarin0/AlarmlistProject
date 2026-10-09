@@ -60,6 +60,8 @@
     <ItemGroup><CompiledAlarmlistFiles Remove="@(CompiledAlarmlistFiles)" /></ItemGroup>
     <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Compile="@(Compile)"
                        Resources="@(AlarmlistResource)" Lookups="@(AlarmlistLookup)" Cultures="$(AlarmlistCultures)" ManifestFile="$(_AlarmlistOutputManifest)"
+                       TreatWarningsAsErrors="$(TreatWarningsAsErrors)" NoWarn="$(NoWarn)" WarningsAsErrors="$(WarningsAsErrors)" WarningsNotAsErrors="$(WarningsNotAsErrors)"
+                       Analyzers="@(AlarmlistAnalyzer)"
                        ProjectPath="$(MSBuildProjectFullPath)" Configuration="$(Configuration)" Platform="$(Platform)" Properties="@(AlarmlistProperty)">
       <Output TaskParameter="OutputFiles" ItemName="CompiledAlarmlistFiles" />
     </AlarmlistBuildTask>

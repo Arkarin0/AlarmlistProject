@@ -144,13 +144,12 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (_domain == null) throw new ObjectDisposedException(nameof(SdkAnalysisBridge));
                 cancellationToken.ThrowIfCancellationRequested();
                 AnalysisResponse response;
-                try { response = WithHostAssemblyResolution(() => _worker.Analyze(snapshots, context)); }
+                try { response = WithHostAssemblyResolution(() => _worker.Analyze(snapshots, context, new AnalysisCancellationProbe(cancellationToken))); }
                 catch (Exception exception) when (IsRecoverable(exception))
                 {
                     response = new AnalysisResponse(AnalysisAvailability.AnalysisFailed, "SDK analysis failed: " + exception.Message);
                 }
-                // The compiler has no cancellation parameter. Discard superseded work
-                // after the call; do not abort compiler threads or publish stale data.
+                // Cooperative cancellation crosses through a host-owned probe; never abort analyzer threads.
                 cancellationToken.ThrowIfCancellationRequested();
                 return response;
             }
@@ -185,5 +184,13 @@ namespace Alarmlist.VisualStudio.Analysis
             return !(exception is OutOfMemoryException) && !(exception is StackOverflowException)
                 && !(exception is ThreadAbortException) && !(exception is AccessViolationException);
         }
+    }
+
+    internal sealed class AnalysisCancellationProbe : MarshalByRefObject
+    {
+        private readonly CancellationToken _token;
+        internal AnalysisCancellationProbe(CancellationToken token) { _token = token; }
+        public bool IsCancellationRequested => _token.IsCancellationRequested;
+        public override object InitializeLifetimeService() => null;
     }
 }

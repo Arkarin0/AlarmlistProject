@@ -40,6 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../../shared/Configuration/*.cs" Link="Analysis/Configuration/%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="Alarmlist.VisualStudio.UnitTests" />
     <InternalsVisibleTo Include="Alarmlist.VisualStudio.IntegrationTests" />
     <InternalsVisibleTo Include="Alarmlist.VisualStudio.PerformanceTests" />

@@ -3,6 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using Alarmlist.Analyzers;
 using Alarmlist.Binding;
 using Alarmlist.Compiler;
 using Alarmlist.Diagnostics;
@@ -24,6 +26,7 @@ namespace Alarmlist.Analysis
         private readonly HashSet<string> _ambiguousNames;
         private readonly CompilationContext _context;
         private readonly CompilationEvaluator _evaluation;
+        private AnalyzedAlarm[] _analyzedAlarms;
 
         private SnapshotAnalyzer(BindingResult binding, CompilationContext context)
         {
@@ -44,15 +47,16 @@ namespace Alarmlist.Analysis
             }
         }
 
-        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots, CompilationContext context, bool includeCompiledXml)
+        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots, CompilationContext context, bool includeCompiledXml, CancellationToken token = default)
         {
             var binder = new Binder();
             binder.AddSourceTexts(snapshots.Select(snapshot => snapshot.CreateSourceText()));
             BindingResult binding = binder.Bind();
             var analyzer = new SnapshotAnalyzer(binding, context);
-            CompilationResult compilation = analyzer._evaluation.ToCompilationResult();
+            CompilationResult compilation = analyzer.CompleteCompilation(binding, token);
+            IReadOnlyList<Diagnostic> diagnostics = compilation.Diagnostics;
             string xml = null;
-            if (includeCompiledXml && !binding.Diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
+            if (includeCompiledXml && !diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
             {
                 // Reuse the already-bound syntax and the normal output writer.
                 // Neither a second parse/bind nor editor-side serialization is needed.
@@ -61,7 +65,7 @@ namespace Alarmlist.Analysis
             IEnumerable<AnalyzedSource> sources = snapshots.Select((snapshot, index) => new AnalyzedSource(snapshot,
                 analyzer.AnalyzeProperties(null, binding.SyntaxTree.Files[index], true, snapshot.FilePath)));
             ResourceCatalogue catalogue = analyzer._evaluation.Resources;
-            return new AnalysisResult(sources, binding.SyntaxTree.Alarms.Select(analyzer.AnalyzeAlarm), binding.Diagnostics.Concat(compilation.Diagnostics),
+            return new AnalysisResult(sources, analyzer.GetAnalyzedAlarms(binding), diagnostics,
                 analyzer._evaluation.Culture, context.Resources.Select(resource => new AnalyzedResource(resource)),
                 catalogue.Entries.Select(entry => new AnalyzedResourceEntry(entry, catalogue.IsAmbiguous(entry))),
                 catalogue.Entries.Select(entry => entry.Key).Where(ResourceCatalogue.IsValidKey).Distinct(StringComparer.Ordinal).Select(key =>
@@ -73,6 +77,31 @@ namespace Alarmlist.Analysis
                     analyzer._evaluation.Lookups.IsAmbiguous(path), catalogue, analyzer._evaluation.Culture)),
                 analyzer._evaluation.Lookups.Lists.Select(list => new AnalyzedLookupList(list, analyzer._evaluation.Lookups, catalogue, analyzer._evaluation.Culture)),
                 analyzer._evaluation.Lookups.Bindings.Select(binding => new AnalyzedArgumentBinding(binding, analyzer._evaluation.Lookups.IsAvailable(binding))), xml);
+        }
+
+        internal static CompilationResult Compile(BindingResult binding, CompilationContext context, CancellationToken token = default)
+        {
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            token.ThrowIfCancellationRequested();
+            if (context.Analyzers.Count != 0) return new SnapshotAnalyzer(binding, context).CompleteCompilation(binding, token);
+            // Ordinary compilation does not need to allocate designer provenance tables.
+            CompilationResult compilation = new CompilationEvaluator(binding.SyntaxTree, context).ToCompilationResult();
+            return new CompilationResult(compilation.AlarmList,
+                DiagnosticPolicy.Apply(binding.Diagnostics.Concat(compilation.Diagnostics), context.DiagnosticOptions));
+        }
+
+        private AnalyzedAlarm[] GetAnalyzedAlarms(BindingResult binding)
+            => _analyzedAlarms ?? (_analyzedAlarms = binding.SyntaxTree.Alarms.Select(AnalyzeAlarm).ToArray());
+
+        private CompilationResult CompleteCompilation(BindingResult binding, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            CompilationResult compilation = _evaluation.ToCompilationResult();
+            var diagnostics = binding.Diagnostics.Concat(compilation.Diagnostics).ToList();
+            if (_context.Analyzers.Count != 0 && !diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
+                diagnostics.AddRange(AnalyzerDriver.Run(_context.Analyzers,
+                    new AlarmAnalyzerContext(GetAnalyzedAlarms(binding), _context, _evaluation.Culture), token));
+            return new CompilationResult(compilation.AlarmList, DiagnosticPolicy.Apply(diagnostics, _context.DiagnosticOptions));
         }
 
         private void AddEntryOrigins(ReferenceableCollection<ITestProcedureItem> entries, AlarmOrigin alarm, string section)

@@ -6,6 +6,7 @@ namespace Alarmlist.Diagnostics
     {
         Info,
         Warning,
-        Error
+        Error,
+        Hidden
     }
 }

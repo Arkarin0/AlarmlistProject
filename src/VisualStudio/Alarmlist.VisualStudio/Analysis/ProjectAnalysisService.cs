@@ -1,9 +1,11 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Alarmlist.ConfigurationInput;
 using Microsoft.VisualStudio.Threading;
 
 namespace Alarmlist.VisualStudio.Analysis
@@ -20,6 +22,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private AnalysisProject _project;
         private ISdkAnalysisBridge _bridge;
         private AnalysisProject _bridgeProject;
+        private IReadOnlyList<CapturedAnalyzerReference> _bridgeAnalyzers;
         private bool _resetBridge;
         private bool _stopped;
         private long _generation;
@@ -71,10 +74,12 @@ namespace Alarmlist.VisualStudio.Analysis
             lock (_gate)
             {
                 if (_stopped || _project == null) return;
-                bool compilerChanged = args.Path == null || string.Equals(args.Path, _project.CompilerPath, StringComparison.OrdinalIgnoreCase);
+                bool compilerChanged = args.Path == null || string.Equals(args.Path, _project.CompilerPath, StringComparison.OrdinalIgnoreCase)
+                    || _project.Analyzers.Contains(args.Path, StringComparer.OrdinalIgnoreCase);
                 if (!compilerChanged && !_project.Inputs.Contains(args.Path, StringComparer.OrdinalIgnoreCase)
                     && !_project.Resources.Any(resource => string.Equals(resource.FilePath, args.Path, StringComparison.OrdinalIgnoreCase))
-                    && !_project.Lookups.Contains(args.Path, StringComparer.OrdinalIgnoreCase)) return;
+                    && !_project.Lookups.Contains(args.Path, StringComparer.OrdinalIgnoreCase)
+                    && !string.Equals(System.IO.Path.GetFileName(args.Path), ".editorconfig", StringComparison.OrdinalIgnoreCase)) return;
                 _resetBridge |= compilerChanged;
                 ScheduleLocked("Project inputs changed.");
             }
@@ -112,6 +117,8 @@ namespace Alarmlist.VisualStudio.Analysis
                     if (reset || (project != null && !project.HasSameCompilerContext(_bridgeProject))) CloseBridge();
                     _inputs.Watch(project);
                     if (project == null) return;
+                    var analyzers = await _inputs.CaptureAnalyzersAsync(project.Analyzers, token).ConfigureAwait(false);
+                    if (_bridgeAnalyzers != null && !AnalyzersMatch(analyzers, _bridgeAnalyzers)) CloseBridge();
                     if (_bridge == null)
                     {
                         BridgeOpenResult opened = _factory.Open(project.CompilerPath);
@@ -125,20 +132,26 @@ namespace Alarmlist.VisualStudio.Analysis
                             return;
                         }
                     }
+                    _bridgeAnalyzers = analyzers;
 
                     var captured = await _inputs.CaptureAsync(project.Inputs, token).ConfigureAwait(false);
                     var resources = await _inputs.CaptureResourcesAsync(project.Resources, token).ConfigureAwait(false);
                     var lookups = await _inputs.CaptureLookupsAsync(project.Lookups, token).ConfigureAwait(false);
+                    var configurations = await _inputs.CaptureConfigurationsAsync(project.Inputs, token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();
-                    AnalysisResponse response = _bridge.Analyze(captured.Select(input => input.Input), token, project.Context.WithSavedInputs(resources, lookups));
+                    AnalysisResponse response = _bridge.Analyze(captured.Select(input => input.Input), token, project.Context.WithSavedInputs(resources, lookups, configurations, analyzers));
                     token.ThrowIfCancellationRequested();
                     var verified = await _inputs.CaptureAsync(project.Inputs, token).ConfigureAwait(false);
                     var verifiedResources = await _inputs.CaptureResourcesAsync(project.Resources, token).ConfigureAwait(false);
                     var verifiedLookups = await _inputs.CaptureLookupsAsync(project.Lookups, token).ConfigureAwait(false);
+                    var verifiedConfigurations = await _inputs.CaptureConfigurationsAsync(project.Inputs, token).ConfigureAwait(false);
+                    var verifiedAnalyzers = await _inputs.CaptureAnalyzersAsync(project.Analyzers, token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();
                     if (captured.Count != verified.Count || captured.Where((input, index) => !input.Matches(verified[index])).Any()
                         || resources.Count != verifiedResources.Count || resources.Where((input, index) => !input.Matches(verifiedResources[index])).Any()
-                        || lookups.Count != verifiedLookups.Count || lookups.Where((input, index) => !input.Matches(verifiedLookups[index])).Any())
+                        || lookups.Count != verifiedLookups.Count || lookups.Where((input, index) => !input.Matches(verifiedLookups[index])).Any()
+                        || configurations.Count != verifiedConfigurations.Count || configurations.Where((input, index) => !input.Matches(verifiedConfigurations[index])).Any()
+                        || !AnalyzersMatch(analyzers, verifiedAnalyzers))
                     {
                         // Also catches a disk/buffer race whose change event has not
                         // arrived yet, including close/reopen with the same version.
@@ -149,7 +162,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     }
                     ProjectAnalysisStatus status = response.Availability == AnalysisAvailability.Available ? ProjectAnalysisStatus.Available
                         : response.Availability == AnalysisAvailability.InvalidInput ? ProjectAnalysisStatus.Incomplete : ProjectAnalysisStatus.Unavailable;
-                    Publish(generation, new ProjectAnalysisState(generation, project, status, response.Message, response, captured, resources, lookups));
+                    Publish(generation, new ProjectAnalysisState(generation, project, status, response.Message, response, captured, resources, lookups, configurations, analyzers));
                 }, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -177,8 +190,12 @@ namespace Alarmlist.VisualStudio.Analysis
             Changed?.Invoke(this, EventArgs.Empty);
         }
 
+        private static bool AnalyzersMatch(IReadOnlyList<CapturedAnalyzerReference> left, IReadOnlyList<CapturedAnalyzerReference> right)
+            => left.Count == right.Count && left.Select((input, index) => input.Matches(right[index])).All(equal => equal);
+
         private void CloseBridge()
         {
+            _bridgeAnalyzers = null;
             // Keep the reference if unloading fails so a later request can retry.
             _bridge?.Dispose();
             _bridge = null;

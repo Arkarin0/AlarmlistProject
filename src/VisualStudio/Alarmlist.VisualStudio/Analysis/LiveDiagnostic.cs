@@ -23,7 +23,8 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             if (state?.Project == null) return Array.Empty<LiveDiagnostic>();
             if (state.Status == ProjectAnalysisStatus.Available && state.Response?.Snapshot != null)
-                return state.Response.Snapshot.Diagnostics.Select(diagnostic => new LiveDiagnostic(state, diagnostic)).ToArray();
+                return state.Response.Snapshot.Diagnostics.Where(diagnostic => diagnostic.Severity != AnalysisSeverity.Hidden)
+                    .Select(diagnostic => new LiveDiagnostic(state, diagnostic)).ToArray();
             if ((state.Status == ProjectAnalysisStatus.Incomplete || state.Status == ProjectAnalysisStatus.Unavailable)
                 && !string.IsNullOrEmpty(state.Message)) return new[] { new LiveDiagnostic(state, null) };
             return Array.Empty<LiveDiagnostic>();

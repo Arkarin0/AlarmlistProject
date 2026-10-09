@@ -95,6 +95,10 @@ or disable default items and list your inputs explicitly:
 | `AlarmlistXliffOutputPath` | `$(MSBuildProjectDirectory)/xliff` |
 | `AlarmlistXliffOverwrite` | `false`; use a new directory for a new translation job |
 | `AlarmlistTasksAssembly` | Task assembly for the current MSBuild runtime |
+| `NoWarn` | Empty; comma/semicolon-separated configurable diagnostic IDs to suppress |
+| `TreatWarningsAsErrors` | `false` |
+| `WarningsAsErrors` | Empty; IDs to promote from warning to error |
+| `WarningsNotAsErrors` | Empty; IDs exempt from blanket warning promotion |
 
 `@(CompiledAlarmlistFiles)` exposes absolute output paths with normalized `Culture` metadata. Build and GetTargetPath return these items; GetTargetPath needs no prior build and writes no output. Projects can use
 `BeforeTargets="Build"` or `AfterTargets="Build"` for custom targets;
@@ -108,6 +112,72 @@ when read from ALMX files. Missing, self, and circular references point to the
 `ReferenceName` element; duplicate names point to `FullyQualifiedName`. A failed
 compilation leaves any previous compiled output unchanged. Live analysis of
 unsaved ALMX editor buffers is separate from saved RESX resource capture.
+
+## Diagnostic configuration and analyzers
+
+Milestone six adds saved `.editorconfig` settings for configurable diagnostics.
+Configuration follows each physical ALMX path, including linked files, through
+parent directories until `root = true`. Nearer files and later matching sections
+win; `unset` removes an inherited option. Unsaved configuration drafts are ignored.
+
+```ini
+root = true
+
+[*.almx]
+alarmlist_diagnostic.SAMPLE001.severity = warning
+alarmlist_sample.code_prefix = AL-
+
+[production/**.almx]
+alarmlist_diagnostic.SAMPLE001.severity = error
+```
+
+Severity values are `error`, `warning`, `suggestion` (information), `silent`
+(available to analysis without a build log or Error List row), `none` (suppressed),
+and `default`. Unknown IDs have no effect; invalid severity values use the rule
+default. The primary diagnostic location selects its configuration; related
+locations do not. Location-free or relative-path diagnostics use project controls
+only. Keys/IDs are case-insensitive; globs and custom values preserve case.
+Inline `#` and `;` remain part of values. `.globalconfig` is not supported.
+
+The order is rule default, file severity, `NoWarn`, then warning promotion.
+`WarningsAsErrors` overrides `WarningsNotAsErrors`; the latter exempts only
+`TreatWarningsAsErrors`, not a configured error. Mandatory compiler errors
+ALM0001–ALM0025 cannot be suppressed or demoted. Any effective error prevents all
+culture outputs and their ownership manifest from being replaced.
+
+External analyzers are explicit items; no DLL glob or NuGet analyzer discovery
+runs automatically. See the [sample analyzer](../../Analyzers/Alarmlist.SampleAnalyzer/README.md).
+For a multi-targeted analyzer, select the assembly matching the build host:
+
+```xml
+<PropertyGroup>
+  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  <WarningsNotAsErrors>SAMPLE001</WarningsNotAsErrors>
+</PropertyGroup>
+<ItemGroup>
+  <AlarmlistAnalyzer Include="analyzers/net472/Company.Rules.dll"
+                    Condition="'$(MSBuildRuntimeType)' != 'Core'" />
+  <AlarmlistAnalyzer Include="analyzers/net8.0/Company.Rules.dll"
+                    Condition="'$(MSBuildRuntimeType)' == 'Core'" />
+</ItemGroup>
+```
+
+Visual Studio live analysis uses the evaluated net472-compatible selection.
+Keep private managed dependency DLLs beside the analyzer. The host captures those
+saved bytes once per build batch and watches them in the IDE; it does not load a
+colocated `Alarmlist.Core.dll` in place of the selected SDK. Assemblies load from
+captured bytes without locking the originals. A load/contract/execution failure
+reports mandatory ALM0025; missing or unreadable inputs also fail the build.
+
+Analyzers are trusted in-process code with cooperative cancellation, not a security
+sandbox or a hard timeout. They run once per successfully bound/evaluated culture;
+they do not run against an invalid compiler model. Instances must support repeated
+calls, avoid retaining inputs, and stop promptly on cancellation. Disposable
+instances are released before output installation. .NET 8 uses collectible load
+contexts. .NET Framework retains loaded assemblies until its AppDomain exits;
+conflicting/replaced DLL bytes require a fresh domain or desktop MSBuild process
+(`/nodeReuse:false`). The IDE recreates its SDK domain automatically when analyzer
+inputs change. A reused desktop node fails visibly instead of running old code.
 
 ## XLIFF translation export
 

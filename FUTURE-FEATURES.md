@@ -4,6 +4,16 @@ Status: ideas for future development, recorded on 2026-09-24. These notes captur
 intent and open design questions; they do not define implemented behavior,
 committed milestones, or a delivery schedule.
 
+Implementation update (2026-10-09): localization, generated lookups/named lists,
+the dockable preview and alarm table are implemented in
+[milestone five](src/VisualStudio/MILESTONE-5.md); its manual/vendor/release gates
+remain explicitly tracked. The owner approved
+[milestone six](src/VisualStudio/MILESTONE-6.md): EditorConfig, diagnostic severity,
+project warning controls and explicitly referenced external analyzers. Implementation
+is present and ordinary Release regressions pass; live IDE, performance and conformance
+validation remain tracked in that milestone. The original proposal text below is retained as design history;
+the milestone records describe current scope and actual validation.
+
 Planning update (2026-10-06): the
 [milestone-four plan](src/VisualStudio/MILESTONE-4.md) selects well-known and custom
 string properties plus their designer completion as its scope. The owner confirmed

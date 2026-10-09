@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Alarmlist.ConfigurationInput;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
@@ -19,9 +20,11 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<string> Lookups { get; }
         public string BuildCultures { get; }
         public bool IsPreviewCultureGlobal { get; }
+        public IReadOnlyList<string> Analyzers { get; }
 
         public AnalysisProject(string projectPath, string configuration, string compilerPath, IEnumerable<string> inputs, AnalysisContext context = null,
-            IEnumerable<AnalysisResourceItem> resources = null, string buildCultures = null, bool isPreviewCultureGlobal = false, IEnumerable<string> lookups = null)
+            IEnumerable<AnalysisResourceItem> resources = null, string buildCultures = null, bool isPreviewCultureGlobal = false, IEnumerable<string> lookups = null,
+            IEnumerable<string> analyzers = null)
         {
             ProjectPath = projectPath;
             Configuration = configuration;
@@ -32,12 +35,13 @@ namespace Alarmlist.VisualStudio.Analysis
             Lookups = Array.AsReadOnly((lookups ?? Array.Empty<string>()).ToArray());
             BuildCultures = string.IsNullOrWhiteSpace(buildCultures) ? "keyword" : buildCultures;
             IsPreviewCultureGlobal = isPreviewCultureGlobal;
+            Analyzers = Array.AsReadOnly((analyzers ?? Array.Empty<string>()).ToArray());
         }
 
         public bool HasSameCompilerContext(AnalysisProject other)
         {
             return other != null && ProjectPath == other.ProjectPath && Configuration == other.Configuration && CompilerPath == other.CompilerPath
-                && Context.Matches(other.Context);
+                && Context.Matches(other.Context) && Analyzers.SequenceEqual(other.Analyzers, StringComparer.OrdinalIgnoreCase);
         }
     }
 
@@ -61,10 +65,13 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<CapturedAnalysisInput> Inputs { get; }
         public IReadOnlyList<AnalysisResourceInput> Resources { get; }
         public IReadOnlyList<AnalysisLookupInput> Lookups { get; }
+        public IReadOnlyList<CapturedEditorConfig> Configurations { get; }
+        public IReadOnlyList<CapturedAnalyzerReference> Analyzers { get; }
 
         public ProjectAnalysisState(long generation, AnalysisProject project, ProjectAnalysisStatus status, string message,
             AnalysisResponse response = null, IReadOnlyList<CapturedAnalysisInput> inputs = null, IReadOnlyList<AnalysisResourceInput> resources = null,
-            IReadOnlyList<AnalysisLookupInput> lookups = null)
+            IReadOnlyList<AnalysisLookupInput> lookups = null, IReadOnlyList<CapturedEditorConfig> configurations = null,
+            IReadOnlyList<CapturedAnalyzerReference> analyzers = null)
         {
             Generation = generation;
             Project = project;
@@ -74,6 +81,8 @@ namespace Alarmlist.VisualStudio.Analysis
             Inputs = Array.AsReadOnly((inputs ?? Array.Empty<CapturedAnalysisInput>()).ToArray());
             Resources = Array.AsReadOnly((resources ?? Array.Empty<AnalysisResourceInput>()).ToArray());
             Lookups = Array.AsReadOnly((lookups ?? Array.Empty<AnalysisLookupInput>()).ToArray());
+            Configurations = Array.AsReadOnly((configurations ?? Array.Empty<CapturedEditorConfig>()).ToArray());
+            Analyzers = Array.AsReadOnly((analyzers ?? Array.Empty<CapturedAnalyzerReference>()).ToArray());
         }
     }
 
@@ -107,5 +116,7 @@ namespace Alarmlist.VisualStudio.Analysis
         Task<IReadOnlyList<CapturedAnalysisInput>> CaptureAsync(IReadOnlyList<string> paths, CancellationToken token);
         Task<IReadOnlyList<AnalysisResourceInput>> CaptureResourcesAsync(IReadOnlyList<AnalysisResourceItem> resources, CancellationToken token);
         Task<IReadOnlyList<AnalysisLookupInput>> CaptureLookupsAsync(IReadOnlyList<string> paths, CancellationToken token);
+        Task<IReadOnlyList<CapturedEditorConfig>> CaptureConfigurationsAsync(IReadOnlyList<string> sourcePaths, CancellationToken token);
+        Task<IReadOnlyList<CapturedAnalyzerReference>> CaptureAnalyzersAsync(IReadOnlyList<string> paths, CancellationToken token);
     }
 }

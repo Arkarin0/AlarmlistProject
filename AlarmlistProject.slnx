@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Analyzers/">
+    <Project Path="src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" />
+  </Folder>
   <Folder Name="/Compiler/">
     <Project Path="src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj" />
     <Project Path="src/Compiler/Alarmlist.Core.csproj" />

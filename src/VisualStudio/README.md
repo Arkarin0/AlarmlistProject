@@ -59,8 +59,22 @@ Alarm-field properties read resolved values; custom parameter assignments remain
 literal. Explicit-empty assignments stop fallback, while unassigned parameters
 use outer scopes and cause errors only when used unresolved by a concrete alarm.
 Milestone three's remaining release checks stay open. Milestone five localization
-is in progress; see its [iteration results](MILESTONE-5.md). NuGet alarm libraries
+is implemented; see its [iteration results and remaining gates](MILESTONE-5.md). NuGet alarm libraries
 remain for a later milestone.
+
+[Milestone six](MILESTONE-6.md) adds saved EditorConfig settings, diagnostic severity,
+project warning controls and explicit `AlarmlistAnalyzer` DLLs. The SDK owns rule
+execution and policy; CPS supplies evaluated items/properties to the isolated SDK
+bridge. The live Error List reflects the same effective severity as Build. Hidden
+and suppressed rules have no live row. Configuration drafts remain private until
+saved, and ALMX drafts still participate in analysis. Saved configuration or analyzer
+dependency changes invalidate previews/diagnostics immediately and are rechecked
+before publication or navigation. Analyzer changes recreate the SDK AppDomain;
+compiler and plugin types remain outside the VS host domain. See the
+[SDK configuration guide](../SDK/Alarmlist.SDK/README.md#diagnostic-configuration-and-analyzers)
+for precedence, runtime selection and the trusted/cooperative analyzer contract.
+The functional xUnit scenarios have the `Area=Analyzers` trait and the same host
+environment prerequisites as the other UI integration tests.
 
 Milestone five also supports reusable named templates such as
 `$(loc:Instruction.Set, path=$(path:Service.Vakuum), value="60")`.

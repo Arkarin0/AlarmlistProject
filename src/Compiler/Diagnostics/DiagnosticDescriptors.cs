@@ -4,6 +4,8 @@ namespace Alarmlist.Diagnostics
 {
     public static class DiagnosticDescriptors
     {
+        public static readonly DiagnosticDescriptor AnalyzerFailure = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.AnalyzerFailure, "Analyzer failure", "Analyzer '{0}' failed: {1}", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor DuplicateLookupEntry = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.DuplicateLookupEntry, "Duplicate list entry", "Lookup entry '{0}#{1}' is declared more than once.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidCompletionBinding = new DiagnosticDescriptor(
