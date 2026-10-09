@@ -58,6 +58,8 @@ namespace Alarmlist.MSBuild.SDK.Tests
                 Assert.True(File.Exists(Path.Combine(taskDirectory, "Alarmlist.Core.dll")));
                 Assert.True(File.Exists(Path.Combine(taskDirectory, "Microsoft.Extensions.Logging.Abstractions.dll")));
                 Assert.Empty(Directory.GetFiles(taskDirectory, "Microsoft.Build*.dll"));
+                Assert.Empty(Directory.GetFiles(taskDirectory, "EnvDTE*.dll"));
+                Assert.Empty(Directory.GetFiles(taskDirectory, "Microsoft.VisualStudio*.dll"));
             }
             Assert.False(Directory.Exists(Path.Combine(app.PackageDirectory, "lib")));
             var schemas = new XmlSchemaSet { XmlResolver = null };

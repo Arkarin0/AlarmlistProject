@@ -153,7 +153,12 @@ saved RESX values while unsaved resource buffers stay private. The project
 property page exposes **XLIFF source culture**, defaulting to English (`en`).
 See the [SDK export commands](../SDK/Alarmlist.SDK/README.md#xliff-translation-export).
 Use a terminal for export so an IDE Build/Save All cannot save documents first.
-XLIFF import follows in a later iteration; vendor interoperability remains pending.
+The [SDK import workflow](../SDK/Alarmlist.SDK/README.md#xliff-translation-import)
+provides dry-run review and explicit apply. Save or discard pending changes and
+close affected RESX editors before apply, including XML views. The importer also
+protects unfinished native cells that have not marked their document dirty.
+Successful imports refresh saved-resource analysis; reopen the native editor to
+inspect the result. Vendor interoperability remains pending.
 
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax

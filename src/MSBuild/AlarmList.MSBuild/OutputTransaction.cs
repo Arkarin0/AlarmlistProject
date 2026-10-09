@@ -42,6 +42,9 @@ namespace Alarmlist.MSBuild
                 foreach (Change change in _changes)
                 {
                     checkpoint();
+                    if (change.ExpectedBytes != null && (!File.Exists(change.Path)
+                        || !File.ReadAllBytes(change.Path).SequenceEqual(change.ExpectedBytes)))
+                        throw new IOException("The import destination changed after capture: " + change.Path);
                     change.HadOriginal = File.Exists(change.Path);
                     if (change.Text == null)
                     {
@@ -58,6 +61,7 @@ namespace Alarmlist.MSBuild
                         change.BackupCreated = true;
                     }
                     else File.Move(change.Stage, change.Path);
+                    change.Installed = true;
                     installed.Add(change);
                 }
                 checkpoint();
@@ -69,6 +73,9 @@ namespace Alarmlist.MSBuild
                 {
                     try
                     {
+                        if (change.ExpectedBytes != null && change.Text != null && (!File.Exists(change.Path)
+                            || !File.ReadAllBytes(change.Path).SequenceEqual(new UTF8Encoding(false, true).GetBytes(change.Text))))
+                            throw new IOException("The installed import was independently modified; refusing to overwrite the newer edit.");
                         if (change.HadOriginal)
                         {
                             if (File.Exists(change.Path)) File.Replace(change.Backup, change.Path, null);
@@ -104,10 +111,11 @@ namespace Alarmlist.MSBuild
 
         internal sealed class Change
         {
-            internal Change(string path, string text)
+            internal Change(string path, string text, byte[] expectedBytes = null)
             {
                 Path = System.IO.Path.GetFullPath(path);
                 Text = text;
+                ExpectedBytes = expectedBytes;
                 string prefix = Path + ".alarmlist-" + Guid.NewGuid().ToString("N");
                 Stage = prefix + ".stage";
                 Backup = prefix + ".backup";
@@ -115,6 +123,8 @@ namespace Alarmlist.MSBuild
 
             internal string Path { get; }
             internal string Text { get; set; }
+            internal byte[] ExpectedBytes { get; }
+            internal bool Installed { get; set; }
             internal string Stage { get; }
             internal string Backup { get; }
             internal bool HadOriginal { get; set; }

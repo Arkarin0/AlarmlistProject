@@ -287,7 +287,7 @@ with distinct occurrence IDs; existing target expressions may reorder but must
 match the source's occurrence multiset exactly. Escaped dollar text remains raw
 text. Invalid expressions and nested localization fail export. Segmentation is
 disabled with canResegment=no. Inline markup, segmentation and additional modules
-are outside this initial profile; later import must reject unsupported structures.
+are outside this initial profile; import rejects unsupported structures.
 
 Source defaults to en and must have a nonempty exact-culture value for every
 catalogue key. No parent/default substitution occurs during exchange. A missing
@@ -301,9 +301,9 @@ timestamps or unsaved text. The XLIFF file ID includes a SHA-256 digest of the
 deterministic baseline bytes to pair the returned document with the retained
 sidecar; this is a consistency check, not authentication. The sidecar stays out
 of translator tools so vendor metadata rewriting cannot remove conflict data.
-Do not regenerate it when translations return. Later import must compare all
-baseline entries with current saved resources before applying any change, reject
-conflicts for the whole batch, and resolve destinations only from current project
+Do not regenerate it when translations return. Import compares all
+baseline entries with current saved resources before applying any change, rejects
+conflicts for the whole batch, and resolves destinations only from current project
 resource selection. For a previously missing key, multiple possible target files
 require explicit destination selection rather than a guessed file.
 
@@ -320,3 +320,35 @@ XLIFF with the same IDs. In Phrase, disable resegmentation, HTML/ICU subfilters,
 target-language overrides and automatic copying of source into empty targets.
 These settings follow vendor documentation; actual Trados, memoQ and Phrase
 round trips must still be recorded before claiming verified interoperability.
+
+## XLIFF import profile version one
+
+`XliffImport.Preview` compares captured exchange/baseline text with current saved
+resource snapshots, returning immutable changes, conflicts and proposed resource
+texts. All source/target baseline entries are checked; any conflict removes all
+writable files from the result. A target already equal to the returned value is
+accepted for repeat-import idempotency only when its comment still matches.
+Additional resource keys are preserved. Missing returned targets do not delete
+entries; explicitly empty targets remain distinct. Notes are informational;
+RESX comments are retained. Changed RESX serialization retains XML content and
+whitespace nodes but can normalize lexical spelling/line endings and uses UTF-8.
+
+The reader accepts the export's single-file, single-segment XLIFF 2.0 subset,
+including translated/reviewed/final states and reordered protected occurrences.
+It rejects unknown structures/attributes, duplicate or missing units, changed
+source/cultures/protected data, new unprotected expressions, and external DTDs.
+It reuses the export parser and code mapping rather than an IDE evaluator.
+The baseline digest pairs files; it is not authentication. Resource destinations
+come only from evaluated project items, with explicit selection for ambiguous
+new-key destinations. No new file path is accepted from translation content.
+
+The task/SDK owns saved-byte capture, default dry-run, explicit apply, collision
+checks, input revalidation and rollback. Apply is a terminal workflow, independent
+of Build/Clean. Read-only Windows COM automation checks open VS documents without
+referencing VS assemblies in the task or compiler. All affected editors must be
+closed: native resource-cell drafts can precede the document dirty flag. This is
+a deliberate conservative implementation of dirty-editor protection, rather than
+assuming Document.Saved accounts for unsealed edits. An inaccessible IDE prevents
+apply; the importer never saves/closes it. The compiler remains filesystem- and
+host-independent. See the SDK README for limits concerning other editor apps,
+encoding normalization, concurrent changes and non-crash-atomic rollback.

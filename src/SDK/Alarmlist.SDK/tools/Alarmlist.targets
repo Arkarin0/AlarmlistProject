@@ -7,6 +7,7 @@
     <AlarmlistXliffSourceCulture Condition="'$(AlarmlistXliffSourceCulture)' == ''">en</AlarmlistXliffSourceCulture>
     <AlarmlistXliffOutputPath Condition="'$(AlarmlistXliffOutputPath)' == ''">$(MSBuildProjectDirectory)/xliff</AlarmlistXliffOutputPath>
     <AlarmlistXliffOverwrite Condition="'$(AlarmlistXliffOverwrite)' == ''">false</AlarmlistXliffOverwrite>
+    <AlarmlistXliffApply Condition="'$(AlarmlistXliffApply)' == ''">false</AlarmlistXliffApply>
     <_AlarmlistOutputManifest>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', '$(MSBuildProjectFile).$(Configuration).$(Platform).outputs.xml'))</_AlarmlistOutputManifest>
     <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_AlarmlistTaskFramework>
     <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_AlarmlistTaskFramework>
@@ -22,6 +23,7 @@
   <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistGetOutputsTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
   <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistCleanTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
   <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistExportXliffTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
+  <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistImportXliffTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
 
   <!-- Explicit exchange only; Build and Clean do not create or remove translator work. -->
   <Target Name="ExportAlarmlistXliff" DependsOnTargets="GetTargetPath" Condition="'$(DesignTimeBuild)' != 'true'" Returns="@(AlarmlistXliffFiles)">
@@ -31,6 +33,21 @@
                              Overwrite="$(AlarmlistXliffOverwrite)" ProtectedFiles="@(Compile);@(AlarmlistLookup);$(MSBuildProjectFullPath);@(CompiledAlarmlistFiles);$(_AlarmlistOutputManifest)">
       <Output TaskParameter="ExportFiles" ItemName="AlarmlistXliffFiles" />
     </AlarmlistExportXliffTask>
+  </Target>
+
+  <Target Name="ImportAlarmlistXliff" DependsOnTargets="GetTargetPath" Condition="'$(DesignTimeBuild)' != 'true'" Returns="@(AlarmlistXliffChanges)">
+    <ItemGroup>
+      <_AlarmlistImportInputs Remove="@(_AlarmlistImportInputs)" />
+      <_AlarmlistImportInputs Include="@(AlarmlistXliffImport);$(AlarmlistXliffImportFiles)" />
+      <AlarmlistXliffChanges Remove="@(AlarmlistXliffChanges)" />
+      <AlarmlistImportedResources Remove="@(AlarmlistImportedResources)" />
+    </ItemGroup>
+    <AlarmlistImportXliffTask Resources="@(AlarmlistResource)" ImportFiles="@(_AlarmlistImportInputs)"
+                             Apply="$(AlarmlistXliffApply)" BuildingInsideVisualStudio="$(BuildingInsideVisualStudio)"
+                             ProtectedFiles="@(Compile);@(AlarmlistLookup);$(MSBuildProjectFullPath);@(CompiledAlarmlistFiles);$(_AlarmlistOutputManifest)">
+      <Output TaskParameter="Changes" ItemName="AlarmlistXliffChanges" />
+      <Output TaskParameter="UpdatedResources" ItemName="AlarmlistImportedResources" />
+    </AlarmlistImportXliffTask>
   </Target>
 
   <Target Name="Build" DependsOnTargets="$(BuildDependsOn)" Returns="@(CompiledAlarmlistFiles)" />

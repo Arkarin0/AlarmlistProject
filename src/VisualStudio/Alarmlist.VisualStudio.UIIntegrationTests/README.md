@@ -27,6 +27,7 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Saved localization and linked contexts | Native drafts stay private, save/external changes refresh two project scopes, independent language choices persist after reopening | `Localization` |
 | Language and saved completion | Keyword default, culture choice during ALMX drafts, saved-only completion while RESX XML is dirty, token insertion/Undo, save refresh and resource diagnostic navigation | `Localization` |
 | Saved XLIFF export | Explicit external MSBuild export uses saved RESX while its XML buffer stays dirty; source and compiled output bytes stay unchanged | `Xliff` |
+| XLIFF import | Dry run, dirty XML/native-cell refusal, closed-resource apply, preview refresh, repeat import and compiled output after Build; desktop MSBuild on VS2022 and .NET MSBuild on VS2026 | `XliffImport` |
 | Lookup and template completion | Saved metadata choices while lookup XML is dirty, named argument slots, expression insertion/Undo, keyword and translated preview, saved catalogue regeneration, unchanged source/output bytes | `Lookups` |
 | Named list completion | Contextual argument choices, saved list inputs, translated descriptions and literal identifiers | `Lists` |
 | Preview window | Docking, active-document/culture changes, private drafts, source navigation, closing and reopening | `Preview` |

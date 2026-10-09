@@ -143,8 +143,75 @@ parents. Existing nonempty targets must contain the same protected-expression an
 occurrences as their source; reordering is allowed. Missing and explicitly empty
 targets remain distinct in the baseline.
 
-Import is a later iteration. Trados Studio, memoQ and Phrase TMS are the intended
-tools; vendor round trips remain unverified until recorded in the milestone.
+Trados Studio, memoQ and Phrase TMS are the intended tools; vendor round trips
+remain unverified until recorded in the milestone. Import is described below.
+
+## XLIFF translation import
+
+Import uses saved RESX and the unchanged local baseline from export. Keep the
+baseline beside the returned XLIFF with the original filename. Run a dry run
+from a terminal, review its per-key old/new values, then explicitly apply:
+
+```powershell
+dotnet msbuild Plant.almproj /t:ImportAlarmlistXliff /p:AlarmlistXliffImportFiles=xliff/Alarmlist.en.de.xlf
+dotnet msbuild Plant.almproj /t:ImportAlarmlistXliff /p:AlarmlistXliffImportFiles=xliff/Alarmlist.en.de.xlf /p:AlarmlistXliffApply=true
+```
+
+`AlarmlistXliffApply` defaults to false. Select several files with the usual MSBuild
+escaped semicolon (`%3B`), or use explicit items. One exchange per target culture
+is allowed in each batch. Apply always performs a fresh preflight; a prior dry run
+does not authorize overwriting intervening edits. Build and Clean never import.
+Design-time builds do not import, and applying from an IDE build is rejected to
+avoid its automatic pre-build saves.
+
+```xml
+<ItemGroup>
+  <AlarmlistXliffImport Include="returned/Alarmlist.en.de.xlf"
+                      BaselineFile="xliff/Alarmlist.en.de.xlf.baseline.xml"
+                      TargetResource="Translations.de.resx" />
+</ItemGroup>
+```
+
+`BaselineFile` defaults to the XLIFF path plus `.baseline.xml`. `TargetResource`
+is optional and only selects where previously absent keys are added. It must
+already be an evaluated `AlarmlistResource` of the exact target culture. Existing
+keys stay in their current resource file. If several target resources exist,
+select a destination explicitly; if none exists, add a RESX first. No path from
+inside the exchange or baseline can select a write destination.
+
+Any changed source, conflicting saved target/comment, malformed or unsupported
+profile, duplicate/unknown key, damaged placeholder or input collision rejects
+the whole batch. Missing XLIFF targets leave entries unchanged; an explicit empty
+target supplies an empty value. Culture fallback is never used during exchange.
+Named placeholders and expression occurrences may reorder but cannot disappear,
+duplicate or change. Reimporting already applied values is a no-op. RESX comments,
+unrelated entries, headers and schema are preserved; translator notes remain
+informational. Changed files are written as UTF-8 without a BOM; XML quote/entity
+spelling and line endings can normalize. Untouched files retain their bytes.
+
+Before apply, **save or discard pending changes and close every affected RESX
+editor in Visual Studio**, including XML views. Dry runs can run while editors
+are open. Native resource cells can hold unfinished text before their document
+is marked dirty, so the guard conservatively refuses all open destination editors.
+It queries running Visual Studio instances in the current Windows session through
+read-only automation; it never activates, saves or closes them. An inaccessible
+or unresponsive instance blocks apply. Reopen the editor afterward; the designer
+refreshes from the saved imported resources. Other editors must also be closed
+by the caller; no claim is made to inspect non-Visual-Studio editors.
+
+Inputs are rechecked during installation. Ordinary failures roll back installed
+files; this is not a crash-atomic filesystem transaction. If a newly installed
+file is independently edited before rollback, preserve that newer edit and retain
+the old backup with a reported recovery path. Cancellation writes no partial batch
+when normal rollback succeeds. Compiled outputs are unchanged until a later Build.
+
+The target returns `@(AlarmlistXliffChanges)`, with key identity and `ResourceFile`,
+`Culture`, `PreviousPresent`, `PreviousValue` and `Value` metadata.
+`@(AlarmlistImportedResources)` contains files actually updated by apply.
+Compiler hosts can call `XliffImport.Preview` with captured `ResxTextSnapshot` and
+`XliffImportInput` values to obtain immutable changes, conflicts and replacement
+text. Any conflict suppresses every writable file; the compiler performs no I/O.
+Vendor interoperability remains unverified until actual tool round trips pass.
 
 ## Reusable instruction templates and HMI lookups
 

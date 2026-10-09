@@ -1,12 +1,12 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: iterations one through eight are implemented and have passed automated
+Status: iterations one through nine are implemented and have passed automated
 validation. Vendor interoperability remains pending at the owner's request.
 Captured resources, catalogue
 validation, localization expression evaluation, multi-culture SDK builds, detached
 analysis, saved-resource observation, language selection and completion are
-implemented. XLIFF export is available; import and integrated acceptance follow
-in iterations nine and ten.
+implemented. XLIFF export and import are available, including native-editor
+acceptance in VS2022 and VS2026. Integrated acceptance follows in iteration ten.
 The owner has also added reusable instruction templates and generated HMI lookups
 to this milestone. H1-H3 implement XML/XSD, captured catalogues, named expressions,
 lookup evaluation, compiler analysis, SDK build inputs and XLIFF protection. Designer
@@ -770,6 +770,51 @@ VSIX.
   failed in the first full run, then passed in isolation and in the full rerun
   without product or test changes. No new performance measurements were run.
 - Commit: `Export RESX translations through the supported XLIFF profile`.
+
+## Iteration-nine implementation and validation (2026-10-09)
+
+- Added captured `XliffImport.Preview` with immutable changes/conflicts/replacement
+  text, a strict XLIFF 2.0 profile and baseline comparison. Missing targets preserve
+  existing entries, explicit empty remains distinct, and repeat imports do not
+  rewrite resources. Named placeholders and lookup/list/parameter expressions are
+  protected by the export's occurrence mapping. Any conflict removes all writable
+  files from the plan; XML never supplies destination paths.
+- Added `ImportAlarmlistXliff`, default dry-run, explicit `AlarmlistXliffApply`,
+  selected input items/optional destination metadata and result items. Saved bytes
+  are captured once and revalidated during installation. Ordinary failures roll
+  back the batch; a newer independent edit is retained with a reported recovery
+  backup if restoring it would overwrite that edit. Build/Clean remain separate.
+- Apply from a terminal requires affected VS resource editors to be closed,
+  including clean editors with private native-cell drafts. Read-only automation
+  checks running instances without saving, closing or activating them and without
+  introducing VS assembly dependencies into task/compiler packages. This is a
+  conservative implementation of the native-editor protection requirement.
+- Compiler tests: 364 passed per net472/net8.0. Task unit tests: 57 per framework;
+  task integration: 4 per framework. SDK suite: 43 per framework. Desktop VS2022
+  MSBuild passed 8 exchange/package cases. The first task rollback assertion
+  exposed .NET Framework's abbreviated AggregateException message; import now
+  reports each inner failure and its recovery path. Initial package runs caught
+  the automation Item dispatch needing a method invocation; the corrected full
+  suites passed. The CR preservation test fixture now entitizes CR correctly.
+- Extension unit tests: 329 passed. VSIX/template consumers: 11 per framework;
+  final SDK package assertions: 3 per framework, including absence of VS/DTE
+  assemblies in both task runtimes. Results are under
+  `artifacts/log/Debug/XliffImport/`.
+- Functional import passed in both VS2026 (dotnet MSBuild) and VS2022 (desktop
+  MSBuild), one case each. Both verify dry-run with a dirty XML editor, apply
+  refusal for XML and unsealed native RESX drafts, unchanged saved bytes, closed
+  editor apply, designer refresh, no-op repeat, native editor reopen and explicit
+  localized Build. Import itself preserves ALMX and previous compiled output.
+  Passing TRX directories under `artifacts/log/Debug/VisualStudioUI/TestResults/`:
+  `eab53c46f07c472bb720a4b77cf11d11` (2026) and
+  `4f49d655c0ba4457a7f0d2baf7b8550f` (2022).
+- Earlier attempts stopped at keyboard readiness checks and are retained as
+  failures, not passes. The idle desktop resolved VS2026 focus interference.
+  VS2022's restored floating Preview window covered the native cell; the test
+  now hides that window only in its owned IDE before editing. Foreground and
+  focused-field safeguards remain intact.
+- Real translation-vendor round trips remain deferred at the owner's request.
+- Commit: `Import XLIFF translations with conflict and editor protection`.
 
 ## Follow-up: resource item template (2026-10-08)
 

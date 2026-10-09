@@ -275,6 +275,15 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   target pairs before transactional installation; preserve input/output collision
   guards and explicit overwrite. XLIFF is never a compilation input. Vendor
   interoperability requires actual tool evidence, not schema validation alone.
+- Explicit ImportAlarmlistXliff defaults to a saved-input dry run; apply rejects
+  the whole batch on conflict and never runs from Build/Clean. Preserve exact
+  culture/baseline/placeholder checks, selected-resource destination constraints,
+  repeat-import no-ops, saved-byte revalidation and ordinary-failure rollback.
+  Windows apply uses read-only VS automation and refuses open destination resource
+  editors (including clean editors with private native cell drafts); never save,
+  close or activate them. Keep VS assemblies out of the task and compiler. An
+  inaccessible IDE fails closed. Retain newer independent edits and recovery
+  backups if rollback cannot safely restore an installed file.
 - `Clean` deletes configured/tracked outputs and owned temporary files and preserves unrelated files.
   Keep `Build`, `Clean`, `Rebuild`, `Restore`, `GetTargetPath`, custom build hooks,
   and consumer `Directory.Build.props/targets` imports working.

@@ -84,6 +84,13 @@ editable in Visual Studio's built-in resource editor.
   Add `fr` to **AlarmlistCultures** when it should also be built. Keep keys unique
   within each project and culture, including linked catalogues.
 
+For translation exchange, use the SDK's [export and import workflow](../src/SDK/Alarmlist.SDK/README.md#xliff-translation-import).
+Export from the desired project, retain the local baseline, and review an import
+dry run before applying the returned translation. Close affected RESX editors
+after saving or discarding their drafts. The designer refreshes after a successful
+import; Build regenerates each language output. Shared resource changes affect
+both North and South, while their project-local resources remain independent.
+
 To inspect a missing translation diagnostic, temporarily remove `Pump.Name` from
 North's German resource and select **de-DE**. The English entry is not used as a
 fallback. Undo or restore the German entry before building again.

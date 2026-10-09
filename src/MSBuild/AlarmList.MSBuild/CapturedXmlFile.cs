@@ -9,8 +9,10 @@ namespace Alarmlist.MSBuild
     internal static class CapturedXmlFile
     {
         internal static string Read(string path)
+            => Read(File.ReadAllBytes(path));
+
+        internal static string Read(byte[] bytes)
         {
-            byte[] bytes = File.ReadAllBytes(path);
             Encoding encoding;
             using (var stream = new MemoryStream(bytes, false))
             using (var reader = new XmlTextReader(stream) { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null })

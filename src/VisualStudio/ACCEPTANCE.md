@@ -169,8 +169,17 @@ and a free literal argument. Follow its walkthrough in the example README.
    and retain both exported files. Opening XML in a text editor or validating its
    schema is not evidence of vendor interoperability.
 3. Keep vendor round trips pending when no target tool is available. The owner
-   explicitly accepted that deferral on 2026-10-08. Import conflict, dirty-editor
-   protection and build/preview checks are added with the import iteration.
+   explicitly accepted that deferral on 2026-10-08.
+4. Run `ImportAlarmlistXliff` first as a dry run, with the retained baseline and
+   returned file selected. Verify per-key changes and unchanged resource/output
+   bytes. Change a saved source or target after export and verify that the whole
+   batch is rejected with conflicts and no partial writes.
+5. Try apply with the destination open as dirty XML and with an unfinished native
+   resource cell. Both must be refused without saving/discarding the draft. Save
+   or discard intentionally, close the resource editor, and apply. Check saved
+   RESX, designer refresh, native-editor reopening and a subsequent multi-culture
+   Build. Repeating the same import must not rewrite resources. Native-cell checks
+   require an idle unlocked desktop; foreground-blocked cases remain pending.
 
 ## Closeout and evidence
 
