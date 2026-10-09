@@ -1,4 +1,4 @@
-# Milestone-three interactive acceptance
+# Visual Studio interactive acceptance
 
 Use an experimental Visual Studio instance with the matching VSIX deployed, as
 described in [README](README.md#experimental-ide-smoke-test). Repeat on VS2022 and
@@ -17,14 +17,69 @@ resolved output, and retains package hashes, revision, build logs, and baseline
 source/output hashes under `artifacts/log/<Configuration>/VisualStudioAcceptance/`.
 The helper passing does not establish that any IDE checks below passed.
 
+## Milestone-four property workflow
+
+The fixture also links `Shared/Properties.almx` into both projects. The original
+milestone-three scenarios and their historical results below remain unchanged.
+These new checks have **not been accepted interactively**.
+
+1. Select `Property.Child`. North shows Name `North 001`, South shows `South 001`,
+   and both show Code `001` and Description `Inspect 001 - Shared`. The base's
+   assigned `par1` value must not appear. Release changes the project value to `101`.
+2. In the two-column Alarm parameters list, use Row actions to assign `par1` to
+   `002`. The dependent fields and procedure update without Build. Undo/Redo must
+   restore the exact shared XML.
+   An assigned empty string stops fallback; **Use file/project value** resumes it.
+   Repeat in the File parameters list at the top of the editor and confirm both
+   linked project contexts share that source edit. Both lists must expose exactly
+   Name/Value columns, selected-row origins, Add/Remove and keyboard-accessible row
+   actions. File editing must also work when no alarm matches the filter.
+3. Override Code locally: the editable copy is `$(par1)`. Focus and unfocus it;
+   focus-only interactions leave the document clean. Repeat with procedure text.
+   Make local copy of Instructions and verify `$(par1)` and `$$(literal)` survive.
+4. Type `$(` or press Ctrl+Space. Verify property names, values and origins; use
+   arrows, Enter/Tab, Escape, mouse selection and a subsequent draft cancellation.
+   Observe spoken status and selection with a screen reader, including initial
+   opening and stale-context closure. UIA events alone do not verify speech.
+5. Toggle Abstract. The selected alarm stays editable/referenceable and disappears
+   from compiled preview/output; its unresolved parameters are allowed. Undo the
+   toggle. Check a malformed expression and a scalar cycle through the live Error
+   List without overwriting the prior build output.
+6. Verify native high contrast, narrow layout, mixed-DPI monitor movement and
+   typing/paint response. Close/discard/reopen and unload/reload both projects;
+   compare baseline source/output hashes before accepting the run.
+
+The automated property/linked-context cases are in the functional xUnit suite.
+They complement these observations; skipped or foreground-blocked cases are not
+accepted passes. See the [milestone implementation record](MILESTONE-4.md#implementation-record)
+for the current validation results and outstanding gates.
+
 ## Linked contexts and provenance
+
+For localization, use the isolated fixtures retained by the `Area=Localization`
+functional cases. Choose **Preview language** on the native **Alarmlist** toolbar:
+keyword displays complete `$(loc:Key)` tokens; de-DE may use a saved de translation.
+Verify that each project's choice survives solution reopen without altering build
+cultures or compiled output. Change the language while an ALMX field has a draft;
+the draft and Undo history must remain intact. A read-only project must report a
+failure and keep its evaluated language; a global AlarmlistCulture disables selection.
+
+Edit a resource value in the native editor, undo/discard the unfinished cell and
+then commit it. Only the saved value should reach preview. In a dirty RESX XML
+buffer, keep an unsaved value while invoking `$(loc:` completion in the designer;
+its label must still describe the saved value. Save and repeat to see the update.
+Use arrows and Enter/Tab to insert a full token, then Escape/Undo. With a screen
+reader, verify the suggestion name, translated text, parent language and status.
+Check a resource diagnostic opens the XML location without saving a dirty buffer.
+Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
 
 1. Open `North/Child.almx` in the designer. This is a link to `Shared/Child.almx`,
    also included by South. Wait for both projects to finish loading. With no
    context selected, the designer should ask for a project context instead of
    guessing which project's `Base` to use.
-2. Choose North in **Analysis project context**. Select `Shared.Child`, expand
-   **Resolved alarm preview**, and check the following values.
+2. Choose North in **Analysis project context**. Select `Shared.Child`, open
+   **View > Other Windows > Alarmlist Preview**, select **Selected alarm**, and
+   check the following values.
 
    | Field | North | South | Origin |
    | --- | --- | --- | --- |
@@ -52,7 +107,7 @@ The helper passing does not establish that any IDE checks below passed.
    Clear and exactly the three current effective entries. Reset is unchanged.
    Undo once restores the original section and inheritance. Redo/Undo should
    restore the same result without duplicate entries.
-4. Leave **Resolved alarm preview** expanded and choose **Override locally** on
+4. Leave **Selected alarm** visible and choose **Override locally** on
    inherited Name. Both previews clear during the uncommitted draft. The local
    Name editor must stay in view and receive keyboard focus, with the caret after
    the copied value. Escape restores inheritance without changing source.
@@ -63,7 +118,7 @@ The helper passing does not establish that any IDE checks below passed.
 
 ## Keyboard, copy, themes, and layout
 
-1. Navigate the expanded previews with Tab/Shift+Tab. Text and source links must
+1. Navigate the Preview window tabs with Tab/Shift+Tab. Text and source links must
    expose descriptive accessible names and origin help. Chain adorners are
    decorative: they must neither take focus nor intercept text selection.
    Scalar action names must identify their field (for example, **Override Name
@@ -71,7 +126,7 @@ The helper passing does not establish that any IDE checks below passed.
 2. Select text in a resolved field using Shift+Arrow. Ctrl+C and paste into a
    temporary unsaved text document should preserve the selected text. Attempted
    typing in the preview must not change source. Do not save the scratch document.
-3. Expand **Compiled project XML preview**, focus its text, and use Ctrl+A/Ctrl+C.
+3. Select **Compiled XML**, focus its text, and use Ctrl+A/Ctrl+C.
    Paste into a scratch XML document. It should contain the whole selected
    project's resolved output, including current unsaved edits. ReferenceName and
    Clear directives must not appear. Close the scratch document without saving.
@@ -86,6 +141,46 @@ The helper passing does not establish that any IDE checks below passed.
    or rasterizing an image a per-monitor DPI test.
 6. With an actual screen reader, verify names, origins, read-only status, and
    status announcements. UI Automation inspection alone is a separate check.
+
+## Translation exchange
+
+The persistent example also covers reusable instruction templates and generated
+HMI lookups. Follow [its walkthrough](../../example/README.md#try-reusable-instructions-and-hmi-lookups)
+to compare keyword/en/de-DE, project-scoped arguments, reordered named placeholders,
+individual path/member translations and explicitly selected metadata. The
+LookupCompletion xUnit scenario (`Area=Lookups`) checks saved-only catalogue capture,
+completion/Undo and regeneration in an isolated fixture on each supported IDE.
+These UI checks passed on VS2022 and VS2026 for iteration H4; see MILESTONE-5.
+
+The ListCompletion scenario (`Area=Lists`) covers explicitly mapped wire and
+terminal suggestions, literal identifiers, descriptions/metadata, replacement of
+quoted slots, direct reference insertion, Undo and saved-only regeneration. It
+passed in both IDE versions for L2. The persistent ElectricalInstructions.almx
+sample also covers two independent selections from one list, PLC punctuation,
+and a free literal argument. Follow its walkthrough in the example README.
+
+1. Export a synthetic fixture with the SDK's ExportAlarmlistXliff target. Include
+   Unicode, leading/trailing whitespace, comments, repeated parameter expressions,
+   a missing target and an explicitly empty target. Keep the generated baseline
+   unchanged. The source culture defaults to en; also verify a configured override.
+2. In each available target tool (Trados Studio, memoQ, Phrase TMS), open the XLIFF
+   2.0 file using the documented profile settings. Verify the key IDs, notes,
+   whitespace and protected tags. Edit ordinary target text, preserve parameter
+   tags, and export the translated XLIFF. Record the exact tool version/settings
+   and retain both exported files. Opening XML in a text editor or validating its
+   schema is not evidence of vendor interoperability.
+3. Keep vendor round trips pending when no target tool is available. The owner
+   explicitly accepted that deferral on 2026-10-08.
+4. Run `ImportAlarmlistXliff` first as a dry run, with the retained baseline and
+   returned file selected. Verify per-key changes and unchanged resource/output
+   bytes. Change a saved source or target after export and verify that the whole
+   batch is rejected with conflicts and no partial writes.
+5. Try apply with the destination open as dirty XML and with an unfinished native
+   resource cell. Both must be refused without saving/discarding the draft. Save
+   or discard intentionally, close the resource editor, and apply. Check saved
+   RESX, designer refresh, native-editor reopening and a subsequent multi-culture
+   Build. Repeating the same import must not rewrite resources. Native-cell checks
+   require an idle unlocked desktop; foreground-blocked cases remain pending.
 
 ## Closeout and evidence
 

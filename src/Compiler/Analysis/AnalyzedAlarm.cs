@@ -27,6 +27,11 @@ namespace Alarmlist.Analysis
     {
         public AlarmOrigin Origin { get; }
         public string ReferenceName { get; }
+        public bool IsAbstract { get; }
+        public bool HasEvaluatedValues { get; }
+        public IReadOnlyList<AnalyzedProperty> Properties { get; }
+        public IReadOnlyList<AnalyzedLocalizationUse> LocalizationUses { get; }
+        public IReadOnlyList<AnalyzedLookupUse> LookupUses { get; }
 
         /// <summary>False for invalid or ambiguous identity/reference chains; effective values are then unavailable.</summary>
         public bool IsResolved { get; }
@@ -39,10 +44,17 @@ namespace Alarmlist.Analysis
 
         internal AnalyzedAlarm(AlarmOrigin origin, string referenceName, bool isResolved,
             IEnumerable<AlarmOrigin> referenceChain, IEnumerable<AnalyzedField> fields,
-            AnalyzedProcedureSection instructions, AnalyzedProcedureSection reset)
+            AnalyzedProcedureSection instructions, AnalyzedProcedureSection reset, bool isAbstract,
+            bool hasEvaluatedValues, IEnumerable<AnalyzedProperty> properties, IEnumerable<AnalyzedLocalizationUse> localizationUses,
+            IEnumerable<AnalyzedLookupUse> lookupUses)
         {
             Origin = origin;
             ReferenceName = referenceName;
+            IsAbstract = isAbstract;
+            HasEvaluatedValues = hasEvaluatedValues;
+            Properties = Array.AsReadOnly(properties.ToArray());
+            LocalizationUses = Array.AsReadOnly(localizationUses.ToArray());
+            LookupUses = Array.AsReadOnly(lookupUses.ToArray());
             IsResolved = isResolved;
             ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
             Fields = Array.AsReadOnly(fields.ToArray());
@@ -58,17 +70,22 @@ namespace Alarmlist.Analysis
         public string LocalValue { get; }
         public SourceLocation LocalLocation { get; }
         public string EffectiveValue { get; }
+        public string EffectiveExpression { get; }
+        public bool IsValueAvailable { get; }
         public AlarmOrigin DefiningAlarm { get; }
         public SourceLocation ValueLocation { get; }
         public bool IsInherited { get; }
 
         internal AnalyzedField(string name, string localValue, SourceLocation localLocation,
-            string effectiveValue, AlarmOrigin definingAlarm, SourceLocation valueLocation, bool isInherited)
+            string effectiveValue, AlarmOrigin definingAlarm, SourceLocation valueLocation, bool isInherited,
+            string effectiveExpression, bool isValueAvailable)
         {
             Name = name;
             LocalValue = localValue;
             LocalLocation = localLocation;
             EffectiveValue = effectiveValue;
+            EffectiveExpression = effectiveExpression;
+            IsValueAvailable = isValueAvailable;
             DefiningAlarm = definingAlarm;
             ValueLocation = valueLocation;
             IsInherited = isInherited;

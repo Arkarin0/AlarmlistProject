@@ -19,6 +19,29 @@ namespace Alarmlist.MSBuild.SDK.Tests
         }
 
         [Fact]
+        public void PropertiesTemplatesAndEvaluatedConfigurationReachThePackagedCompiler()
+        {
+            var app = _fixture.CreateTestApp("Properties");
+            app.Build(_output);
+            XElement alarm = Assert.Single(XDocument.Load(app.OutputPath).Root.Elements("Alarm"));
+            Assert.Equal("001", alarm.Element("Code").Value);
+            Assert.Equal("Inspect 001:Plant:Debug:AnyCPU", alarm.Element("Description").Value);
+            Assert.Equal("Empty[]", alarm.Element("Name").Value);
+            Assert.Equal("$(par1)", alarm.Element("Category").Value);
+            app.Build(_output, "/p:Configuration=Release");
+            XElement release = Assert.Single(XDocument.Load(Path.Combine(app.WorkingDirectory, "bin", "Release", "keyword", "Plant.Alarmlist.xml")).Root.Elements("Alarm"));
+            Assert.Equal("Inspect 002:Plant:Release:AnyCPU", release.Element("Description").Value);
+
+            string input = Path.Combine(app.WorkingDirectory, "Properties.almx");
+            File.WriteAllText(input, File.ReadAllText(input).Replace("$(empty)", "$(unassigned)"));
+            string previous = File.ReadAllText(app.OutputPath);
+            var failure = app.Run(_output, "/t:Build");
+            Assert.NotEqual(0, failure.ExitCode);
+            Assert.Contains("ALM0008", failure.Output);
+            Assert.Equal(previous, File.ReadAllText(app.OutputPath));
+        }
+
+        [Fact]
         public void DefaultSourcesResolveReferencesAcrossFiles()
         {
             var app = _fixture.CreateTestApp("MinimalProject");
@@ -37,7 +60,7 @@ namespace Alarmlist.MSBuild.SDK.Tests
         {
             var app = _fixture.CreateTestApp("ExplicitItems");
             app.Build(_output, "/p:IncludeConditional=true");
-            var output = Path.Combine(app.WorkingDirectory, "custom output", "alarms.xml");
+            var output = Path.Combine(app.WorkingDirectory, "custom output", "keyword", "alarms.xml");
             Assert.Equal(4, XDocument.Load(output).Root.Elements("Alarm").Count());
             Assert.Equal(output, File.ReadAllText(Path.Combine(app.WorkingDirectory, "output.txt")).Trim());
             app.Build(_output);
@@ -51,7 +74,7 @@ namespace Alarmlist.MSBuild.SDK.Tests
             app.AddMissingReference("MissingReference.almx");
             app.AddMissingReference("generated/ignored.almx");
             app.Build(_output);
-            var output = Path.Combine(app.WorkingDirectory, "generated", "Debug", "Plant.Alarmlist.xml");
+            var output = Path.Combine(app.WorkingDirectory, "generated", "Debug", "keyword", "Plant.Alarmlist.xml");
             Assert.Equal(3, XDocument.Load(output).Root.Elements("Alarm").Count());
         }
 

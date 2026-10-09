@@ -9,6 +9,6 @@
     <Compile Include="Conditional.almx" Condition="'$(IncludeConditional)' == 'true'" />
   </ItemGroup>
   <Target Name="RecordOutput" AfterTargets="Build">
-    <WriteLinesToFile File="output.txt" Lines="$(CompiledAlarmlistFile)" Overwrite="true" />
+    <WriteLinesToFile File="output.txt" Lines="@(CompiledAlarmlistFiles)" Overwrite="true" />
   </Target>
 </Project>

@@ -84,6 +84,7 @@ namespace Alarmlist.Text
 
         void IXmlSerializable.WriteXml(XmlWriter writer)
         {
+            WriteProperties(Properties, writer);
             var tree = new AlarmSyntaxTree();
             foreach (var alarm in Alarms)
                 tree.Alarms.Add(alarm);

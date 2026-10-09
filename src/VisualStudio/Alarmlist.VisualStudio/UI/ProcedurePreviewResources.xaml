@@ -1,0 +1,26 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
+ xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0">
+    <DataTemplate x:Key="ProcedureAnalysisRow">
+      <AdornerDecorator Margin="0,0,0,8">
+        <ContentControl ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" Focusable="False"
+                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        AutomationProperties.Name="{Binding Label}" AutomationProperties.HelpText="{Binding OriginText}"
+                        ToolTip="{Binding OriginText}">
+          <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" Padding="26,6,6,6">
+            <StackPanel>
+              <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
+              <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="160"
+                       VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Label, StringFormat=Procedure {0}}"
+                       AutomationProperties.HelpText="{Binding OriginText}" />
+              <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding ExclusionText}" TextWrapping="Wrap" />
+              <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                      AutomationProperties.Name="{Binding Label, StringFormat=Go to source for {0}}" />
+            </StackPanel>
+          </Border>
+        </ContentControl>
+      </AdornerDecorator>
+    </DataTemplate>
+</ResourceDictionary>

@@ -66,7 +66,7 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         string CompilerPath { get; }
         string CompilerIdentity { get; }
-        AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken cancellationToken = default);
+        AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken cancellationToken = default, AnalysisContext context = null);
     }
 
     [Export(typeof(ISdkAnalysisBridgeFactory))]
@@ -91,7 +91,7 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             if (string.IsNullOrWhiteSpace(evaluatedCompilerPath))
                 return new BridgeOpenResult(AnalysisAvailability.SdkUnavailable,
-                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 1.");
+                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 3.");
 
             AppDomain domain = null;
             try
@@ -133,7 +133,7 @@ namespace Alarmlist.VisualStudio.Analysis
             }
         }
 
-        public AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken cancellationToken = default)
+        public AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken cancellationToken = default, AnalysisContext context = null)
         {
             if (inputs == null) throw new ArgumentNullException(nameof(inputs));
             cancellationToken.ThrowIfCancellationRequested();
@@ -144,12 +144,12 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (_domain == null) throw new ObjectDisposedException(nameof(SdkAnalysisBridge));
                 cancellationToken.ThrowIfCancellationRequested();
                 AnalysisResponse response;
-                try { response = WithHostAssemblyResolution(() => _worker.Analyze(snapshots)); }
+                try { response = WithHostAssemblyResolution(() => _worker.Analyze(snapshots, context)); }
                 catch (Exception exception) when (IsRecoverable(exception))
                 {
                     response = new AnalysisResponse(AnalysisAvailability.AnalysisFailed, "SDK analysis failed: " + exception.Message);
                 }
-                // Contract 1 has no cancellation parameter. Discard superseded work
+                // The compiler has no cancellation parameter. Discard superseded work
                 // after the call; do not abort compiler threads or publish stale data.
                 cancellationToken.ThrowIfCancellationRequested();
                 return response;

@@ -20,7 +20,7 @@ using Xunit;
 
 namespace Alarmlist.VisualStudio.UnitTests.Analysis
 {
-    public class ProjectAnalysisInputTests
+    public partial class ProjectAnalysisInputTests
     {
         [Fact]
         public async Task ProjectServiceUsesThePackagedCompilerForUnsavedCrossFileInheritanceAsync()
@@ -84,6 +84,67 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 Assert.Equal(configuration, snapshot.Configuration);
                 Assert.Equal(root.FullPath, snapshot.ProjectPath);
                 Assert.Empty(Directory.GetFiles(directory.Path));
+            }
+        }
+
+        [Fact]
+        public void EvaluationCapturesPropertyOrderPresenceAndValuesWithoutRetainingMutableProjectItems()
+        {
+            using (var directory = new TempDirectory())
+            using (var projects = new ProjectCollection())
+            using (var reader = XmlReader.Create(new StringReader("<Project><PropertyGroup><Configuration>Release</Configuration>"
+                + "<Platform>x64</Platform><P>001</P></PropertyGroup><ItemGroup>"
+                + "<AlarmlistProperty Include='p' Value='$(P)'/><AlarmlistProperty Include='empty' Value=''/><AlarmlistProperty Include='unassigned'/>"
+                + "<AlarmlistProperty Include='conditional' Value='release' Condition=\"'$(Configuration)' == 'Release'\"/>"
+                + "<AlarmlistProperty Include='p' Value='duplicate'/></ItemGroup></Project>")))
+            {
+                ProjectRootElement root = ProjectRootElement.Create(reader, projects);
+                root.FullPath = Path.Combine(directory.Path, "Plant.almproj");
+                var instance = new ProjectInstance(root, null, null, projects);
+                AnalysisProject snapshot = AlarmlistProjectSnapshot.Capture(instance, root.FullPath, "Release|x64");
+                Assert.Equal("Release|x64", snapshot.Configuration);
+                Assert.Equal("Release", snapshot.Context.Configuration);
+                Assert.Equal("x64", snapshot.Context.Platform);
+                Assert.Equal(root.FullPath, snapshot.Context.ProjectPath);
+                Assert.Equal(new[] { "p", "empty", "unassigned", "conditional", "p" }, snapshot.Context.Properties.Select(property => property.Name));
+                Assert.Equal(new[] { "001", "", null, "release", "duplicate" }, snapshot.Context.Properties.Select(property => property.Value));
+                instance.GetItems("AlarmlistProperty").First().SetMetadata("Value", "changed");
+                Assert.Equal("001", snapshot.Context.Properties[0].Value);
+            }
+        }
+
+        [Fact]
+        public async Task LinkedUnsavedInputsResolveAgainstEachCapturedProjectContextAsync()
+        {
+            using (var directory = new TempDirectory())
+            using (var threading = new JoinableTaskContext())
+            {
+                string sdk = Path.Combine(directory.Path, "sdk");
+                ZipFile.ExtractToDirectory(Path.Combine(AppContext.BaseDirectory, "testassets", "analysis-sdk.nupkg"), sdk);
+                string path = Path.Combine(directory.Path, "Linked.almx");
+                string text = "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Template</FullyQualifiedName><Name>$(p):$(AlarmlistConfiguration)</Name></Alarm>"
+                    + "<Alarm><ReferenceName>Template</ReferenceName></Alarm></Alarmlist>";
+                var documents = new Documents();
+                documents.Open[path] = new CapturedAnalysisInput(new AnalysisInput(text, path, 8), new object());
+                var first = new ProjectAnalysisService(new ProjectAnalysisInputSource(documents), new SdkAnalysisBridgeFactory(), threading, token => Task.CompletedTask);
+                var second = new ProjectAnalysisService(new ProjectAnalysisInputSource(documents), new SdkAnalysisBridgeFactory(), threading, token => Task.CompletedTask);
+                try
+                {
+                    string compiler = Path.Combine(sdk, "tasks", "net472", "Alarmlist.Core.dll");
+                    string north = Path.Combine(directory.Path, "North.almproj");
+                    string south = Path.Combine(directory.Path, "South.almproj");
+                    first.UpdateProject(new AnalysisProject(north, "Debug|AnyCPU", compiler, new[] { path },
+                        new AnalysisContext(north, "Debug", "AnyCPU", new[] { new AnalysisPropertyDefinition("p", "North") })));
+                    second.UpdateProject(new AnalysisProject(south, "Release|x64", compiler, new[] { path },
+                        new AnalysisContext(south, "Release", "x64", new[] { new AnalysisPropertyDefinition("p", "South") })));
+                    await ExpectNameAsync(first, "North:Debug");
+                    await ExpectNameAsync(second, "South:Release");
+                    Assert.Contains("North:Debug", first.Current.Response.CompiledXml);
+                    Assert.Contains("South:Release", second.Current.Response.CompiledXml);
+                    Assert.False(File.Exists(path));
+                }
+                finally { await first.StopAsync(); await second.StopAsync(); }
+                Assert.Equal(0, documents.Subscribers);
             }
         }
 

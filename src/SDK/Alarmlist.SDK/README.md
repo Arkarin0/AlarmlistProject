@@ -1,6 +1,6 @@
 # Alarmlist.MSBuild.SDK
 
-An MSBuild SDK that compiles `.almx` source files into a single XML alarmlist.
+An MSBuild SDK that compiles `.almx` source files into one XML alarmlist per selected culture.
 It supports `dotnet msbuild` with .NET SDK 8 or later and Visual Studio MSBuild
 with .NET Framework 4.7.2 or later. The package includes the compiler, task
 assemblies, and their runtime dependencies.
@@ -36,7 +36,7 @@ dotnet msbuild Plant.almproj /t:Clean
 dotnet msbuild Plant.almproj /t:Rebuild /p:Configuration=Release
 ```
 
-The default output is `bin/Debug/Plant.Alarmlist.xml`. `Restore` is a no-op
+The default output is `bin/Debug/keyword/Plant.Alarmlist.xml`. `Restore` is a no-op
 after SDK resolution; ALMX projects do not restore managed package references.
 The SDK does not require a `TargetFramework`: it chooses `tasks/net8.0` for
 .NET MSBuild and `tasks/net472` for desktop MSBuild based on the host runtime.
@@ -85,34 +85,416 @@ or disable default items and list your inputs explicitly:
 | `OutputPath` | `$(BaseOutputPath)$(Configuration)/` |
 | `CompiledAlarmlistFileName` | `$(AssemblyName).Alarmlist.xml` |
 | `EnableDefaultCompileItems` | `true` |
+| `EnableDefaultAlarmlistResourceItems` | `true` |
+| `EnableDefaultAlarmlistLookupItems` | `true` |
+| `AlarmlistLookupSchema` | Packaged `tools/Schemas/AlarmlistLookup.xsd` (evaluated absolute path) |
+| `AlarmlistCultures` | `keyword` (semicolon-separated build list) |
+| `AlarmlistCulture` | `keyword` (independent shared preview selection) |
+| `AlarmlistXliffSourceCulture` | `en` (export source language) |
+| `AlarmlistXliffTargetCultures` | Required for export; semicolon-separated real cultures |
+| `AlarmlistXliffOutputPath` | `$(MSBuildProjectDirectory)/xliff` |
+| `AlarmlistXliffOverwrite` | `false`; use a new directory for a new translation job |
 | `AlarmlistTasksAssembly` | Task assembly for the current MSBuild runtime |
 
-`CompiledAlarmlistFile` exposes the absolute output path. Projects can use
+`@(CompiledAlarmlistFiles)` exposes absolute output paths with normalized `Culture` metadata. Build and GetTargetPath return these items; GetTargetPath needs no prior build and writes no output. Projects can use
 `BeforeTargets="Build"` or `AfterTargets="Build"` for custom targets;
 `Directory.Build.props` and `Directory.Build.targets` are also imported.
 Each build recompiles the selected inputs so changes to conditional items and
 removed files are reflected. Compiler diagnostics fail the build. Clean removes
-the configured compiled output and preserves unrelated files.
+the configured and tracked compiled outputs and preserves unrelated files.
 
 Reference errors ALM0001-ALM0004 include the source file and declaration line/column
 when read from ALMX files. Missing, self, and circular references point to the
 `ReferenceName` element; duplicate names point to `FullyQualifiedName`. A failed
 compilation leaves any previous compiled output unchanged. Live analysis of
-unsaved editor buffers is a separate milestone-three feature still in development.
+unsaved ALMX editor buffers is separate from saved RESX resource capture.
+
+## XLIFF translation export
+
+Export is explicit and reads saved RESX files, including when an editor has
+unsaved changes. It does not compile alarms or save editor buffers. Run it from
+a terminal; invoking Build/Save All in Visual Studio may save documents first.
+
+```powershell
+dotnet msbuild Plant.almproj /t:ExportAlarmlistXliff /p:AlarmlistXliffTargetCultures=de
+dotnet msbuild Plant.almproj /t:ExportAlarmlistXliff /p:AlarmlistXliffTargetCultures=de%3Bfr /p:AlarmlistXliffOutputPath=translation-job-2
+```
+
+The second command uses MSBuild's escaped semicolon for multiple cultures.
+Configure AlarmlistXliffSourceCulture in the project (also exposed on the project
+property page), or override it for a command with `/p:AlarmlistXliffSourceCulture=en-US`.
+Build/preview selections and their fallback rules are unaffected.
+
+Each language pair produces `Alarmlist.<source>.<target>.xlf` and an adjacent
+`.xlf.baseline.xml`. Send only the XLIFF to the translator; retain the baseline
+unchanged for conflict checking on import. Existing exchange files are protected
+unless AlarmlistXliffOverwrite is explicitly true. All pairs validate before any
+file is replaced, with rollback for ordinary write failures. Build and Clean do
+not create or remove translation exchanges. Export evaluates GetTargetPath to
+protect compiled destinations, without building them. `@(AlarmlistXliffFiles)`
+returns paths with SourceCulture, Culture and BaselineFile metadata.
+
+The [exchange profile](../../VisualStudio/MILESTONE-5-DESIGN.md#xliff-export-profile-version-one)
+uses XLIFF 2.0, exact culture entries, stable case-sensitive keys, comments and
+protected parameter/lookup expressions and named placeholders such as `{value}`.
+Every key needs a nonempty source translation
+in the selected source culture. Export does not fill missing target entries from
+parents. Existing nonempty targets must contain the same protected-expression and placeholder
+occurrences as their source; reordering is allowed. Missing and explicitly empty
+targets remain distinct in the baseline.
+
+Trados Studio, memoQ and Phrase TMS are the intended tools; vendor round trips
+remain unverified until recorded in the milestone. Import is described below.
+
+## XLIFF translation import
+
+Import uses saved RESX and the unchanged local baseline from export. Keep the
+baseline beside the returned XLIFF with the original filename. Run a dry run
+from a terminal, review its per-key old/new values, then explicitly apply:
+
+```powershell
+dotnet msbuild Plant.almproj /t:ImportAlarmlistXliff /p:AlarmlistXliffImportFiles=xliff/Alarmlist.en.de.xlf
+dotnet msbuild Plant.almproj /t:ImportAlarmlistXliff /p:AlarmlistXliffImportFiles=xliff/Alarmlist.en.de.xlf /p:AlarmlistXliffApply=true
+```
+
+`AlarmlistXliffApply` defaults to false. Select several files with the usual MSBuild
+escaped semicolon (`%3B`), or use explicit items. One exchange per target culture
+is allowed in each batch. Apply always performs a fresh preflight; a prior dry run
+does not authorize overwriting intervening edits. Build and Clean never import.
+Design-time builds do not import, and applying from an IDE build is rejected to
+avoid its automatic pre-build saves.
+
+```xml
+<ItemGroup>
+  <AlarmlistXliffImport Include="returned/Alarmlist.en.de.xlf"
+                      BaselineFile="xliff/Alarmlist.en.de.xlf.baseline.xml"
+                      TargetResource="Translations.de.resx" />
+</ItemGroup>
+```
+
+`BaselineFile` defaults to the XLIFF path plus `.baseline.xml`. `TargetResource`
+is optional and only selects where previously absent keys are added. It must
+already be an evaluated `AlarmlistResource` of the exact target culture. Existing
+keys stay in their current resource file. If several target resources exist,
+select a destination explicitly; if none exists, add a RESX first. No path from
+inside the exchange or baseline can select a write destination.
+
+Any changed source, conflicting saved target/comment, malformed or unsupported
+profile, duplicate/unknown key, damaged placeholder or input collision rejects
+the whole batch. Missing XLIFF targets leave entries unchanged; an explicit empty
+target supplies an empty value. Culture fallback is never used during exchange.
+Named placeholders and expression occurrences may reorder but cannot disappear,
+duplicate or change. Reimporting already applied values is a no-op. RESX comments,
+unrelated entries, headers and schema are preserved; translator notes remain
+informational. Changed files are written as UTF-8 without a BOM; XML quote/entity
+spelling and line endings can normalize. Untouched files retain their bytes.
+
+Before apply, **save or discard pending changes and close every affected RESX
+editor in Visual Studio**, including XML views. Dry runs can run while editors
+are open. Native resource cells can hold unfinished text before their document
+is marked dirty, so the guard conservatively refuses all open destination editors.
+It queries running Visual Studio instances in the current Windows session through
+read-only automation; it never activates, saves or closes them. An inaccessible
+or unresponsive instance blocks apply. Reopen the editor afterward; the designer
+refreshes from the saved imported resources. Other editors must also be closed
+by the caller; no claim is made to inspect non-Visual-Studio editors.
+
+Inputs are rechecked during installation. Ordinary failures roll back installed
+files; this is not a crash-atomic filesystem transaction. If a newly installed
+file is independently edited before rollback, preserve that newer edit and retain
+the old backup with a reported recovery path. Cancellation writes no partial batch
+when normal rollback succeeds. Compiled outputs are unchanged until a later Build.
+
+The target returns `@(AlarmlistXliffChanges)`, with key identity and `ResourceFile`,
+`Culture`, `PreviousPresent`, `PreviousValue` and `Value` metadata.
+`@(AlarmlistImportedResources)` contains files actually updated by apply.
+Compiler hosts can call `XliffImport.Preview` with captured `ResxTextSnapshot` and
+`XliffImportInput` values to obtain immutable changes, conflicts and replacement
+text. Any conflict suppresses every writable file; the compiler performs no I/O.
+Vendor interoperability remains unverified until actual tool round trips pass.
+
+## Reusable instruction templates and HMI lookups
+
+Use named arguments to reuse a sentence across procedure steps:
+
+```xml
+<Step>$(loc:Instruction.SetProperty, path=$(path:Service.Vakuum), property=$(property:Service.Vakuum#Ein), value=$(meta:Service.Vakuum#Ein#Default))</Step>
+```
+
+The RESX entry `Instruction.SetProperty` contains
+`In "{path}", set property "{property}" to "{value}".` Translations may reorder
+placeholders. All names must match their supplied arguments; repeated names are
+allowed. Literal arguments use quotes (`value="001"`); parameter arguments use an
+explicit expression (`value=$(Setpoint)`). Inserted text is never expanded again.
+Use `{{` and `}}` for literal braces in formatted templates. Plain `$(loc:Key)`
+keeps its existing behavior; named-argument calls enable formatting.
+
+External tools generate lookup XML; Alarmlist does not scan the HMI codebase:
+
+```xml
+<Lookup xmlns="urn:alarmlist:lookup:1">
+  <Path Key="Service.Vakuum">
+    <Segment LabelKey="Hmi.Service" />
+    <Segment LabelKey="Hmi.Vacuum" />
+    <Property Key="Ein" LabelKey="Hmi.On">
+      <Metadata Name="Default" Value="060" />
+      <Metadata Name="Maximum" Value="100" />
+    </Property>
+  </Path>
+</Lookup>
+```
+
+Save it as `Hmi.almlookup`. The SDK includes `**/*.almlookup` by default, excluding
+output/intermediate and hidden directories. Use `AlarmlistLookup Remove/Update`
+or set `EnableDefaultAlarmlistLookupItems=false` and declare explicit items.
+Linked files and conditions work as for other source inputs:
+
+```xml
+<ItemGroup>
+  <AlarmlistLookup Include="../Shared/Hmi.almlookup" Link="Shared/Hmi.almlookup" />
+</ItemGroup>
+```
+
+The included XSD is at `$(AlarmlistLookupSchema)`; its schema namespace is
+`urn:alarmlist:lookup:1`. See the
+[full format and escaping specification](../../VisualStudio/HMI-LOOKUPS.md).
+Each path segment and member uses its LabelKey in the same RESX catalogue and
+selected culture as the sentence. Parent-culture lookup is allowed; unrelated or
+default-language fallback is not. Paths join their translated labels with ` -> `.
+Properties and buttons use `$(property:Path#Member)` and `$(button:Path#Member)`.
+Explicit `$(meta:Path#Member#Name)` inserts stored metadata verbatim, including
+leading zeros and empty values. Metadata has no executable or numeric semantics:
+there is no bounds validation or automatic default substitution.
+
+Keyword output retains whole localization and lookup tokens literally, including
+argument bindings, while validating referenced catalogue identities. Missing
+paths/members/metadata fail compilation (`ALM0021`); malformed catalogue XML is
+`ALM0019`, duplicate paths are `ALM0020`, and template argument mismatches are
+`ALM0022`. Every culture validates before any output is replaced. Build captures
+saved lookup contents once per batch; Clean preserves lookup and RESX source files.
+
+The persistent [North/South example](../../../example/README.md#try-reusable-instructions-and-hmi-lookups)
+contains reusable Set/Press instructions, generated-style code identities,
+individually translated labels, project-scoped arguments and an explicit metadata
+reference. Visual Studio completion offers named argument slots and catalogue
+expressions from saved files. It neither applies metadata defaults automatically
+nor publishes unsaved catalogue edits.
+
+### General named lists
+
+The same `.almlookup` inputs support arbitrary named lists. For example:
+
+```xml
+<Lookup xmlns="urn:alarmlist:lookup:1">
+  <List Key="Wires">
+    <Entry Key="EC120W1" Value="=EC-120W1" DescriptionKey="Wire.Outlet">
+      <Metadata Name="DrawingPage" Value="023" />
+    </Entry>
+  </List>
+  <Template Key="Instruction.DisconnectWire">
+    <Argument Name="wire" List="Wires" />
+  </Template>
+</Lookup>
+```
+
+Use `$(list:Wires#EC120W1)` directly or as a named localization argument. Values
+are literal text, preserving punctuation, empty values and leading zeros. Optional
+DescriptionKey translates suggestion guidance through the selected culture;
+Description is a mutually exclusive literal alternative. Missing descriptions do
+not invalidate identifiers. Metadata remains literal selection guidance.
+
+Lists merge across files. Duplicate entry identities report ALM0023; ambiguous
+or unknown explicit references fail with ALM0021. Duplicate argument bindings and
+unknown bound lists report ALM0024. Bindings are editor hints only: literal and
+parameter arguments remain allowed. RESX owns the template's placeholder names.
+The XSD and [complete format specification](../../VisualStudio/HMI-LOOKUPS.md)
+describe these rules. No built-in DeviceTag field, relationship validation, or
+multi-selection formatting is introduced.
+
+Analysis contract 3 adds read-only LookupLists and ArgumentBindings. Entries expose
+their literal Value, Expression, Location, ambiguity, optional DescriptionTranslation,
+and metadata; bindings expose TemplateKey, ArgumentName, ListKey and availability.
+Hosts use these detached compiler answers and revalidate saved inputs for completion.
+See the [electrical sample](../../../example/README.md#try-supplied-lists-and-electrical-instructions)
+for wire/connection and PLC-symbol instructions in keyword, English and German.
+
+## Property expressions and templates
+
+Expressions are always enabled in Name, Code, Category, Description and procedure
+Step/Hint/Warning/Note text. `$(Name)` inserts a property; `$$` emits a literal
+dollar, so `$$(Name)` remains literal. Inserted custom values are not expanded
+again. FullyQualifiedName and ReferenceName remain literal identifiers.
+
+Declare project parameters with evaluated items (MSBuild escaping rules apply):
+
+```xml
+<ItemGroup>
+  <AlarmlistProperty Include="par1" Value="001" />
+  <AlarmlistProperty Include="unassigned" />
+  <AlarmlistProperty Include="empty" Value="" />
+  <AlarmlistProperty Include="literalToken" Value="%24(par1)" />
+</ItemGroup>
+```
+
+ALMX file and alarm scopes use the same declaration shape:
+
+```xml
+<Alarmlist>
+  <Properties><Property Name="par1" Value="001" /></Properties>
+  <Alarm abstract="true">
+    <FullyQualifiedName>Template</FullyQualifiedName>
+    <Properties><Property Name="par1" /></Properties>
+    <Code>$(par1)</Code>
+    <Description>Inspect $(AlarmlistAlarmCode)</Description>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Child</FullyQualifiedName>
+    <ReferenceName>Template</ReferenceName>
+  </Alarm>
+</Alarmlist>
+```
+
+Only Child is emitted, with Code `001` and Description `Inspect 001`. References
+inherit raw content and parameter declarations; base-alarm assignments and base-file
+values do not flow to descendants. Value lookup uses the current alarm, its own
+file, then the project. Missing Value falls through; `Value=""` stops fallback.
+Unused unassigned parameters are allowed. Names are case-insensitive identifiers
+(`A-Z`, `a-z`, `_`, followed by those characters or digits); `Alarmlist` is reserved.
+Duplicates in one scope are errors. Abstract is local and defaults to false.
+
+Well-known project values are `AlarmlistProjectName`, `AlarmlistProjectFile`,
+`AlarmlistProjectFullPath`, `AlarmlistProjectDirectory`, `AlarmlistProjectExtension`,
+`AlarmlistConfiguration`, and `AlarmlistPlatform`. File equivalents use
+`AlarmlistThisFileName`, `AlarmlistThisFile`, `AlarmlistThisFileFullPath`,
+`AlarmlistThisFileDirectory`, and `AlarmlistThisFileExtension`. Alarm properties use
+`AlarmlistAlarmFullyQualifiedName`, `AlarmlistAlarmReferenceName`, `AlarmlistAlarmName`,
+`AlarmlistAlarmCode`, `AlarmlistAlarmCategory`, and `AlarmlistAlarmDescription`.
+Names omit the extension, File includes it, Extension includes the dot, and Directory
+has no trailing separator except for roots. Inherited expressions use the consuming
+alarm and file. Scalar alarm properties read evaluated values; cycles are errors.
+
+The SDK passes captured project path, Configuration, Platform and AlarmlistProperty
+items to the task. Direct compiler callers use `CompilationContext` overloads of
+Compile, CompileFiles or CompileSnapshots; missing context diagnoses only on use.
+No environment variables or ambient project properties are imported. ALM0005-ALM0012
+cover invalid abstract/expression syntax, unknown or unassigned values, unavailable
+context, scalar cycles, and invalid/duplicate declarations. Failed compilation
+preserves previous output. Source serialization retains raw expressions.
+
+## Localization and multiple outputs
+
+Use `$(loc:Inspection)` in an ALMX text field and define `Inspection` in a saved
+string-only RESX resource. For example, `Translations.en.resx` may contain:
+
+```xml
+<root>
+  <data name="Inspection" xml:space="preserve">
+    <value>Inspect $(par1)</value>
+    <comment>Shown to the operator.</comment>
+  </data>
+</root>
+```
+
+The consuming alarm's parameter scope supplies `par1`; with `par1=001`, the result
+is `Inspect 001`. Keys are case-sensitive, with grammar
+`[A-Za-z_][A-Za-z0-9_.-]*`. The `loc:` prefix is case-sensitive. Nested localization
+inside translations is initially unsupported. Escapes and substituted parameter
+values remain literal; replacement text is never rescanned.
+
+```xml
+<PropertyGroup>
+  <AlarmlistCultures>de-DE;en;keyword</AlarmlistCultures>
+</PropertyGroup>
+<ItemGroup>
+  <AlarmlistResource Remove="obsolete/**/*.resx" />
+  <AlarmlistResource Include="../shared/Operator.resx" Culture="en"
+                     Link="Translations/Operator.en.resx" />
+  <AlarmlistResource Update="My.Catalogue.resx" Culture="" />
+</ItemGroup>
+```
+
+Default resource inclusion is `**/*.resx`, using the same output/intermediate and
+hidden-directory exclusions as ALMX. Explicit Include, Remove, Update, linked
+files, and conditions are supported. Disable the glob with
+`EnableDefaultAlarmlistResourceItems=false`. Explicit `Culture` metadata wins,
+including an explicitly empty value for an optional unqualified key catalogue.
+Otherwise the filename's final dotted suffix is the culture: `Labels.de-DE.resx`
+is German/Germany and `Labels.resx` is unqualified. Invalid dotted suffixes are
+errors. Multiple resources per culture are allowed, but duplicate keys are errors.
+String values and comments are supported; object/file-reference entries and DTDs
+are rejected without deserializing or loading external content.
+
+Culture lookup follows the requested culture and its .NET parents, stopping before
+invariant: `de-DE` can use `de`. Empty values count as missing; whitespace values
+are nonempty. There is no unqualified/default, unrelated-language, or keyword
+fallback. A nonempty translation that evaluates to empty does not restart lookup.
+Keyword mode displays the complete `$(loc:Inspection)` token, even for undeclared
+keys. Resource structure and duplicate keys are still validated in keyword mode.
+
+Missing, empty or whitespace-only AlarmlistCultures selects keyword. Other lists
+trim and normalize entries, rejecting unsupported cultures, duplicates, and empty
+entries within a list. Output paths are
+`<OutputPath>/<culture>/<CompiledAlarmlistFileName>`, including `keyword`.
+The filename must be a basename. `AlarmlistCulture` selects the independent
+IDE preview selection; it does not alter the build list. The designer's Preview
+language selector persists this shared property through CPS and uses saved RESX
+contents. Resource drafts stay private until saved.
+
+The task captures saved ALMX and RESX inputs once per batch, evaluates and serializes
+all cultures, then stages the outputs. Validation/compilation failures leave every
+previous output unchanged. Ordinary install failures and cancellation roll back
+installed files; restoration failures are reported with retained backup paths.
+This does not guarantee atomicity across process termination or power loss.
+A project/configuration/platform ownership manifest under IntermediateOutputPath
+tracks exact output and temporary paths. Successful builds retire outputs removed
+from the selection or moved by output settings. Clean removes configured/tracked
+files, without scanning or deleting culture folders. Unrelated files survive.
+Rebuild explicitly runs Clean first, so a failed Rebuild cannot preserve files that
+Clean already removed. ALM0013-ALM0018 report culture, resource, duplicate-key,
+missing-translation, nested-localization and invalid-key errors.
+
+Build and future localization consumers use saved RESX contents only. Pending
+resource-editor drafts are never read or saved by Alarmlist. The native editor may
+autosave a committed cell; that saved value is then eligible for capture.
 
 ## Compiler analysis API
 
 The compiler in each SDK task-runtime directory exposes
 `AlarmCompiler.AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot>)` for host adapters.
 It returns a detached, read-only `Alarmlist.Analysis.AnalysisResult` with contract
-version 1, input versions, local/effective fields, defining alarms and locations,
+version 3, input versions, local/effective fields, defining alarms and locations,
 reference chains, procedure origins, Clear exclusions, and located diagnostics.
 It shares the compiler's resolution rules and never reads or writes snapshot paths.
 
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and contract version 1.
+The original overload keeps its analysis-only behavior and returns contract 3.
+`AnalyzeSnapshots(snapshots, context, includeCompiledXml)` captures the same
+CompilationContext as compilation. EffectiveExpression and procedure RawText retain
+source tokens; EffectiveValue and surviving procedure Text carry evaluated results.
+Check IsValueAvailable and HasEvaluatedValues independently of IsResolved: an abstract
+alarm or a field-dependency error can have a valid reference chain. IsAbstract marks
+templates. Alarm and source Properties contain visible custom and well-known values,
+local declaration/assignment presence, and separate declaration/value origins.
+Contract 3 adds selected `Culture`, captured `Resources` (path, version and input
+culture), raw `ResourceEntries` with comments/locations/validity/ambiguity, and
+compiler-resolved `Translations` for catalogue keys. Requested and supplying
+cultures are separate. Translation `IsAvailable` means lookup succeeded, not that
+its property expressions can evaluate in every alarm. Keyword entries expose the
+full literal token without inventing a resource origin. Invalid selections expose
+null Culture alongside the culture diagnostic.
+
+Each alarm's `LocalizationUses` records actual evaluated uses: the translation,
+ALMX usage location, evaluated Value and IsValueAvailable. Abstract or excluded
+content does not invent uses. A missing or invalid expression can retain lookup
+provenance while its evaluated value is unavailable. Results are detached and
+read-only; changing resource/culture inputs cannot mutate earlier results.
+The bridge requires contract 3 and copies this data into host-owned serializable
+objects. Resource filename inference is delegated to the SDK's
+`LocalizationCulture.InferResourceCulture`; explicit empty culture stays distinct.
+CPS saved-resource capture and designer localization follow in iterations six/seven.
+
 `XmlAlarmlistOutputWriter.WriteToString(AlarmList)` is the in-memory output sink;
 its text matches file output, including the UTF-8 declaration and `AlarmList`
 root. Neither API saves source files or changes existing build output.
@@ -131,14 +513,14 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 1 and a CPS
+The extension now has an isolated AppDomain bridge for contract 3 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear
 exclusions, section copies, live designer/Error List diagnostics, and resolved
-previews. The bridge detects the optional XML overload/property; older contract-1
-SDKs keep analysis working and show XML-preview update guidance. Release the
-matching SDK before distributing a VSIX that uses these capabilities.
+previews. The bridge requires context-aware analysis and compiled XML preview;
+older SDK contracts report explicit update guidance. No alternate compiler is
+loaded. Release the matching SDK before distributing a VSIX using these capabilities.
 
 ## Build and test this repository
 

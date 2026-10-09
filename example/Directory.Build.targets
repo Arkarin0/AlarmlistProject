@@ -1,0 +1,9 @@
+<Project>
+  <!-- Keep repository build targets out of this standalone SDK consumer. -->
+  <ItemGroup>
+    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)Shared/Hmi.almlookup" Link="Shared/Hmi.almlookup" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/HmiInstructions.almx" Link="HmiInstructions.almx" />
+    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)Shared/Electrical.almlookup" Link="Shared/Electrical.almlookup" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shared/ElectricalInstructions.almx" Link="ElectricalInstructions.almx" />
+  </ItemGroup>
+</Project>

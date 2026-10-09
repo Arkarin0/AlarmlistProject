@@ -56,8 +56,10 @@ namespace AlarmList.MSBuild.UnitTests
             var success = task.Execute();
 
             Assert.True(success);
-            Assert.True(File.Exists(task.OutputFile));
-            var document = XDocument.Load(task.OutputFile);
+            ITaskItem output = Assert.Single(task.OutputFiles);
+            Assert.Equal("keyword", output.GetMetadata("Culture"));
+            Assert.True(File.Exists(output.ItemSpec));
+            var document = XDocument.Load(output.ItemSpec);
             Assert.Equal("AlarmList", document.Root.Name.LocalName);
             Assert.Contains("F-001", document.ToString());
             Assert.Contains("Category", document.ToString());
@@ -109,11 +111,12 @@ namespace AlarmList.MSBuild.UnitTests
             string directory = Path.Combine(Path.GetTempPath(), "AlarmlistTaskTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             string source = Path.Combine(directory, "Input.almx");
-            string output = Path.Combine(directory, "Alarmlist.xml");
+            string output = Path.Combine(directory, "keyword", "Alarmlist.xml");
             try
             {
                 File.WriteAllText(source, "<Alarmlist>\n  <Alarm>\n    <FullyQualifiedName>A</FullyQualifiedName>\n"
                     + "    <ReferenceName>Missing{0}</ReferenceName>\n  </Alarm>\n</Alarmlist>");
+                Directory.CreateDirectory(Path.GetDirectoryName(output));
                 File.WriteAllText(output, "previous output");
                 var task = new AlarmlistBuildTask
                 {
@@ -133,7 +136,7 @@ namespace AlarmList.MSBuild.UnitTests
                 Assert.Equal(19, error.EndColumnNumber);
                 Assert.Contains("Missing{0}", error.Message);
                 Assert.Equal("previous output", File.ReadAllText(output));
-                Assert.Null(task.OutputFile);
+                Assert.Empty(task.OutputFiles);
             }
             finally
             {
@@ -172,6 +175,20 @@ namespace AlarmList.MSBuild.UnitTests
             yield return new Diagnostic(DiagnosticDescriptors.MissingReference, "Plant.Alarm", "Plant.Missing");
             yield return new Diagnostic(DiagnosticDescriptors.SelfReference, "Plant.Alarm");
             yield return new Diagnostic(DiagnosticDescriptors.CircularReference, "Plant.A -> Plant.B -> Plant.A");
+            yield return new Diagnostic(DiagnosticDescriptors.InvalidAbstract, "Plant.A", "yes");
+            yield return new Diagnostic(DiagnosticDescriptors.InvalidExpression, "Plant.A", "$(");
+            yield return new Diagnostic(DiagnosticDescriptors.UnknownProperty, "Plant.A", "missing");
+            yield return new Diagnostic(DiagnosticDescriptors.UnassignedProperty, "Plant.A", "p");
+            yield return new Diagnostic(DiagnosticDescriptors.MissingPropertyContext, "Plant.A", "AlarmlistConfiguration");
+            yield return new Diagnostic(DiagnosticDescriptors.CircularFieldDependency, "Plant.A", "Name -> Name");
+            yield return new Diagnostic(DiagnosticDescriptors.InvalidProperty, "bad-name");
+            yield return new Diagnostic(DiagnosticDescriptors.DuplicateProperty, "p");
+            yield return new Diagnostic(DiagnosticDescriptors.InvalidLocalizationCulture, "bad");
+            yield return new Diagnostic(DiagnosticDescriptors.InvalidResource, "bad XML");
+            yield return new Diagnostic(DiagnosticDescriptors.DuplicateResourceKey, "K", "de");
+            yield return new Diagnostic(DiagnosticDescriptors.MissingTranslation, "K", "de");
+            yield return new Diagnostic(DiagnosticDescriptors.NestedLocalizationExpression, "K", "de");
+            yield return new Diagnostic(DiagnosticDescriptors.InvalidLocalizationKey, "bad key");
         }
     }
 }

@@ -90,11 +90,15 @@ namespace Alarmlist.VisualStudio.UI
             if (!_commit())
             {
                 // Keep the draft/error visible while still allowing XML repair.
-                if (mode == EditorMode.Designer) return;
+                if (mode == EditorMode.Designer) { NotifyModes(); return; }
                 mode = EditorMode.Split;
             }
             _mode = mode;
             _settings.Write(nameof(Mode), mode.ToString());
+            NotifyModes();
+        }
+        private void NotifyModes()
+        {
             Notify(nameof(Mode)); Notify(nameof(IsDesigner)); Notify(nameof(IsSplit)); Notify(nameof(IsXml));
         }
     }

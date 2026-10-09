@@ -16,11 +16,13 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         public string FilePath { get; }
         public int Version { get; }
+        public IReadOnlyList<AnalysisProperty> Properties { get; }
 
-        public AnalysisSource(string filePath, int version)
+        public AnalysisSource(string filePath, int version, IReadOnlyList<AnalysisProperty> properties = null)
         {
             FilePath = filePath;
             Version = version;
+            Properties = Array.AsReadOnly((properties ?? Array.Empty<AnalysisProperty>()).ToArray());
         }
     }
 
@@ -85,17 +87,22 @@ namespace Alarmlist.VisualStudio.Analysis
         public string LocalValue { get; }
         public AnalysisLocation LocalLocation { get; }
         public string EffectiveValue { get; }
+        public string EffectiveExpression { get; }
+        public bool IsValueAvailable { get; }
         public AnalysisAlarmOrigin DefiningAlarm { get; }
         public AnalysisLocation ValueLocation { get; }
         public bool IsInherited { get; }
 
-        public AnalysisField(string name, bool isPresent, string localValue, AnalysisLocation localLocation, string effectiveValue, AnalysisAlarmOrigin definingAlarm, AnalysisLocation valueLocation, bool isInherited)
+        public AnalysisField(string name, bool isPresent, string localValue, AnalysisLocation localLocation, string effectiveValue, AnalysisAlarmOrigin definingAlarm, AnalysisLocation valueLocation, bool isInherited,
+            string effectiveExpression = null, bool isValueAvailable = true)
         {
             Name = name;
             IsPresent = isPresent;
             LocalValue = localValue;
             LocalLocation = localLocation;
             EffectiveValue = effectiveValue;
+            EffectiveExpression = effectiveExpression ?? effectiveValue;
+            IsValueAvailable = isValueAvailable;
             DefiningAlarm = definingAlarm;
             ValueLocation = valueLocation;
             IsInherited = isInherited;
@@ -108,15 +115,20 @@ namespace Alarmlist.VisualStudio.Analysis
         public AnalysisStepKind? Kind { get; }
         public bool IsClear { get; }
         public string Text { get; }
+        public string RawText { get; }
+        public bool IsValueAvailable { get; }
         public AnalysisEntryOrigin Origin { get; }
         public bool IsInherited { get; }
         public AnalysisEntryOrigin ExcludedBy { get; }
 
-        public AnalysisEntry(AnalysisStepKind? kind, bool isClear, string text, AnalysisEntryOrigin origin, bool isInherited, AnalysisEntryOrigin excludedBy)
+        public AnalysisEntry(AnalysisStepKind? kind, bool isClear, string text, AnalysisEntryOrigin origin, bool isInherited, AnalysisEntryOrigin excludedBy,
+            string rawText = null, bool isValueAvailable = true)
         {
             Kind = kind;
             IsClear = isClear;
             Text = text;
+            RawText = rawText ?? text;
+            IsValueAvailable = isValueAvailable;
             Origin = origin;
             IsInherited = isInherited;
             ExcludedBy = excludedBy;
@@ -145,16 +157,28 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         public AnalysisAlarmOrigin Origin { get; }
         public string ReferenceName { get; }
+        public bool IsAbstract { get; }
+        public bool HasEvaluatedValues { get; }
+        public IReadOnlyList<AnalysisProperty> Properties { get; }
         public bool IsResolved { get; }
+        public IReadOnlyList<AnalysisLocalizationUse> LocalizationUses { get; }
+        public IReadOnlyList<AnalysisLookupUse> LookupUses { get; }
         public IReadOnlyList<AnalysisAlarmOrigin> ReferenceChain { get; }
         public IReadOnlyList<AnalysisField> Fields { get; }
         public AnalysisSection Instructions { get; }
         public AnalysisSection Reset { get; }
 
-        public AnalysisAlarm(AnalysisAlarmOrigin origin, string referenceName, bool isResolved, IReadOnlyList<AnalysisAlarmOrigin> referenceChain, IReadOnlyList<AnalysisField> fields, AnalysisSection instructions, AnalysisSection reset)
+        public AnalysisAlarm(AnalysisAlarmOrigin origin, string referenceName, bool isResolved, IReadOnlyList<AnalysisAlarmOrigin> referenceChain, IReadOnlyList<AnalysisField> fields, AnalysisSection instructions, AnalysisSection reset,
+            bool isAbstract = false, bool hasEvaluatedValues = true, IReadOnlyList<AnalysisProperty> properties = null,
+            IReadOnlyList<AnalysisLocalizationUse> localizationUses = null, IReadOnlyList<AnalysisLookupUse> lookupUses = null)
         {
             Origin = origin;
             ReferenceName = referenceName;
+            IsAbstract = isAbstract;
+            HasEvaluatedValues = hasEvaluatedValues && isResolved;
+            Properties = Array.AsReadOnly((properties ?? Array.Empty<AnalysisProperty>()).ToArray());
+            LocalizationUses = Array.AsReadOnly((localizationUses ?? Array.Empty<AnalysisLocalizationUse>()).ToArray());
+            LookupUses = Array.AsReadOnly((lookupUses ?? Array.Empty<AnalysisLookupUse>()).ToArray());
             IsResolved = isResolved;
             ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
             Fields = Array.AsReadOnly(fields.ToArray());
@@ -190,15 +214,34 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisSource> Sources { get; }
         public IReadOnlyList<AnalysisAlarm> Alarms { get; }
         public IReadOnlyList<AnalysisDiagnostic> Diagnostics { get; }
+        public string Culture { get; }
+        public IReadOnlyList<AnalysisResource> Resources { get; }
+        public IReadOnlyList<AnalysisResourceEntry> ResourceEntries { get; }
+        public IReadOnlyList<AnalysisTranslation> Translations { get; }
+        public IReadOnlyList<AnalysisLookupFile> LookupFiles { get; }
+        public IReadOnlyList<AnalysisLookupPath> LookupPaths { get; }
+        public IReadOnlyList<AnalysisLookupList> LookupLists { get; }
+        public IReadOnlyList<AnalysisArgumentBinding> ArgumentBindings { get; }
 
-        public AnalysisSnapshot(int contractVersion, bool success, IReadOnlyList<AnalysisSource> sources, IReadOnlyList<AnalysisAlarm> alarms, IReadOnlyList<AnalysisDiagnostic> diagnostics)
+        public AnalysisSnapshot(int contractVersion, bool success, IReadOnlyList<AnalysisSource> sources, IReadOnlyList<AnalysisAlarm> alarms, IReadOnlyList<AnalysisDiagnostic> diagnostics,
+            string culture = "keyword", IReadOnlyList<AnalysisResource> resources = null, IReadOnlyList<AnalysisResourceEntry> entries = null,
+            IReadOnlyList<AnalysisTranslation> translations = null, IReadOnlyList<AnalysisLookupFile> lookupFiles = null,
+            IReadOnlyList<AnalysisLookupPath> lookupPaths = null, IReadOnlyList<AnalysisLookupList> lookupLists = null,
+            IReadOnlyList<AnalysisArgumentBinding> argumentBindings = null)
         {
             ContractVersion = contractVersion;
             Success = success;
             Sources = Array.AsReadOnly(sources.ToArray());
             Alarms = Array.AsReadOnly(alarms.ToArray());
             Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+            Culture = culture;
+            Resources = Array.AsReadOnly((resources ?? Array.Empty<AnalysisResource>()).ToArray());
+            ResourceEntries = Array.AsReadOnly((entries ?? Array.Empty<AnalysisResourceEntry>()).ToArray());
+            Translations = Array.AsReadOnly((translations ?? Array.Empty<AnalysisTranslation>()).ToArray());
+            LookupFiles = Array.AsReadOnly((lookupFiles ?? Array.Empty<AnalysisLookupFile>()).ToArray());
+            LookupPaths = Array.AsReadOnly((lookupPaths ?? Array.Empty<AnalysisLookupPath>()).ToArray());
+            LookupLists = Array.AsReadOnly((lookupLists ?? Array.Empty<AnalysisLookupList>()).ToArray());
+            ArgumentBindings = Array.AsReadOnly((argumentBindings ?? Array.Empty<AnalysisArgumentBinding>()).ToArray());
         }
     }
 }
-

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Pump.Name" xml:space="preserve">
+    <value>South pump pressure low</value>
+  </data>
+  <data name="Pump.Category" xml:space="preserve">
+    <value>South utilities</value>
+  </data>
+  <data name="Pump.Description" xml:space="preserve">
+    <value>South standby pump pressure is below its limit. Check the filter &amp; bypass valve.</value>
+  </data>
+  <data name="Pump.Inspect" xml:space="preserve">
+    <value>Inspect $(par1): check the South pump and bypass valve.</value>
+    <comment>The shared alarm uses South's project parameter 002.</comment>
+  </data>
+  <data name="Pump.Isolate" xml:space="preserve">
+    <value>Isolate the South pump before maintenance.</value>
+  </data>
+  <data name="Pump.Acknowledge" xml:space="preserve">
+    <value>Acknowledge the alarm at the South station.</value>
+  </data>
+</root>

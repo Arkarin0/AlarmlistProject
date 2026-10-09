@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <Properties><Property Name="par1" /></Properties>
+    <FullyQualifiedName>Plant.Pump.Base</FullyQualifiedName>
+    <Name>$(loc:Pump.Name)</Name>
+    <Code>P-001</Code>
+    <Category>$(loc:Pump.Category)</Category>
+    <Description>$(loc:Pump.Description)</Description>
+    <TestProcedure>
+      <Instructions>
+        <Step>$(loc:Pump.Inspect)</Step>
+        <Warning>$(loc:Pump.Isolate)</Warning>
+      </Instructions>
+      <Reset>
+        <Step>$(loc:Pump.Acknowledge)</Step>
+      </Reset>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>

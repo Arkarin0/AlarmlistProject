@@ -16,6 +16,148 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
 {
     public class SdkAnalysisBridgeTests
     {
+        [Fact]
+        public void LookupCatalogueNamedTemplatesAndProvenanceSurviveDomainUnload()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                var lookup = new AnalysisLookupInput(LookupTestData.Catalogue, Path.Combine(sdk.DirectoryPath, "Hmi.almlookup"), 27);
+                var resource = new AnalysisResourceInput(LookupTestData.Resources, "Labels.en.resx", 19);
+                var context = new AnalysisContext(resources: new[] { resource }, culture: "en-GB", lookups: new[] { lookup });
+                AnalysisResponse response;
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    response = bridge.Analyze(new[] { new AnalysisInput(LookupTestData.Source, "A.almx", 12) }, context: context);
+                    Assert.True(response.Snapshot?.Success == true, response.Message);
+                    Assert.Contains("In Service -&gt; Vacuum, set ON to 060.", response.CompiledXml);
+                }
+                AnalysisLookupPath path = Assert.Single(response.Snapshot.LookupPaths);
+                Assert.Equal(27, Assert.Single(response.Snapshot.LookupFiles).Version);
+                Assert.Equal("Service -> Vacuum", path.Value);
+                Assert.Equal("en", path.Segments[0].SupplyingCulture);
+                Assert.Equal("ON", path.Members[0].Value);
+                Assert.Equal("060", path.Members[0].Metadata.Single(item => item.Name == "Default").Value);
+                Assert.Equal(new[] { "path", "property", "value" }, response.Snapshot.Translations.Single(item => item.Key == "Set").PlaceholderNames);
+                Assert.Equal(new[] { "path", "property", "value" }, response.Snapshot.ResourceEntries.Single(item => item.Key == "Set").PlaceholderNames);
+                Assert.Equal(3, response.Snapshot.Alarms[0].LookupUses.Count);
+                Assert.All(response.Snapshot.Alarms[0].LookupUses, use => { Assert.Equal(27, use.DefinitionLocation.SourceVersion); Assert.Equal(12, use.UsageLocation.SourceVersion); });
+                Assert.False(File.Exists(lookup.FilePath));
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisLookupPath>)response.Snapshot.LookupPaths).Clear());
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisLookupMember>)path.Members).Clear());
+            }
+        }
+
+        [Fact]
+        public void NamedListValuesDescriptionsAndBindingsSurviveDomainUnload()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                AnalysisResponse response;
+                var context = new AnalysisContext(culture: "en-GB",
+                    resources: new[] { new AnalysisResourceInput(ListTestData.Resources, "Labels.en.resx", 19) },
+                    lookups: new[] { new AnalysisLookupInput(ListTestData.Catalogue, "Electrical.almlookup", 27) });
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                    response = bridge.Analyze(new[] { new AnalysisInput(ListTestData.Source, "A.almx", 12) }, context: context);
+                Assert.True(response.Snapshot?.Success == true, response.Message);
+                Assert.Contains("Disconnect wire =EC-120W1 from =EC-120K1:12.", response.CompiledXml);
+                AnalysisLookupList list = response.Snapshot.LookupLists.Single(item => item.Key == "Wires");
+                Assert.Equal("=EC-120W1", list.Entries[0].Value);
+                Assert.Equal("Outlet motor cable", list.Entries[0].Description);
+                Assert.Equal("en", list.Entries[0].DescriptionTranslation.SupplyingCulture);
+                Assert.Equal("023", Assert.Single(list.Entries[0].Metadata).Value);
+                Assert.Equal("Spare", list.Entries[1].Description);
+                Assert.Null(list.Entries[1].DescriptionTranslation);
+                Assert.Equal(27, list.Entries[0].Location.SourceVersion);
+                Assert.Equal("Terminals", response.Snapshot.ArgumentBindings.Single(binding => binding.ArgumentName == "connection").ListKey);
+                Assert.All(response.Snapshot.ArgumentBindings, binding => Assert.True(binding.IsAvailable));
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisLookupList>)response.Snapshot.LookupLists).Clear());
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisLookupListEntry>)list.Entries).Clear());
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+            }
+        }
+
+        [Fact]
+        public void CapturedResourcesAndParentOriginsRemainUsableAfterDomainUnload()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                string resourcePath = Path.Combine(sdk.DirectoryPath, "Labels.de.resx");
+                var resource = new AnalysisResourceInput("<root><data name='Inspection'><value>Inspect $(p)</value><comment>Operator</comment></data></root>", resourcePath, 31);
+                var context = new AnalysisContext(properties: new[] { new AnalysisPropertyDefinition("p", "001") }, resources: new[] { resource }, culture: "de-DE");
+                AnalysisResponse response;
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    response = bridge.Analyze(new[] { Input("<Name>$(loc:Inspection)</Name>", version: 5) }, context: context);
+                    Assert.True(response.Snapshot?.Success == true, response.Message);
+                    AnalysisResponse keyword = bridge.Analyze(new[] { Input("<Name>$(loc:Inspection)</Name>") });
+                    Assert.Contains("$(loc:Inspection)", keyword.CompiledXml);
+                }
+                AnalysisSnapshot snapshot = response.Snapshot;
+                Assert.Equal(3, snapshot.ContractVersion);
+                Assert.Equal("de-DE", snapshot.Culture);
+                Assert.Equal("de", Assert.Single(snapshot.Resources).Culture);
+                Assert.Equal(31, snapshot.Resources[0].Version);
+                AnalysisTranslation translation = Assert.Single(snapshot.Translations);
+                Assert.Equal("de", translation.SupplyingCulture);
+                Assert.Equal("de-DE", translation.RequestedCulture);
+                Assert.Equal("Inspect $(p)", translation.RawValue);
+                Assert.Equal("Operator", translation.Comment);
+                Assert.Equal(resourcePath, translation.ValueLocation.FilePath);
+                Assert.Equal(31, translation.ValueLocation.SourceVersion);
+                AnalysisLocalizationUse use = Assert.Single(snapshot.Alarms[0].LocalizationUses);
+                Assert.Equal("Inspect 001", use.Value);
+                Assert.Equal(5, use.UsageLocation.SourceVersion);
+                Assert.Contains("<Name>Inspect 001</Name>", response.CompiledXml);
+                Assert.False(File.Exists(resourcePath));
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisResource>)snapshot.Resources).Clear());
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisTranslation>)snapshot.Translations).Clear());
+            }
+        }
+
+        [Fact]
+        public void ResourceAndCultureFailuresSuppressPreviewAndRecoverWithoutAlmxEdits()
+        {
+            using (var sdk = new SdkAsset())
+            using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+            {
+                AnalysisInput[] inputs = { Input("<Name>$(loc:K)</Name>") };
+                var english = new AnalysisResourceInput("<root><data name='K'><value>English</value></data></root>", "Labels.en.resx", 1);
+                AnalysisResponse missing = bridge.Analyze(inputs, context: new AnalysisContext(resources: new[] { english }, culture: "de"));
+                Assert.False(missing.Snapshot.Success);
+                Assert.Null(missing.CompiledXml);
+                Assert.Contains(missing.Snapshot.Diagnostics, diagnostic => diagnostic.Id == "ALM0016");
+                var malformed = new AnalysisResourceInput("<broken>", "Labels.en.resx", 2);
+                AnalysisResponse invalid = bridge.Analyze(inputs, context: new AnalysisContext(resources: new[] { malformed }, culture: "en"));
+                Assert.False(invalid.Snapshot.Success);
+                Assert.Null(invalid.CompiledXml);
+                Assert.Contains(invalid.Snapshot.Diagnostics, diagnostic => diagnostic.Id == "ALM0014" && diagnostic.Location.SourceVersion == 2);
+                AnalysisResponse recovered = bridge.Analyze(inputs, context: new AnalysisContext(resources: new[] { english }, culture: "en"));
+                Assert.True(recovered.Snapshot.Success);
+                Assert.Contains("<Name>English</Name>", recovered.CompiledXml);
+                Assert.False(missing.Snapshot.Success);
+            }
+        }
+
+        [Fact]
+        public void ExplicitEmptyResourceCultureRemainsDistinctFromFilenameInference()
+        {
+            using (var sdk = new SdkAsset())
+            using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+            {
+                const string resource = "<root><data name='K'><value>catalogue</value></data></root>";
+                AnalysisResponse inferred = bridge.Analyze(Array.Empty<AnalysisInput>(), context: new AnalysisContext(
+                    resources: new[] { new AnalysisResourceInput(resource, "Labels.invalid.resx", 1) }));
+                Assert.Contains(inferred.Snapshot.Diagnostics, diagnostic => diagnostic.Id == "ALM0013");
+                AnalysisResponse explicitEmpty = bridge.Analyze(Array.Empty<AnalysisInput>(), context: new AnalysisContext(
+                    resources: new[] { new AnalysisResourceInput(resource, "Labels.invalid.resx", 1, "") }));
+                Assert.True(explicitEmpty.Snapshot.Success);
+                Assert.Equal("", Assert.Single(explicitEmpty.Snapshot.Resources).Culture);
+                Assert.Equal("$(loc:K)", Assert.Single(explicitEmpty.Snapshot.Translations).RawValue);
+            }
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -52,7 +194,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Type inputType = assembly.GetType("Alarmlist.VisualStudio.Analysis.AnalysisInput", true);
                     Array inputs = Array.CreateInstance(inputType, 1);
                     inputs.SetValue(Activator.CreateInstance(inputType, "<Alarmlist><Alarm><Name>Hosted</Name></Alarm></Alarmlist>", "Unsaved.almx", 3), 0);
-                    object response = type.GetMethod("Analyze").Invoke(bridge, new object[] { inputs, CancellationToken.None });
+                    object response = type.GetMethod("Analyze").Invoke(bridge, new object[] { inputs, CancellationToken.None, null });
                     if (!((string)response.GetType().GetProperty("CompiledXml").GetValue(response) ?? "").Contains("<Name>Hosted</Name>"))
                         return "Compiled XML did not cross the remoting boundary.";
                     if (AppDomain.CurrentDomain.GetAssemblies().Any(loaded => loaded.GetName().Name == "Alarmlist.Core"))
@@ -93,6 +235,42 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Fact]
+        public void CapturedPropertiesAndRawEvaluatedOriginsSurviveDomainUnload()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                AnalysisResponse response;
+                var definitions = new[] { new AnalysisPropertyDefinition("p", "001"), new AnalysisPropertyDefinition("empty", "") };
+                var context = new AnalysisContext(Path.Combine(sdk.DirectoryPath, "Plant.almproj"), "Release", "AnyCPU", definitions);
+                definitions[0] = new AnalysisPropertyDefinition("p", "changed");
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    response = bridge.Analyze(new[] { new AnalysisInput("<Alarmlist>"
+                        + "<Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName><Properties><Property Name='p' Value='ignored'/></Properties>"
+                        + "<Code>$(p)</Code><Description>Inspect $(AlarmlistAlarmCode):$(AlarmlistConfiguration)[$(empty)]</Description>"
+                        + "<TestProcedure><Instructions><Step>$(AlarmlistAlarmCode) $$(p)</Step></Instructions></TestProcedure></Alarm>"
+                        + "<Alarm><ReferenceName>A</ReferenceName></Alarm></Alarmlist>", "Unsaved.almx", 9) }, context: context);
+                    Assert.True(response.Snapshot?.Success == true, response.Message);
+                }
+                AnalysisAlarm child = response.Snapshot.Alarms[1];
+                Assert.True(child.HasEvaluatedValues);
+                Assert.True(response.Snapshot.Alarms[0].IsAbstract);
+                Assert.False(response.Snapshot.Alarms[0].HasEvaluatedValues);
+                AnalysisField code = child.Fields.Single(field => field.Name == "Code");
+                Assert.Equal("$(p)", code.EffectiveExpression);
+                Assert.Equal("001", code.EffectiveValue);
+                AnalysisProperty parameter = child.Properties.Single(property => property.Name == "p");
+                Assert.Equal("A", parameter.DeclarationOrigin.Alarm.FullyQualifiedName);
+                Assert.Equal("Project", parameter.ValueOrigin.Scope);
+                Assert.Equal("001", parameter.EffectiveValue);
+                Assert.Equal("$(AlarmlistAlarmCode) $$(p)", child.Instructions.EffectiveEntries[0].RawText);
+                Assert.Equal("001 $(p)", child.Instructions.EffectiveEntries[0].Text);
+                Assert.Contains("Inspect 001:Release[]", response.CompiledXml);
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+            }
+        }
+
+        [Fact]
         public void PackagedCompilerReturnsDetachedOriginsAndClearExplanationsForUnsavedText()
         {
             using (var sdk = new SdkAsset())
@@ -121,7 +299,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.DoesNotContain("<ReferenceName>", xml);
                     Assert.DoesNotContain("<Clear", xml);
                     Assert.True(snapshot.Success);
-                    Assert.Equal(1, snapshot.ContractVersion);
+                    Assert.Equal(3, snapshot.ContractVersion);
                     Assert.Equal(new[] { 4, 9 }, snapshot.Sources.Select(source => source.Version));
                     AnalysisAlarm child = snapshot.Alarms[1];
                     Assert.Equal("Base", Assert.Single(child.ReferenceChain).FullyQualifiedName);
@@ -270,6 +448,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         [InlineData(-1)]
         [InlineData(99)]
         [InlineData(1)]
+        [InlineData(2)]
         public void IncompatibleSdkVersionsDoNotInterfereWithACompatibleProject(int contract)
         {
             using (var sdk = new SdkAsset())
@@ -279,7 +458,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 incompatible.ReplaceWithIncompatibleCompiler(contract);
                 BridgeOpenResult result = new SdkAnalysisBridgeFactory().Open(incompatible.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, result.Availability);
-                Assert.Contains("contract 1", result.Message);
+                Assert.Contains("contract 3", result.Message);
                 Assert.Contains(incompatible.CompilerPath, result.Message);
                 Assert.Null(result.Bridge);
                 Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
@@ -299,21 +478,16 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         [InlineData(false, false)]
         [InlineData(true, false)]
         [InlineData(false, true)]
-        public void LegacySdkWithoutCompletePreviewApiKeepsAnalysisAvailable(bool method, bool property)
+        public void LegacySdkIsRejectedWithoutLoadingCompilerIntoTheHost(bool method, bool property)
         {
             using (var sdk = new SdkAsset())
             {
                 sdk.ReplaceWithLegacyCompiler(method, property);
-                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
-                {
-                    AnalysisResponse response = bridge.Analyze(new[] { Input("", "Unsaved.almx", 19) });
-                    Assert.Equal(AnalysisAvailability.Available, response.Availability);
-                    Assert.True(response.Snapshot.Success);
-                    Assert.Equal(19, Assert.Single(response.Snapshot.Sources).Version);
-                    Assert.Null(response.CompiledXml);
-                    Assert.Contains("does not support compiled XML preview", response.XmlPreviewMessage);
-                    Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
-                }
+                BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
+                Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
+                Assert.Null(response.Bridge);
+                Assert.Contains("contract 3", response.Message);
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
             }
         }
 

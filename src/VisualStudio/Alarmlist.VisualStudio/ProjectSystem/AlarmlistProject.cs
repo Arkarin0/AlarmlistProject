@@ -13,7 +13,8 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         resourcePackageGuid: AlarmlistPackage.PackageGuid,
         PossibleProjectExtensions = ProjectExtension,
         ProjectTemplatesDir = "ProjectTemplates")]
-    [ProvideProjectItem(ProjectTypeGuid, "Alarmlist", "ItemTemplates", 100)]
+    // The parent directory also contains the VSIX catalogue, which is not an item.
+    [ProvideProjectItem(ProjectTypeGuid, "Alarmlist", "ItemTemplates\\Alarmlist", 100)]
     internal sealed class AlarmlistProject
     {
         public const string ProjectTypeGuid = "117e1e3b-8dc0-44bf-a627-4e41f84721d8";

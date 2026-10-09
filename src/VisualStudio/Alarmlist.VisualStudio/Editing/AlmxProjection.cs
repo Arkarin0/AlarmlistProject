@@ -14,6 +14,7 @@ namespace Alarmlist.VisualStudio.Editing
         public IReadOnlyList<AlarmSource> Alarms { get; }
         internal XmlSourceElement Root { get; }
         public bool IsValid => Error == null;
+        public PropertyScopeSource Properties => new PropertyScopeSource(Root);
 
         internal AlmxProjection(string text, XmlSourceElement root, string error)
         {
@@ -35,6 +36,8 @@ namespace Alarmlist.VisualStudio.Editing
         internal AlarmSource(XmlSourceElement source) { Source = source; }
         public string GetValue(string field) => Source.Element.Elements().LastOrDefault(element => element.Name.LocalName == field)?.Value;
         public bool HasField(string field) => Source.Element.Elements().Any(element => element.Name.LocalName == field);
+        public PropertyScopeSource Properties => new PropertyScopeSource(Source);
+        public bool IsAbstract => new[] { "true", "1" }.Contains(((string)Source.Element.Attribute("abstract"))?.Trim());
 
         public ProcedureSectionSource GetProcedureSection(string name)
         {

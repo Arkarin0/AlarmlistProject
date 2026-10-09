@@ -33,6 +33,7 @@ namespace Alarmlist.VisualStudio.UI
         private string _originalValue;
         private bool _originalPresent;
         private AnalysisField _analysis;
+        private bool _valuesCurrent;
         public string Name { get; }
         public string Value { get => _value; set { if (_value == value) return; _value = value; Notify(); NotifyPresentation(); _changed(); } }
         public bool IsPresent { get => _isPresent; set { if (_isPresent == value) return; _isPresent = value; Notify(); NotifyPresentation(); _changed(); } }
@@ -40,7 +41,12 @@ namespace Alarmlist.VisualStudio.UI
         public bool IsScalar => Name == "Name" || Name == "Code" || Name == "Category" || Name == "Description";
         public bool IsInherited => !HasChanges && _analysis?.IsInherited == true;
         public bool ShowLocalEditor => !IsInherited;
-        public string EffectiveValue => IsInherited ? _analysis.EffectiveValue : string.Empty;
+        public string EffectiveValue => IsInherited ? (_valuesCurrent && _analysis.IsValueAvailable ? _analysis.EffectiveValue : _analysis.EffectiveExpression) : string.Empty;
+        public string ResolvedValue => _analysis?.EffectiveValue;
+        public bool CanShowResolved => IsScalar && !HasChanges && _valuesCurrent && _analysis?.IsValueAvailable == true;
+        public string ValueStatus => !IsScalar ? string.Empty : HasChanges ? "Uncommitted expression."
+            : CanShowResolved ? "Resolved value. Focus to edit the expression."
+            : _analysis == null ? "Waiting for current analysis; showing source text." : "Value unavailable; showing the raw expression.";
         public string OriginText => !IsInherited ? string.Empty : "Inherited from " + (_analysis.DefiningAlarm?.FullyQualifiedName ?? "unnamed alarm")
             + " in " + Path.GetFileName(_analysis.ValueLocation?.FilePath)
             + (IsPresent ? ". The local element is empty." : ".");
@@ -58,10 +64,11 @@ namespace Alarmlist.VisualStudio.UI
             Notify(nameof(IsPresent));
             NotifyPresentation();
         }
-        public void SetAnalysis(AnalysisField field) { _analysis = field; NotifyPresentation(); }
+        public void SetAnalysis(AnalysisField field, bool valuesCurrent = true) { _analysis = field; _valuesCurrent = valuesCurrent; NotifyPresentation(); }
         private void NotifyPresentation()
         {
             Notify(nameof(IsInherited)); Notify(nameof(ShowLocalEditor)); Notify(nameof(EffectiveValue)); Notify(nameof(OriginText));
+            Notify(nameof(ResolvedValue)); Notify(nameof(CanShowResolved)); Notify(nameof(ValueStatus));
             OverrideCommand?.Refresh(); UseInheritedCommand?.Refresh(); GoToSourceCommand?.Refresh();
         }
     }

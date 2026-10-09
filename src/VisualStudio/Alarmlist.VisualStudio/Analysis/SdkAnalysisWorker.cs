@@ -14,6 +14,11 @@ namespace Alarmlist.VisualStudio.Analysis
     internal sealed class SdkAnalysisWorker : MarshalByRefObject
     {
         private Type _snapshotType;
+        private Type _resourceType;
+        private Type _lookupType;
+        private MethodInfo _inferResourceCulture;
+        private Type _contextType;
+        private Type _propertyType;
         private object _compiler;
         private MethodInfo _analyze;
         private PropertyInfo _compiledXml;
@@ -41,20 +46,28 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (_snapshotType.GetConstructor(new[] { typeof(string), typeof(string), typeof(int) }) == null)
                     throw new NotSupportedException("The SDK snapshot constructor is incompatible.");
                 Type compilerType = assembly.GetType("Alarmlist.Compiler.AlarmCompiler", true);
-                _analyze = compilerType.GetMethod("AnalyzeSnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType) });
-                if (_analyze == null || _analyze.ReturnType != assembly.GetType("Alarmlist.Analysis.AnalysisResult"))
+                _resourceType = assembly.GetType("Alarmlist.Text.ResxTextSnapshot", true);
+                _lookupType = assembly.GetType("Alarmlist.Text.LookupTextSnapshot", true);
+                if (_lookupType.GetConstructor(new[] { typeof(string), typeof(string), typeof(int) }) == null)
+                    throw new NotSupportedException("The SDK lookup input contract is incompatible.");
+                _inferResourceCulture = assembly.GetType("Alarmlist.Localization.LocalizationCulture", true)
+                    .GetMethod("InferResourceCulture", new[] { typeof(string) });
+                if (_resourceType.GetConstructor(new[] { typeof(string), typeof(string), typeof(int), typeof(string) }) == null
+                    || _inferResourceCulture == null || !_inferResourceCulture.IsStatic || _inferResourceCulture.ReturnType != typeof(string))
+                    throw new NotSupportedException("The SDK resource input contract is incompatible.");
+                _contextType = assembly.GetType("Alarmlist.Compiler.CompilationContext", true);
+                _propertyType = assembly.GetType("Alarmlist.Compiler.PropertyDefinition", true);
+                if (_contextType.GetConstructor(new[] { typeof(IEnumerable<>).MakeGenericType(_resourceType), typeof(IEnumerable<>).MakeGenericType(_lookupType), typeof(string),
+                    typeof(string), typeof(string), typeof(string), typeof(IEnumerable<>).MakeGenericType(_propertyType) }) == null
+                    || _propertyType.GetConstructor(new[] { typeof(string), typeof(string), assembly.GetType("Alarmlist.Text.SourceLocation", true) }) == null)
+                    throw new NotSupportedException("The SDK context constructors are incompatible.");
+                _analyze = compilerType.GetMethod("AnalyzeSnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType), _contextType, typeof(bool) });
+                if (_analyze == null || _analyze.IsStatic || _analyze.ReturnType != assembly.GetType("Alarmlist.Analysis.AnalysisResult"))
                     throw new NotSupportedException("The SDK has no compatible AnalyzeSnapshots method.");
-                // XML is an optional addition to contract 1. Older SDKs still
-                // provide provenance/diagnostics without supporting this preview.
-                MethodInfo preview = compilerType.GetMethod("AnalyzeSnapshots", new[]
-                    { typeof(IEnumerable<>).MakeGenericType(_snapshotType), typeof(bool) });
                 PropertyInfo xml = _analyze.ReturnType.GetProperty("CompiledXml", BindingFlags.Public | BindingFlags.Instance);
-                if (preview != null && !preview.IsStatic && preview.ReturnType == _analyze.ReturnType
-                    && xml?.PropertyType == typeof(string) && xml.GetGetMethod() != null && xml.GetIndexParameters().Length == 0)
-                {
-                    _analyze = preview;
-                    _compiledXml = xml;
-                }
+                if (xml?.PropertyType != typeof(string) || xml.GetGetMethod() == null || xml.GetIndexParameters().Length != 0)
+                    throw new NotSupportedException("The SDK has no compatible compiled XML preview.");
+                _compiledXml = xml;
                 _compiler = Activator.CreateInstance(compilerType);
                 CompilerIdentity = assembly.FullName;
                 // Prove that the method can execute before advertising availability.
@@ -66,23 +79,39 @@ namespace Alarmlist.VisualStudio.Analysis
                 AnalysisAvailability state = failure is NotSupportedException || failure is TypeLoadException || failure is MissingMemberException
                     ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.LoadFailed;
                 return new AnalysisResponse(state, "Cannot use analysis compiler " + compilerPath
-                    + ". Restore an SDK supporting analysis contract 1. " + failure.Message);
+                    + ". Restore an SDK supporting analysis contract 3 with lookup catalogues and named templates. " + failure.Message);
             }
         }
 
-        public AnalysisResponse Analyze(AnalysisInput[] inputs)
+        public AnalysisResponse Analyze(AnalysisInput[] inputs, AnalysisContext context = null)
         {
             try
             {
                 Array snapshots = Array.CreateInstance(_snapshotType, inputs.Length);
                 for (int i = 0; i < inputs.Length; i++)
                     snapshots.SetValue(Activator.CreateInstance(_snapshotType, inputs[i].Text, inputs[i].FilePath, inputs[i].Version), i);
-                object result = _analyze.Invoke(_compiler, _compiledXml == null
-                    ? new object[] { snapshots } : new object[] { snapshots, true });
+                context = context ?? AnalysisContext.Empty;
+                Array properties = Array.CreateInstance(_propertyType, context.Properties.Count);
+                for (int i = 0; i < context.Properties.Count; i++)
+                    properties.SetValue(Activator.CreateInstance(_propertyType, new object[] { context.Properties[i].Name, context.Properties[i].Value, null }), i);
+                Array resources = Array.CreateInstance(_resourceType, context.Resources.Count);
+                for (int i = 0; i < context.Resources.Count; i++)
+                {
+                    AnalysisResourceInput input = context.Resources[i];
+                    string culture = input.Culture ?? (string)_inferResourceCulture.Invoke(null, new object[] { input.FilePath });
+                    resources.SetValue(Activator.CreateInstance(_resourceType, input.Text, input.FilePath, input.Version, culture), i);
+                }
+                Array lookups = Array.CreateInstance(_lookupType, context.Lookups.Count);
+                for (int i = 0; i < context.Lookups.Count; i++)
+                {
+                    AnalysisLookupInput input = context.Lookups[i];
+                    lookups.SetValue(Activator.CreateInstance(_lookupType, input.Text, input.FilePath, input.Version), i);
+                }
+                object capturedContext = Activator.CreateInstance(_contextType, resources, lookups, context.Culture, context.ProjectPath, context.Configuration, context.Platform, properties);
+                object result = _analyze.Invoke(_compiler, new object[] { snapshots, capturedContext, true });
                 AnalysisSnapshot snapshot = _reader.Read(result);
                 return new AnalysisResponse(AnalysisAvailability.Available, null, snapshot,
-                    snapshot.Success ? (string)_compiledXml?.GetValue(result, null) : null,
-                    _compiledXml == null ? "This project's SDK does not support compiled XML preview. Update the project's SDK to enable it." : null);
+                    snapshot.Success ? (string)_compiledXml.GetValue(result, null) : null);
             }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(Unwrap(exception)))
             {

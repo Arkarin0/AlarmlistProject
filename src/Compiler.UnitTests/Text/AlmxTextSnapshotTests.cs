@@ -113,7 +113,7 @@ namespace Alarmlist.Core.UnitTests.Text
                 CompilationResult missing = compiler.CompileSnapshots(new[] { childSnapshot });
                 Assert.False(missing.Success);
                 Assert.Equal("ALM0002", Assert.Single(missing.Diagnostics).Id);
-                Assert.Null(Assert.Single(missing.AlarmList).Name);
+                Assert.Empty(missing.AlarmList);
                 Assert.Equal("Überdruck", child.Name);
 
                 File.WriteAllText(path, "<?xml version='1.0' encoding='utf-16'?>" + baseText, Encoding.Unicode);

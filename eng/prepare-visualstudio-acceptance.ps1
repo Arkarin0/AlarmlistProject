@@ -49,6 +49,22 @@ Copy-Item -LiteralPath $packagePath -Destination (Join-Path $runDirectory 'feed'
   </Alarm>
 </Alarmlist>
 '@ | Set-Content (Join-Path $runDirectory 'Shared/Child.almx') -Encoding UTF8
+@'
+<Alarmlist>
+  <Properties><Property Name="Unit" Value="Shared" /></Properties>
+  <Alarm>
+    <FullyQualifiedName>Property.Child</FullyQualifiedName><ReferenceName>Property.Template</ReferenceName>
+    <Properties><Property Name="par1" /></Properties>
+  </Alarm>
+  <Alarm abstract="true">
+    <FullyQualifiedName>Property.Template</FullyQualifiedName>
+    <Properties><Property Name="par1" Value="ignored template value" /></Properties>
+    <Name>$(Region) $(par1)</Name><Code>$(par1)</Code>
+    <Description>Inspect $(AlarmlistAlarmCode) - $(Unit)</Description>
+    <TestProcedure><Instructions><Step>Check $(par1) $$(literal)</Step></Instructions></TestProcedure>
+  </Alarm>
+</Alarmlist>
+'@ | Set-Content (Join-Path $runDirectory 'Shared/Properties.almx') -Encoding UTF8
 
 $projects = @()
 $configurations = @()
@@ -60,6 +76,12 @@ foreach ($name in @('North', 'South')) {
 <Project Sdk="$sdk">
   <PropertyGroup Label="Globals"><ProjectGuid>$guid</ProjectGuid></PropertyGroup>
   <ItemGroup><Compile Include="../Shared/Child.almx"><Link>Child.almx</Link></Compile></ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/Properties.almx"><Link>Properties.almx</Link></Compile>
+    <AlarmlistProperty Include="Region" Value="$name" />
+    <AlarmlistProperty Include="par1" Value="001" Condition="'`$(Configuration)' != 'Release'" />
+    <AlarmlistProperty Include="par1" Value="101" Condition="'`$(Configuration)' == 'Release'" />
+  </ItemGroup>
 </Project>
 "@ | Set-Content (Join-Path $directory "$name.almproj") -Encoding UTF8
   @"
@@ -105,15 +127,21 @@ try {
   foreach ($name in @('North', 'South')) {
     & dotnet msbuild "$name/$name.almproj" /restore /t:Build /nr:false /v:minimal "/bl:$name.binlog"
     if ($LASTEXITCODE -ne 0) { throw "Acceptance fixture build failed: $runDirectory" }
-    [xml]$compiled = Get-Content "$name/bin/Debug/$name.Alarmlist.xml" -Encoding UTF8
+    [xml]$compiled = Get-Content "$name/bin/Debug/keyword/$name.Alarmlist.xml" -Encoding UTF8
     $child = @($compiled.AlarmList.Alarm | Where-Object { $_.FullyQualifiedName -eq 'Shared.Child' })
     if ($child.Count -ne 1 -or $child[0].Name -ne "$name inherited name" -or $child[0].Code -ne 'LOCAL' -or
       $child[0].TestProcedure.Reset.InnerText -ne 'Shared reset only' -or
       $child[0].TestProcedure.Instructions.InnerText -ne "$name inspect$name caution" + 'Shared local note') {
       throw "Unexpected compiled fixture values for $name."
     }
+    $propertyChild = @($compiled.AlarmList.Alarm | Where-Object { $_.FullyQualifiedName -eq 'Property.Child' })
+    if ($propertyChild.Count -ne 1 -or $propertyChild[0].Name -ne "$name 001" -or $propertyChild[0].Code -ne '001' -or
+      $propertyChild[0].Description -ne 'Inspect 001 - Shared' -or
+      @($compiled.AlarmList.Alarm | Where-Object { $_.FullyQualifiedName -eq 'Property.Template' }).Count -ne 0) {
+      throw "Unexpected scoped-property fixture values for $name."
+    }
   }
-  Get-FileHash Shared/Child.almx, North/Base.almx, South/Base.almx, North/bin/Debug/North.Alarmlist.xml, South/bin/Debug/South.Alarmlist.xml |
+  Get-FileHash Shared/Child.almx, Shared/Properties.almx, North/Base.almx, South/Base.almx, North/North.almproj, South/South.almproj, North/bin/Debug/keyword/North.Alarmlist.xml, South/bin/Debug/keyword/South.Alarmlist.xml |
     Select-Object @{Name='File'; Expression={ $_.Path.Substring($runDirectory.Length + 1) }}, Hash |
     ConvertTo-Json | Set-Content baseline-hashes.json -Encoding UTF8
   git -C $repoRoot rev-parse HEAD | Set-Content commit.txt

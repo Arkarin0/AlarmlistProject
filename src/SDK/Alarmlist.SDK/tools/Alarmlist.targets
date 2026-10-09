@@ -2,30 +2,69 @@
   <PropertyGroup>
     <AssemblyName Condition="'$(AssemblyName)' == ''">$(MSBuildProjectName)</AssemblyName>
     <CompiledAlarmlistFileName Condition="'$(CompiledAlarmlistFileName)' == ''">$(AssemblyName).Alarmlist.xml</CompiledAlarmlistFileName>
-    <CompiledAlarmlistFile>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(OutputPath)', '$(CompiledAlarmlistFileName)'))</CompiledAlarmlistFile>
+    <AlarmlistCultures Condition="'$(AlarmlistCultures)' == ''">keyword</AlarmlistCultures>
+    <AlarmlistCulture Condition="'$(AlarmlistCulture)' == ''">keyword</AlarmlistCulture>
+    <AlarmlistXliffSourceCulture Condition="'$(AlarmlistXliffSourceCulture)' == ''">en</AlarmlistXliffSourceCulture>
+    <AlarmlistXliffOutputPath Condition="'$(AlarmlistXliffOutputPath)' == ''">$(MSBuildProjectDirectory)/xliff</AlarmlistXliffOutputPath>
+    <AlarmlistXliffOverwrite Condition="'$(AlarmlistXliffOverwrite)' == ''">false</AlarmlistXliffOverwrite>
+    <AlarmlistXliffApply Condition="'$(AlarmlistXliffApply)' == ''">false</AlarmlistXliffApply>
+    <_AlarmlistOutputManifest>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', '$(MSBuildProjectFile).$(Configuration).$(Platform).outputs.xml'))</_AlarmlistOutputManifest>
     <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_AlarmlistTaskFramework>
     <_AlarmlistTaskFramework Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_AlarmlistTaskFramework>
     <AlarmlistTasksAssembly Condition="'$(AlarmlistTasksAssembly)' == ''">$(MSBuildThisFileDirectory)../tasks/$(_AlarmlistTaskFramework)/AlarmList.MSBuild.dll</AlarmlistTasksAssembly>
     <!-- The in-process Visual Studio analysis bridge always runs on .NET Framework. -->
     <AlarmlistAnalysisCompilerAssembly>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '../tasks/net472/Alarmlist.Core.dll'))</AlarmlistAnalysisCompilerAssembly>
+    <AlarmlistLookupSchema>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', 'Schemas/AlarmlistLookup.xsd'))</AlarmlistLookupSchema>
     <BuildDependsOn>BeforeBuild;CoreBuild;AfterBuild;$(BuildDependsOn)</BuildDependsOn>
     <CleanDependsOn>BeforeClean;CoreClean;AfterClean;$(CleanDependsOn)</CleanDependsOn>
   </PropertyGroup>
 
   <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistBuildTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
+  <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistGetOutputsTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
+  <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistCleanTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
+  <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistExportXliffTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
+  <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistImportXliffTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
 
-  <Target Name="Build" DependsOnTargets="$(BuildDependsOn)" Returns="$(CompiledAlarmlistFile)" />
+  <!-- Explicit exchange only; Build and Clean do not create or remove translator work. -->
+  <Target Name="ExportAlarmlistXliff" DependsOnTargets="GetTargetPath" Condition="'$(DesignTimeBuild)' != 'true'" Returns="@(AlarmlistXliffFiles)">
+    <ItemGroup><AlarmlistXliffFiles Remove="@(AlarmlistXliffFiles)" /></ItemGroup>
+    <AlarmlistExportXliffTask Resources="@(AlarmlistResource)" SourceCulture="$(AlarmlistXliffSourceCulture)"
+                             TargetCultures="$(AlarmlistXliffTargetCultures)" OutputDirectory="$(AlarmlistXliffOutputPath)"
+                             Overwrite="$(AlarmlistXliffOverwrite)" ProtectedFiles="@(Compile);@(AlarmlistLookup);$(MSBuildProjectFullPath);@(CompiledAlarmlistFiles);$(_AlarmlistOutputManifest)">
+      <Output TaskParameter="ExportFiles" ItemName="AlarmlistXliffFiles" />
+    </AlarmlistExportXliffTask>
+  </Target>
+
+  <Target Name="ImportAlarmlistXliff" DependsOnTargets="GetTargetPath" Condition="'$(DesignTimeBuild)' != 'true'" Returns="@(AlarmlistXliffChanges)">
+    <ItemGroup>
+      <_AlarmlistImportInputs Remove="@(_AlarmlistImportInputs)" />
+      <_AlarmlistImportInputs Include="@(AlarmlistXliffImport);$(AlarmlistXliffImportFiles)" />
+      <AlarmlistXliffChanges Remove="@(AlarmlistXliffChanges)" />
+      <AlarmlistImportedResources Remove="@(AlarmlistImportedResources)" />
+    </ItemGroup>
+    <AlarmlistImportXliffTask Resources="@(AlarmlistResource)" ImportFiles="@(_AlarmlistImportInputs)"
+                             Apply="$(AlarmlistXliffApply)" BuildingInsideVisualStudio="$(BuildingInsideVisualStudio)"
+                             ProtectedFiles="@(Compile);@(AlarmlistLookup);$(MSBuildProjectFullPath);@(CompiledAlarmlistFiles);$(_AlarmlistOutputManifest)">
+      <Output TaskParameter="Changes" ItemName="AlarmlistXliffChanges" />
+      <Output TaskParameter="UpdatedResources" ItemName="AlarmlistImportedResources" />
+    </AlarmlistImportXliffTask>
+  </Target>
+
+  <Target Name="Build" DependsOnTargets="$(BuildDependsOn)" Returns="@(CompiledAlarmlistFiles)" />
   <Target Name="BeforeBuild" />
   <Target Name="AfterBuild" />
   <Target Name="CoreBuild" DependsOnTargets="Compile" />
   <Target Name="Compile" Condition="'$(DesignTimeBuild)' != 'true'">
     <Error Condition="'@(Compile)' == ''" Text="No ALMX files were provided to the Alarmlist compiler." />
     <Error Condition="!Exists('$(AlarmlistTasksAssembly)')" Text="Alarmlist task assembly was not found: $(AlarmlistTasksAssembly). Rebuild or restore the Alarmlist.MSBuild.SDK package." />
-    <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Compile="@(Compile)">
-      <Output TaskParameter="OutputFile" PropertyName="CompiledAlarmlistFile" />
+    <ItemGroup><CompiledAlarmlistFiles Remove="@(CompiledAlarmlistFiles)" /></ItemGroup>
+    <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Compile="@(Compile)"
+                       Resources="@(AlarmlistResource)" Lookups="@(AlarmlistLookup)" Cultures="$(AlarmlistCultures)" ManifestFile="$(_AlarmlistOutputManifest)"
+                       ProjectPath="$(MSBuildProjectFullPath)" Configuration="$(Configuration)" Platform="$(Platform)" Properties="@(AlarmlistProperty)">
+      <Output TaskParameter="OutputFiles" ItemName="CompiledAlarmlistFiles" />
     </AlarmlistBuildTask>
     <ItemGroup>
-      <FileWrites Include="$(CompiledAlarmlistFile)" />
+      <FileWrites Include="@(CompiledAlarmlistFiles);$(_AlarmlistOutputManifest)" />
     </ItemGroup>
   </Target>
 
@@ -33,10 +72,17 @@
   <Target Name="BeforeClean" />
   <Target Name="AfterClean" />
   <Target Name="CoreClean">
-    <Delete Files="$(CompiledAlarmlistFile)" />
+    <AlarmlistCleanTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Cultures="$(AlarmlistCultures)"
+                       ManifestFile="$(_AlarmlistOutputManifest)" ProjectPath="$(MSBuildProjectFullPath)"
+                       Configuration="$(Configuration)" Platform="$(Platform)" />
   </Target>
   <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
   <!-- ALMX projects have no managed package references. The SDK is resolved at evaluation time. -->
   <Target Name="Restore" />
-  <Target Name="GetTargetPath" Returns="$(CompiledAlarmlistFile)" />
+  <Target Name="GetTargetPath" Returns="@(CompiledAlarmlistFiles)">
+    <ItemGroup><CompiledAlarmlistFiles Remove="@(CompiledAlarmlistFiles)" /></ItemGroup>
+    <AlarmlistGetOutputsTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Cultures="$(AlarmlistCultures)">
+      <Output TaskParameter="OutputFiles" ItemName="CompiledAlarmlistFiles" />
+    </AlarmlistGetOutputsTask>
+  </Target>
 </Project>

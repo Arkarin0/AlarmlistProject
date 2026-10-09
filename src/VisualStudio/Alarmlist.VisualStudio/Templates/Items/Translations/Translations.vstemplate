@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Translations (RESX)</Name>
+    <Description>Saved alarm translations for one culture. Use a culture suffix, for example Translations.en.resx or Translations.de.resx.</Description>
+    <ProjectType>Alarmlist</ProjectType>
+    <DefaultName>Translations.en.resx</DefaultName>
+    <SortOrder>110</SortOrder>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem ReplaceParameters="false" TargetFileName="$fileinputname$.resx" ItemType="AlarmlistResource" OpenInEditor="true">Translations.resx</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

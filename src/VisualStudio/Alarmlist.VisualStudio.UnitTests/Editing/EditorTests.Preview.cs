@@ -271,10 +271,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 using (var host = new HwndSource(new HwndSourceParameters("ALMX preview selection test")
                 { Width = 950, Height = 850, WindowStyle = unchecked((int)0x80000000) }))
                 {
-                    var control = new EditFileControl(session.View) { Width = 900, Height = 800 };
+                    var control = new PreviewControl { DataContext = session.View, Width = 900, Height = 800 };
                     host.RootVisual = control;
-                    InheritanceAdornerTests.Pump();
-                    VisualChildren(control).OfType<Expander>().Single(item => Equals(item.Header, "Resolved alarm preview")).IsExpanded = true;
                     InheritanceAdornerTests.Pump();
                     TextBox name = VisualChildren(control).OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Resolved Name");
                     name.Select(1, 4);
@@ -299,18 +297,16 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 using (var host = new HwndSource(new HwndSourceParameters("ALMX preview test")
                 { Width = 950, Height = 850, WindowStyle = unchecked((int)0x80000000) }))
                 {
-                    var control = new EditFileControl(session.View) { Width = 900, Height = 800 };
+                    var control = new PreviewControl { DataContext = session.View, Width = 900, Height = 800 };
                     host.RootVisual = control;
-                    InheritanceAdornerTests.Pump();
-                    foreach (Expander expander in VisualChildren(control).OfType<Expander>()
-                        .Where(item => Equals(item.Header, "Resolved alarm preview") || Equals(item.Header, "Compiled project XML preview")).ToArray())
-                        expander.IsExpanded = true;
                     InheritanceAdornerTests.Pump();
                     TextBox name = VisualChildren(control).OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Resolved Name");
                     Assert.True(name.IsReadOnly);
                     Assert.True(InheritedValueBehavior.GetIsInherited(name));
                     Assert.Equal("Inherited", name.Text);
                     Assert.Contains("Inherited from Base", AutomationProperties.GetHelpText(name));
+                    ((TabControl)control.FindName("PreviewTabs")).SelectedIndex = 2;
+                    InheritanceAdornerTests.Pump();
                     TextBox xml = VisualChildren(control).OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Compiled project XML");
                     Assert.True(xml.IsReadOnly);
                     Assert.Equal(session.View.CompiledXml, xml.Text);

@@ -18,7 +18,13 @@ namespace Alarmlist.VisualStudio
             DataContext = viewModel;
         }
         private EditFileControlViewModel ViewModel => (EditFileControlViewModel)DataContext;
-        private void OnFieldLostFocus(object sender, KeyboardFocusChangedEventArgs args) => ViewModel.CommitPending();
+        private void OnFieldLostFocus(object sender, KeyboardFocusChangedEventArgs args)
+        {
+            // Shell toolbars live outside this view. Leaving the designer keeps
+            // its draft private; moving to another designer control still commits.
+            // Explicit Save/Enter and editor layout changes also commit as before.
+            if (IsKeyboardFocusWithin) ViewModel.CommitPending();
+        }
         private void OnPresenceChanged(object sender, RoutedEventArgs args) => ViewModel.CommitPending();
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
         private void OnUnloaded(object sender, RoutedEventArgs args) => _inputVersion++;
@@ -54,6 +60,8 @@ namespace Alarmlist.VisualStudio
         private void OnPreviewKeyDown(object sender, KeyEventArgs args)
         {
             _inputVersion++;
+            if (args.OriginalSource is ExpressionTextBox expression && expression.HandleCompletionKey(args.Key, Keyboard.Modifiers))
+            { args.Handled = true; return; }
             if (args.Key == Key.Escape) { ViewModel.CancelPending(); args.Handled = true; }
             else if (args.Key == Key.Enter && Keyboard.Modifiers != ModifierKeys.Shift && args.OriginalSource is TextBox text && !text.IsReadOnly)
             { ViewModel.CommitPending(); args.Handled = true; }

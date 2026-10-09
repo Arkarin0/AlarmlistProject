@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Pump.Name" xml:space="preserve">
+    <value>Pumpendruck Nord zu niedrig</value>
+  </data>
+  <data name="Pump.Category" xml:space="preserve">
+    <value>Versorgung Nord</value>
+  </data>
+  <data name="Pump.Description" xml:space="preserve">
+    <value>Der Versorgungsdruck der Nordpumpe liegt unter dem Grenzwert. Einlass- und Auslassmanometer prüfen.</value>
+  </data>
+  <data name="Pump.Inspect" xml:space="preserve">
+    <value>$(par1) prüfen: Nordpumpe und Einlassventil kontrollieren.</value>
+    <comment>The inherited translation uses the consuming alarm's par1 value.</comment>
+  </data>
+  <data name="Pump.Isolate" xml:space="preserve">
+    <value>Die Nordpumpe vor Wartungsarbeiten absperren.</value>
+  </data>
+  <data name="Pump.Acknowledge" xml:space="preserve">
+    <value>Den Alarm an der Nordstation quittieren.</value>
+  </data>
+  <data name="Panel.Name" xml:space="preserve">
+    <value>Druckalarm am Bedienpult Nord</value>
+  </data>
+  <data name="Panel.Compare" xml:space="preserve">
+    <value>Aktuelle und vorherige Messwerte anhand der Trendanzeige vergleichen.</value>
+  </data>
+  <data name="Panel.Confirm" xml:space="preserve">
+    <value>Die betroffene Pumpe am Bedienpult bestätigen.</value>
+  </data>
+  <data name="Air.Name" xml:space="preserve">
+    <value>Druckluftdruck zu niedrig</value>
+  </data>
+  <data name="Air.Category" xml:space="preserve">
+    <value>Druckluft</value>
+  </data>
+  <data name="Air.Description" xml:space="preserve">
+    <value>Der Druck der Druckluftversorgung liegt unter dem eingestellten Grenzwert.</value>
+  </data>
+  <data name="Air.Compressor" xml:space="preserve">
+    <value>Die Verfügbarkeit des Kompressors prüfen.</value>
+  </data>
+  <data name="Air.Valve" xml:space="preserve">
+    <value>Das Hauptversorgungsventil prüfen.</value>
+  </data>
+  <data name="Air.Reset" xml:space="preserve">
+    <value>Den Versorgungsdruck wiederherstellen und den Alarm quittieren.</value>
+  </data>
+  <data name="NewAlarm.Name" xml:space="preserve">
+    <value>Neuer Alarm</value>
+  </data>
+  <data name="Example.Name" xml:space="preserve">
+    <value>Beispielalarm</value>
+  </data>
+  <data name="Example.Description" xml:space="preserve">
+    <value>Diesen Alarm durch eine eigene Definition ersetzen.</value>
+  </data>
+</root>

@@ -213,6 +213,49 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task CatalogueDiagnosticNavigationUsesSavedTextAndRejectsChangedInputsAsync(bool changed, bool lookup)
+        {
+            var files = new Inputs();
+            files.Set("A", "alarm", 1);
+            string path = lookup ? "Hmi.almlookup" : "Labels.en.resx";
+            if (lookup) files.SetLookup(path, "saved resource", 0);
+            else files.SetResource(path, "saved resource", 0);
+            var location = new AnalysisLocation(path, 2, 3, 2, 4, 0);
+            var service = Create(files, new Factory { Response = DiagnosticResponse("ALM0014", "Invalid resource", location) });
+            using (var source = new LiveDiagnosticTableSource(new TableManager()))
+            using (source.Attach(service))
+            {
+                try
+                {
+                    service.UpdateProject(new AnalysisProject("Plant", "Debug", "sdk", new[] { "A" },
+                        resources: lookup ? null : new[] { new AnalysisResourceItem(path) }, lookups: lookup ? new[] { path } : null));
+                    ITableEntriesSnapshot snapshot = await WaitTableAsync(source, item => item.Count == 1);
+                    Assert.Equal(1, Value(snapshot, 0, StandardTableKeyNames.Line));
+                    Assert.Equal(2, Value(snapshot, 0, StandardTableKeyNames.Column));
+                    var entry = (LiveDiagnosticTableEntry)Value(snapshot, 0, LiveDiagnosticTableSource.EntryKey);
+                    if (changed)
+                    {
+                        if (lookup) files.SetLookup(path, "new saved resource", 0);
+                        else files.SetResource(path, "new saved resource", 0);
+                    }
+                    bool navigated = false;
+                    Assert.Equal(!changed, await entry.TryNavigateAsync(files, (target, text) =>
+                    {
+                        navigated = true;
+                        Assert.Same(location, target);
+                        Assert.Equal("saved resource", text);
+                    }, CancellationToken.None));
+                    Assert.Equal(!changed, navigated);
+                }
+                finally { await service.StopAsync(); }
+            }
+        }
+
+        [Theory]
         [InlineData(0, __VSERRORCATEGORY.EC_MESSAGE)]
         [InlineData(1, __VSERRORCATEGORY.EC_WARNING)]
         [InlineData(2, __VSERRORCATEGORY.EC_ERROR)]

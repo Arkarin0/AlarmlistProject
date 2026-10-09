@@ -62,16 +62,19 @@ namespace Alarmlist.VisualStudio.UI
             AddCommand.Refresh();
         }
 
-        public void SetAnalysis(AnalysisSection section, Func<AnalysisEntry, DelegateCommand> navigation)
+        public void SetAnalysis(AnalysisSection section, Func<AnalysisEntry, DelegateCommand> navigation, bool valuesCurrent = true)
         {
             HasAnalysis = section != null && _error == null;
             if (!HasAnalysis) section = null;
             InheritedItems = BindingCollection.Create(section?.EffectiveEntries.Where(entry => entry.IsInherited)
-                .Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry))));
+                .Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry), valuesCurrent)));
             ExcludedItems = BindingCollection.Create(section?.ExcludedEntries.Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry))));
-            EffectiveItems = BindingCollection.Create(section?.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry))));
+            EffectiveItems = BindingCollection.Create(section?.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry), valuesCurrent)));
             foreach (ProcedureItemViewModel item in Items)
+            {
                 item.SetExclusion(section?.LocalEntries.FirstOrDefault(entry => entry.Origin.Index == item.Index)?.ExcludedBy);
+                item.SetAnalysis(valuesCurrent ? section?.EffectiveEntries.FirstOrDefault(entry => !entry.IsInherited && entry.Origin.Index == item.Index) : null);
+            }
             Notify(nameof(InheritedItems)); Notify(nameof(ExcludedItems)); Notify(nameof(EffectiveItems));
             Notify(nameof(HasAnalysis)); Notify(nameof(HasExcluded)); Notify(nameof(AnalysisGuidance));
             UseLocalEntriesCommand?.Refresh(); MakeLocalCopyCommand?.Refresh();
@@ -80,18 +83,20 @@ namespace Alarmlist.VisualStudio.UI
 
     internal sealed class ProcedureAnalysisRow : ObservableObject
     {
+        private readonly bool _valuesCurrent;
         public AnalysisEntry Entry { get; }
         public string Kind => Entry.Kind == AnalysisStepKind.Instruction ? "Step" : Entry.Kind.ToString();
-        public string Text => Entry.Text;
+        public string Text => _valuesCurrent && Entry.IsValueAvailable ? Entry.Text : Entry.RawText;
         public bool IsInherited => Entry.IsInherited;
         public string Label { get; }
         public string OriginText => (IsInherited ? "Inherited from " : "Local entry from ") + OriginLabel(Entry.Origin);
         public string ExclusionText => Entry.ExcludedBy == null ? string.Empty : "Excluded by Clear in " + OriginLabel(Entry.ExcludedBy);
         public DelegateCommand GoToSourceCommand { get; }
 
-        public ProcedureAnalysisRow(AnalysisEntry entry, int? number, DelegateCommand navigation)
+        public ProcedureAnalysisRow(AnalysisEntry entry, int? number, DelegateCommand navigation, bool valuesCurrent = true)
         {
             Entry = entry;
+            _valuesCurrent = valuesCurrent;
             Label = number.HasValue ? number.Value + ". " + Kind : Kind;
             GoToSourceCommand = navigation;
         }
@@ -109,6 +114,7 @@ namespace Alarmlist.VisualStudio.UI
         private string _kind;
         private string _text;
         private AnalysisEntryOrigin _excludedBy;
+        private AnalysisEntry _analysis;
         public int Index { get; }
         public int Number => Index + 1;
         public string[] Kinds => ProcedureItemSource.Kinds;
@@ -120,6 +126,8 @@ namespace Alarmlist.VisualStudio.UI
         public string Guidance => !CanEdit ? "Edit this entry in XML to preserve its markup or resolve repeated sections."
             : _kind == "Clear" ? "Clears all preceding inherited and local entries in this section." : string.Empty;
         public bool HasChanges => _kind != _original.Kind || (_kind != "Clear" && _text != _original.Text);
+        public string ResolvedText => _analysis?.Text;
+        public bool CanShowResolved => !HasChanges && _analysis?.IsValueAvailable == true;
         public string Kind
         {
             get => _kind;
@@ -138,7 +146,7 @@ namespace Alarmlist.VisualStudio.UI
             {
                 if (_text == value) return;
                 _text = value;
-                Notify();
+                Notify(); Notify(nameof(CanShowResolved));
                 _changed();
             }
         }
@@ -172,6 +180,12 @@ namespace Alarmlist.VisualStudio.UI
         {
             _excludedBy = excludedBy;
             Notify(nameof(ExclusionText));
+        }
+
+        public void SetAnalysis(AnalysisEntry entry)
+        {
+            _analysis = entry;
+            Notify(nameof(ResolvedText)); Notify(nameof(CanShowResolved));
         }
     }
 }

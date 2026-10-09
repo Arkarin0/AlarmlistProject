@@ -117,7 +117,7 @@ try {
       if ($LASTEXITCODE -ne 0) {
         throw "The pinned SDK could not build from NuGet.org. Do not distribute the VSIX. Logs: $runDirectory"
       }
-      [xml]$compiled = Get-Content 'bin/Debug/Plant.Alarmlist.xml'
+      [xml]$compiled = Get-Content 'bin/Debug/keyword/Plant.Alarmlist.xml'
       if (@($compiled.AlarmList.Alarm).Count -ne 1) { throw 'Published SDK did not compile the starter alarm.' }
       # NuGet.org adds a repository signature, so compare package payloads rather
       # than whole-archive hashes to ensure the published version is our candidate.

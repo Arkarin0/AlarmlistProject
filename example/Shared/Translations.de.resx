@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Shared.LogPressure" xml:space="preserve">
+    <value>Den Druckmesswert im Schichtprotokoll festhalten.</value>
+    <comment>Shared by both projects; de-DE deliberately falls back to this de translation.</comment>
+  </data>
+  <data name="Shared.Reset" xml:space="preserve">
+    <value>Druck wiederherstellen und anschließend am gemeinsamen Bedienpult quittieren.</value>
+    <comment>The de-DE catalogue provides a culture-specific alternative.</comment>
+  </data>
+  <data name="Instruction.Set" xml:space="preserve">
+    <value>Setzen Sie die Eigenschaft "{property}" unter "{path}" auf "{value}".</value>
+    <comment>Reusable instruction; the German wording puts property before path.</comment>
+  </data>
+  <data name="Instruction.Press" xml:space="preserve">
+    <value>Drücken Sie unter "{path}" die Taste "{button}".</value>
+    <comment>Same named placeholders as English, translated with individual HMI labels.</comment>
+  </data>
+  <data name="Hmi.AlarmName" xml:space="preserve"><value>Vakuumprüfung am Auslauf</value></data>
+  <data name="Hmi.Service" xml:space="preserve"><value>Service</value></data>
+  <data name="Hmi.Transport" xml:space="preserve"><value>Transport</value></data>
+  <data name="Hmi.Outlet" xml:space="preserve"><value>Auslauf</value></data>
+  <data name="Hmi.Countercheck" xml:space="preserve"><value>Parameter 1 Gegenkontrolle</value></data>
+  <data name="Hmi.Camwindow" xml:space="preserve"><value>Nockenfenster</value></data>
+  <data name="Hmi.Manual" xml:space="preserve"><value>Hand 1</value></data>
+  <data name="Hmi.Vacuum" xml:space="preserve"><value>Vakuum</value></data>
+  <data name="Hmi.On" xml:space="preserve"><value>EIN</value></data>
+  <data name="Hmi.Off" xml:space="preserve"><value>AUS</value></data>
+  <data name="Electrical.AlarmName" xml:space="preserve"><value>Elektrische Prüfung am Auslauf</value></data>
+  <data name="Electrical.OutletWire" xml:space="preserve"><value>Motorleitung am Auslauf</value></data>
+  <data name="Electrical.SpareWire" xml:space="preserve"><value>Reserveleitung</value></data>
+  <data name="Electrical.ContactorTerminal" xml:space="preserve"><value>Schützanschluss</value></data>
+  <data name="Electrical.TerminalBlock" xml:space="preserve"><value>Klemmenleiste, Anschluss 01</value></data>
+  <data name="Electrical.VacuumSignal" xml:space="preserve"><value>Signal Vakuum am Auslauf bereit</value></data>
+  <data name="Instruction.DisconnectWire" xml:space="preserve">
+    <value>Trennen Sie am Anschluss {connection} die Leitung {wire}.</value>
+    <comment>The German sentence places connection before wire. Identifiers remain literal.</comment>
+  </data>
+  <data name="Instruction.MeasureBetween" xml:space="preserve">
+    <value>Messen Sie die Spannung zwischen {first} und {second}.</value>
+    <comment>Both argument roles independently select from ConnectionPoints.</comment>
+  </data>
+  <data name="Instruction.CheckSignal" xml:space="preserve">
+    <value>Prüfen Sie das Signal {signal}.</value>
+    <comment>The PLC symbol stays literal in every language.</comment>
+  </data>
+</root>

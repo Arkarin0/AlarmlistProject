@@ -30,7 +30,10 @@ namespace Alarmlist.VisualStudio.UI
             {
                 RadioButton button = new RadioButton { Content = mode, GroupName = "EditorMode", Margin = new Thickness(5, 3, 12, 3) };
                 button.SetResourceReference(ForegroundProperty, EnvironmentColors.ToolWindowTextBrushKey);
-                button.SetBinding(ButtonBase.CommandProperty, new Binding(mode == "XML" ? "XmlCommand" : mode + "Command"));
+                EditorMode selectedMode = (EditorMode)Enum.Parse(typeof(EditorMode), mode);
+                // UIA SelectionItem changes IsChecked without invoking a command.
+                // Checked handles mouse, keyboard and assistive selection alike.
+                button.Checked += (sender, args) => _layout.SetMode(selectedMode);
                 button.SetBinding(ToggleButton.IsCheckedProperty, new Binding(mode == "XML" ? "IsXml" : "Is" + mode) { Mode = BindingMode.OneWay });
                 toolbar.Children.Add(button);
             }

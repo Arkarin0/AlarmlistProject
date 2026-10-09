@@ -26,6 +26,7 @@
     <None Include="README.md" Pack="true" PackagePath="/" />
     <None Include="sdk/**/*" Pack="true" PackagePath="sdk/%(RecursiveDir)%(Filename)%(Extension)" />
     <None Include="tools/**/*" Pack="true" PackagePath="tools/%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="../../Compiler/Lookups/AlarmlistLookup.xsd" Pack="true" PackagePath="tools/Schemas/AlarmlistLookup.xsd" />
   </ItemGroup>
 
   <Target Name="GetSdkPackagePath" Returns="@(_AlarmlistSdkPackage)">

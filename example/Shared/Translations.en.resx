@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Shared.LogPressure" xml:space="preserve">
+    <value>Record the pressure reading in the shift log.</value>
+    <comment>Shared by both projects; de-DE deliberately falls back to this de translation.</comment>
+  </data>
+  <data name="Shared.Reset" xml:space="preserve">
+    <value>Restore pressure, then acknowledge at the shared control panel.</value>
+    <comment>The de-DE catalogue provides a culture-specific alternative.</comment>
+  </data>
+  <data name="Instruction.Set" xml:space="preserve">
+    <value>In "{path}" set property "{property}" to "{value}".</value>
+    <comment>Reusable instruction. Preserve the named placeholders; their order may change.</comment>
+  </data>
+  <data name="Instruction.Press" xml:space="preserve">
+    <value>In "{path}" press button "{button}".</value>
+    <comment>Reusable for every HMI button; path segments and button labels are translated separately.</comment>
+  </data>
+  <data name="Hmi.AlarmName" xml:space="preserve"><value>Outlet vacuum check</value></data>
+  <data name="Hmi.Service" xml:space="preserve"><value>Service</value></data>
+  <data name="Hmi.Transport" xml:space="preserve"><value>Transport</value></data>
+  <data name="Hmi.Outlet" xml:space="preserve"><value>Outlet</value></data>
+  <data name="Hmi.Countercheck" xml:space="preserve"><value>Parameter 1 Countercheck</value></data>
+  <data name="Hmi.Camwindow" xml:space="preserve"><value>Camwindow</value></data>
+  <data name="Hmi.Manual" xml:space="preserve"><value>Manual 1</value></data>
+  <data name="Hmi.Vacuum" xml:space="preserve"><value>Vacuum</value></data>
+  <data name="Hmi.On" xml:space="preserve"><value>ON</value></data>
+  <data name="Hmi.Off" xml:space="preserve"><value>OFF</value></data>
+  <data name="Electrical.AlarmName" xml:space="preserve"><value>Outlet electrical check</value></data>
+  <data name="Electrical.OutletWire" xml:space="preserve"><value>Outlet motor cable</value></data>
+  <data name="Electrical.SpareWire" xml:space="preserve"><value>Spare cable</value></data>
+  <data name="Electrical.ContactorTerminal" xml:space="preserve"><value>Contactor terminal</value></data>
+  <data name="Electrical.TerminalBlock" xml:space="preserve"><value>Terminal block, connection 01</value></data>
+  <data name="Electrical.VacuumSignal" xml:space="preserve"><value>Outlet vacuum ready signal</value></data>
+  <data name="Instruction.DisconnectWire" xml:space="preserve">
+    <value>Disconnect wire {wire} from {connection}.</value>
+    <comment>Reusable sentence. Wire and connection identifiers are inserted literally.</comment>
+  </data>
+  <data name="Instruction.MeasureBetween" xml:space="preserve">
+    <value>Measure the voltage between {first} and {second}.</value>
+    <comment>Both argument roles independently select from ConnectionPoints.</comment>
+  </data>
+  <data name="Instruction.CheckSignal" xml:space="preserve">
+    <value>Check signal {signal}.</value>
+    <comment>The PLC symbol stays literal in every language.</comment>
+  </data>
+</root>

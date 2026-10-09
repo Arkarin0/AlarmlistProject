@@ -1,0 +1,79 @@
+// Created/modified by Arkarin0 under one ore more license(s).
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Alarmlist.Text;
+
+namespace Alarmlist.Compiler
+{
+    /// <summary>Captured inputs for evaluation; no environment or filesystem discovery occurs.</summary>
+    public sealed class CompilationContext
+    {
+        public static CompilationContext Empty { get; } = new CompilationContext();
+
+        public CompilationContext(string projectPath = null, string configuration = null, string platform = null,
+            IEnumerable<PropertyDefinition> properties = null)
+            : this(null, null, projectPath, configuration, platform, properties)
+        {
+        }
+
+        /// <summary>Captures saved resource snapshots and a language selection alongside project inputs.</summary>
+        public CompilationContext(IEnumerable<ResxTextSnapshot> resources, string culture = null,
+            string projectPath = null, string configuration = null, string platform = null,
+            IEnumerable<PropertyDefinition> properties = null)
+            : this(resources, null, culture, projectPath, configuration, platform, properties)
+        {
+        }
+
+        /// <summary>Captures saved lookup catalogues alongside resources and scoped project values.</summary>
+        public CompilationContext(IEnumerable<ResxTextSnapshot> resources, IEnumerable<LookupTextSnapshot> lookups,
+            string culture = null, string projectPath = null, string configuration = null, string platform = null,
+            IEnumerable<PropertyDefinition> properties = null)
+        {
+            ProjectPath = projectPath;
+            Configuration = configuration;
+            Platform = platform;
+            PropertyDefinition[] definitions = (properties ?? Array.Empty<PropertyDefinition>()).ToArray();
+            if (definitions.Any(item => item == null)) throw new ArgumentException("A property must not be null.", nameof(properties));
+            Properties = Array.AsReadOnly(definitions);
+            ResxTextSnapshot[] capturedResources = (resources ?? Array.Empty<ResxTextSnapshot>()).ToArray();
+            if (capturedResources.Any(item => item == null)) throw new ArgumentException("A resource must not be null.", nameof(resources));
+            Resources = Array.AsReadOnly(capturedResources);
+            LookupTextSnapshot[] capturedLookups = (lookups ?? Array.Empty<LookupTextSnapshot>()).ToArray();
+            if (capturedLookups.Any(item => item == null)) throw new ArgumentException("A lookup must not be null.", nameof(lookups));
+            Lookups = Array.AsReadOnly(capturedLookups);
+            Culture = string.IsNullOrWhiteSpace(culture) ? "keyword" : culture;
+        }
+
+        public string ProjectPath { get; }
+        public string Configuration { get; }
+        public string Platform { get; }
+        public IReadOnlyList<PropertyDefinition> Properties { get; }
+        public IReadOnlyList<ResxTextSnapshot> Resources { get; }
+        public IReadOnlyList<LookupTextSnapshot> Lookups { get; }
+        public string Culture { get; }
+    }
+
+    /// <summary>A declaration and optional literal assignment. Null means unassigned; empty is assigned.</summary>
+    public sealed class PropertyDefinition
+    {
+        public PropertyDefinition(string name, string value = null, SourceLocation location = null)
+            : this(name, value, location, false)
+        {
+        }
+
+        internal PropertyDefinition(string name, string value, SourceLocation location, bool invalidContent)
+        {
+            Name = name;
+            Value = value;
+            Location = location;
+            HasInvalidContent = invalidContent;
+        }
+
+        public string Name { get; }
+        public string Value { get; }
+        public SourceLocation Location { get; }
+        internal bool HasInvalidContent { get; }
+    }
+}

@@ -1,0 +1,6 @@
+<root>
+  <data name="Set"><value>Setze "{property}" unter "{path}" auf "{value}".</value></data>
+  <data name="Hmi.Service"><value>Service</value></data>
+  <data name="Hmi.Vacuum"><value>Vakuum</value></data>
+  <data name="Hmi.On"><value>EIN</value></data>
+</root>

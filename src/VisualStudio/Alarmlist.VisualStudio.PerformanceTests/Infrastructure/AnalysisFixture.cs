@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using Alarmlist.VisualStudio.Analysis;
 
 namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
@@ -19,6 +20,10 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         public ISdkAnalysisBridge Bridge { get; private set; }
         public AnalysisInput[] Inputs { get; private set; }
         public int AlarmCount { get; private set; }
+        public AnalysisContext Context { get; private set; }
+        public AnalysisContext AlternateContext { get; private set; }
+        public bool HasProperties { get; private set; }
+        public bool HasLocalization { get; private set; }
 
         public AnalysisFixture(string scenario)
         {
@@ -33,9 +38,36 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                 Bridge = opened.Bridge;
                 string[] size = scenario.Split('-');
                 AlarmCount = int.Parse(size[0]);
-                Inputs = CreateInputs(_directory, AlarmCount, int.Parse(size[1]));
+                HasProperties = size.Length == 3 && size[2] == "properties";
+                HasLocalization = size.Length == 3 && size[2] == "localization";
+                Context = CreateContext("Performance");
+                AlternateContext = CreateContext("Changed");
+                Inputs = CreateInputs(_directory, AlarmCount, int.Parse(size[1]), HasProperties, HasLocalization);
             }
             catch { Dispose(); throw; }
+        }
+
+        private AnalysisContext CreateContext(string configuration) => new AnalysisContext(Path.Combine(_directory, "Performance.almproj"), configuration, "AnyCPU",
+            Enumerable.Range(0, HasProperties ? 32 : 0).Select(index => new AnalysisPropertyDefinition("p" + index, configuration + index)).ToArray(),
+            resources: HasLocalization ? CreateResources() : null,
+            culture: HasLocalization ? configuration == "Performance" ? "de-DE" : "en-US" : null);
+
+        private AnalysisResourceInput[] CreateResources()
+        {
+            var resources = new List<AnalysisResourceInput>();
+            foreach (string culture in new[] { "en", "de" })
+            {
+                for (int first = 0; first < 5000; first += 1000)
+                {
+                    var root = new XElement("root", Enumerable.Range(first, 1000).Select(index => new XElement("data",
+                        new XAttribute("name", "Alarm.Name" + index), new XElement("value", culture + " Alarm " + index))));
+                    resources.Add(new AnalysisResourceInput(root.ToString(), Path.Combine(_directory, "Names" + first + "." + culture + ".resx"), 1, culture));
+                }
+                var template = new XElement("root", new XElement("data", new XAttribute("name", "Instruction.Inspect"),
+                    new XElement("value", culture + " Inspect {item} ($(AlarmlistAlarmCode))")));
+                resources.Add(new AnalysisResourceInput(template.ToString(), Path.Combine(_directory, "Instructions." + culture + ".resx"), 1, culture));
+            }
+            return resources.ToArray();
         }
 
         public void Validate(AnalysisResponse response)
@@ -44,6 +76,20 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                 throw new InvalidOperationException("The benchmark did not produce the expected resolved alarms and compiled XML.");
             if (AppDomain.CurrentDomain.GetAssemblies().Any(assembly => assembly.GetName().Name == "Alarmlist.Core"))
                 throw new InvalidOperationException("The SDK compiler escaped its isolated AppDomain.");
+            if (HasProperties && (!response.Snapshot.Alarms.Any(alarm => alarm.IsAbstract)
+                || response.Snapshot.Alarms.Last().Properties.Count < 32
+                || response.Snapshot.Alarms.Last().Fields.Single(field => field.Name == "Description").EffectiveValue.Contains("$(AlarmlistAlarmCode)")))
+                throw new InvalidOperationException("The property workload did not evaluate templates, parameters and field dependencies.");
+            if (HasLocalization)
+            {
+                AnalysisAlarm last = response.Snapshot.Alarms.Last();
+                string parent = response.Snapshot.Culture == "de-DE" ? "de" : "en";
+                if (response.Snapshot.Resources.Count != 12 || response.Snapshot.ResourceEntries.Count != 10002
+                    || last.Fields.Single(field => field.Name == "Name").EffectiveValue != parent + " Alarm " + (AlarmCount - 1)
+                    || last.Fields.Single(field => field.Name == "Description").EffectiveValue != parent + " Inspect " + (AlarmCount - 1) + " (C" + (AlarmCount - 1) + ")"
+                    || !last.LocalizationUses.Any(use => use.Translation.SupplyingCulture == parent && use.IsValueAvailable))
+                    throw new InvalidOperationException("The localization workload did not resolve the catalogue, named arguments and parent-culture provenance.");
+            }
         }
 
         public void Dispose()
@@ -55,20 +101,26 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
             if (Directory.Exists(_directory)) Directory.Delete(_directory, true);
         }
 
-        private static AnalysisInput[] CreateInputs(string directory, int count, int perFile)
+        private static AnalysisInput[] CreateInputs(string directory, int count, int perFile, bool properties, bool localization)
         {
             var inputs = new List<AnalysisInput>();
             for (int first = 0; first < count; first += perFile)
             {
                 var text = new StringBuilder("<Alarmlist>\r\n");
+                if (properties) text.Append("<Properties><Property Name='p1' Value='File'/></Properties>");
                 for (int index = first; index < Math.Min(count, first + perFile); index++)
                 {
-                    text.Append("  <Alarm><FullyQualifiedName>A").Append(index).Append("</FullyQualifiedName>\r\n");
+                    text.Append(properties && index % 4 == 0 ? "  <Alarm abstract='true'>" : "  <Alarm>").Append("<FullyQualifiedName>A").Append(index).Append("</FullyQualifiedName>\r\n");
                     if (index % 4 != 0) text.Append("    <ReferenceName>A").Append(index - 1).Append("</ReferenceName>\r\n");
-                    else text.Append("    <Name>Base alarm ").Append(index).Append("</Name><Category>Fire</Category><Description>Inspect equipment &amp; record result.</Description>\r\n");
-                    text.Append("    <Code>C").Append(index).Append("</Code>\r\n    <TestProcedure><Instructions>");
+                    else if (properties) text.Append("<Properties><Property Name='p0' Value='ignored'/><Property Name='p2'/></Properties><Name>Alarm $(p1)</Name><Category>$(p3)</Category><Description>Inspect $(AlarmlistAlarmCode) $(p2) $$(literal)</Description>");
+                    else if (!localization) text.Append("    <Name>Base alarm ").Append(index).Append("</Name><Category>Fire</Category><Description>Inspect equipment &amp; record result.</Description>\r\n");
+                    if (localization) text.Append("<Name>$(loc:Alarm.Name").Append(index).Append(")</Name><Description>$(loc:Instruction.Inspect, item=\"")
+                        .Append(index).Append("\")</Description>");
+                    text.Append(properties ? "<Code>$(p0)-$(AlarmlistConfiguration)-" : "    <Code>C").Append(index).Append("</Code>\r\n    <TestProcedure><Instructions>");
                     if (index % 4 == 3) text.Append("<Clear/>");
-                    text.Append("<Step>Inspect ").Append(index).Append("</Step><Note>Record</Note></Instructions>");
+                    if (localization) text.Append("<Step>$(loc:Instruction.Inspect, item=\"").Append(index).Append("\")</Step>");
+                    else text.Append(properties ? "<Step>Inspect $(AlarmlistAlarmCode) " : "<Step>Inspect ").Append(index).Append("</Step>");
+                    text.Append("<Note>Record</Note></Instructions>");
                     if (index % 4 == 0) text.Append("<Reset><Hint>Reset panel</Hint></Reset>");
                     text.Append("</TestProcedure>\r\n  </Alarm>\r\n");
                 }

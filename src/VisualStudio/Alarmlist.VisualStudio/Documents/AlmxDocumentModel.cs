@@ -31,10 +31,26 @@ namespace Alarmlist.VisualStudio.Documents
 
         public bool SetValues(AlmxProjection baseline, AlarmSource original, IReadOnlyDictionary<string, string> values,
             IReadOnlyList<ProcedureValueChange> procedures, out string error)
+            => SetValues(baseline, original, values, procedures, Array.Empty<PropertyValueChange>(), false, out error);
+
+        public bool SetValues(AlmxProjection baseline, AlarmSource original, IReadOnlyDictionary<string, string> values,
+            IReadOnlyList<ProcedureValueChange> procedures, IReadOnlyList<PropertyValueChange> properties, bool fileProperties, out string error)
+            => SetValues(baseline, original, values, procedures,
+                fileProperties ? Array.Empty<PropertyValueChange>() : properties,
+                fileProperties ? properties : Array.Empty<PropertyValueChange>(), out error);
+
+        public bool SetValues(AlmxProjection baseline, AlarmSource original, IReadOnlyDictionary<string, string> values,
+            IReadOnlyList<ProcedureValueChange> procedures, IReadOnlyList<PropertyValueChange> alarmProperties,
+            IReadOnlyList<PropertyValueChange> fileProperties, out string error)
         {
             return Apply(() =>
             {
-                AlarmSource current = FindCurrent(baseline, original);
+                bool editsAlarm = values.Count != 0 || procedures.Count != 0 || alarmProperties.Count != 0;
+                AlarmSource current = !editsAlarm || original == null ? null : FindCurrent(baseline, original);
+                if (current == null && editsAlarm)
+                    throw new InvalidOperationException("Select an alarm to edit its values.");
+                if (alarmProperties.Count != 0) CheckPropertyBaseline(baseline, original.Properties, current.Properties);
+                if (fileProperties.Count != 0) CheckPropertyBaseline(baseline, baseline.Properties, Projection.Properties);
                 foreach (string field in values.Keys)
                     if (current.GetValue(field) != original.GetValue(field) || current.HasField(field) != original.HasField(field))
                         throw new InvalidOperationException("This field changed in another view. Press Escape to reload its current value.");
@@ -54,6 +70,18 @@ namespace Alarmlist.VisualStudio.Documents
                     updated = _editing.Parse(edit.Apply(updated.Text));
                     if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
                 }
+                foreach (PropertyValueChange change in alarmProperties)
+                {
+                    SourceEdit edit = _editing.SetProperty(updated, updated.Alarms[index], change);
+                    updated = _editing.Parse(edit.Apply(updated.Text));
+                    if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
+                }
+                foreach (PropertyValueChange change in fileProperties)
+                {
+                    SourceEdit edit = _editing.SetProperty(updated, null, change);
+                    updated = _editing.Parse(edit.Apply(updated.Text));
+                    if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
+                }
                 // One atomic edit and undo transaction, including a multi-field draft.
                 string before = Projection.Text;
                 string after = updated.Text;
@@ -65,8 +93,26 @@ namespace Alarmlist.VisualStudio.Documents
             }, "Edit alarm fields", out error);
         }
 
+        private void CheckPropertyBaseline(AlmxProjection baseline, PropertyScopeSource before, PropertyScopeSource after)
+        {
+            if (before.GetText(baseline) != after.GetText(Projection))
+                throw new InvalidOperationException("These parameters changed in another view. Press Escape to reload them.");
+        }
+
         public bool AddAlarm(out string error) => Apply(() => _editing.AddAlarm(Projection), "Add alarm", out error);
         public bool DeleteAlarm(AlarmSource alarm, out string error) => Apply(() => _editing.DeleteAlarm(Projection, alarm), "Delete alarm", out error);
+
+        public bool SetAbstract(AlmxProjection baseline, AlarmSource original, bool value, out string error)
+            => Apply(() =>
+            {
+                AlarmSource current = FindCurrent(baseline, original);
+                if ((string)current.Source.Element.Attribute("abstract") != (string)original.Source.Element.Attribute("abstract"))
+                    throw new InvalidOperationException("Abstract changed in another view. Press Escape to reload it.");
+                return _editing.SetAbstract(Projection, current, value);
+            }, "Change abstract template", out error);
+
+        public bool SetProperty(AlmxProjection baseline, AlarmSource original, PropertyValueChange change, bool fileProperties, out string error)
+            => SetValues(baseline, original, new Dictionary<string, string>(), Array.Empty<ProcedureValueChange>(), new[] { change }, fileProperties, out error);
 
         public bool AddProcedureItem(AlarmSource alarm, string section, string kind, out string error)
             => Apply(() => _editing.AddProcedureItem(Projection, alarm, section, kind), "Add procedure entry", out error);

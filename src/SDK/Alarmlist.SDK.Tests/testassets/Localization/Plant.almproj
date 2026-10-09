@@ -1,0 +1,11 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Localized.almx" />
+  </ItemGroup>
+  <Target Name="RecordOutputs" AfterTargets="Build;GetTargetPath">
+    <WriteLinesToFile File="outputs.txt" Lines="@(CompiledAlarmlistFiles->'%(Culture)|%(Identity)')" Overwrite="true" />
+  </Target>
+</Project>

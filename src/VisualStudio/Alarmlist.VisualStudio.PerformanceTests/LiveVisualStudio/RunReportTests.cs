@@ -7,24 +7,14 @@ using System.Xml.Linq;
 using Alarmlist.VisualStudio.Testing;
 using Xunit;
 
-namespace Alarmlist.VisualStudio.IntegrationTests.LiveVisualStudio
+namespace Alarmlist.VisualStudio.PerformanceTests.LiveVisualStudio
 {
     public sealed class RunReportTests
     {
         [Fact]
         public void AcceptsCompleteSamplesAndUnavailableClrCounters()
         {
-            LiveVisualStudioRun.Validate(Report(), 17, true, 2, 1000);
-        }
-
-        [Fact]
-        public void FunctionalSmokeDoesNotRequireMeasurements()
-        {
-            XElement report = Report();
-            report.SetAttributeValue("Measurements", false);
-            report.SetAttributeValue("SourcesPreserved", false);
-            report.RemoveNodes();
-            LiveVisualStudioRun.Validate(report, 17, false, 2, 1000);
+            LiveVisualStudioRun.Validate(Report(), 17, 2, 1000);
         }
 
         [Theory]
@@ -86,7 +76,7 @@ namespace Alarmlist.VisualStudio.IntegrationTests.LiveVisualStudio
                 case "bitness": report.SetAttributeValue("DriverBitness", 32); break;
                 default: throw new ArgumentException(fault);
             }
-            Assert.Throws<InvalidDataException>(() => LiveVisualStudioRun.Validate(report, 17, true, 2, 1000));
+            Assert.Throws<InvalidDataException>(() => LiveVisualStudioRun.Validate(report, 17, 2, 1000));
         }
 
         private static XElement Report()

@@ -33,8 +33,9 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         private AlarmFieldViewModel _code;
         private int _generation;
         private bool _queryResult;
+        private PropertyCompletion[] _completionResult;
 
-        [Params("1000-1000", "1000-100", "10000-100")]
+        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties", "1000-100-localization")]
         public string Scenario { get; set; }
 
         [GlobalSetup]
@@ -45,22 +46,26 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             _fixture = new AnalysisFixture(Scenario);
             AnalysisInput selected = _fixture.Inputs.Last();
             _project = new AnalysisProject(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(selected.FilePath), "Performance.almproj"),
-                "Performance", _fixture.Bridge.CompilerPath, _fixture.Inputs.Select(input => input.FilePath));
+                "Performance", _fixture.Bridge.CompilerPath, _fixture.Inputs.Select(input => input.FilePath), _fixture.Context,
+                resources: _fixture.Context.Resources.Select(resource => new AnalysisResourceItem(resource.FilePath, resource.Culture)));
             _captured = _fixture.Inputs.Select(input => new CapturedAnalysisInput(input)).ToArray();
             _analysis = new CapturedDesignerAnalysis(selected.FilePath, _project);
             _model = new AlmxDocumentModel(new ReadOnlyBuffer(selected), new AlmxEditingService());
             _view = new EditFileControlViewModel(_model, new AlarmViewModelFactory(), _analysis);
+            _view.SetPreviewTableActive(true);
             _view.Selected = _view.Alarms.Last();
             _host = new HwndSource(new HwndSourceParameters("ALMX performance")
                 { Width = 1000, Height = 900, WindowStyle = unchecked((int)0x80000000) });
-            var control = new EditFileControl(_view) { Width = 950, Height = 850 };
+            var control = new Grid { Width = 950, Height = 850 };
+            control.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(600) });
+            control.ColumnDefinitions.Add(new ColumnDefinition());
+            control.Children.Add(new EditFileControl(_view));
+            var preview = new PreviewControl { DataContext = _view };
+            Grid.SetColumn(preview, 1);
+            control.Children.Add(preview);
             _host.RootVisual = control;
             PreparePublication();
             _analysis.Set(_nextState);
-            Pump();
-            foreach (Expander panel in Descendants(control).OfType<Expander>().Where(item =>
-                Equals(item.Header, "Resolved alarm preview") || Equals(item.Header, "Compiled project XML preview")))
-                panel.IsExpanded = true;
             Pump();
             _code = _view.Fields.Single(field => field.Name == "Code");
         }
@@ -70,9 +75,19 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         [IterationSetup(Target = nameof(PublishAndLayout))]
         public void PreparePublication()
         {
-            AnalysisResponse response = _fixture.Bridge.Analyze(_fixture.Inputs);
+            AnalysisResponse response = _fixture.Bridge.Analyze(_fixture.Inputs, context: _fixture.Context);
             _fixture.Validate(response);
-            _nextState = new ProjectAnalysisState(++_generation, _project, ProjectAnalysisStatus.Available, null, response, _captured);
+            _nextState = new ProjectAnalysisState(++_generation, _project, ProjectAnalysisStatus.Available, null, response, _captured, _fixture.Context.Resources);
+        }
+
+        [IterationSetup(Target = nameof(ContextChangeAndLayout))]
+        public void PrepareContextChange()
+        {
+            AnalysisContext context = _generation % 2 == 0 ? _fixture.Context : _fixture.AlternateContext;
+            AnalysisResponse response = _fixture.Bridge.Analyze(_fixture.Inputs, context: context);
+            _fixture.Validate(response);
+            var project = new AnalysisProject(_project.ProjectPath, context.Configuration, _project.CompilerPath, _project.Inputs, context, resources: _project.Resources);
+            _nextState = new ProjectAnalysisState(++_generation, project, ProjectAnalysisStatus.Available, null, response, _captured, context.Resources);
         }
 
         [IterationSetup(Target = nameof(DraftAndLayout))]
@@ -89,6 +104,16 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
 
         [Benchmark, STAThread]
         public void UnchangedRefreshAndLayout() { _analysis.Set(_analysis.Current); Pump(); }
+
+        [Benchmark, STAThread]
+        public void ContextChangeAndLayout() { _analysis.Set(_nextState); Pump(); }
+
+        [Benchmark, STAThread]
+        public void CompletionQueries100()
+        {
+            for (int index = 0; index < 100; index++) _completionResult = ExpressionTextBox.FindMatches(_view.CompletionProperties,
+                _fixture.HasLocalization ? "loc:Alarm.Name" : "AlarmlistAlarm");
+        }
 
         [Benchmark, STAThread]
         public void CommandQueries100()
@@ -114,6 +139,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
                 ResetDraft();
                 if (_view.ResolvedFields.Count == 0) throw new InvalidOperationException("No resolved fields were displayed.");
                 GC.KeepAlive(_queryResult);
+                if (_completionResult != null && _completionResult.Length == 0) throw new InvalidOperationException("No completion suggestions were produced.");
             }
             finally
             {
@@ -158,6 +184,8 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             public ProjectAnalysisState Current { get; private set; }
             public CapturedDesignerAnalysis(string path, AnalysisProject project) { DocumentPath = path; Projects = new[] { project }; }
             public Task<bool> IsCurrentAsync(ProjectAnalysisState state, CancellationToken token) => Task.FromResult(ReferenceEquals(state, Current));
+            public Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token)
+                => throw new InvalidOperationException("A measurement must not change project properties.");
             public void Set(ProjectAnalysisState state) { Current = state; Changed?.Invoke(this, EventArgs.Empty); }
             public void Navigate(AnalysisLocation location, string expectedText) => throw new InvalidOperationException("Unexpected navigation.");
             public void Dispose() { Changed = null; }

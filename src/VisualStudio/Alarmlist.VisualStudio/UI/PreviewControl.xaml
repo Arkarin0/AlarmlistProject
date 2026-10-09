@@ -1,0 +1,176 @@
+<UserControl x:Class="Alarmlist.VisualStudio.UI.PreviewControl"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
+ xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+ Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+ Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+ AutomationProperties.Name="Alarmlist Preview" PreviewKeyDown="OnPreviewKeyDown">
+ <UserControl.Resources><ResourceDictionary>
+  <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /></ResourceDictionary.MergedDictionaries>
+  <Style TargetType="TextBox">
+   <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+   <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
+   <Setter Property="Padding" Value="5,3" />
+  </Style>
+  <Style TargetType="Button"><Setter Property="Padding" Value="9,3" /></Style>
+  <Style x:Key="TableAction" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+   <Setter Property="IsEnabled" Value="{Binding CanUseProjectPreview}" />
+   <Style.Triggers><DataTrigger Binding="{Binding SelectedPreviewRow}" Value="{x:Null}"><Setter Property="IsEnabled" Value="False" /></DataTrigger></Style.Triggers>
+  </Style>
+  <Style TargetType="DataGridColumnHeader">
+   <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+   <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+   <Setter Property="Padding" Value="7,5" />
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="DataGridColumnHeader">
+    <Grid Background="{TemplateBinding Background}">
+     <Border Padding="{TemplateBinding Padding}" BorderThickness="0,0,1,1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}">
+      <DockPanel><TextBlock x:Name="SortArrow" DockPanel.Dock="Right" Margin="6,0,0,0" /><ContentPresenter RecognizesAccessKey="True" /></DockPanel>
+     </Border>
+     <Thumb x:Name="PART_LeftHeaderGripper" Width="5" HorizontalAlignment="Left" Opacity="0" Cursor="SizeWE" />
+     <Thumb x:Name="PART_RightHeaderGripper" Width="5" HorizontalAlignment="Right" Opacity="0" Cursor="SizeWE" />
+    </Grid>
+    <ControlTemplate.Triggers>
+     <Trigger Property="SortDirection" Value="Ascending"><Setter TargetName="SortArrow" Property="Text" Value="↑" /></Trigger>
+     <Trigger Property="SortDirection" Value="Descending"><Setter TargetName="SortArrow" Property="Text" Value="↓" /></Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="TabItem">
+   <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+   <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+   <Setter Property="Padding" Value="10,5" />
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem">
+    <Border x:Name="TabBorder" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
+            BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}">
+     <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
+    </Border>
+    <ControlTemplate.Triggers>
+     <Trigger Property="IsSelected" Value="True">
+      <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+     </Trigger>
+    </ControlTemplate.Triggers>
+   </ControlTemplate></Setter.Value></Setter>
+  </Style>
+ </ResourceDictionary></UserControl.Resources>
+ <Grid Margin="8">
+  <TextBlock Text="Open an ALMX document to preview its project." TextWrapping="Wrap">
+   <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" />
+    <Style.Triggers><DataTrigger Binding="{Binding}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+   </Style></TextBlock.Style>
+  </TextBlock>
+  <DockPanel>
+   <DockPanel.Style><Style TargetType="DockPanel"><Style.Triggers>
+    <DataTrigger Binding="{Binding}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+   </Style.Triggers></Style></DockPanel.Style>
+   <StackPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+    <DockPanel>
+     <TextBlock DockPanel.Dock="Right" Text="{Binding SelectedPreviewCulture, StringFormat=Preview language: {0}}" Margin="12,0,0,0" />
+     <TextBlock Text="{Binding PreviewContext}" TextTrimming="CharacterEllipsis" ToolTip="{Binding PreviewContext}" />
+    </DockPanel>
+    <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
+   </StackPanel>
+   <TabControl x:Name="PreviewTabs" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=UserControl}}"
+               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="Preview views" SelectedIndex="1">
+    <TabItem Header="Alarm table" AutomationProperties.Name="Alarm table preview">
+     <DockPanel Margin="8">
+      <StackPanel DockPanel.Dock="Top">
+       <DockPanel Margin="0,0,0,6">
+        <Button DockPanel.Dock="Right" Content="Copy selected rows" Click="OnCopyRows" Margin="6,0,0,0" Style="{StaticResource TableAction}" AutomationProperties.Name="Copy selected preview rows" />
+        <Button DockPanel.Dock="Right" Content="Go to source" Click="OnGoToSource" Margin="6,0,0,0" Style="{StaticResource TableAction}" AutomationProperties.Name="Go to selected alarm source" />
+        <TextBlock DockPanel.Dock="Right" Text="{Binding AlarmTableCount}" VerticalAlignment="Center" Margin="8,0,0,0" />
+        <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <TextBox Text="{Binding AlarmTableFilter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter preview alarms" ToolTip="Filter resolved values, identities and source paths" />
+       </DockPanel>
+       <ui:LiveStatusTextBlock Text="{Binding AlarmTableMessage}" TextWrapping="Wrap">
+        <ui:LiveStatusTextBlock.Style><Style TargetType="ui:LiveStatusTextBlock"><Style.Triggers>
+         <DataTrigger Binding="{Binding AlarmTableMessage}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+        </Style.Triggers></Style></ui:LiveStatusTextBlock.Style>
+       </ui:LiveStatusTextBlock>
+      </StackPanel>
+      <DataGrid x:Name="AlarmTable" ItemsSource="{Binding AlarmTableRows, NotifyOnTargetUpdated=True}" SelectedItem="{Binding SelectedPreviewRow}" TargetUpdated="OnTableRowsUpdated"
+                AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False"
+                SelectionMode="Extended" SelectionUnit="FullRow" ClipboardCopyMode="None" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                EnableRowVirtualization="True" EnableColumnVirtualization="True" RowHeight="28"
+                Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+                Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+                BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
+                HorizontalGridLinesBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
+                Sorting="OnTableSorting" MouseDoubleClick="OnTableDoubleClick" SelectionChanged="OnTableSelectionChanged" AutomationProperties.Name="Resolved alarm table"
+                AutomationProperties.HelpText="Select a row to inspect it. Double-click or press Enter to go to source. Ctrl+C copies selected rows.">
+       <DataGrid.RowStyle><Style TargetType="DataGridRow">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+        <Setter Property="AutomationProperties.HelpText" Value="{Binding Status}" />
+        <Setter Property="ToolTip" Value="{Binding SourcePath}" />
+        <Style.Triggers><Trigger Property="IsSelected" Value="True">
+         <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
+         <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}" />
+        </Trigger></Style.Triggers>
+       </Style></DataGrid.RowStyle>
+       <DataGrid.CellStyle><Style TargetType="DataGridCell">
+        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="6,4" />
+        <Setter Property="BorderThickness" Value="0" />
+       </Style></DataGrid.CellStyle>
+       <DataGrid.Columns>
+        <DataGridTextColumn Header="Name" Binding="{Binding Name}" SortMemberPath="Name" Width="200" />
+        <DataGridTextColumn Header="Code" Binding="{Binding Code}" SortMemberPath="Code" Width="100" />
+        <DataGridTextColumn Header="Category" Binding="{Binding Category}" SortMemberPath="Category" Width="130" />
+        <DataGridTextColumn Header="Description" Binding="{Binding Description}" SortMemberPath="Description" Width="300" />
+        <DataGridTextColumn Header="Identity" Binding="{Binding Identity}" SortMemberPath="Identity" Width="220" />
+        <DataGridTextColumn Header="Source" Binding="{Binding Source}" SortMemberPath="Source" Width="180" />
+       </DataGrid.Columns>
+      </DataGrid>
+     </DockPanel>
+    </TabItem>
+    <TabItem Header="Selected alarm" AutomationProperties.Name="Selected alarm preview">
+     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
+
+            <StackPanel Margin="0,6,0,0">
+
+              <ui:LiveStatusTextBlock Text="{Binding ResolvedPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,8" />
+              <ItemsControl ItemsSource="{Binding ResolvedFields}">
+                <ItemsControl.ItemTemplate><DataTemplate>
+                  <StackPanel Margin="0,0,0,10">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                    <AdornerDecorator>
+                      <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" Padding="26,3,5,3"
+                               ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" TextWrapping="Wrap"
+                               MaxHeight="110" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Name, StringFormat=Resolved {0}}"
+                               AutomationProperties.HelpText="{Binding OriginText}" ToolTip="{Binding OriginText}" />
+                    </AdornerDecorator>
+                    <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
+                    <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                            AutomationProperties.Name="{Binding Name, StringFormat=Go to source for resolved {0}}" />
+                  </StackPanel>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <ItemsControl ItemsSource="{Binding ResolvedSections}">
+                <ItemsControl.ItemTemplate><DataTemplate>
+                  <StackPanel Margin="0,0,0,10">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Summary}" Margin="0,3,0,6" />
+                    <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ProcedureAnalysisRow}" />
+                  </StackPanel>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+
+     </ScrollViewer>
+    </TabItem>
+    <TabItem Header="Compiled XML" AutomationProperties.Name="Compiled XML preview">
+     <DockPanel Margin="8">
+      <ui:LiveStatusTextBlock DockPanel.Dock="Top" Text="{Binding XmlPreviewMessage}" TextWrapping="Wrap" Margin="0,0,0,6" />
+      <TextBox Text="{Binding CompiledXml, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas"
+               VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+               AutomationProperties.Name="Compiled project XML" AutomationProperties.HelpText="{Binding XmlPreviewMessage}" />
+     </DockPanel>
+    </TabItem>
+   </TabControl>
+  </DockPanel>
+ </Grid>
+</UserControl>

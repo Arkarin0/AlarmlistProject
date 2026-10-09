@@ -24,16 +24,42 @@ state changes. CommandQueries100 measures a batch of 100 availability queries.
 The Bridge and Designer xUnit theories each select one of three scenarios:
 1,000 alarms in one file, 1,000 across ten files, or 10,000 across 100 files.
 Designer covers fresh result publication/layout, unchanged refresh/layout,
-command queries, and draft editing/layout. WPF runs on STA with actual designer
+context-change publication/layout, command queries, completion filtering and draft
+editing/layout. WPF runs on STA with actual designer
 BAML. Analysis, input preparation and draft reset are outside the UI measurements.
 Each draft starts from a resolved preview; the measured edit must clear it without
 committing source. Correctness checks run outside the measured interval.
+
+`Area=Properties` selects an additional 1,000-alarm/ten-file workload with 32
+project parameters, file shadowing, abstract templates, literal escapes and
+alarm-field dependencies. Bridge measurements include a changed captured context.
+CompletionQueries100 invokes the production prefix filter 100 times; it measures
+filtering rather than popup rendering or speech. ContextChangeAndLayout publishes
+precomputed results from alternating contexts; compiler work remains outside that
+UI interval. Run this workload with the same Short job for reproducible evidence:
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Properties'
+```
 
 The launcher sets and restores `ALARMLIST_RUN_PERFORMANCE_TESTS`,
 `ALARMLIST_PERFORMANCE_JOB`, and `ALARMLIST_PERFORMANCE_OUTPUT_DIRECTORY`.
 For direct `dotnet test` use, set those variables explicitly and select Release
 and `RunConfiguration.TargetPlatform=x64`. Traits support `Area=Bridge`,
 `Area=Designer`, and `Host=Isolated`. Traits alone do not enable a skipped test.
+
+`Area=Localization` measures 1,000 alarms across ten ALMX files with 10,002
+saved translations across twelve RESX snapshots. It includes named instruction
+arguments, inherited procedures, alarm-field expressions inside translations,
+parent-culture lookup, and switching between de-DE and en-US. The unused part
+of the catalogue also participates in completion and captured analysis.
+Correctness checks verify resolved values and compiler-reported parent origins
+outside the timing interval. The designer uses the captured resources from the
+same analysis and filters localization suggestions in its completion benchmark.
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Localization'
+```
 
 Results live under `artifacts/log/Release/AnalysisPerformance/<run-id>/`:
 TRX, revision/working-tree and runtime metadata, per-scenario BenchmarkDotNet logs,
@@ -50,14 +76,20 @@ MILESTONE-3.md; the new measurement method establishes a new baseline.
 
 ## Live Visual Studio wrappers
 
-Functional editor smoke belongs to `Alarmlist.VisualStudio.IntegrationTests`.
-Latency and designer-close memory belong here. One performance test runs the full
-smoke plus both measurement modes, avoiding duplicate IDE runs for latency/memory.
-Both wrappers invoke `eng/test-visualstudio.ps1` and validate its completion report.
-Live wrappers only target net472; existing packaged integration tests keep both
-net472 and net8.0. No wall-clock performance limit or memory-growth threshold is
-asserted. The current checks validate complete, correctly identified evidence,
-two warmups per mode, finite samples, source/output preservation and IDE cleanup.
+Functional IDE tests belong to the separate
+[UI integration suite](../Alarmlist.VisualStudio.UIIntegrationTests/README.md).
+Latency and designer-close memory belong here. One performance case per host
+invokes `eng/measure-visualstudio-live.ps1` for fixture setup, both measurement
+modes and cleanup, then validates its completion report. It does not rerun the
+functional suite. Shared C# automation primitives are also compiled by that driver.
+Additional live fixture alarms now use a file parameter and a resolved alarm-field
+dependency; workload metadata identifies this change from the literal-only baseline.
+These wrappers target net472; packaged integration tests keep both net472/net8.0,
+and the external functional runner uses net8.0-windows. Ordinary tests in this
+project validate measurement reports and process ownership without launching an IDE.
+No wall-clock performance limit or memory-growth threshold is asserted. Validation
+requires complete host/scenario evidence, two warmups per mode, finite samples,
+source/output preservation and owned-IDE cleanup.
 
 First build and deploy the matching extension/SDK configuration to the experimental
 profile, and complete any Visual Studio first-run screens manually. See the
@@ -73,7 +105,6 @@ $env:ALARMLIST_VS_ROOT_SUFFIX = 'AlarmlistExp'
 $env:ALARMLIST_VS_MEASUREMENT_ITERATIONS = '20'
 $env:ALARMLIST_VS_MEASUREMENT_ALARMS = '1000'
 
-dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj -f net472 --filter 'Host=VisualStudio&VSVersion=2022'
 dotnet test src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/Alarmlist.VisualStudio.PerformanceTests.csproj --filter 'Host=VisualStudio&VSVersion=2022'
 ```
 
@@ -92,7 +123,7 @@ even when the test runner is x86 or launched from PowerShell 7.
 
 Wrapper logs, the IDE ownership receipt and `result.xml` are under
 `artifacts/log/<Configuration>/LiveVisualStudioTests/<run-id>/`. The report links
-the retained smoke fixture, ActivityLog, latency/memory CSVs and measurement
+the retained measurement fixture, ActivityLog, latency/memory CSVs and measurement
 metadata under `VisualStudioSmoke/`. Failures retain logs and cannot pass with an
 empty, partial, wrong-host or unsuccessful report. No collection is forced in the
 measured IDE. Diagnostic polling includes COM overhead and does not measure typing

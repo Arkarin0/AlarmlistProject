@@ -17,6 +17,8 @@ namespace Alarmlist.VisualStudio.Editing
         SourceEdit SetField(AlmxProjection projection, AlarmSource alarm, string name, string value);
         SourceEdit AddAlarm(AlmxProjection projection);
         SourceEdit DeleteAlarm(AlmxProjection projection, AlarmSource alarm);
+        SourceEdit SetAbstract(AlmxProjection projection, AlarmSource alarm, bool value);
+        SourceEdit SetProperty(AlmxProjection projection, AlarmSource alarm, PropertyValueChange change);
         SourceEdit SetProcedureItem(AlmxProjection projection, AlarmSource alarm, ProcedureValueChange change);
         SourceEdit AddProcedureItem(AlmxProjection projection, AlarmSource alarm, string section, string kind);
         SourceEdit DeleteProcedureItem(AlmxProjection projection, AlarmSource alarm, string section, int index);

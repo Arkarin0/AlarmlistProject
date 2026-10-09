@@ -1,6 +1,7 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -18,7 +19,7 @@ using OleServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 namespace Alarmlist.VisualStudio.Editor
 {
     [ComVisible(true)]
-    internal sealed class AlmxEditorPane : WindowPane, IVsDeferredDocView, IVsCodeWindow, IOleCommandTarget, IVsRunningDocTableEvents3, IVsWindowFrameNotify3, IVsExtensibleObject, IVsFindTarget
+    internal sealed class AlmxEditorPane : WindowPane, IVsDeferredDocView, IVsCodeWindow, IOleCommandTarget, IVsRunningDocTableEvents3, IVsWindowFrameNotify3, IVsExtensibleObject, IVsFindTarget, IPreviewDocument
     {
         private readonly OleServiceProvider _oleSite;
         private readonly IVsEditorAdaptersFactoryService _adapters;
@@ -39,6 +40,9 @@ namespace Alarmlist.VisualStudio.Editor
         private IVsTextView _textView;
         private IVsCodeWindow _codeWindow;
         private IWpfTextViewHost _textHost;
+        private IVsUIShell _shell;
+        public EditFileControlViewModel PreviewSource => _viewModel;
+        public event EventHandler PreviewSourceChanged;
 
         public AlmxEditorPane(System.IServiceProvider site, OleServiceProvider oleSite,
             IVsEditorAdaptersFactoryService adapters, IVsTextLines lines, AlmxDocumentSessionFactory sessions,
@@ -82,6 +86,8 @@ namespace Alarmlist.VisualStudio.Editor
                 throw new InvalidOperationException("Visual Studio did not create the ALMX source editor.");
             _session = _sessions.GetOrCreate(buffer, _lines, (IVsQueryEditQuerySave2)GetService(typeof(SVsQueryEditQuerySave)));
             _viewModel = _viewModels.Create(_session.Model, _analysis.Create(buffer));
+            _shell = (IVsUIShell)GetService(typeof(SVsUIShell));
+            _viewModel.PropertyChanged += OnPreviewLanguageChanged;
             _session.Attach(_viewModel);
             _layout = new EditorLayoutViewModel(_settings, _session.CommitPending, _xmlOnly);
             _control = new SplitEditorControl(_layout, new EditFileControl(_viewModel), sourceControl);
@@ -93,6 +99,7 @@ namespace Alarmlist.VisualStudio.Editor
             ErrorHandler.ThrowOnFailure(_rdt.AdviseRunningDocTableEvents(this, out _rdtEvents));
             IVsWindowFrame frame = (IVsWindowFrame)GetService(typeof(SVsWindowFrame));
             if (frame != null) ErrorHandler.ThrowOnFailure(frame.SetProperty((int)__VSFPROPID.VSFPROPID_ViewHelper, this));
+            PreviewSourceChanged?.Invoke(this, EventArgs.Empty);
         }
 
         protected override void Dispose(bool disposing)
@@ -103,7 +110,16 @@ namespace Alarmlist.VisualStudio.Editor
                 if (_rdtEvents != 0) { _rdt.UnadviseRunningDocTableEvents(_rdtEvents); _rdtEvents = 0; }
                 _textManager?.UnregisterIndependentView(this, _lines);
                 if (_control != null) { _control.PreviewKeyDown -= OnKeyDown; _control.Dispose(); }
-                if (_viewModel != null) { _session.Detach(_viewModel); _viewModel.Dispose(); }
+                if (_viewModel != null)
+                {
+                    _viewModel.PropertyChanged -= OnPreviewLanguageChanged;
+                    _session.Detach(_viewModel);
+                    _viewModel.Dispose();
+                    _viewModel = null;
+                }
+                PreviewSourceChanged?.Invoke(this, EventArgs.Empty);
+                PreviewSourceChanged = null;
+                _shell = null;
                 _codeWindow?.Close();
                 _codeWindow = null;
 
@@ -118,6 +134,17 @@ namespace Alarmlist.VisualStudio.Editor
         public int QueryStatus(ref Guid group, uint count, OLECMD[] commands, IntPtr text)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            if (group == PreviewLanguageCommands.CommandSet)
+            {
+                bool supported = false;
+                for (int index = 0; index < count; index++)
+                {
+                    bool known = PreviewLanguageCommands.Contains(commands[index].cmdID);
+                    commands[index].cmdf = known ? PreviewLanguageCommands.Status(_viewModel) : 0;
+                    supported |= known;
+                }
+                return supported ? VSConstants.S_OK : (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+            }
             if (group == VSConstants.GUID_VSStandardCommandSet97 && count == 1 && _session != null)
             {
                 var id = (VSConstants.VSStd97CmdID)commands[0].cmdID;
@@ -143,6 +170,8 @@ namespace Alarmlist.VisualStudio.Editor
         public int Exec(ref Guid group, uint id, uint options, IntPtr input, IntPtr output)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            if (group == PreviewLanguageCommands.CommandSet && PreviewLanguageCommands.Contains(id))
+                return PreviewLanguageCommands.Execute(_viewModel, id, input, output);
             if (group == VSConstants.GUID_VSStandardCommandSet97 && _session != null)
             {
                 var command = (VSConstants.VSStd97CmdID)id;
@@ -215,6 +244,14 @@ namespace Alarmlist.VisualStudio.Editor
             ThreadHelper.ThrowIfNotOnUIThread();
             if (Keyboard.Modifiers == ModifierKeys.Control && (args.Key == Key.Z || args.Key == Key.Y))
             { Undo(args.Key == Key.Y); args.Handled = true; }
+        }
+        private void OnPreviewLanguageChanged(object sender, PropertyChangedEventArgs args)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (args.PropertyName == nameof(EditFileControlViewModel.SelectedPreviewCulture)
+                || args.PropertyName == nameof(EditFileControlViewModel.PreviewCultures)
+                || args.PropertyName == nameof(EditFileControlViewModel.CanChangePreviewCulture))
+                _shell?.UpdateCommandUI(0);
         }
         public int OnBeforeSave(uint cookie)
         {

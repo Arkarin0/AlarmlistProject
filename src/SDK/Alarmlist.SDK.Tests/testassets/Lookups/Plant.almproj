@@ -1,0 +1,5 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup>
+    <AlarmlistCultures>keyword;en;de-DE</AlarmlistCultures>
+  </PropertyGroup>
+</Project>

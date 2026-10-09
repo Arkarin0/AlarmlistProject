@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Alarmlist.Core.UnitTests" />
+    <EmbeddedResource Include="Lookups/AlarmlistLookup.xsd" LogicalName="Alarmlist.Lookups.AlarmlistLookup.xsd" />
   </ItemGroup>
 	
 </Project>

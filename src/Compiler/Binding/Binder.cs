@@ -24,8 +24,8 @@ namespace Alarmlist.Binding
 
         public BindingResult Bind()
         {
-            var diagnostics = new DiagnosticBag();
             syntaxTree.Alarms.Clear();
+            syntaxTree.Files.Clear();
 
             foreach (var item in sourceTexts)
             {
@@ -33,12 +33,24 @@ namespace Alarmlist.Binding
                 if (sourceTree == null)
                     continue;
 
-                sourceTree.Alarms.ToList().ForEach(alarm => syntaxTree.Alarms.Add(alarm));
+                syntaxTree.Files.Add(sourceTree);
+                foreach (AlarmSyntaxNode alarm in sourceTree.Alarms)
+                {
+                    alarm.SourceFile = sourceTree;
+                    syntaxTree.Alarms.Add(alarm);
+                }
             }
 
-            ResolveReferences(syntaxTree, diagnostics);
+            return Bind(syntaxTree);
+        }
 
-            return new BindingResult(syntaxTree, diagnostics);
+        internal static BindingResult Bind(AlarmSyntaxTree tree)
+        {
+            var diagnostics = new DiagnosticBag();
+            if (tree.Files.Count == 0)
+                foreach (AlarmSyntaxNode alarm in tree.Alarms) alarm.SourceFile = tree;
+            ResolveReferences(tree, diagnostics);
+            return new BindingResult(tree, diagnostics);
         }
 
         private static void ResolveReferences(AlarmSyntaxTree tree, DiagnosticBag diagnostics)
