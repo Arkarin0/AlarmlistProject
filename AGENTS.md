@@ -349,6 +349,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   through a weak document context. Detach on hide/close and invalidate pending
   preview actions on document switches. Keep previews outside the designer; reuse
   its captured analysis without creating another compiler or project subscription.
+  The alarm table excludes abstract templates and uses immutable notifying rows
+  from that same snapshot. Row selection drives read-only details without editing
+  the designer; filtering/sorting preserve literal values. Revalidate captured
+  inputs and selection/context lifetime before copying or navigating, including
+  ordinary text copies from the preview. Keep row virtualization enabled.
+  Materialize table rows only for the visible preview's document context, rather
+  than duplicating a project-wide table in every open editor view.
   Clear both previews during drafts or stale/unavailable analysis; project XML
   requires whole-project success. Require context-aware contract 3 and preview
   support, and copy XML as a string outside the required property map.

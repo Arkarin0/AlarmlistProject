@@ -315,7 +315,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             public AlmxDocumentModel Model { get; }
             public EditFileControlViewModel View { get; }
             public DesignerAnalysis Analysis { get; } = new DesignerAnalysis();
-            public SemanticSession(string child = ChildAlarm)
+            public SemanticSession(string child = ChildAlarm, bool previewTable = false)
             {
                 ZipFile.ExtractToDirectory(Path.Combine(AppContext.BaseDirectory, "testassets", "analysis-sdk.nupkg"), _directory);
                 BridgeOpenResult opened = new SdkAnalysisBridgeFactory().Open(Path.Combine(_directory, "tasks", "net472", "Alarmlist.Core.dll"));
@@ -326,6 +326,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 Model = new AlmxDocumentModel(Buffer, new AlmxEditingService());
                 View = new EditFileControlViewModel(Model, new AlarmViewModelFactory(), Analysis);
                 Analyze();
+                if (previewTable) View.SetPreviewTableActive(true);
             }
             public AlarmFieldViewModel Field(string name) => View.Fields.Single(field => field.Name == name);
             public void Analyze(string source = BaseAlarm)

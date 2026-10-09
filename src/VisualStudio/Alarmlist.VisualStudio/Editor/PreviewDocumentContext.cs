@@ -40,7 +40,9 @@ namespace Alarmlist.VisualStudio.Editor
         {
             if (ReferenceEquals(Source, source)) return;
             Source?.InvalidatePreviewActions();
+            Source?.SetPreviewTableActive(false);
             Source = source;
+            Source?.SetPreviewTableActive(true);
             Changed?.Invoke(this, EventArgs.Empty);
         }
 

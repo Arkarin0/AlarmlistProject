@@ -58,6 +58,8 @@ namespace Alarmlist.VisualStudio.UI
                 : state?.Status != ProjectAnalysisStatus.Available || state.Response?.Snapshot == null
                     ? state?.Message ?? "Waiting for current project analysis."
                 : !IsValid || !DiagnosticDocumentMatches(state) ? "Waiting for analysis of the current document." : null;
+            RefreshAlarmTable(state, alarm, unavailable);
+            alarm = SelectedPreviewRow?.Alarm ?? alarm;
             if (unavailable == null && ReferenceEquals(_previewState, state) && ReferenceEquals(_previewAlarm, alarm))
             {
                 // An unchanged result can still change command availability while
@@ -100,19 +102,17 @@ namespace Alarmlist.VisualStudio.UI
             }
             Notify(nameof(ResolvedFields)); Notify(nameof(ResolvedSections)); Notify(nameof(ResolvedPreviewMessage));
             Notify(nameof(CompiledXml)); Notify(nameof(XmlPreviewMessage)); Notify(nameof(PreviewContext));
+            Notify(nameof(CanUseProjectPreview));
+            SelectedPreviewRow?.GoToSourceCommand.Refresh();
         }
 
         private DelegateCommand PreviewNavigation(ProjectAnalysisState state, AnalysisAlarm alarm, AnalysisLocation location)
         {
-            bool CanNavigate() => CanUseAnalysis && location != null && alarm.IsResolved
-                && ReferenceEquals(_analysis.Current, state) && ReferenceEquals(CurrentAlarm(), alarm);
+            bool CanNavigate() => CanUseProjectPreview && location != null && alarm.IsResolved
+                && ReferenceEquals(_analysis.Current, state) && ReferenceEquals(_previewAlarm, alarm);
             return new DelegateCommand(() =>
             {
-                int version = _previewActionVersion;
-                if (CanNavigate()) StartAnalysisAction((current, selected) =>
-                {
-                    if (version == _previewActionVersion) Navigate(current, location);
-                });
+                if (CanNavigate()) StartPreviewAction(() => Navigate(state, location));
             }, CanNavigate);
         }
     }

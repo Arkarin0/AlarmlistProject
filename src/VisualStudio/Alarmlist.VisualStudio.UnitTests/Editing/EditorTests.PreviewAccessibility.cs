@@ -147,7 +147,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                         Assert.True(((IValueProvider)rowPeer.GetPattern(PatternInterface.Value)).IsReadOnly);
                     }
                     RenderPreview(control, palette + "-resolved", scale);
-                    ((TabControl)control.FindName("PreviewTabs")).SelectedIndex = 1;
+                    ((TabControl)control.FindName("PreviewTabs")).SelectedIndex = 2;
                     InheritanceAdornerTests.Pump();
                     TextBox xml = PreviewBox(control, "Compiled project XML");
                     xml.BringIntoView();

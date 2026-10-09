@@ -305,7 +305,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.True(InheritedValueBehavior.GetIsInherited(name));
                     Assert.Equal("Inherited", name.Text);
                     Assert.Contains("Inherited from Base", AutomationProperties.GetHelpText(name));
-                    ((TabControl)control.FindName("PreviewTabs")).SelectedIndex = 1;
+                    ((TabControl)control.FindName("PreviewTabs")).SelectedIndex = 2;
                     InheritanceAdornerTests.Pump();
                     TextBox xml = VisualChildren(control).OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Compiled project XML");
                     Assert.True(xml.IsReadOnly);

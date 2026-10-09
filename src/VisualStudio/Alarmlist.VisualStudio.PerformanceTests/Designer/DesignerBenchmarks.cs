@@ -51,6 +51,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             _analysis = new CapturedDesignerAnalysis(selected.FilePath, _project);
             _model = new AlmxDocumentModel(new ReadOnlyBuffer(selected), new AlmxEditingService());
             _view = new EditFileControlViewModel(_model, new AlarmViewModelFactory(), _analysis);
+            _view.SetPreviewTableActive(true);
             _view.Selected = _view.Alarms.Last();
             _host = new HwndSource(new HwndSourceParameters("ALMX performance")
                 { Width = 1000, Height = 900, WindowStyle = unchecked((int)0x80000000) });

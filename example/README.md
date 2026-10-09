@@ -19,9 +19,13 @@ the IDE; use **File > Open > Project/Solution** to open `Example.sln` yourself.
 3. Open **North > PressureLow.almx**, the linked file also included by South.
    Choose North, then South in **Analysis project context** to compare the same
    source against different bases. This demonstrates project-context selection.
-4. Expand **Resolved alarm preview**, **Test procedure**, and **Compiled project
-   XML preview**. Try **Override locally** on an inherited field or **Make local
-   copy** on Instructions, inspect the XML, and Undo.
+4. Open **View > Other Windows > Alarmlist Preview**. Its **Alarm table** shows
+   the current project's concrete alarms; filter or sort the columns, select a
+   row for **Selected alarm** details, and use **Compiled XML** for the whole
+   project. Ctrl+C or **Copy selected rows** copies a table selection. Double-click
+   a row to go to source. Resize or float the window for a larger table.
+   In the designer, expand **Test procedure**. Try **Override locally** on an
+   inherited field or **Make local copy** on Instructions, inspect the XML, and Undo.
 5. Choose **en** in **Preview language** on the native **Alarmlist** toolbar
    beside the standard VS controls. The default **keyword** displays literal
    `$(loc:Key)` expressions. Try **de-DE** to see German translations.

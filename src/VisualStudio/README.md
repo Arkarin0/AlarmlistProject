@@ -79,14 +79,22 @@ without automatic defaults or range validation. See the [format specification](H
 and the [North/South sample walkthrough](../../example/README.md#try-reusable-instructions-and-hmi-lookups).
 
 Open **View > Other Windows > Alarmlist Preview** for the dockable preview window.
-Its **Selected alarm** and **Compiled XML** tabs replace the designer's embedded
-preview sections. The window follows the active ALMX document, selected alarm,
+Its **Alarm table**, **Selected alarm** and **Compiled XML** tabs replace the
+designer's embedded preview sections. The window follows the active ALMX document, selected alarm,
 linked-project context and native Preview language toolbar. Moving focus into
 the window preserves unfinished designer edits; preview clears until they are
 committed or cancelled. Compiled XML requires a successful whole-project analysis
 and never writes build output. Source buttons revalidate the captured inputs.
 Closing the document or switching to another document clears its preview; reopening
 the window follows the current document. Visual Studio manages docking and layout.
+The alarm table includes every concrete alarm in the selected project context.
+Click column headings to sort; the filter searches resolved fields, identities
+and source paths. Select a row to inspect its details, or double-click/press Enter
+to navigate to its source. Source-path tooltips identify linked files. Ctrl+C or
+**Copy selected rows** copies the selection in display order as tab-separated
+text with column headings; tabs, newlines and quotes inside values are quoted.
+Copying revalidates saved resources/lookups and source snapshots first. Errors
+mark unavailable row values and disable compiled XML; drafts clear all previews.
 
 The bridge accepts analysis contract 3 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,

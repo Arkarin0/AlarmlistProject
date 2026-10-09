@@ -873,6 +873,33 @@ and `artifacts/log/Debug/VisualStudioUI/TestResults/37c6afe037fa4fabbdacf9d79c24
 The initial live checks caught menu naming and toolbar routing issues; both were
 fixed before these passing runs.
 
+P1 is committed as `e081f48` (Move resolved previews into a dockable Visual Studio
+window). P2 adds the project-wide **Alarm table** tab with six resolved columns,
+case-insensitive filtering and sorting, source-path tooltips, multi-row TSV copying,
+and keyboard/source navigation. Selecting a row updates the Selected alarm tab
+without editing or changing the designer's alarm selection. Abstract templates are
+excluded; unavailable values are marked when other project errors prevent output.
+The table follows the active document, linked-project context and preview culture.
+
+Table rows are allocated only for the visible preview's active document. Immutable,
+notifying rows and a virtualized grid preserve selection on unchanged results and
+release old snapshots on context changes. Copying rows or selected preview text
+and navigating revalidate captured inputs; late operations are rejected after
+drafts, selection/context changes, hiding or disposal. No source or build-output
+files are written. The example walkthrough now covers all three tabs.
+
+P2 validation: all 329 extension unit tests passed, including themed BAML,
+initial/reopened selection, snapshot lifetime and stale-action rejection. The
+packaged VSIX/template consumer suites passed 11 tests on each of net472 and
+net8.0. Performance harness validation passed 26 tests; six opt-in measurements
+were skipped, so this does not claim new performance measurements. Both Preview
+and PreviewTable live scenarios passed on the final extension in VS2026 and
+VS2022 (two cases per host). They cover row/detail Ctrl+C, Enter navigation,
+sorting/filtering, culture changes, private drafts, context changes and unchanged
+source/output bytes. Final TRX directories:
+`artifacts/log/Debug/VisualStudioUI/TestResults/d6568b611bbb4ed69622bc00f22e5572/`
+and `artifacts/log/Debug/VisualStudioUI/TestResults/d42d0b313c804ebab0c7c0b27290d793/`.
+
 ## Architecture and reference basis
 
 - Follow Roslyn's separation of captured additional text and compiler options:
