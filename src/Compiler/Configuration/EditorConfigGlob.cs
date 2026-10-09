@@ -12,13 +12,13 @@ namespace Alarmlist.Configuration
     internal sealed class EditorConfigGlob
     {
         private readonly Regex _regex;
-        private readonly bool _matchBasename;
 
         private EditorConfigGlob(string pattern)
         {
-            _matchBasename = !HasPathSeparator(pattern);
+            bool matchAtAnyDepth = !HasPathSeparator(pattern);
             if (pattern.StartsWith("/", StringComparison.Ordinal)) pattern = pattern.Substring(1);
-            _regex = new Regex("\\A" + Translate(pattern) + "\\z", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+            _regex = new Regex("\\A" + (matchAtAnyDepth ? "(?:.*/)?" : "") + Translate(pattern) + "\\z",
+                RegexOptions.CultureInvariant | RegexOptions.Singleline, TimeSpan.FromSeconds(1));
         }
 
         internal static EditorConfigGlob TryCreate(string pattern)
@@ -30,7 +30,6 @@ namespace Alarmlist.Configuration
 
         internal bool IsMatch(string path)
         {
-            if (_matchBasename) path = path.Substring(path.LastIndexOf('/') + 1);
             try { return _regex.IsMatch(path); }
             catch (RegexMatchTimeoutException) { return false; }
         }
@@ -48,7 +47,10 @@ namespace Alarmlist.Configuration
                     if (i + 1 < pattern.Length && pattern[i + 1] == '*')
                     {
                         i++;
-                        if (i + 1 < pattern.Length && pattern[i + 1] == '/') { result.Append("(?:.*/)?"); i++; }
+                        // Only a complete **/ directory component can disappear.
+                        // A prefix such as Plant**/ still requires its slash.
+                        if ((i == 1 || pattern[i - 2] == '/') && i + 1 < pattern.Length && pattern[i + 1] == '/')
+                        { result.Append("(?:.*/)?"); i++; }
                         else result.Append(".*");
                     }
                     else result.Append("[^/]*");

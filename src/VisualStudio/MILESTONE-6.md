@@ -96,13 +96,13 @@ Validation on 2026-10-09:
 
 | Suite | Release result |
 | --- | --- |
-| Compiler | 420 passed per net472/net8.0 |
+| Compiler | 430 passed per net472/net8.0 |
 | MSBuild unit | 64 passed per net472/net8.0 |
 | MSBuild integration | 4 passed per net472/net8.0 |
 | Packaged SDK consumers | 46 passed per net472/net8.0 |
 | VS unit | 344 passed, net472 |
 | VSIX/template consumers | 11 passed per net472/net8.0 |
-| Performance infrastructure | 26 passed; 8 opt-in cases skipped |
+| Performance infrastructure | 26 passed; 9 opt-in cases skipped |
 | Functional UI | Compiles; all 38 opt-in cases skipped in ordinary run |
 
 Command: `dotnet test AlarmlistProject.slnx --configuration Release --nologo -v:minimal`.
@@ -145,3 +145,17 @@ contains raw CSV/JSON and reports. UI records are under
 `artifacts/log/Release/VisualStudioUI/ConfiguredAnalyzer/2022/41f66b0a104a4c6397069568b6a9d9c2/`
 and `2026/9bdd80f93d66433ab209b699239a1197/`. Generated local runsettings select
 the test hosts and flags and are not checked in.
+
+## Glob correction iteration 3
+
+Reviewing the [upstream glob cases](https://github.com/editorconfig/editorconfig-core-test/tree/master/glob)
+against the [current specification](https://spec.editorconfig.org/#glob-expressions)
+identified two path-matching defects: a slash-free `Plant**Alarm.almx` must still
+allow `**` to span directory separators, while `Plant**/Alarm.almx` must retain its
+explicit slash. Added ten regressions and corrected the shared matcher. This review
+does not establish full upstream conformance; older core-test expectations for
+character ranges differ from the current specification's literal bracket sequences.
+The full Release solution run passed again after this correction: 1,480 ordinary
+tests passed and 47 opt-in cases skipped. The targeted desktop/IDE/benchmark runs
+above preceded this final matcher correction; their simple `*.almx` configurations
+were unchanged. No additional live or timing claim is made for the ten new patterns.
