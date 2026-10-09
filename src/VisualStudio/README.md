@@ -5,6 +5,11 @@ templates, Solution Explorer file management, project properties, and
 Build/Rebuild/Clean through `Alarmlist.MSBuild.SDK`. Compiler errors are reported
 through the standard MSBuild logger and Visual Studio Error List.
 
+**Add > New Item > Alarmlist > Translations (RESX)** creates a resource file and
+opens Visual Studio's resource editor. Keep a culture suffix in its name, such as
+`Translations.en.resx` (the default) or `Translations.de.resx`. It is included as
+an `AlarmlistResource`; saved string entries are available to `$(loc:Key)` expressions.
+
 Milestone two adds a WPF MVVM editor with **Designer**, **Split**, and **XML**
 modes. The designer and embedded Visual Studio source view share one document
 buffer, including edits made from additional windows. The
@@ -53,26 +58,107 @@ interactive-desktop and release acceptance gates.
 Alarm-field properties read resolved values; custom parameter assignments remain
 literal. Explicit-empty assignments stop fallback, while unassigned parameters
 use outer scopes and cause errors only when used unresolved by a concrete alarm.
-Milestone three's remaining release checks stay open. Localization and NuGet alarm
-libraries remain for later milestones.
+Milestone three's remaining release checks stay open. Milestone five localization
+is in progress; see its [iteration results](MILESTONE-5.md). NuGet alarm libraries
+remain for a later milestone.
 
-The bridge accepts analysis contract 2 and loads the resolved SDK's net472 compiler
+Milestone five also supports reusable named templates such as
+`$(loc:Instruction.Set, path=$(path:Service.Vakuum), value="60")`.
+External tools supply `.almlookup` XML catalogues; the SDK includes the XSD.
+Saved RESX entries translate each path segment and member label in the same
+selected culture. General named lists also supply literal identifiers with optional
+translated descriptions and metadata. Explicit Template/Argument mappings provide
+contextual Ctrl+Space choices in quoted argument values; selecting replaces the
+whole value with a `$(list:List#Entry)` reference. Direct list completion is also
+available in scalar fields and procedure rows. See the
+[electrical sample](../../example/README.md#try-supplied-lists-and-electrical-instructions).
+Completion inserts named argument slots and path/member/metadata
+references while preserving local drafts. Saved catalogue regeneration refreshes
+preview; unsaved lookup XML remains private. Metadata provides selection guidance
+without automatic defaults or range validation. See the [format specification](HMI-LOOKUPS.md)
+and the [North/South sample walkthrough](../../example/README.md#try-reusable-instructions-and-hmi-lookups).
+
+Open **View > Other Windows > Alarmlist Preview** for the dockable preview window.
+Its **Alarm table**, **Selected alarm** and **Compiled XML** tabs replace the
+designer's embedded preview sections. The window follows the active ALMX document, selected alarm,
+linked-project context and native Preview language toolbar. Moving focus into
+the window preserves unfinished designer edits; preview clears until they are
+committed or cancelled. Compiled XML requires a successful whole-project analysis
+and never writes build output. Source buttons revalidate the captured inputs.
+Closing the document or switching to another document clears its preview; reopening
+the window follows the current document. Visual Studio manages docking and layout.
+The alarm table includes every concrete alarm in the selected project context.
+Click column headings to sort; the filter searches resolved fields, identities
+and source paths. Select a row to inspect its details, or double-click/press Enter
+to navigate to its source. Source-path tooltips identify linked files. Ctrl+C or
+**Copy selected rows** copies the selection in display order as tab-separated
+text with column headings; tabs, newlines and quotes inside values are quoted.
+Copying revalidates saved resources/lookups and source snapshots first. Errors
+mark unavailable row values and disable compiled XML; drafts clear all previews.
+
+The bridge accepts analysis contract 3 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off
 the UI thread, recreating the bridge after SDK/configuration changes. The project
 service now owns that lifecycle and input subscriptions, debounces edits by 250 ms,
 and clears stale results immediately. Generation, text, and buffer identity checks
-guard publication. XML-only editor buffers take precedence over disk, and drafts
+guard publication. ALMX XML-only editor buffers take precedence over disk, and drafts
 that have not reached the shared buffer remain outside analysis. A context registry
 keeps linked projects separate; each view can choose its owning project context.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
-Contract 2 requires captured-context analysis and compiled preview support. It
-copies raw expressions, evaluated values, abstract state, availability, and separate
+Contract 3 requires captured-context analysis and compiled preview support. It
+copies selected culture, saved-resource identities/versions, raw catalogue entries,
+translation origins and alarm-specific localization uses, as well as raw expressions,
+evaluated values, abstract state, availability, and separate
 parameter declaration/assignment origins. Older SDK contracts receive explicit
 update guidance. CPS captures project parameters/configuration, and the designer
 uses those results for property completion, scoped values and expression displays.
+
+CPS also captures evaluated AlarmlistResource items and AlarmlistCulture. Resource
+analysis reads saved RESX contents only, including while native or XML resource
+editors contain drafts. Save/external changes refresh preview and diagnostics in
+each linked project context; Undo/discard of unsaved resources retain the saved
+translation. Current Resource Explorer saves when a cell edit is committed.
+Missing/invalid saved resources report errors without substituting buffer contents.
+Content is recaptured before publication and navigation to reject stale results.
+Run `eng/test-visualstudio.ps1 -Filter 'Area=Localization'` with the documented
+host path/profile options to exercise saved-resource behavior in the owned IDE.
+
+The **Preview language** selector lives in the native **Alarmlist** toolbar,
+separate from the designer. It follows the active ALMX editor and its selected
+project context, including linked files and XML views. Visual Studio manages its
+docking and customization; it is also available under **View > Toolbars > Alarmlist**.
+It lists keyword, resource cultures and configured build cultures.
+Changes persist the shared AlarmlistCulture through CPS; global values are fixed,
+and read-only/overridden project settings report an error. Choosing a language
+does not commit an ALMX draft or change AlarmlistCultures. Focused expression
+fields retain their raw text and selection during analysis refresh.
+Leaving the designer for a shell control keeps a draft private. Enter, Save,
+layout changes, and moving to another designer field still commit it.
+The toolbar uses the SDK's [native combo command pattern](https://github.com/microsoft/VSSDK-Extensibility-Samples/tree/master/Combo_Box)
+and editor command routing, without a global reference to an editor or project.
+
+Type `$(loc:` or use Ctrl+Space in expression fields for case-sensitive key
+completion. Suggestions show saved translation text, parent-culture provenance
+and comments; used translations can show evaluated values outside drafts. Enter
+or Tab inserts the full token into the draft; a subsequent Enter commits it.
+Escape first closes completion, then cancels the draft. Saved inputs are checked
+again before displaying and accepting localization suggestions. RESX diagnostics
+open the XML source editor for line navigation without saving resource buffers.
+
+For translation handoff, the SDK's explicit `ExportAlarmlistXliff` target exports
+saved RESX values while unsaved resource buffers stay private. The project
+property page exposes **XLIFF source culture**, defaulting to English (`en`).
+See the [SDK export commands](../SDK/Alarmlist.SDK/README.md#xliff-translation-export).
+Use a terminal for export so an IDE Build/Save All cannot save documents first.
+The [SDK import workflow](../SDK/Alarmlist.SDK/README.md#xliff-translation-import)
+provides dry-run review and explicit apply. Save or discard pending changes and
+close affected RESX editors before apply, including XML views. The importer also
+protects unfinished native cells that have not marked their document dirty.
+Successful imports refresh saved-resource analysis; reopen the native editor to
+inspect the result. Vendor interoperability remains pending.
 
 The repository-wide [future feature notes](../../FUTURE-FEATURES.md) capture
 well-known and custom properties, localization, broader IntelliSense, and syntax
@@ -375,10 +461,13 @@ automated smoke; creating the fixture does not validate the UI.
 
 For manual testing, run `scripts/start-vs2022.bat` or `scripts/start-vs2026.bat`.
 Each launcher finds the matching installed Visual Studio, builds and deploys the
-extension, then opens its `AlarmlistExp` instance. Close that experimental instance
-before rerunning the launcher. Add `--deploy-only` to build and deploy without
-opening the IDE. The launcher prints the SDK package feed to configure for your
-test solution as described above.
+extension, prepares the matching SDK for [the example playground](../../example/README.md),
+then opens `example/Example.sln` in its `AlarmlistExp` instance. The example contains
+local alarms, multi-file inheritance, linked North/South contexts, and procedure
+Clear cases. Its SDK feed/version/cache are configured automatically; exploratory
+source edits are preserved. Close that experimental instance before rerunning the
+launcher. Add `--deploy-only` to build, deploy, and prepare without opening the IDE.
+For other test solutions, configure the SDK package feed as described above.
 
 For F5 debugging, open the solution in **Visual Studio 2022 or 2026**, set
 `Alarmlist.VisualStudio` as the startup project, and build/start it. IDE builds

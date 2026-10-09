@@ -24,7 +24,7 @@
     <AlarmlistBuildTask OutputDirectory="$(OutputPath)"
                         OutputFileName="$(CompiledAlarmlistFileName)"
                         Compile="@(Compile)">
-      <Output TaskParameter="OutputFile" PropertyName="CompiledAlarmlistFile" />
+      <Output TaskParameter="OutputFiles" ItemName="CompiledAlarmlistFiles" />
     </AlarmlistBuildTask>
   </Target>
 </Project>

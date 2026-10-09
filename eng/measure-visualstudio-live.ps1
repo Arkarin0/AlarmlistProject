@@ -74,7 +74,7 @@ function Wait-For($Action, [string]$Description, [int]$PollMilliseconds = 500) {
 }
 
 function Assert-AlarmCount([int]$Expected) {
-  [xml]$compiled = Get-Content (Join-Path $projectDirectory 'bin/Debug/Plant.Alarmlist.xml')
+  [xml]$compiled = Get-Content (Join-Path $projectDirectory 'bin/Debug/keyword/Plant.Alarmlist.xml')
   if (@($compiled.AlarmList.Alarm).Count -ne $Expected) {
     throw "Expected $Expected compiled alarms."
   }
@@ -235,7 +235,7 @@ try {
   if ($dte.Solution.SolutionBuild.LastBuildInfo -ne 0) { throw 'The new project did not build.' }
   Assert-AlarmCount 1
   Write-Output 'Created a project from the installed template and built its starter alarm.'
-  $outputFile = Join-Path $projectDirectory 'bin/Debug/Plant.Alarmlist.xml'
+  $outputFile = Join-Path $projectDirectory 'bin/Debug/keyword/Plant.Alarmlist.xml'
   $livePath = Join-Path $projectDirectory 'Live.almx'
   $liveText = "<Alarmlist>`r`n  <Alarm><FullyQualifiedName>Live</FullyQualifiedName>`r`n    <ReferenceName>MissingLive</ReferenceName></Alarm>`r`n</Alarmlist>"
   $liveMessage = "Alarm 'Live' references missing alarm 'MissingLive'."

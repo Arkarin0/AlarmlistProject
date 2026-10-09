@@ -53,8 +53,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     + "\nPID: " + _process.Id + "\nStarted UTC: " + _process.StartTime.ToUniversalTime().ToString("O"));
                 Wait(() => { _dte = (DTE)VisualStudioAutomation.Find(_process.Id); return _dte != null; }, "owned IDE automation");
                 Wait(() => _dte.Solution.IsOpen, "empty solution startup");
-                _dte.SuppressUI = true;
-                _dte.MainWindow.Visible = true;
+                Wait(() =>
+                {
+                    _dte.SuppressUI = true;
+                    _dte.MainWindow.Visible = true;
+                    return true;
+                }, "IDE automation readiness");
             }
             catch (Exception exception)
             {
@@ -113,7 +117,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         public void RequireForeground()
         {
             GetWindowThreadProcessId(GetForegroundWindow(), out uint processId);
-            if (processId != _process.Id) throw new InvalidOperationException("The test IDE lost foreground focus; refusing keyboard input.");
+            if (processId != _process.Id) throw new InvalidOperationException(
+                $"The test IDE (PID {_process.Id}) lost foreground focus to PID {processId}; refusing keyboard input.");
         }
 
         public void Dispose()
@@ -158,7 +163,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             do
             {
                 try { if (condition()) return; }
-                catch (COMException exception) when (exception.HResult == unchecked((int)0x80010001) || exception.HResult == unchecked((int)0x8001010A)) { }
+                // The UIA provider can time out while the first designer tree is
+                // being created. Retry within the same bounded readiness wait.
+                catch (COMException exception) when (exception.HResult == unchecked((int)0x80010001)
+                    || exception.HResult == unchecked((int)0x8001010A) || exception.HResult == unchecked((int)0x80131505)) { }
                 Thread.Sleep(100);
             } while (timer.Elapsed < TimeSpan.FromSeconds(60));
             throw new TimeoutException("Timed out: " + description);

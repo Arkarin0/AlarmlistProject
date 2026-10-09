@@ -10,7 +10,7 @@ measurements remain in `Alarmlist.VisualStudio.PerformanceTests`.
 
 ## Coverage
 
-Each scenario has separate VS2022 and VS2026 xUnit cases (18 live cases total):
+Each scenario has separate VS2022 and VS2026 xUnit cases:
 
 | Scenario | Observable checks | Area trait |
 | --- | --- | --- |
@@ -23,12 +23,34 @@ Each scenario has separate VS2022 and VS2026 xUnit cases (18 live cases total):
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
 | Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, raw override and saved build parity | `Properties` |
 | Linked property contexts | North/South project values, configuration reevaluation, shared unsaved file assignment, property diagnostics before Build, discard and unload/reload | `Properties` |
+| Native resource editor | Open RESX in an ALMX project, retain saved disk contents during cell drafts, Undo/Escape drafts, commit a cell, Save, and reopen | `Resources` |
+| Saved localization and linked contexts | Native drafts stay private, save/external changes refresh two project scopes, independent language choices persist after reopening | `Localization` |
+| Language and saved completion | Keyword default, culture choice during ALMX drafts, saved-only completion while RESX XML is dirty, token insertion/Undo, save refresh and resource diagnostic navigation | `Localization` |
+| Saved XLIFF export | Explicit external MSBuild export uses saved RESX while its XML buffer stays dirty; source and compiled output bytes stay unchanged | `Xliff` |
+| XLIFF import | Dry run, dirty XML/native-cell refusal, closed-resource apply, preview refresh, repeat import and compiled output after Build; desktop MSBuild on VS2022 and .NET MSBuild on VS2026 | `XliffImport` |
+| Lookup and template completion | Saved metadata choices while lookup XML is dirty, named argument slots, expression insertion/Undo, keyword and translated preview, saved catalogue regeneration, unchanged source/output bytes | `Lookups` |
+| Named list completion | Contextual argument choices, saved list inputs, translated descriptions and literal identifiers | `Lists` |
+| Preview window | Docking, active-document/culture changes, private drafts, source navigation, closing and reopening | `Preview` |
+| Alarm table | Concrete alarms, localized values, sorting/filtering, validated copying, keyboard source navigation and draft clearing | `PreviewTable` |
 
 Project and document lifecycle checks retain the former smoke script's shell/API
 operations. They do not simulate clicks through New Project or Save As dialogs.
 The keyboard case does not replace physical input with buffer/property assignment.
 Dialogs, visual appearance and remaining host interactions still have
 [interactive acceptance checks](../ACCEPTANCE.md).
+
+The resource case verifies Visual Studio's native authoring/save boundary. The
+localization cases verify preview and completion refresh. They use the Resource
+Explorer table on the installed VS2022/VS2026 hosts; the older VS2022 17.9 resource
+editor surface remains a separate support check.
+Resource Explorer saves a committed cell automatically on the verified VS2022
+17.14 and VS2026 hosts; the case checks that unfinished cell drafts remain off disk.
+Alarmlist
+still consumes only saved files and does not trigger saves itself.
+The resource-creation case waits for Resource Explorer initialization before
+closing its new document. Native-cell cases hide a restored Alarmlist Preview
+window only in their owned IDE so a persisted floating pane cannot cover the
+cell. Foreground and focused-field guards still precede keyboard input.
 
 ## Run
 
@@ -78,6 +100,11 @@ try {
   foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name, $previous[$name]) }
 }
 ```
+
+The `Area=Preview` cases verify the dockable Alarmlist Preview window, active
+document/culture changes, draft preservation, source navigation and close/reopen.
+`Area=PreviewTable` covers concrete rows, culture-aware values, sorting/filtering,
+multiple-row copy, table-to-detail selection, source navigation and draft clearing.
 
 Filter by `VSVersion=2022`, `VSVersion=2026`, or `Area=LiveDiagnostics` (combine
 with `&`). Unconfigured hosts skip; an explicitly configured missing or wrong

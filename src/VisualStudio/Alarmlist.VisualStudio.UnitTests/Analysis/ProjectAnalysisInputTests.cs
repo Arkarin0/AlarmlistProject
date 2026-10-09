@@ -20,7 +20,7 @@ using Xunit;
 
 namespace Alarmlist.VisualStudio.UnitTests.Analysis
 {
-    public class ProjectAnalysisInputTests
+    public partial class ProjectAnalysisInputTests
     {
         [Fact]
         public async Task ProjectServiceUsesThePackagedCompilerForUnsavedCrossFileInheritanceAsync()

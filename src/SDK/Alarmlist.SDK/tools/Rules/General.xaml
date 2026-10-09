@@ -6,6 +6,17 @@
   </Rule.DataSource>
   <StringProperty Name="OutputPath" DisplayName="Output directory" Description="Directory for the compiled alarm list." />
   <StringProperty Name="CompiledAlarmlistFileName" DisplayName="Output filename" Description="Filename of the compiled XML alarm list." />
+  <StringProperty Name="AlarmlistCultures" DisplayName="Build cultures" Description="Semicolon-separated cultures to build. Empty defaults to keyword." />
+  <StringProperty Name="AlarmlistCulture" DisplayName="Preview culture" Description="Project preview language, independent of build cultures. Empty defaults to keyword.">
+    <StringProperty.DataSource><DataSource Persistence="ProjectFile" HasConfigurationCondition="False" /></StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="AlarmlistXliffSourceCulture" DisplayName="XLIFF source culture" Description="Source language for explicit translation export. Defaults to English (en); does not affect build or preview fallback.">
+    <StringProperty.DataSource><DataSource Persistence="ProjectFile" HasConfigurationCondition="False" /></StringProperty.DataSource>
+  </StringProperty>
+  <BoolProperty Name="EnableDefaultAlarmlistResourceItems" DisplayName="Include RESX files automatically"
+                Description="Include RESX translation files in this project and its subdirectories, except excluded directories.">
+    <BoolProperty.DataSource><DataSource Persistence="ProjectFile" HasConfigurationCondition="False" /></BoolProperty.DataSource>
+  </BoolProperty>
   <BoolProperty Name="EnableDefaultCompileItems" DisplayName="Include ALMX files automatically"
                 Description="Include ALMX files in this project and its subdirectories, except excluded directories.">
     <BoolProperty.DataSource>

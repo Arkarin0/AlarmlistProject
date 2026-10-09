@@ -19,7 +19,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void OverrideButtonFocusesVisibleDraftAfterExpandedPreviewClears(bool present)
+        public void OverrideButtonFocusesVisibleDraftWhenPreviewClears(bool present)
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
@@ -29,8 +29,6 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 {
                     var control = new EditFileControl(session.View) { Width = 900, Height = 800 };
                     host.RootVisual = control;
-                    InheritanceAdornerTests.Pump();
-                    VisualChildren(control).OfType<Expander>().Single(item => Equals(item.Header, "Resolved alarm preview")).IsExpanded = true;
                     InheritanceAdornerTests.Pump();
                     Button button = VisualChildren(control).OfType<Button>().Single(item =>
                         Equals(item.Content, "Override locally") && item.DataContext == session.Field("Name"));

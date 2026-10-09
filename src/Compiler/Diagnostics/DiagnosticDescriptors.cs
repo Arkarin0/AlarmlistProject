@@ -4,6 +4,31 @@ namespace Alarmlist.Diagnostics
 {
     public static class DiagnosticDescriptors
     {
+        public static readonly DiagnosticDescriptor DuplicateLookupEntry = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.DuplicateLookupEntry, "Duplicate list entry", "Lookup entry '{0}#{1}' is declared more than once.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidCompletionBinding = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidCompletionBinding, "Invalid completion binding", "Invalid completion binding for '{0}' argument '{1}': {2}.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidLookup = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidLookup, "Invalid lookup catalogue", "Invalid lookup catalogue: {0}", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor DuplicateLookupPath = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.DuplicateLookupPath, "Duplicate lookup path", "Lookup path '{0}' is declared more than once.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor MissingLookup = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.MissingLookup, "Unresolved lookup expression", "Cannot resolve lookup expression '{0}': {1}.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidLocalizationArguments = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidLocalizationArguments, "Invalid localization arguments", "Localization template '{0}': {1}.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidLocalizationCulture = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidLocalizationCulture, "Invalid localization culture", "Unsupported localization culture '{0}'.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidResource = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidResource, "Invalid RESX resource", "Invalid RESX resource: {0}", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor DuplicateResourceKey = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.DuplicateResourceKey, "Duplicate resource key", "Resource key '{0}' is declared more than once for culture '{1}'.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidLocalizationKey = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidLocalizationKey, "Invalid localization key", "Invalid localization key '{0}'.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor MissingTranslation = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.MissingTranslation, "Missing translation", "No nonempty translation for key '{0}' in culture '{1}' or its parent cultures.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor NestedLocalizationExpression = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.NestedLocalizationExpression, "Nested localization expression", "Translation for key '{0}' requested in culture '{1}' contains an unsupported nested localization expression.", DiagnosticSeverity.Error);
+
         public static readonly DiagnosticDescriptor InvalidAbstract = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidAbstract, "Invalid abstract attribute", "Alarm '{0}' has invalid abstract value '{1}'.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidExpression = new DiagnosticDescriptor(

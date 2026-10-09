@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="AlarmlistResource" DisplayName="Alarm translations" PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" ItemType="AlarmlistResource" HasConfigurationCondition="False" />
+  </Rule.DataSource>
+  <StringProperty Name="Identity" DisplayName="File name" ReadOnly="True">
+    <StringProperty.DataSource><DataSource Persistence="Intrinsic" ItemType="AlarmlistResource" PersistedName="Identity" /></StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="FullPath" DisplayName="Full path" ReadOnly="True">
+    <StringProperty.DataSource><DataSource Persistence="Intrinsic" ItemType="AlarmlistResource" PersistedName="FullPath" /></StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="Culture" DisplayName="Culture" Description="Override the filename culture. An explicitly empty value marks a keyword catalogue." />
+  <BoolProperty Name="Visible" Visible="False" />
+  <StringProperty Name="Link" Visible="False" />
+  <StringProperty Name="DependentUpon" Visible="False" />
+</Rule>

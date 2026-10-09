@@ -48,6 +48,19 @@ For direct `dotnet test` use, set those variables explicitly and select Release
 and `RunConfiguration.TargetPlatform=x64`. Traits support `Area=Bridge`,
 `Area=Designer`, and `Host=Isolated`. Traits alone do not enable a skipped test.
 
+`Area=Localization` measures 1,000 alarms across ten ALMX files with 10,002
+saved translations across twelve RESX snapshots. It includes named instruction
+arguments, inherited procedures, alarm-field expressions inside translations,
+parent-culture lookup, and switching between de-DE and en-US. The unused part
+of the catalogue also participates in completion and captured analysis.
+Correctness checks verify resolved values and compiler-reported parent origins
+outside the timing interval. The designer uses the captured resources from the
+same analysis and filters localization suggestions in its completion benchmark.
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Localization'
+```
+
 Results live under `artifacts/log/Release/AnalysisPerformance/<run-id>/`:
 TRX, revision/working-tree and runtime metadata, per-scenario BenchmarkDotNet logs,
 raw measurement CSVs, full JSON and Markdown summaries. xUnit checks the expected

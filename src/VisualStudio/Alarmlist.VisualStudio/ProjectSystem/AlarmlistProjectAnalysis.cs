@@ -1,7 +1,9 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,7 +49,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 if (_analysis != null) return;
                 _analysis = new ProjectAnalysisService(new ProjectAnalysisInputSource(_documents), _factory, ThreadHelper.JoinableTaskContext);
                 _diagnosticSubscription = _diagnostics.Attach(_analysis);
-                _registry.Add(_analysis);
+                _registry.Add(_analysis, SetPreviewCultureAsync);
                 _active.Changed += OnActiveChanged;
                 _updates = new ActionBlock<IProjectVersionedValue<IProjectSnapshot>>(OnEvaluation,
                     new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 1 });
@@ -57,6 +59,32 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         }
 
         protected override Task InitializeCoreAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        private async Task SetPreviewCultureAsync(AnalysisProject expected, string culture, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            ConfiguredProject active;
+            lock (_gate)
+            {
+                DisposalToken.ThrowIfCancellationRequested();
+                active = _active.ActiveConfiguredProject;
+                if (_analysis == null || !ReferenceEquals(expected, _analysis.Current.Project) || active == null
+                    || active.ProjectConfiguration.Name != expected.Configuration)
+                    throw new InvalidOperationException("The project context changed. Choose the preview language again.");
+            }
+            if (expected.IsPreviewCultureGlobal)
+                throw new InvalidOperationException("AlarmlistCulture is a global property and cannot be changed in the designer.");
+            if ((File.GetAttributes(expected.ProjectPath) & FileAttributes.ReadOnly) != 0)
+                throw new IOException("The project file is read-only. The preview language was not changed.");
+            var properties = active.Services.ProjectPropertiesProvider.GetCommonProperties();
+            // Empty dimensions persist a shared project property, independently of
+            // the active build configuration and the plural build-culture list.
+            await properties.SetPropertyValueAsync("AlarmlistCulture", culture, new Dictionary<string, string>());
+            await active.UnconfiguredProject.SaveAsync(null);
+            string evaluated = await properties.GetEvaluatedPropertyValueAsync("AlarmlistCulture");
+            if (!string.Equals(evaluated, culture, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Another project definition overrides AlarmlistCulture. The evaluated preview language remains " + evaluated + ".");
+        }
 
         // CPS can dispose the project scope without changing its capabilities.
         // Release registrations, watchers and the SDK domain on that path too.

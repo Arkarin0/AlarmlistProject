@@ -127,7 +127,7 @@ try {
   foreach ($name in @('North', 'South')) {
     & dotnet msbuild "$name/$name.almproj" /restore /t:Build /nr:false /v:minimal "/bl:$name.binlog"
     if ($LASTEXITCODE -ne 0) { throw "Acceptance fixture build failed: $runDirectory" }
-    [xml]$compiled = Get-Content "$name/bin/Debug/$name.Alarmlist.xml" -Encoding UTF8
+    [xml]$compiled = Get-Content "$name/bin/Debug/keyword/$name.Alarmlist.xml" -Encoding UTF8
     $child = @($compiled.AlarmList.Alarm | Where-Object { $_.FullyQualifiedName -eq 'Shared.Child' })
     if ($child.Count -ne 1 -or $child[0].Name -ne "$name inherited name" -or $child[0].Code -ne 'LOCAL' -or
       $child[0].TestProcedure.Reset.InnerText -ne 'Shared reset only' -or
@@ -141,7 +141,7 @@ try {
       throw "Unexpected scoped-property fixture values for $name."
     }
   }
-  Get-FileHash Shared/Child.almx, Shared/Properties.almx, North/Base.almx, South/Base.almx, North/North.almproj, South/South.almproj, North/bin/Debug/North.Alarmlist.xml, South/bin/Debug/South.Alarmlist.xml |
+  Get-FileHash Shared/Child.almx, Shared/Properties.almx, North/Base.almx, South/Base.almx, North/North.almproj, South/South.almproj, North/bin/Debug/keyword/North.Alarmlist.xml, South/bin/Debug/keyword/South.Alarmlist.xml |
     Select-Object @{Name='File'; Expression={ $_.Path.Substring($runDirectory.Length + 1) }}, Hash |
     ConvertTo-Json | Set-Content baseline-hashes.json -Encoding UTF8
   git -C $repoRoot rev-parse HEAD | Set-Content commit.txt

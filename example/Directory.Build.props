@@ -1,0 +1,3 @@
+<Project>
+  <!-- This is an SDK consumer, so do not inherit the repository's Arcade build. -->
+</Project>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Pump.Name" xml:space="preserve">
+    <value>North pump pressure low</value>
+  </data>
+  <data name="Pump.Category" xml:space="preserve">
+    <value>North utilities</value>
+  </data>
+  <data name="Pump.Description" xml:space="preserve">
+    <value>North pump supply pressure is below its limit. Inspect inlet &amp; outlet gauges.</value>
+  </data>
+  <data name="Pump.Inspect" xml:space="preserve">
+    <value>Inspect $(par1): check the North pump and inlet valve.</value>
+    <comment>The inherited translation uses the consuming alarm's par1 value.</comment>
+  </data>
+  <data name="Pump.Isolate" xml:space="preserve">
+    <value>Isolate the North pump before maintenance.</value>
+  </data>
+  <data name="Pump.Acknowledge" xml:space="preserve">
+    <value>Acknowledge the alarm at the North station.</value>
+  </data>
+  <data name="Panel.Name" xml:space="preserve">
+    <value>North control panel pressure alarm</value>
+  </data>
+  <data name="Panel.Compare" xml:space="preserve">
+    <value>Use the panel trend to compare the current and previous readings.</value>
+  </data>
+  <data name="Panel.Confirm" xml:space="preserve">
+    <value>Confirm the affected pump on the control panel.</value>
+  </data>
+  <data name="Air.Name" xml:space="preserve">
+    <value>Compressed air pressure low</value>
+  </data>
+  <data name="Air.Category" xml:space="preserve">
+    <value>Compressed air</value>
+  </data>
+  <data name="Air.Description" xml:space="preserve">
+    <value>The compressed air supply pressure is below the configured threshold.</value>
+  </data>
+  <data name="Air.Compressor" xml:space="preserve">
+    <value>Check compressor availability.</value>
+  </data>
+  <data name="Air.Valve" xml:space="preserve">
+    <value>Inspect the main supply valve.</value>
+  </data>
+  <data name="Air.Reset" xml:space="preserve">
+    <value>Restore supply pressure and acknowledge the alarm.</value>
+  </data>
+  <data name="NewAlarm.Name" xml:space="preserve">
+    <value>New alarm</value>
+  </data>
+  <data name="Example.Name" xml:space="preserve">
+    <value>Example alarm</value>
+  </data>
+  <data name="Example.Description" xml:space="preserve">
+    <value>Replace this alarm with your own definition.</value>
+  </data>
+</root>

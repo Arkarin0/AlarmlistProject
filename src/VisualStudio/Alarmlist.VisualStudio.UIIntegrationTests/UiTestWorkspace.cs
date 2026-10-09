@@ -17,7 +17,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         public string SolutionPath => Path.Combine(DirectoryPath, "UI.sln");
         public string ProjectDirectory => Path.Combine(DirectoryPath, "Plant");
         public string AlarmPath => Path.Combine(ProjectDirectory, "Alarms.almx");
-        public string OutputPath => Path.Combine(ProjectDirectory, "bin", "Debug", "Plant.Alarmlist.xml");
+        public string OutputPath => Path.Combine(ProjectDirectory, "bin", "Debug", "keyword", "Plant.Alarmlist.xml");
 
         public UiTestWorkspace(string version, string scenario)
         {

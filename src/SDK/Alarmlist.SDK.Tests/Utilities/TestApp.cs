@@ -26,7 +26,7 @@ namespace Alarmlist.MSBuild.SDK.Tests
         }
 
         public string WorkingDirectory { get; }
-        public string OutputPath => Path.Combine(WorkingDirectory, "bin", "Debug", "Plant.Alarmlist.xml");
+        public string OutputPath => Path.Combine(WorkingDirectory, "bin", "Debug", "keyword", "Plant.Alarmlist.xml");
         public string PackageDirectory => Directory.GetDirectories(Path.Combine(WorkingDirectory, ".packages", "alarmlist.msbuild.sdk")).Single();
 
         public void AddMissingReference(string destination)

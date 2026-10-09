@@ -1,0 +1,18 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{E6C107BB-2274-43E4-BBC6-A97AEF44625B}</ProjectGuid>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AlarmlistCulture>keyword</AlarmlistCulture>
+    <AlarmlistCultures>keyword;en;de-DE</AlarmlistCultures>
+  </PropertyGroup>
+  <ItemGroup>
+    <AlarmlistProperty Include="par1" Value="002" />
+    <AlarmlistResource Include="../Shared/Translations.*.resx">
+      <Link>Shared/%(Filename)%(Extension)</Link>
+    </AlarmlistResource>
+    <Compile Include="../Shared/PressureLow.almx">
+      <Link>PressureLow.almx</Link>
+    </Compile>
+  </ItemGroup>
+</Project>

@@ -21,7 +21,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 
 | Location | Responsibility |
 | --- | --- |
-| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, and detached snapshot/provenance results in `Analysis/`. |
+| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, and detached snapshot/provenance results in `Analysis/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
 | `src/MSBuild/AlarmList.MSBuild.UnitTests/` | Task unit tests and mocked build-engine behavior. |
@@ -39,6 +39,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `eng/` | Repository build settings, version properties, and common build tooling. |
 | `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
+| `example/` | Persistent two-project designer playground opened by the launchers; `eng/prepare-example.ps1` prepares the SDK matching the built VSIX without replacing sample sources. |
 | `template/` | Reference XML implementation/tests outside the current solution; active implementation lives in `src/`. |
 
 Read `src/SDK/Alarmlist.SDK/README.md` for SDK usage and
@@ -168,6 +169,41 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   unsaved text without disk access. Preserve fresh syntax per parse, snapshot
   versions on source locations, and location-free diagnostic callers. Source
   locations use one-based lines/columns and an exclusive end column.
+- `Text/ResxTextSnapshot` captures saved resource text with an explicit culture and
+  version. Hosts supply saved contents; compiler parsing never reads the resource
+  path or deserializes RESX objects. Preserve string-only parsing, DTD prohibition,
+  case-sensitive project-wide keys, duplicate-input diagnostics, and parent-culture
+  lookup that stops before invariant resources. Empty translations continue the
+  parent search; whitespace remains a value. The resource-aware CompilationContext
+  overload must coexist with the original constructor until the coordinated bridge
+  contract transition. Resource validation also runs in keyword mode.
+- Named list expressions `$(list:List#Entry)` use captured `.almlookup`
+  inputs, preserve literal values, and never rescan them. Optional descriptions
+  may translate; missing descriptions do not invalidate identifiers. List entries
+  can merge across files; duplicate identities are errors. Template argument/list
+  bindings are completion hints, not membership validation or template signatures.
+  Preserve detached list/metadata/binding analysis and saved-input validation in
+  the editor. Do not introduce a built-in DeviceTag field.
+- Localization expressions use `$(loc:Key)`. Keyword mode retains the complete
+  literal token; real cultures resolve translations containing property expressions
+  in the consuming alarm scope and field-dependency graph. Never rescan parameter
+  replacement strings. Reject direct nested localization, preserve escaped tokens,
+  and defer contextual lookup for abstract templates and excluded procedure entries.
+- Generated `.almlookup` XML uses `urn:alarmlist:lookup:1` and the authoritative
+  `src/Compiler/Lookups/AlarmlistLookup.xsd`, embedded in the compiler and shipped
+  at SDK `tools/Schemas/AlarmlistLookup.xsd`. `LookupTextSnapshot` captures text;
+  `Text/LookupReader` validates without reading its path, external schemas or DTDs.
+  Keep project-wide case-sensitive path identities, per-path member identities,
+  literal metadata and immutable catalogue results. See
+  `src/VisualStudio/HMI-LOOKUPS.md` for the extension contract and iteration status.
+- Named localization arguments use `$(loc:Key, name="text", value=$(Parameter))`;
+  formatted RESX templates use `{name}` and literal `{{`/`}}`. Lookup expressions
+  use `path:`, `property:`, `button:` and `meta:` with `#`-separated identities.
+  Parse quoted arguments and template placeholders before substitutions; inserted
+  parameter/metadata/argument values remain literal. Preserve single-culture label
+  lookup, complete keyword tokens, reference errors without bounds validation, and
+  deferred contextual resolution for abstract/excluded content. Additive analysis
+  data exposes captured lookup files, immutable entries and usage provenance.
 - `AlarmCompiler.AnalyzeSnapshots` returns the read-only, versioned analysis
   contract from `Analysis/`. Preserve local/effective field separation, procedure
   origins and Clear exclusions, and unavailable effective values for invalid
@@ -175,11 +211,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   in editor code. The SDK's `AnalysisContract` consumer asset verifies this API
   from the restored package without a compiler project reference.
 - The optional `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` overload
-  uses the same bound inputs and normal XML output writer. Contract 2 also accepts
+  uses the same bound inputs and normal XML output writer. Contract 3 also accepts
   captured CompilationContext. Preserve raw expressions separately from evaluated
   values, abstract state, availability, and declaration/assignment origins. The
-  unreleased contract 1 is no longer supported by the bridge. `CompiledXml` is unavailable
+  unreleased contracts 1 and 2 are no longer supported by the bridge. `CompiledXml` is unavailable
   on errors; in-memory previews must never save source or write build output.
+- Contract 3 localization results retain captured resource identities/versions,
+  normalized selected culture, raw entries and ambiguity, compiler-owned parent
+  lookup origins and per-alarm LocalizationUses. Lookup availability is distinct
+  from evaluated-value availability. Keep these detached and immutable, with no
+  compiler objects crossing the bridge. Never infer translation origins in the IDE.
 - Expressions evaluate in the compiler after binding. References inherit parameter
   declarations and raw content, never parameter assignments. Assignment lookup uses
   the current alarm, its file, then captured project items; explicit empty stops
@@ -215,7 +256,35 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - Builds currently recompile selected inputs on each invocation so removed or
   conditional inputs are reflected. Do not add incremental skipping without
   covering these cases. Preserve the design-time-build guard.
-- `Clean` deletes the configured compiled file and preserves unrelated files.
+- Localization builds use `AlarmlistResource` saved RESX items and semicolon-separated
+  `AlarmlistCultures` (default keyword). Capture inputs once per batch. Validate and
+  serialize all cultures before output installation; preserve rollback and ownership
+  tracking. Outputs are `<OutputPath>/<culture>/<CompiledAlarmlistFileName>`.
+  Build/GetTargetPath expose `@(CompiledAlarmlistFiles)` with Culture metadata;
+  the task exposes OutputFiles. Preserve explicit-empty resource Culture metadata,
+  linked/conditional items and output exclusions. Preview AlarmlistCulture is separate.
+- Lookup builds capture saved `AlarmlistLookup` items once with the same input batch.
+  Default `**/*.almlookup` inclusion follows source exclusions; explicit, linked,
+  conditional and duplicate inputs retain their semantics. Protect lookup files
+  from output/manifest/exchange collisions. `AlarmlistLookupSchema` locates the
+  packaged authoritative XSD. XLIFF protects named placeholder occurrences as well
+  as parameter/lookup expressions, preserving text around leading inline codes.
+- Explicit ExportAlarmlistXliff reads saved resources and writes XLIFF 2.0 plus
+  local baseline sidecars, independently of Build/Clean. Keep exact culture values,
+  protected expressions, stable keys and baseline presence/comments. Validate all
+  target pairs before transactional installation; preserve input/output collision
+  guards and explicit overwrite. XLIFF is never a compilation input. Vendor
+  interoperability requires actual tool evidence, not schema validation alone.
+- Explicit ImportAlarmlistXliff defaults to a saved-input dry run; apply rejects
+  the whole batch on conflict and never runs from Build/Clean. Preserve exact
+  culture/baseline/placeholder checks, selected-resource destination constraints,
+  repeat-import no-ops, saved-byte revalidation and ordinary-failure rollback.
+  Windows apply uses read-only VS automation and refuses open destination resource
+  editors (including clean editors with private native cell drafts); never save,
+  close or activate them. Keep VS assemblies out of the task and compiler. An
+  inaccessible IDE fails closed. Retain newer independent edits and recovery
+  backups if rollback cannot safely restore an installed file.
+- `Clean` deletes configured/tracked outputs and owned temporary files and preserves unrelated files.
   Keep `Build`, `Clean`, `Rebuild`, `Restore`, `GetTargetPath`, custom build hooks,
   and consumer `Directory.Build.props/targets` imports working.
 - The SDK test project's conditional `ProjectReference` metadata handles
@@ -232,7 +301,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   ProjectFileFolderItems so persisted empty folders can reload in CPS.
 - The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
   SDK's net472 compiler independently of the build task runtime. The extension's
-  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-2 data
+  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-3 data
   into host-owned results. Do not load compiler types in the VS host domain, add a
   compiler project reference, or substitute another SDK on failure. Call bridge
   operations off the UI thread; owners must dispose on SDK/configuration changes
@@ -247,7 +316,33 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   and release analysis on CPS scope disposal as well as capability unload. Bridge
   remoting may resolve only the already-loaded extension assembly in the VS host;
   scope its resolver to boundary calls and never resolve SDK assemblies there.
+- CPS owns evaluated resource membership/order/metadata and preview culture.
+  Capture RESX from saved bytes only, never open-document buffers. Ignore resource
+  draft/close notifications; observe saved changes and compare captured resource
+  text/path/order/culture before publication or navigation. Disk resource versions
+  are scoped to the project generation, so version equality alone is insufficient.
+  Preserve linked project contexts and resource locations without retaining native
+  resource-editor graphs. Resource capture must never save buffers or build output.
+- CPS also owns evaluated `AlarmlistLookup` order, duplicates and linked membership.
+  Capture saved lookup bytes only, watch regeneration/deletion, and compare captured
+  text/path/order/version before publication, completion or navigation. Lookup drafts
+  and close notifications must not expose unsealed changes. The bridge requires the
+  lookup-capable contract-3 context and copies catalogue labels, metadata, placeholder
+  names and usage provenance into detached host DTOs. Never parse catalogues or RESX
+  templates in the IDE. Template completion inserts explicit empty named arguments;
+  lookup/member/metadata completion inserts compiler-supplied expressions, with no
+  automatic metadata defaults or range validation. Suppress ambiguous path choices.
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
+  Preview culture changes persist shared AlarmlistCulture through CPS without
+  changing build cultures or committing ALMX drafts. Global overrides disable the
+  selector; write failures retain evaluated state. Use
+  the native Alarmlist toolbar's active-document command route for preview culture;
+  never retain an editor globally for toolbar state. Leaving the designer for shell
+  controls preserves drafts; explicit commits and intra-designer focus changes still
+  apply. Localization completion uses
+  SDK catalogue/provenance, revalidates saved inputs before display and insertion,
+  and discards late results after editing, focus or context changes. Navigate RESX
+  diagnostics through the XML editor without saving pending resource edits.
   Keep source presence/local drafts separate from inherited effective displays.
   Only the SDK's provenance determines inheritance; equal text is not evidence.
   Revalidate current project inputs before copying/picking/navigating, preserve
@@ -259,8 +354,19 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   collection cache and PropertyDescriptor subscriptions can retain closed views
   and analysis snapshots. Keep analysis DTOs independent of UI notification types.
 - Resolved previews use SDK effective fields and surviving procedure entries.
+  The dockable Alarmlist Preview window follows the shell's DocumentFrame selection
+  through a weak document context. Detach on hide/close and invalidate pending
+  preview actions on document switches. Keep previews outside the designer; reuse
+  its captured analysis without creating another compiler or project subscription.
+  The alarm table excludes abstract templates and uses immutable notifying rows
+  from that same snapshot. Row selection drives read-only details without editing
+  the designer; filtering/sorting preserve literal values. Revalidate captured
+  inputs and selection/context lifetime before copying or navigating, including
+  ordinary text copies from the preview. Keep row virtualization enabled.
+  Materialize table rows only for the visible preview's document context, rather
+  than duplicating a project-wide table in every open editor view.
   Clear both previews during drafts or stale/unavailable analysis; project XML
-  requires whole-project success. Require context-aware contract 2 and preview
+  requires whole-project success. Require context-aware contract 3 and preview
   support, and copy XML as a string outside the required property map.
 - Designer lookup caches must validate current text/version before reuse and be
   keyed by immutable analysis state, captured input, and selected source. Keep
@@ -297,6 +403,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - The smoke script accepts `-RootSuffix` (default `AlarmlistExp`). Match the suffix
   used for deployment; a separate experimental profile allows validation without
   replacing an extension DLL held by an existing IDE session.
+- The manual `scripts/start-vs2022.bat` and `scripts/start-vs2026.bat` launchers
+  prepare and open `example/Example.sln`. Keep its generated SDK pin/NuGet config
+  ignored, its cache tied to package contents, and its source files persistent.
+  Its local Directory.Build files isolate this consumer from repository policy.
+  The example targets link Shared/Hmi.almlookup and HmiInstructions.almx into both
+  projects; RESX Set/Press patterns demonstrate named arguments, individually
+  translated HMI labels and explicit metadata without duplicating sentence keys.
 - `eng/measure-visualstudio-live.ps1` (also reached through the compatibility
   `test-visualstudio.ps1 -MeasureAnalysis` option) measures running-IDE buffer-to-diagnostic
   latency and repeated designer close/process-memory samples. Parameters select
@@ -315,6 +428,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   It keeps raw CSV/JSON, summaries, test results and revision/runtime details under
   `artifacts/log/`. Normal tests skip measurements; do not introduce machine-dependent
   timing assertions. These measurements exclude live VS/RDT capture and CPS debounce.
+- The isolated `Area=Localization` performance workload captures 10,002 translations
+  for 1,000 alarms. Keep its culture/parent-origin and named-argument correctness
+  checks outside measured intervals, and pass the same captured resources into
+  designer publication. Its completion measurement filters localization keys.
 - Live performance xUnit wrappers require `ALARMLIST_RUN_LIVE_VS_TESTS=1` and explicit
   host paths;
   they run only on net472 in PerformanceTests and use the dedicated live measurement

@@ -1,0 +1,7 @@
+<Alarmlist>
+  <Properties><Property Name="par1" Value="001" /></Properties>
+  <Alarm>
+    <FullyQualifiedName>Localized</FullyQualifiedName>
+    <Name>$(loc:Inspection)</Name>
+  </Alarm>
+</Alarmlist>

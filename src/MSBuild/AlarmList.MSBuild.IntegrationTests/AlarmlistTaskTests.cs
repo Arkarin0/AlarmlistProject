@@ -22,7 +22,7 @@ namespace Alarmlist.MSBuild.IntegrationTests
         {
             var rootDir = FindSampleDataDirectory();
             var projectFilePath = Path.Combine(rootDir, "SampleData.almproj");
-            var outputFile = Path.Combine(_outputDirectory, "SampleData.Alarmlist.xml");
+            var outputFile = Path.Combine(_outputDirectory, "keyword", "SampleData.Alarmlist.xml");
             BuildProject(rootDir, projectFilePath, outputFile);
 
             var document = XDocument.Load(outputFile);
@@ -38,7 +38,7 @@ namespace Alarmlist.MSBuild.IntegrationTests
         {
             var rootDir = FindSampleDataDirectory();
             var projectFilePath = Path.Combine(rootDir, "SampleData.almproj");
-            var outputFile = Path.Combine(_outputDirectory, "SampleData.Alarmlist.xml");
+            var outputFile = Path.Combine(_outputDirectory, "keyword", "SampleData.Alarmlist.xml");
             BuildProject(rootDir, projectFilePath, outputFile);
 
             var document = XDocument.Load(outputFile);
@@ -60,7 +60,7 @@ namespace Alarmlist.MSBuild.IntegrationTests
         {
             var rootDir = FindSampleDataDirectory();
             var projectFilePath = Path.Combine(rootDir, "SampleData.almproj");
-            var outputFile = Path.Combine(_outputDirectory, "SampleData.Alarmlist.xml");
+            var outputFile = Path.Combine(_outputDirectory, "keyword", "SampleData.Alarmlist.xml");
             BuildProject(rootDir, projectFilePath, outputFile, "/p:IncludeConditionalAlarms=true");
 
             var document = XDocument.Load(outputFile);
@@ -75,7 +75,7 @@ namespace Alarmlist.MSBuild.IntegrationTests
         {
             var rootDir = FindSampleDataDirectory();
             var projectFilePath = Path.Combine(rootDir, "SampleData.almproj");
-            var outputFile = Path.Combine(_outputDirectory, "SampleData.Alarmlist.xml");
+            var outputFile = Path.Combine(_outputDirectory, "keyword", "SampleData.Alarmlist.xml");
 
             var result = RunBuildProject(rootDir, projectFilePath, outputFile, "/p:IncludeMissingReferenceAlarm=true");
 
@@ -104,7 +104,7 @@ namespace Alarmlist.MSBuild.IntegrationTests
                 $"msbuild \"{projectFilePath}\"",
                 "/t:Build",
                 $"/p:AlarmlistMSBuildAssembly=\"{typeof(AlarmlistBuildTask).Assembly.Location}\"",
-                $"/p:OutputPath=\"{Path.GetDirectoryName(outputFile)}\"",
+                $"/p:OutputPath=\"{Path.GetDirectoryName(Path.GetDirectoryName(outputFile))}\"",
                 "/v:minimal"
             }.Concat(additionalArguments));
 

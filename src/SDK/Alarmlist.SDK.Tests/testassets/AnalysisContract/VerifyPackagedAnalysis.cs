@@ -40,7 +40,7 @@ public sealed class VerifyPackagedAnalysis : Task
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 2, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 3, "Unexpected analysis contract version.");
         Require((bool)Value(result, "Success"), "Valid unsaved inputs did not resolve.");
         Require(Value(result, "CompiledXml") == null, "Default analysis unexpectedly generated XML.");
         MethodInfo preview = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType, typeof(bool) });
@@ -95,7 +95,45 @@ public sealed class VerifyPackagedAnalysis : Task
             "Template and evaluated availability were lost.");
         Require(((string)Value(scopedResult, "CompiledXml")).Contains("Inspect 001:Release"), "Preview ignored captured context.");
         Require(!File.Exists(basePath) && !File.Exists(childPath), "Analysis wrote snapshot text to disk.");
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 2 passed: origins, Clear, immutable results, unsaved inputs, and compiled XML preview.");
+        Type resourceType = assembly.GetType("Alarmlist.Text.ResxTextSnapshot", true);
+        Array resources = Array.CreateInstance(resourceType, 1);
+        string resourcePath = Path.Combine(ProjectDirectory, "Captured.en.resx");
+        resources.SetValue(Activator.CreateInstance(resourceType,
+            "<root><data name='Inspection'><value>Inspect $(p)</value><comment>Operator</comment></data></root>", resourcePath, 47, "en"), 0);
+        object localizedContext = Activator.CreateInstance(contextType, resources, "en-US", null, null, null, properties);
+        scoped.SetValue(Activator.CreateInstance(snapshotType, "<Alarmlist><Alarm><Name>$(loc:Inspection)</Name></Alarm></Alarmlist>", childPath, 48), 0);
+        object localized = contextual.Invoke(compiler, new[] { scoped, localizedContext, (object)true });
+        Require((bool)Value(localized, "Success") && (string)Value(localized, "Culture") == "en-US", "Captured localization failed.");
+        Require((int)Value(Items(localized, "Resources").Single(), "Version") == 47, "Captured resource version was lost.");
+        object translation = Items(localized, "Translations").Single();
+        Require((string)Value(translation, "SupplyingCulture") == "en" && (string)Value(translation, "RequestedCulture") == "en-US",
+            "Parent translation provenance was lost.");
+        Require((string)Value(translation, "RawValue") == "Inspect $(p)" && (string)Value(translation, "Comment") == "Operator",
+            "Translation content was not retained.");
+        object use = Items(Items(localized, "Alarms").Single(), "LocalizationUses").Single();
+        Require((string)Value(use, "Value") == "Inspect 001" && (bool)Value(use, "IsValueAvailable"), "Alarm localization ignored parameter scope.");
+        Require((int)Value(Value(translation, "ValueLocation"), "SourceVersion") == 47, "Resource location has the wrong version.");
+        Require(((string)Value(localized, "CompiledXml")).Contains("<Name>Inspect 001</Name>"), "Localized preview did not match evaluation.");
+        object missingContext = Activator.CreateInstance(contextType, resources, "de", null, null, null, properties);
+        object missingTranslation = contextual.Invoke(compiler, new[] { scoped, missingContext, (object)true });
+        Require(!(bool)Value(missingTranslation, "Success") && Value(missingTranslation, "CompiledXml") == null,
+            "Missing translation exposed compiled XML.");
+        Require(!File.Exists(resourcePath), "Analysis read or wrote a captured resource path.");
+        Type lookupType = assembly.GetType("Alarmlist.Text.LookupTextSnapshot", true);
+        Array lookups = Array.CreateInstance(lookupType, 1);
+        lookups.SetValue(Activator.CreateInstance(lookupType,
+            "<Lookup xmlns='urn:alarmlist:lookup:1'><List Key='Wires'><Entry Key='W1' Value='=EC-120W1'/></List>"
+            + "<Template Key='Inspection'><Argument Name='wire' List='Wires'/></Template></Lookup>", "captured.almlookup", 51), 0);
+        object listContext = Activator.CreateInstance(contextType, resources, lookups, "en", null, null, null, properties);
+        scoped.SetValue(Activator.CreateInstance(snapshotType, "<Alarmlist><Alarm><Name>$(list:Wires#W1)</Name></Alarm></Alarmlist>", childPath, 52), 0);
+        object lists = contextual.Invoke(compiler, new[] { scoped, listContext, (object)true });
+        Require((bool)Value(lists, "Success"), "Captured named list did not resolve.");
+        object listEntry = Items(Items(lists, "LookupLists").Single(), "Entries").Single();
+        Require((string)Value(listEntry, "Value") == "=EC-120W1" && (string)Value(listEntry, "Expression") == "$(list:Wires#W1)", "Literal list identity was lost.");
+        Require((int)Value(Value(listEntry, "Location"), "SourceVersion") == 51, "List provenance was lost.");
+        Require((bool)Value(Items(lists, "ArgumentBindings").Single(), "IsAvailable"), "Completion binding was lost.");
+        Require(((string)Value(lists, "CompiledXml")).Contains("<Name>=EC-120W1</Name>"), "List preview was incorrect.");
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 3 passed: origins, Clear, immutable results, unsaved inputs, and compiled XML preview.");
         return true;
     }
 

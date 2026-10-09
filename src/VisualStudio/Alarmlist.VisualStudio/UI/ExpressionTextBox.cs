@@ -3,10 +3,12 @@
 using System;
 using System.Collections;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using Microsoft.VisualStudio.PlatformUI;
 
@@ -21,6 +23,8 @@ namespace Alarmlist.VisualStudio.UI
         public static readonly DependencyProperty HasResolvedValueProperty = DependencyProperty.Register(nameof(HasResolvedValue), typeof(bool), typeof(ExpressionTextBox), new PropertyMetadata(false, OnDisplayChanged));
         public static readonly DependencyProperty IsExpressionEnabledProperty = DependencyProperty.Register(nameof(IsExpressionEnabled), typeof(bool), typeof(ExpressionTextBox), new PropertyMetadata(true, OnSuggestionsChanged));
         public static readonly DependencyProperty SuggestionsProperty = DependencyProperty.Register(nameof(Suggestions), typeof(IEnumerable), typeof(ExpressionTextBox), new PropertyMetadata(null, OnSuggestionsChanged));
+        public static readonly DependencyProperty ArgumentBindingsProperty = DependencyProperty.Register(nameof(ArgumentBindings), typeof(IEnumerable), typeof(ExpressionTextBox), new PropertyMetadata(null, OnSuggestionsChanged));
+        public static readonly DependencyProperty ValidateSuggestionsProperty = DependencyProperty.Register(nameof(ValidateSuggestions), typeof(Func<Task<bool>>), typeof(ExpressionTextBox));
         private readonly ListBox _list;
         private readonly LiveStatusTextBlock _status;
         private readonly Popup _popup;
@@ -29,23 +33,32 @@ namespace Alarmlist.VisualStudio.UI
         private string _dismissedText;
         private int _tokenStart;
         private int _tokenEnd;
+        private int _completionVersion;
+        private int _pendingCompletionVersion;
 
         public string RawText { get => (string)GetValue(RawTextProperty); set => SetValue(RawTextProperty, value); }
         public string ResolvedText { get => (string)GetValue(ResolvedTextProperty); set => SetValue(ResolvedTextProperty, value); }
         public bool HasResolvedValue { get => (bool)GetValue(HasResolvedValueProperty); set => SetValue(HasResolvedValueProperty, value); }
         public bool IsExpressionEnabled { get => (bool)GetValue(IsExpressionEnabledProperty); set => SetValue(IsExpressionEnabledProperty, value); }
         public IEnumerable Suggestions { get => (IEnumerable)GetValue(SuggestionsProperty); set => SetValue(SuggestionsProperty, value); }
+        public IEnumerable ArgumentBindings { get => (IEnumerable)GetValue(ArgumentBindingsProperty); set => SetValue(ArgumentBindingsProperty, value); }
+        public Func<Task<bool>> ValidateSuggestions { get => (Func<Task<bool>>)GetValue(ValidateSuggestionsProperty); set => SetValue(ValidateSuggestionsProperty, value); }
+        internal Task PendingCompletion { get; private set; } = Task.CompletedTask;
+        // Obsolete validation can still finish in the background, but must not
+        // consume commit keys after its completion context has been closed.
+        private bool IsCompletionPending => _pendingCompletionVersion == _completionVersion && !PendingCompletion.IsCompleted;
         internal bool IsCompletionOpen => _popup.IsOpen;
         internal int CompletionCount => _list.Items.Count;
 
         public ExpressionTextBox()
         {
             _status = new LiveStatusTextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(6) };
-            AutomationProperties.SetHelpText(_status, "Property suggestions. Use arrows to choose and Enter to insert.");
+            AutomationProperties.SetHelpText(_status, "Expression suggestions. Use arrows to choose and Enter to insert.");
             _list = new ListBox { Focusable = false, IsTabStop = false, DisplayMemberPath = nameof(PropertyCompletion.Label), MaxHeight = 220, MinWidth = 300 };
             var itemStyle = new Style(typeof(ListBoxItem));
             itemStyle.Setters.Add(new Setter(FocusableProperty, false));
             itemStyle.Setters.Add(new Setter(IsTabStopProperty, false));
+            itemStyle.Setters.Add(new Setter(AutomationProperties.NameProperty, new Binding(nameof(PropertyCompletion.Label))));
             _list.ItemContainerStyle = itemStyle;
             _list.SetResourceReference(BackgroundProperty, EnvironmentColors.ComboBoxBackgroundBrushKey);
             _list.SetResourceReference(ForegroundProperty, EnvironmentColors.ComboBoxTextBrushKey);
@@ -111,9 +124,14 @@ namespace Alarmlist.VisualStudio.UI
                 _explicitCompletion = true;
                 _dismissedText = null;
                 RefreshCompletion();
-                return IsCompletionOpen;
+                return IsCompletionOpen || IsCompletionPending;
             }
-            if (!IsCompletionOpen) return false;
+            if (!IsCompletionOpen)
+            {
+                if (!IsCompletionPending) return false;
+                if (key == Key.Escape) { _dismissedText = RawText; CloseCompletion(); return true; }
+                return key == Key.Enter || key == Key.Tab;
+            }
             if (key == Key.Escape) { _dismissedText = RawText; CloseCompletion(); return true; }
             if (key == Key.Enter || key == Key.Tab) { AcceptCompletion(); return true; }
             if (key != Key.Down && key != Key.Up) return false;
@@ -129,26 +147,66 @@ namespace Alarmlist.VisualStudio.UI
             { CloseCompletion(); return; }
             string raw = RawText ?? "";
             int caret = Math.Min(CaretIndex, raw.Length);
-            _tokenStart = -1;
-            for (int i = 0; i < caret; i++)
-            {
-                if (raw[i] != '$' || i + 1 >= caret) continue;
-                if (raw[i + 1] == '$') { i++; continue; }
-                if (raw[i + 1] == '(') { _tokenStart = i; i++; }
-            }
+            _tokenStart = ExpressionCompletionContext.FindStart(raw, caret, out bool argument);
             string prefix = _tokenStart < 0 ? null : raw.Substring(_tokenStart + 2, caret - _tokenStart - 2);
-            if (prefix != null && prefix.Any(character => !(char.IsLetterOrDigit(character) || character == '_'))) prefix = null;
-            if (prefix == null && !_explicitCompletion) { CloseCompletion(); return; }
-            if (prefix == null) { _tokenStart = SelectionStart; _tokenEnd = SelectionStart + SelectionLength; prefix = ""; }
+            if (prefix != null && !IsPrefix(prefix)) prefix = null;
+            ArgumentEdit slot = prefix == null ? ExpressionCompletionContext.FindArgument(raw, SelectionLength == 0 ? caret : SelectionStart, SelectionLength) : null;
+            bool boundSlot = slot != null && ArgumentBindings?.OfType<ArgumentCompletionBinding>()
+                .Any(item => item.TemplateKey == slot.TemplateKey && item.ArgumentName == slot.ArgumentName) == true;
+            if (prefix == null && !_explicitCompletion && (!boundSlot || slot.Query.Length == 0)) { CloseCompletion(); return; }
+            PropertyCompletion[] matches;
+            if (boundSlot)
+            {
+                _tokenStart = slot.Start; _tokenEnd = slot.End;
+                matches = Suggestions.OfType<PropertyCompletion>().Where(item => item.IsBoundTo(slot.TemplateKey, slot.ArgumentName)
+                    && item.MatchesListSearch(slot.Query)).ToArray();
+            }
             else
             {
-                _tokenEnd = caret;
-                while (_tokenEnd < raw.Length && (char.IsLetterOrDigit(raw[_tokenEnd]) || raw[_tokenEnd] == '_')) _tokenEnd++;
-                if (_tokenEnd < raw.Length && raw[_tokenEnd] == ')') _tokenEnd++;
+                if (prefix == null) { _tokenStart = SelectionStart; _tokenEnd = SelectionStart + SelectionLength; prefix = ""; }
+                else
+                {
+                    _tokenEnd = caret;
+                    while (_tokenEnd < raw.Length && IsTokenCharacter(raw[_tokenEnd])) _tokenEnd++;
+                    if (_tokenEnd < raw.Length && raw[_tokenEnd] == ')') _tokenEnd++;
+                }
+                matches = FindMatches(Suggestions, prefix);
+                if (argument) matches = matches.Where(match => !match.IsLocalization).ToArray();
             }
             string selectedName = (_list.SelectedItem as PropertyCompletion)?.Name;
-            PropertyCompletion[] matches = FindMatches(Suggestions, prefix);
             if (matches.Length == 0) { CloseCompletion(); return; }
+            if (matches.Any(match => match.RequiresValidation))
+            {
+                _popup.IsOpen = false;
+                PendingCompletion = ShowValidatedCompletionAsync(matches, selectedName, raw, caret, SelectionLength, Suggestions, ++_completionVersion);
+                return;
+            }
+            ShowCompletion(matches, selectedName);
+        }
+
+        private static bool IsTokenCharacter(char character) => char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '-'
+            || character == ':' || character == '#' || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.NonSpacingMark
+            || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.SpacingCombiningMark;
+        private static bool IsPrefix(string prefix)
+        {
+            int colon = prefix.IndexOf(':');
+            if (colon < 0) return prefix.All(character => char.IsLetterOrDigit(character) || character == '_');
+            string kind = prefix.Substring(0, colon);
+            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta" || kind == "list")
+                && prefix.Substring(colon + 1).All(character => IsTokenCharacter(character) && character != ':' && (kind != "loc" || character != '#'));
+        }
+
+        private async Task ShowValidatedCompletionAsync(PropertyCompletion[] matches, string selectedName, string raw, int caret, int selectionLength, IEnumerable suggestions, int version)
+        {
+            _pendingCompletionVersion = version;
+            if (ValidateSuggestions == null || !await ValidateSuggestions()) return;
+            if (version != _completionVersion || !IsLoaded || !IsKeyboardFocusWithin || RawText != raw || CaretIndex != caret || SelectionLength != selectionLength
+                || !ReferenceEquals(Suggestions, suggestions)) return;
+            ShowCompletion(matches, selectedName);
+        }
+
+        private void ShowCompletion(PropertyCompletion[] matches, string selectedName)
+        {
             _list.ItemsSource = BindingCollection.Create(matches);
             _list.SelectedIndex = Math.Max(0, Array.FindIndex(matches, property => property.Name == selectedName));
             _popup.IsOpen = true;
@@ -156,12 +214,13 @@ namespace Alarmlist.VisualStudio.UI
         }
 
         internal static PropertyCompletion[] FindMatches(IEnumerable suggestions, string prefix)
-            => suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToArray();
+            => suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix,
+                property.RequiresValidation ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)).ToArray();
 
         private void AnnounceSelection()
         {
             if (_list.SelectedItem is PropertyCompletion selected)
-                _status.Text = _list.Items.Count + " properties. " + selected.Label + ". Enter inserts; Escape closes.";
+                _status.Text = _list.Items.Count + " expressions. " + selected.Label + ". Enter inserts; Escape closes.";
         }
 
         private void OnSuggestionMouseDown(object sender, MouseButtonEventArgs args)
@@ -174,18 +233,42 @@ namespace Alarmlist.VisualStudio.UI
         private void AcceptCompletion()
         {
             if (!(_list.SelectedItem is PropertyCompletion property)) return;
+            if (property.RequiresValidation)
+            {
+                PendingCompletion = AcceptValidatedCompletionAsync(property, RawText, Suggestions, _tokenStart, _tokenEnd);
+                return;
+            }
+            InsertCompletion(property, _tokenStart, _tokenEnd);
+        }
+
+        private async Task AcceptValidatedCompletionAsync(PropertyCompletion property, string raw, IEnumerable suggestions, int start, int end)
+        {
+            int caret = CaretIndex;
+            int selectionLength = SelectionLength;
+            CloseCompletion();
+            int version = _completionVersion;
+            _pendingCompletionVersion = version;
+            if (ValidateSuggestions == null || !await ValidateSuggestions()) return;
+            if (version == _completionVersion && IsLoaded && IsKeyboardFocusWithin && RawText == raw && CaretIndex == caret && SelectionLength == selectionLength
+                && ReferenceEquals(Suggestions, suggestions)) InsertCompletion(property, start, end);
+        }
+
+        private void InsertCompletion(PropertyCompletion property, int start, int end)
+        {
             string raw = RawText ?? "";
-            string insertion = "$(" + property.Name + ")";
-            int caret = _tokenStart + insertion.Length;
-            string result = raw.Substring(0, _tokenStart) + insertion + raw.Substring(_tokenEnd);
+            string insertion = property.Insertion;
+            int caret = start + insertion.Length;
+            string result = raw.Substring(0, start) + insertion + raw.Substring(end);
             CloseCompletion();
             _dismissedText = result;
             SetCurrentValue(RawTextProperty, result);
             CaretIndex = caret;
+            if (property.ArgumentOffset >= 0) Select(start + property.ArgumentOffset, 2);
         }
 
         private void CloseCompletion()
         {
+            _completionVersion++;
             _explicitCompletion = false;
             if (_popup == null) return;
             _popup.IsOpen = false;

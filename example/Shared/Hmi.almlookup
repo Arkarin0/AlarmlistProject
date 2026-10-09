@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Example output from an external generator. Code identities are stable keys;
+     ordered labels come from RESX in the selected documentation culture. -->
+<Lookup xmlns="urn:alarmlist:lookup:1">
+  <Path Key="Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster">
+    <Segment LabelKey="Hmi.Service" />
+    <Segment LabelKey="Hmi.Transport" />
+    <Segment LabelKey="Hmi.Outlet" />
+    <Segment LabelKey="Hmi.Countercheck" />
+    <Segment LabelKey="Hmi.Camwindow" />
+    <Property Key="Ein" LabelKey="Hmi.On">
+      <Metadata Name="Minimum" Value="0" />
+      <Metadata Name="Maximum" Value="100" />
+      <Metadata Name="Default" Value="060" />
+      <Metadata Name="Unit" Value="degrees" />
+      <Metadata Name="PlcSymbol" Value="MAIN.stOutlet.CamWindow" />
+    </Property>
+  </Path>
+  <Path Key="Service.Transport.Auslauf.Hand1.Vakuum">
+    <Segment LabelKey="Hmi.Service" />
+    <Segment LabelKey="Hmi.Transport" />
+    <Segment LabelKey="Hmi.Outlet" />
+    <Segment LabelKey="Hmi.Manual" />
+    <Segment LabelKey="Hmi.Vacuum" />
+    <Button Key="Ein" LabelKey="Hmi.On">
+      <Metadata Name="Signal" Value="VacuumOn" />
+    </Button>
+    <Button Key="Aus" LabelKey="Hmi.Off" />
+  </Path>
+</Lookup>
