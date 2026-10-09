@@ -116,7 +116,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 { Width = width + 50, Height = 950, WindowStyle = unchecked((int)0x80000000) }))
                 {
                     session.Analyze(ProcedureBase);
-                    var control = new EditFileControl(session.View) { Width = width, Height = 900 };
+                    var control = new PreviewControl { DataContext = session.View, Width = width, Height = 900 };
                     Brush text = palette == "Light" ? Brushes.Black : palette == "Dark" ? Brushes.WhiteSmoke : Brushes.Yellow;
                     Brush background = palette == "Light" ? Brushes.White : palette == "Dark" ? new SolidColorBrush(Color.FromRgb(32, 32, 32)) : Brushes.Black;
                     SetThemeBrush(control, "ToolWindowTextBrushKey", text);
@@ -125,10 +125,6 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     SetThemeBrush(control, "ComboBoxBackgroundBrushKey", background);
                     SetThemeBrush(control, "ToolWindowBorderBrushKey", text);
                     host.RootVisual = control;
-                    InheritanceAdornerTests.Pump();
-                    foreach (Expander panel in VisualChildren(control).OfType<Expander>().Where(item =>
-                        Equals(item.Header, "Resolved alarm preview") || Equals(item.Header, "Compiled project XML preview")).ToArray())
-                        panel.IsExpanded = true;
                     InheritanceAdornerTests.Pump();
                     TextBox inherited = PreviewBox(control, "Resolved Name");
                     var peer = new TextBoxAutomationPeer(inherited);
@@ -140,7 +136,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     var adorner = Assert.IsType<InheritedValueAdorner>(Assert.Single(AdornerLayer.GetAdornerLayer(inherited).GetAdorners(inherited)));
                     Assert.Same(text, adorner.Brush);
                     Assert.False(adorner.IsHitTestVisible);
-                    Assert.All(VisualChildren(control).OfType<Expander>(), panel => Assert.Same(text, panel.Foreground));
+                    Assert.All(VisualChildren(control).OfType<TabItem>(), tab => Assert.Same(text, tab.Foreground));
                     Assert.Same(text, VisualChildren(control).OfType<TextBlock>().Single(label => label.Text == "Name"
                         && label.DataContext == session.View.ResolvedFields[1]).Foreground);
                     foreach (TextBox box in VisualChildren(control).OfType<TextBox>().Where(box => box.DataContext is ProcedureAnalysisRow))
@@ -150,9 +146,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                         Assert.Contains("Base", rowPeer.GetHelpText());
                         Assert.True(((IValueProvider)rowPeer.GetPattern(PatternInterface.Value)).IsReadOnly);
                     }
-                    var selector = (ComboBox)control.FindName("AlarmSelector");
-                    Assert.Equal(width < 600 ? Visibility.Visible : Visibility.Collapsed, selector.Visibility);
                     RenderPreview(control, palette + "-resolved", scale);
+                    ((TabControl)control.FindName("PreviewTabs")).SelectedIndex = 1;
+                    InheritanceAdornerTests.Pump();
                     TextBox xml = PreviewBox(control, "Compiled project XML");
                     xml.BringIntoView();
                     InheritanceAdornerTests.Pump();

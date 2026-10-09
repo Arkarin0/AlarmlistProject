@@ -6,7 +6,7 @@
   Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
   Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
   SizeChanged="OnSizeChanged" PreviewKeyDown="OnPreviewKeyDown" PreviewMouseDown="OnPreviewMouseDown" Unloaded="OnUnloaded">
-  <UserControl.Resources>
+  <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /></ResourceDictionary.MergedDictionaries>
     <BooleanToVisibilityConverter x:Key="Visibility" />
     <Style TargetType="Expander">
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
@@ -18,28 +18,8 @@
     </Style>
     <Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
     <Style TargetType="Button"><Setter Property="Padding" Value="9,3" /><Setter Property="Margin" Value="0,0,6,0" /></Style>
-    <DataTemplate x:Key="ProcedureAnalysisRow">
-      <AdornerDecorator Margin="0,0,0,8">
-        <ContentControl ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" Focusable="False"
-                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                        AutomationProperties.Name="{Binding Label}" AutomationProperties.HelpText="{Binding OriginText}"
-                        ToolTip="{Binding OriginText}">
-          <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" Padding="26,6,6,6">
-            <StackPanel>
-              <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
-              <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="160"
-                       VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Label, StringFormat=Procedure {0}}"
-                       AutomationProperties.HelpText="{Binding OriginText}" />
-              <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
-              <TextBlock Text="{Binding ExclusionText}" TextWrapping="Wrap" />
-              <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
-                      AutomationProperties.Name="{Binding Label, StringFormat=Go to source for {0}}" />
-            </StackPanel>
-          </Border>
-        </ContentControl>
-      </AdornerDecorator>
-    </DataTemplate>
-  </UserControl.Resources>
+
+  </ResourceDictionary></UserControl.Resources>
   <Grid Margin="12">
     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
     <ui:ParameterListControl DataContext="{Binding FileParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,0,12" />
@@ -104,46 +84,7 @@
         <TextBlock DockPanel.Dock="Bottom" Text="Checkboxes describe local XML elements. Empty scalar values can still inherit. Use Override locally to start an editable copy; Escape cancels it." TextWrapping="Wrap" Opacity="0.7" Margin="0,8,0,0" />
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
-          <Expander Header="Resolved alarm preview" Margin="0,0,8,10">
-            <StackPanel Margin="0,6,0,0">
-              <TextBlock Text="{Binding PreviewContext}" TextWrapping="Wrap" />
-              <ui:LiveStatusTextBlock Text="{Binding ResolvedPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,8" />
-              <ItemsControl ItemsSource="{Binding ResolvedFields}">
-                <ItemsControl.ItemTemplate><DataTemplate>
-                  <StackPanel Margin="0,0,0,10">
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                    <AdornerDecorator>
-                      <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" Padding="26,3,5,3"
-                               ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" TextWrapping="Wrap"
-                               MaxHeight="110" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Name, StringFormat=Resolved {0}}"
-                               AutomationProperties.HelpText="{Binding OriginText}" ToolTip="{Binding OriginText}" />
-                    </AdornerDecorator>
-                    <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
-                    <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
-                            AutomationProperties.Name="{Binding Name, StringFormat=Go to source for resolved {0}}" />
-                  </StackPanel>
-                </DataTemplate></ItemsControl.ItemTemplate>
-              </ItemsControl>
-              <ItemsControl ItemsSource="{Binding ResolvedSections}">
-                <ItemsControl.ItemTemplate><DataTemplate>
-                  <StackPanel Margin="0,0,0,10">
-                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding Summary}" Margin="0,3,0,6" />
-                    <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ProcedureAnalysisRow}" />
-                  </StackPanel>
-                </DataTemplate></ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-          </Expander>
-          <Expander Header="Compiled project XML preview" Margin="0,0,8,12">
-            <StackPanel Margin="0,6,0,0">
-              <TextBlock Text="{Binding PreviewContext}" TextWrapping="Wrap" />
-              <ui:LiveStatusTextBlock Text="{Binding XmlPreviewMessage}" TextWrapping="Wrap" Margin="0,4,0,6" />
-              <TextBox Text="{Binding CompiledXml, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas"
-                       MaxHeight="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                       AutomationProperties.Name="Compiled project XML" AutomationProperties.HelpText="{Binding XmlPreviewMessage}" />
-            </StackPanel>
-          </Expander>
+
           <ui:ParameterListControl DataContext="{Binding AlarmParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,8,12" />
           <StackPanel IsEnabled="{Binding CanEdit}">
           <CheckBox Content="Abstract template (excluded from output)" IsChecked="{Binding IsAbstract}" Margin="0,0,8,12" AutomationProperties.Name="Abstract template" />

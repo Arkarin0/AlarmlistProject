@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable">
+  <Extern href="stdidcmd.h" />
+  <Extern href="vsshlids.h" />
   <Commands package="guidAlarmlistPackage">
     <Menus>
       <Menu guid="guidPreviewCommands" id="PreviewToolbar" type="Toolbar">
@@ -12,6 +14,17 @@
         <Parent guid="guidPreviewCommands" id="PreviewToolbar" />
       </Group>
     </Groups>
+    <Buttons>
+      <Button guid="guidPreviewCommands" id="ShowPreview" priority="0x0600" type="Button">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        <Strings>
+          <ButtonText>Alarmlist Preview</ButtonText>
+          <CommandName>AlarmlistPreview</CommandName>
+          <CanonicalName>AlarmlistPreview</CanonicalName>
+          <LocCanonicalName>AlarmlistPreview</LocCanonicalName>
+        </Strings>
+      </Button>
+    </Buttons>
     <Combos>
       <Combo guid="guidPreviewCommands" id="PreviewLanguage" priority="0x0100" type="DropDownCombo" defaultWidth="110" idCommandList="PreviewLanguages">
         <Parent guid="guidPreviewCommands" id="PreviewGroup" />
@@ -38,6 +51,7 @@
       <IDSymbol name="PreviewGroup" value="0x1050" />
       <IDSymbol name="PreviewLanguage" value="0x0100" />
       <IDSymbol name="PreviewLanguages" value="0x0101" />
+      <IDSymbol name="ShowPreview" value="0x0200" />
     </GuidSymbol>
   </Symbols>
 </CommandTable>

@@ -93,6 +93,9 @@ try {
 }
 ```
 
+The `Area=Preview` cases verify the dockable Alarmlist Preview window, active
+document/culture changes, draft preservation, source navigation and close/reopen.
+
 Filter by `VSVersion=2022`, `VSVersion=2026`, or `Area=LiveDiagnostics` (combine
 with `&`). Unconfigured hosts skip; an explicitly configured missing or wrong
 installation fails. Traits alone do not enable skipped tests. Keep the desktop

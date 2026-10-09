@@ -19,7 +19,7 @@ using OleServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
 namespace Alarmlist.VisualStudio.Editor
 {
     [ComVisible(true)]
-    internal sealed class AlmxEditorPane : WindowPane, IVsDeferredDocView, IVsCodeWindow, IOleCommandTarget, IVsRunningDocTableEvents3, IVsWindowFrameNotify3, IVsExtensibleObject, IVsFindTarget
+    internal sealed class AlmxEditorPane : WindowPane, IVsDeferredDocView, IVsCodeWindow, IOleCommandTarget, IVsRunningDocTableEvents3, IVsWindowFrameNotify3, IVsExtensibleObject, IVsFindTarget, IPreviewDocument
     {
         private readonly OleServiceProvider _oleSite;
         private readonly IVsEditorAdaptersFactoryService _adapters;
@@ -41,6 +41,8 @@ namespace Alarmlist.VisualStudio.Editor
         private IVsCodeWindow _codeWindow;
         private IWpfTextViewHost _textHost;
         private IVsUIShell _shell;
+        public EditFileControlViewModel PreviewSource => _viewModel;
+        public event EventHandler PreviewSourceChanged;
 
         public AlmxEditorPane(System.IServiceProvider site, OleServiceProvider oleSite,
             IVsEditorAdaptersFactoryService adapters, IVsTextLines lines, AlmxDocumentSessionFactory sessions,
@@ -97,6 +99,7 @@ namespace Alarmlist.VisualStudio.Editor
             ErrorHandler.ThrowOnFailure(_rdt.AdviseRunningDocTableEvents(this, out _rdtEvents));
             IVsWindowFrame frame = (IVsWindowFrame)GetService(typeof(SVsWindowFrame));
             if (frame != null) ErrorHandler.ThrowOnFailure(frame.SetProperty((int)__VSFPROPID.VSFPROPID_ViewHelper, this));
+            PreviewSourceChanged?.Invoke(this, EventArgs.Empty);
         }
 
         protected override void Dispose(bool disposing)
@@ -114,6 +117,8 @@ namespace Alarmlist.VisualStudio.Editor
                     _viewModel.Dispose();
                     _viewModel = null;
                 }
+                PreviewSourceChanged?.Invoke(this, EventArgs.Empty);
+                PreviewSourceChanged = null;
                 _shell = null;
                 _codeWindow?.Close();
                 _codeWindow = null;

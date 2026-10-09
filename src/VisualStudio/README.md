@@ -78,6 +78,16 @@ preview; unsaved lookup XML remains private. Metadata provides selection guidanc
 without automatic defaults or range validation. See the [format specification](HMI-LOOKUPS.md)
 and the [North/South sample walkthrough](../../example/README.md#try-reusable-instructions-and-hmi-lookups).
 
+Open **View > Other Windows > Alarmlist Preview** for the dockable preview window.
+Its **Selected alarm** and **Compiled XML** tabs replace the designer's embedded
+preview sections. The window follows the active ALMX document, selected alarm,
+linked-project context and native Preview language toolbar. Moving focus into
+the window preserves unfinished designer edits; preview clears until they are
+committed or cancelled. Compiled XML requires a successful whole-project analysis
+and never writes build output. Source buttons revalidate the captured inputs.
+Closing the document or switching to another document clears its preview; reopening
+the window follows the current document. Visual Studio manages docking and layout.
+
 The bridge accepts analysis contract 3 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off

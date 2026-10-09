@@ -44,7 +44,8 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("\"Language(VsTemplate)\"=\"Alarmlist\"", registration);
                 Assert.Contains("\"ProjectFactoryPackage\"=\"{3347bee8-d7a1-4082-95e4-38a439553cc2}\"", registration);
                 Assert.Contains("ItemTemplates\\Alarmlist", registration);
-                Assert.Contains("Menus.ctmenu, 1", registration);
+                Assert.Contains("Menus.ctmenu, 2", registration);
+                Assert.Contains("ToolWindows\\{2c7f1b33-66f5-4831-96b1-c11cd1e28769}", registration);
                 Assert.Contains("Editors\\{6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f}", registration);
                 Assert.Contains("\"almx\"=dword:00000060", registration);
                 foreach (string logicalView in new[] { "7651a701", "7651a702", "7651a703" }) Assert.Contains(logicalView, registration);

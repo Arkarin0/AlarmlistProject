@@ -8,13 +8,15 @@ using Alarmlist.VisualStudio.Editor;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace Alarmlist.VisualStudio
 {
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
     [InstalledProductRegistration("Alarmlist", "Alarmlist project integration", "1.0")]
     [Guid(PackageGuid)]
-    [ProvideMenuResource("Menus.ctmenu", 1)]
+    [ProvideMenuResource("Menus.ctmenu", 2)]
+    [ProvideToolWindow(typeof(AlarmlistPreviewWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 900, Height = 380)]
     [ProvideEditorExtension(typeof(AlmxEditorFactory), ".almx", 0x60, NameResourceID = 111)]
     [ProvideEditorLogicalView(typeof(AlmxEditorFactory), VSConstants.LOGVIEWID.Designer_string)]
     [ProvideEditorLogicalView(typeof(AlmxEditorFactory), VSConstants.LOGVIEWID.Code_string)]
@@ -31,6 +33,12 @@ namespace Alarmlist.VisualStudio
             if (commands == null) throw new System.InvalidOperationException("Visual Studio's command service is unavailable.");
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             RegisterEditorFactory(components.GetService<AlmxEditorFactory>());
+            commands.AddCommand(new MenuCommand((sender, args) =>
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                ToolWindowPane window = FindToolWindow(typeof(AlarmlistPreviewWindow), 0, true);
+                ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
+            }, new CommandID(PreviewLanguageCommands.CommandSet, AlarmlistPreviewWindow.ShowCommand)));
             // Fallback when the command route has no active ALMX editor. These
             // handlers hold no view and cannot change another document's project.
             foreach (int id in new[] { PreviewLanguageCommands.Language, PreviewLanguageCommands.Languages })

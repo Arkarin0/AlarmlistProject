@@ -42,6 +42,8 @@ namespace Alarmlist.VisualStudio.UI
     {
         private ProjectAnalysisState _previewState;
         private AnalysisAlarm _previewAlarm;
+        private int _previewActionVersion;
+        internal void InvalidatePreviewActions() => _previewActionVersion++;
         public IReadOnlyList<ResolvedFieldViewModel> ResolvedFields { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
         public IReadOnlyList<ResolvedSectionViewModel> ResolvedSections { get; private set; } = Array.Empty<ResolvedSectionViewModel>();
         public string ResolvedPreviewMessage { get; private set; }
@@ -106,7 +108,11 @@ namespace Alarmlist.VisualStudio.UI
                 && ReferenceEquals(_analysis.Current, state) && ReferenceEquals(CurrentAlarm(), alarm);
             return new DelegateCommand(() =>
             {
-                if (CanNavigate()) StartAnalysisAction((current, selected) => Navigate(current, location));
+                int version = _previewActionVersion;
+                if (CanNavigate()) StartAnalysisAction((current, selected) =>
+                {
+                    if (version == _previewActionVersion) Navigate(current, location);
+                });
             }, CanNavigate);
         }
     }

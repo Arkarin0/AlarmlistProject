@@ -345,6 +345,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   collection cache and PropertyDescriptor subscriptions can retain closed views
   and analysis snapshots. Keep analysis DTOs independent of UI notification types.
 - Resolved previews use SDK effective fields and surviving procedure entries.
+  The dockable Alarmlist Preview window follows the shell's DocumentFrame selection
+  through a weak document context. Detach on hide/close and invalidate pending
+  preview actions on document switches. Keep previews outside the designer; reuse
+  its captured analysis without creating another compiler or project subscription.
   Clear both previews during drafts or stale/unavailable analysis; project XML
   requires whole-project success. Require context-aware contract 3 and preview
   support, and copy XML as a string outside the required property map.

@@ -833,6 +833,46 @@ Source culture defaults to en, configurable by AlarmlistXliffSourceCulture and a
 per-export override. It has no effect on compilation/preview fallback.
 Any import conflict rejects the whole batch and reports conflicts for resolution.
 
+## Preview follow-up iterations (2026-10-09)
+
+The owner approved the dockable preview and alarm table recommendations from the
+feature list. Implement each as a validated commit before starting the next:
+
+1. **P1 — Preview window:** View > Other Windows > Alarmlist Preview, with
+   Selected alarm and Compiled XML tabs. Follow the active ALMX document and its
+   linked-project context; preserve preview culture, drafts, invalidation and
+   source navigation. Remove the embedded designer preview sections.
+2. **P2 — Alarm table:** one row per concrete alarm, resolved name/code/category/
+   description, identity and source, with sorting, filtering, row copying and
+   source navigation. Reuse the captured SDK analysis and validation pipeline.
+
+P1 reuses the per-view designer model and shared procedure presentation resources.
+The shell DocumentFrame selection is observed while the window is visible; pane
+ownership is weak and close/hide/switch clears the displayed source. A generation
+check prevents delayed preview navigation after switching documents. The window
+routes preview-language commands through the shell's current document. No compiler,
+build-output writer or extra project analysis service is introduced.
+
+The host implementation follows Microsoft's [tool-window pattern](https://learn.microsoft.com/en-us/visualstudio/extensibility/creating-an-extension-with-a-tool-window?view=visualstudio)
+and [selection-context model](https://learn.microsoft.com/en-us/visualstudio/extensibility/internals/selection-context-objects?view=visualstudio).
+The existing compiler/SDK architecture below remains unchanged. XLIFF import and
+the remaining integrated milestone/release acceptance are separate work.
+
+P1 validation: 313 extension unit tests passed; the final routing/theme changes
+also passed 35 focused preview/override checks and three themed rendering cases.
+VSIX/template consumers passed 11 tests on each framework; the updated menu and
+tool-window registration was checked again on both. Performance harness validation
+passed 26 tests, with six opt-in measurements skipped; no new timings are claimed.
+The designer benchmark now hosts the extracted preview alongside the designer.
+The live Preview scenario passed in VS2026 and VS2022, covering culture changes
+while the tool window is active, keyword output, compiled XML, private drafts,
+document switches, inherited source navigation, closing and reopening, and
+unchanged source/build-output bytes. TRX directories:
+`artifacts/log/Debug/VisualStudioUI/TestResults/27a492184ff94818a8eb7a4726a76052/`
+and `artifacts/log/Debug/VisualStudioUI/TestResults/37c6afe037fa4fabbdacf9d79c242684/`.
+The initial live checks caught menu naming and toolbar routing issues; both were
+fixed before these passing runs.
+
 ## Architecture and reference basis
 
 - Follow Roslyn's separation of captured additional text and compiler options:

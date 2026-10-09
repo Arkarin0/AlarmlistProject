@@ -54,14 +54,16 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             _view.Selected = _view.Alarms.Last();
             _host = new HwndSource(new HwndSourceParameters("ALMX performance")
                 { Width = 1000, Height = 900, WindowStyle = unchecked((int)0x80000000) });
-            var control = new EditFileControl(_view) { Width = 950, Height = 850 };
+            var control = new Grid { Width = 950, Height = 850 };
+            control.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(600) });
+            control.ColumnDefinitions.Add(new ColumnDefinition());
+            control.Children.Add(new EditFileControl(_view));
+            var preview = new PreviewControl { DataContext = _view };
+            Grid.SetColumn(preview, 1);
+            control.Children.Add(preview);
             _host.RootVisual = control;
             PreparePublication();
             _analysis.Set(_nextState);
-            Pump();
-            foreach (Expander panel in Descendants(control).OfType<Expander>().Where(item =>
-                Equals(item.Header, "Resolved alarm preview") || Equals(item.Header, "Compiled project XML preview")))
-                panel.IsExpanded = true;
             Pump();
             _code = _view.Fields.Single(field => field.Name == "Code");
         }
