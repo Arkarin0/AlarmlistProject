@@ -10,8 +10,8 @@ the dockable preview and alarm table are implemented in
 remain explicitly tracked. The owner approved
 [milestone six](src/VisualStudio/MILESTONE-6.md): EditorConfig, diagnostic severity,
 project warning controls and explicitly referenced external analyzers. Implementation
-is present and ordinary Release regressions pass; live IDE, performance and conformance
-validation remain tracked in that milestone. The original proposal text below is retained as design history;
+is present; Release regressions and focused live IDE/performance checks pass.
+Broader conformance and acceptance remain tracked in that milestone. The original proposal text below is retained as design history;
 the milestone records describe current scope and actual validation.
 
 Planning update (2026-10-06): the

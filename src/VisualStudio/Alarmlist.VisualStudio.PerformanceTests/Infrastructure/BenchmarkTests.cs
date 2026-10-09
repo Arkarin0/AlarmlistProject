@@ -46,6 +46,10 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         [InlineData("1000-100-localization")]
         public void LocalizationDesigner(string scenario) => Run(typeof(DesignerBenchmarks), scenario, 6);
 
+        [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Analyzers")]
+        [InlineData("1000-100-analyzers")]
+        public void AnalyzerBridge(string scenario) => Run(typeof(BridgeBenchmarks), scenario, 2);
+
         private void Run(Type benchmark, string scenario, int expectedReports)
         {
             Assert.Equal(8, IntPtr.Size);

@@ -1,8 +1,8 @@
 # Milestone six: configurable diagnostics and external analyzers
 
 Status: compiler, build and IDE implementation present on 2026-10-09; ordinary
-Release regression suites pass. Live IDE and performance acceptance remain open
-below. Stop at a validated checkpoint when the account usage allowance reaches
+Release regression suites pass. Focused live IDE and analyzer performance checks
+also pass; remaining acceptance is recorded below. Stop at a validated checkpoint when the account usage allowance reaches
 approximately 15% remaining. Commit each completed implementation iteration.
 
 ## Scope and iterations
@@ -113,13 +113,35 @@ reader's LF, preserving the intended content assertion on Windows.
 
 ## Remaining validation
 
-- Run the packaged analyzer cases against desktop MSBuild/net472 explicitly.
-- Deploy matching test VSIXs, then run the new `Area=Analyzers` xUnit UI cases on
-  VS2022 and VS2026. These check live severity/configuration changes, source/output
-  preservation and the absence of source DLL locks. No interactive result is claimed yet.
-- Run opt-in performance tests directly through their xUnit project, with a focused
-  analyzer/configuration workload before drawing overhead or lifecycle conclusions.
 - Expand EditorConfig conformance against the upstream suite; current coverage is
   focused, not a claim of full conformance.
+- Larger analyzer counts, long-running plugin lifecycle and whole-IDE memory/latency
+  measurements remain unmeasured. No performance threshold or leak-freedom claim.
 - Existing milestone-five manual/vendor/release gates remain separate. No package
   has been published and no VSIX has been distributed for this milestone.
+
+## Validation iteration 2
+
+Implementation checkpoint: `644dc0d`. Added a dedicated `Area=Analyzers` bridge
+workload in PerformanceTests. It captures the sample DLL plus configuration,
+checks 1,000 warning results and then zero results after the prefix changes, and
+verifies SDK/analyzer isolation outside measured intervals. Run through xUnit,
+with the existing opt-in environment variables (no standalone benchmark script).
+
+- Desktop MSBuild 17.14/net472 packaged analyzer cases: 3 passed.
+- Functional xUnit `Area=Analyzers`: 2 passed, no skips, on VS2022 17.14 and
+  VS2026 18.10. Matching Release VSIXs were deployed to `AlarmlistExp` using desktop
+  MSBuild. Each case owns and closes its IDE; source and output preservation,
+  saved configuration refresh, live severity and source DLL lock checks passed.
+- Analyzer bridge benchmark: 1 xUnit case passed with two BenchmarkDotNet reports.
+  Short job, two warmups and five samples per method, x64 .NET Framework 4.8.1
+  running net472 on Windows 11 / i7-11700K. The 1,000-warning context averaged
+  287.4 ms; the configured-prefix context with no warnings averaged 266.4 ms.
+  These are complete isolated bridge calls, not live typing latency or an estimate
+  of incremental analyzer overhead. Allocation data is benchmark-host scoped.
+
+Artifacts: `artifacts/log/Release/Milestone6Performance/BridgeBenchmarks-1000-100-analyzers-ecffdf99041d455a9fc8f5d7250225b3/`
+contains raw CSV/JSON and reports. UI records are under
+`artifacts/log/Release/VisualStudioUI/ConfiguredAnalyzer/2022/41f66b0a104a4c6397069568b6a9d9c2/`
+and `2026/9bdd80f93d66433ab209b699239a1197/`. Generated local runsettings select
+the test hosts and flags and are not checked in.

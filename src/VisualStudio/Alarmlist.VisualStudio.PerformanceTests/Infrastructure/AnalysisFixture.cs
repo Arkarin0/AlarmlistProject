@@ -6,7 +6,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Xml.Linq;
+using Alarmlist.ConfigurationInput;
 using Alarmlist.VisualStudio.Analysis;
 
 namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
@@ -24,6 +26,8 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         public AnalysisContext AlternateContext { get; private set; }
         public bool HasProperties { get; private set; }
         public bool HasLocalization { get; private set; }
+        public bool HasAnalyzers { get; private set; }
+        private IReadOnlyList<CapturedAnalyzerReference> _analyzers;
 
         public AnalysisFixture(string scenario)
         {
@@ -40,6 +44,14 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                 AlarmCount = int.Parse(size[0]);
                 HasProperties = size.Length == 3 && size[2] == "properties";
                 HasLocalization = size.Length == 3 && size[2] == "localization";
+                HasAnalyzers = size.Length == 3 && size[2] == "analyzers";
+                if (HasAnalyzers)
+                {
+                    string analyzer = Path.Combine(_directory, "analyzers", "Alarmlist.SampleAnalyzer.dll");
+                    Directory.CreateDirectory(Path.GetDirectoryName(analyzer));
+                    File.Copy(Path.Combine(assets, "Alarmlist.SampleAnalyzer.dll"), analyzer);
+                    _analyzers = SavedAnalyzerCapture.Capture(new[] { analyzer }, CancellationToken.None);
+                }
                 Context = CreateContext("Performance");
                 AlternateContext = CreateContext("Changed");
                 Inputs = CreateInputs(_directory, AlarmCount, int.Parse(size[1]), HasProperties, HasLocalization);
@@ -50,7 +62,11 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         private AnalysisContext CreateContext(string configuration) => new AnalysisContext(Path.Combine(_directory, "Performance.almproj"), configuration, "AnyCPU",
             Enumerable.Range(0, HasProperties ? 32 : 0).Select(index => new AnalysisPropertyDefinition("p" + index, configuration + index)).ToArray(),
             resources: HasLocalization ? CreateResources() : null,
-            culture: HasLocalization ? configuration == "Performance" ? "de-DE" : "en-US" : null);
+            culture: HasLocalization ? configuration == "Performance" ? "de-DE" : "en-US" : null,
+            analyzers: _analyzers,
+            configurations: HasAnalyzers ? new[] { new CapturedEditorConfig(Path.Combine(_directory, ".editorconfig"),
+                "root=true\n[*.almx]\nalarmlist_diagnostic.SAMPLE001.severity=warning\nalarmlist_sample.code_prefix="
+                    + (configuration == "Performance" ? "AL-" : "C")) } : null);
 
         private AnalysisResourceInput[] CreateResources()
         {
@@ -99,6 +115,15 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
             if (!Path.GetFullPath(_directory).StartsWith(Path.GetFullPath(_root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Unsafe benchmark cleanup.");
             if (Directory.Exists(_directory)) Directory.Delete(_directory, true);
+        }
+
+        public void ValidateAnalyzerResponse(AnalysisResponse response, int count)
+        {
+            Validate(response);
+            if (response.Snapshot.Diagnostics.Count != count
+                || response.Snapshot.Diagnostics.Any(diagnostic => diagnostic.Id != "SAMPLE001" || diagnostic.Severity != AnalysisSeverity.Warning)
+                || AppDomain.CurrentDomain.GetAssemblies().Any(assembly => assembly.GetName().Name == "Alarmlist.SampleAnalyzer"))
+                throw new InvalidOperationException("The analyzer workload did not apply captured options or preserve host isolation.");
         }
 
         private static AnalysisInput[] CreateInputs(string directory, int count, int perFile, bool properties, bool localization)

@@ -12,7 +12,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Analysis
         private AnalysisFixture _fixture;
         private AnalysisResponse _response;
 
-        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties", "1000-100-localization")]
+        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties", "1000-100-localization", "1000-100-analyzers")]
         public string Scenario { get; set; }
 
         [GlobalSetup]
@@ -20,6 +20,11 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Analysis
         {
             _fixture = new AnalysisFixture(Scenario);
             _fixture.Validate(_fixture.Bridge.Analyze(_fixture.Inputs, context: _fixture.Context));
+            if (_fixture.HasAnalyzers)
+            {
+                _fixture.ValidateAnalyzerResponse(_fixture.Bridge.Analyze(_fixture.Inputs, context: _fixture.Context), _fixture.AlarmCount);
+                _fixture.ValidateAnalyzerResponse(_fixture.Bridge.Analyze(_fixture.Inputs, context: _fixture.AlternateContext), 0);
+            }
         }
 
         [Benchmark]

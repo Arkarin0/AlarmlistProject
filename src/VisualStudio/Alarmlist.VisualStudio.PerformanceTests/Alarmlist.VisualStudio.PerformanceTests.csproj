@@ -12,6 +12,7 @@
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
     <Compile Include="../../shared/VisualStudioTesting/LiveVisualStudioRun.cs" Link="LiveVisualStudio/LiveVisualStudioRun.cs" />
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" />
+    <ProjectReference Include="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.SDK" Version="17.9.380" PrivateAssets="all" />
     <!-- BAML uses shell theme keys. Download the host assembly as a test asset
@@ -37,5 +38,10 @@
       <Output TaskParameter="TargetOutputs" ItemName="_AnalysisSdkPackage" />
     </MSBuild>
     <Copy SourceFiles="@(_AnalysisSdkPackage)" DestinationFiles="$(TargetDir)testassets/analysis-sdk.nupkg" />
+    <MSBuild Projects="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);TargetFramework=net472">
+      <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzer" />
+    </MSBuild>
+    <Copy SourceFiles="@(_SampleAnalyzer)" DestinationFolder="$(TargetDir)testassets" SkipUnchangedFiles="true" />
   </Target>
 </Project>
