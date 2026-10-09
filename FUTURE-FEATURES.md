@@ -183,6 +183,213 @@ Open questions:
   duplicate names? Missing localization keywords must still fail final compilation
   as described above; define when unresolved custom properties become errors.
 
+## Separate preview view
+
+Proposed on 2026-10-08; no milestone assigned.
+
+Extract the existing preview section from the designer UI into a separate view.
+Expose it as a Visual Studio tool window that users can open from the **View
+(Ansicht)** menu, following the menu shown in the reference screenshot. Keep the
+resolved selected-alarm and compiled project XML previews available in this view.
+
+Open questions:
+
+- How should the view follow the active project, document, and selected alarm?
+- How should docking, visibility, and layout be retained between sessions?
+- How should pending drafts, stale analysis, and unavailable results be presented
+  while preserving the existing preview validity rules?
+
+## Alarm-list table preview
+
+Proposed on 2026-10-08; no milestone assigned.
+
+Add an Excel-style table preview of the alarm list, with one alarm per row and
+alarm properties as columns. Present resolved values for the selected preview
+culture in a read-only view.
+
+Open questions:
+
+- Should the table be a mode or tab in the separate preview view, or its own tool
+  window accessible from the View menu?
+- Which columns and project/file scopes should be available, and how should
+  procedures and other collection-valued properties be displayed?
+- Which sorting, filtering, column arrangement, and copy operations are useful?
+
+## External alarm analyzers
+
+Proposed on 2026-10-08; no milestone assigned.
+
+Provide an extension interface for external alarm analyzers, similar to adding
+code analyzers to a C# project. Let users add analyzers that check domain-specific
+or project-specific alarm rules and report diagnostics through Alarmlist's
+existing diagnostic workflow.
+
+Open questions:
+
+- How are analyzers distributed and referenced, for example through NuGet packages
+  or assembly references?
+- Which inputs should the interface expose: source syntax, resolved alarms,
+  localization/property context, provenance, or the complete project?
+- When should analyzers run during compilation and live Visual Studio analysis,
+  and how should their diagnostics appear in build output and the Error List?
+- How should diagnostic IDs, severity, configuration, suppression, API versioning,
+  and analyzer failures be handled?
+
+## EditorConfig and diagnostic severity
+
+Proposed on 2026-10-09; no milestone assigned. The examples below describe future
+consumer behavior, not settings implemented by this document.
+
+Support `.editorconfig` files for Alarmlist-specific settings and per-rule
+diagnostic severity, including diagnostics from external alarm analyzers.
+Requested option pattern: `Alarmlist_diagnostic.<rule-ID>.severity = none`.
+Use a section matching ALMX inputs, adapting the C#/VB example:
+
+```ini
+[*.almx]
+Alarmlist_diagnostic.<rule-ID>.severity = none
+```
+
+Here `<rule-ID>` is a placeholder. A section such as `[*.{cs,vb}]` matches C#/VB
+files and would not apply to `.almx` files. Follow EditorConfig's directory
+hierarchy, section matching, `root = true`, later/nearer overrides, case-insensitive
+keys, and `unset` behavior. See the [specification](https://spec.editorconfig.org/).
+
+Use the .NET severity vocabulary as the reference: `error`, `warning`,
+`suggestion`, `silent`, `none`, and `default`. Define how these map to Alarmlist's
+diagnostics and Visual Studio presentation, including suppression and build
+success. Microsoft's [rule configuration documentation](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-options)
+describes these values.
+
+Open questions:
+
+- Which compiler diagnostics are configurable, and which must remain errors
+  because compilation cannot produce a valid result? Include external analyzers
+  in the same documented policy.
+- How are invalid values, unknown IDs, and IDs with different casing handled?
+- Which file's settings govern inherited content, shared/linked inputs, and
+  diagnostics with multiple locations or no source location?
+- How do configuration changes invalidate build and live-analysis results?
+  Should unsaved EditorConfig edits participate in live analysis?
+- Is project-wide `.globalconfig` support also useful? This remains optional.
+
+## Warnings as errors and NoWarn
+
+Proposed on 2026-10-09; no milestone assigned.
+
+Add warning controls to consumer `.almproj` projects, following the C# project
+properties: `TreatWarningsAsErrors` for all warnings and `WarningsAsErrors` for
+selected IDs. Consider matching `WarningsNotAsErrors` for exceptions. Support
+`NoWarn` for suppressing selected ALM diagnostics. Requested syntax, with existing
+values preserved:
+
+```xml
+<PropertyGroup>
+  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  <NoWarn>$(NoWarn);ALM0001</NoWarn>
+</PropertyGroup>
+```
+
+`ALM0001` currently represents a duplicate alarm name error. This records the
+requested example; its suppressibility and the effect on compilation must be
+decided with the diagnostic policy above. Hiding a diagnostic and obtaining a
+valid resolved alarm list are separate concerns.
+
+Specify precedence between per-file severity, project-level suppression, and
+warning promotion. Promoted warnings must affect compilation success before
+output installation. The C# reference distinguishes compiler
+`TreatWarningsAsErrors` from MSBuild's task-wide `-warnaserror` switch; adopting
+the property requires explicit Alarmlist compiler/task integration. See
+[C# errors and warnings options](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-options/errors-warnings)
+and [configuration precedence](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-files#precedence).
+
+## Project references
+
+Proposed on 2026-10-09; no milestone assigned.
+
+Support references between consumer projects, including one `.almproj` consuming
+another project's alarms. Coordinate the consumed artifact with the proposed
+`Library` output type and NuGet alarm libraries. Use MSBuild `ProjectReference`
+conventions for dependency ordering and output discovery, adapting them to alarm
+artifacts and projects without a `TargetFramework`.
+
+Open questions include the referenced output contract, transitive references,
+cycles and duplicate alarms, configuration/culture propagation, restore and clean
+behavior, and Visual Studio reference management and live analysis across projects.
+The [MSBuild ProjectReference protocol](https://github.com/dotnet/msbuild/blob/main/documentation/ProjectReference-Protocol.md)
+is the implementation starting point; the
+[item metadata reference](https://learn.microsoft.com/en-us/visualstudio/msbuild/common-msbuild-project-items#projectreference)
+documents controls such as `ReferenceOutputAssembly` and `OutputItemType`.
+
+## Visual Studio shared projects
+
+Proposed on 2026-10-09; no milestone assigned.
+
+Support Visual Studio Shared Projects so several `.almproj` consumers can share
+ALMX sources and associated resources/lookups. Follow the shared-source model:
+each consuming project compiles the shared inputs in its own context. Microsoft's
+[shared-project reference documentation](https://learn.microsoft.com/en-us/visualstudio/ide/managing-references-in-a-project#shared-project-references)
+describes this model, which has no separate binary output.
+
+Investigate `.shproj` ownership, imported `.projitems`, Add Reference integration,
+and Solution Explorer using the
+[`IVsSharedProjectReference` contract](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.shell.interop.ivssharedprojectreference?view=visualstudiosdk-2022).
+Confirm how Alarmlist item types participate, how shared documents select the
+active consumer for parameters/culture/EditorConfig, and how duplicate inclusion
+and source navigation behave. Validate command-line builds as well as the IDE.
+
+## Custom procedure groups
+
+Proposed on 2026-10-09; no milestone assigned.
+
+Replace the hardcoded `Instructions` and `Reset` procedure groups with support for
+custom named groups. Add an EditorConfig option containing an ordered list of
+groups to create when a new alarm is added. Illustrative spelling and syntax,
+still to be finalized:
+
+```ini
+[*.almx]
+alarmlist_procedure.default_groups = Instructions, Reset, Verification
+```
+
+Resolve the setting for the destination ALMX file when creating the alarm. This
+list supplies creation defaults; changing it should not rewrite existing alarms.
+The names in the example are configurable values rather than a fixed group set.
+
+Open questions include group identifiers/display labels, ordering, list escaping,
+empty/duplicate entries, and defaults when the option is absent. Define source and
+compiled XML representation, migration of existing Instructions/Reset data,
+per-group inheritance and `Clear`, and dynamic designer/preview support. Coordinate
+the model with future syntax generation and collection-valued alarm properties.
+
+## EditorConfig implementation references
+
+Research notes (2026-10-09): these are implementation references and candidates,
+not a decision to add Roslyn dependencies.
+
+| Reference | What to inspect |
+| --- | --- |
+| [EditorConfig specification](https://spec.editorconfig.org/) | Parsing, glob matching, directory traversal, precedence, custom keys, and `unset`. |
+| [EditorConfig core tests](https://github.com/editorconfig/editorconfig-core-test) | Parser, glob, and file-hierarchy conformance cases for evaluating a parser. |
+| [Roslyn AnalyzerConfig.cs](https://github.com/dotnet/roslyn/blob/main/src/Compilers/Core/Portable/CommandLine/AnalyzerConfig.cs) | `AnalyzerConfig.Parse(text, path)` parses captured configuration text. |
+| [Roslyn AnalyzerConfigSet.cs](https://github.com/dotnet/roslyn/blob/main/src/Compilers/Core/Portable/CommandLine/AnalyzerConfigSet.cs) | `Create(...)` and `GetOptionsForSourcePath(...)` combine configs and calculate per-file options. Inspect severity handling too. |
+| [Roslyn AnalyzerConfigOptionsResult.cs](https://github.com/dotnet/roslyn/blob/main/src/Compilers/Core/Portable/CommandLine/AnalyzerConfigOptionsResult.cs) | Separate diagnostic settings (`TreeOptions`) from custom key/value settings (`AnalyzerOptions`). |
+| [AnalyzerConfigOptionsProvider API](https://learn.microsoft.com/en-us/dotnet/api/microsoft.codeanalysis.diagnostics.analyzerconfigoptionsprovider?view=roslyn-dotnet-5.0.0) | A model for exposing global and per-file options to external analyzers; this API consumes options rather than discovering/parsing files. |
+| [.NET configuration files](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-files) | EditorConfig/global-config scoping and precedence, including severity overrides. |
+
+Suggested direction to evaluate: hosts discover and capture applicable configs;
+a shared configuration layer resolves options for each source path; compilation
+applies the diagnostic policy before determining success, and the designer uses
+the resolved creation defaults. Pass captured data through the existing analysis
+context/bridge so build and editor agree without compiler-side filesystem reads.
+
+Roslyn treats `dotnet_diagnostic.*.severity` specially. The proposed
+`Alarmlist_diagnostic.*.severity` prefix would arrive as custom analyzer options
+and needs explicit Alarmlist interpretation. Likewise, the procedure-group key
+needs Alarmlist logic. Evaluate direct API reuse versus a smaller compatible
+parser against net472/net8.0 support, dependencies, and the isolated SDK bridge;
+the Roslyn options-provider API alone does not add support to `.almproj`.
+
 ## IntelliSense
 
 Provide IntelliSense in input fields wherever it is applicable, including:
