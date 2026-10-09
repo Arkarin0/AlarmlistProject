@@ -1,12 +1,13 @@
 # Milestone five: localization through RESX and XLIFF exchange
 
-Status: iterations one through nine are implemented and have passed automated
-validation. Vendor interoperability remains pending at the owner's request.
+Status: iterations one through ten are implemented and have passed automated
+validation on the installed hosts. Vendor interoperability remains pending at the
+owner's request; manual support and release gates are listed below.
 Captured resources, catalogue
 validation, localization expression evaluation, multi-culture SDK builds, detached
 analysis, saved-resource observation, language selection and completion are
 implemented. XLIFF export and import are available, including native-editor
-acceptance in VS2022 and VS2026. Integrated acceptance follows in iteration ten.
+acceptance in VS2022 and VS2026. Integrated acceptance is recorded in iteration ten.
 The owner has also added reusable instruction templates and generated HMI lookups
 to this milestone. H1-H3 implement XML/XSD, captured catalogues, named expressions,
 lookup evaluation, compiler analysis, SDK build inputs and XLIFF protection. Designer
@@ -815,6 +816,107 @@ VSIX.
   focused-field safeguards remain intact.
 - Real translation-vendor round trips remain deferred at the owner's request.
 - Commit: `Import XLIFF translations with conflict and editor protection`.
+
+## Iteration-ten acceptance record (2026-10-09)
+
+The compiler/task/SDK code is unchanged after iteration nine. Its combined
+evidence remains 364 compiler, 57 task unit, 4 task integration and 43 SDK cases
+per net472/net8.0. Desktop MSBuild exchange/package checks passed eight cases.
+Each package consumer uses an isolated feed/cache; no package was published.
+IDE fixtures use the newly built SDK in their own caches.
+
+Acceptance found a completion cancellation defect: an obsolete background
+validation could still consume Enter after its editing context had closed.
+Completion now checks the request generation before consuming commit keys.
+The regression failed before the fix; both cancelled-display and cancelled-insert
+variants pass afterwards, along with all 331 extension unit tests. The fixed
+extension was deployed to both experimental profiles before the final UI runs.
+Unit TRX and deployment logs are under
+`artifacts/log/Debug/LocalizationAcceptance/`.
+The final VS2026 deployed DLL hash matches the built extension. VS2022's authored
+source document checksums also match; its generated WPF code differs by toolset.
+The final VSIX/template consumer suites passed all 11 tests on each of net472 and
+net8.0 using isolated feeds/caches. Their TRX files are under
+`artifacts/log/Debug/LocalizationAcceptance/final-package-consumers/`.
+
+- The combined functional selection covers native resources, both localization
+  cases, XLIFF export/import, HMI lookups, named lists, Preview and Alarm table.
+  Final runs with the completion fix passed all nine cases without skips on each
+  installed host. VS2022 TRX directory:
+  `artifacts/log/Debug/VisualStudioUI/TestResults/722a121c471b4443ae65339433a759df/`;
+  VS2026:
+  `artifacts/log/Debug/VisualStudioUI/TestResults/0cc08192d9304fc5b4fa52d0f69bb608/`.
+  Both runs used the combined Area filter for Resources, Localization, Xliff,
+  XliffImport, Lookups, Lists, Preview and PreviewTable and closed their owned IDEs.
+- Earlier combined VS2022 runs exposed test-fixture readiness issues: closing a
+  newly created RESX before Resource Explorer initialized stalled that owned IDE,
+  and a restored floating Preview window covered a native resource cell. Tests
+  now wait for the native table and hide that pane in their own IDE before input.
+  Both native resource cases subsequently passed. List completion then timed out
+  twice at Enter commit; investigation added the cancellation regression above.
+  Failure screenshots/logs remain in the corresponding UI run directories; the
+  list case now also retains the observed ALMX buffer at its commit assertion.
+- A fresh copy of the committed example, isolated from the owner's working edits,
+  built North/South for keyword, en and de-DE. It produced eight/four alarms per
+  culture and the exact documented English HMI and wire-disconnection instructions.
+  The fixture/feed/cache, output and build logs are under
+  `artifacts/log/Debug/LocalizationAcceptance/example-c8c2baf8100944cda8ab4ad13263dda5/`.
+  An initial verification used source Step elements instead of compiled
+  TestProcedureItem elements; the corrected verification passed both projects.
+- Added the opt-in `Area=Localization` workload: 1,000 alarms in ten files and
+  10,002 translations in twelve captured RESX inputs. It checks parent origins,
+  named arguments, field dependencies and language changes outside timing, and
+  passes the same saved resources into designer publication/completion. Both
+  Short-job cases passed all eight benchmark operations (two warmups/five samples).
+  Raw CSV/JSON, runtime details and summaries are under
+  `artifacts/log/Release/AnalysisPerformance/282976281b3d4d2f966c388878286838/`.
+
+| Resource-heavy operation | Mean on this machine |
+| --- | ---: |
+| Packaged bridge analysis | 532.0 ms |
+| Alternate culture/context analysis | 509.9 ms |
+| Designer publication/layout | 28.6 ms |
+| Unchanged refresh/layout | 9.0 ms |
+| Culture/context publication/layout | 29.8 ms |
+| 100 localization completion filters | 18.7 ms |
+| 100 command-availability queries | 0.10 ms |
+| Draft/layout | 13.4 ms |
+
+These Release/x64 net472 measurements ran on .NET Framework 4.8.1. They exclude
+live CPS/RDT capture and keystroke paint. The designer timings exclude compilation;
+completion measures filtering, not popup rendering. This is a baseline with raw
+variance retained, not a universal responsiveness guarantee or a timing threshold.
+The measurements preceded the completion-key cancellation fix; that input path
+is not exercised by these benchmark operations.
+
+The existing hidden-IDE lifetime/latency workload also passed on VS2022
+17.14.36930.0 and VS2026 18.10.12224.181: 1,000 additional alarms, two warmups and
+20 measured samples per mode. This separate live fixture exercises scoped
+properties/field dependencies, not the resource-heavy catalogue above. Both runs
+preserved source/output hashes, left zero documents after every measured close,
+and closed their owned IDE. XML-buffer diagnostic medians were 456.8/461.9 ms;
+designer-reopen diagnostic medians were 462.6/463.6 ms, including 50 ms polling.
+Private memory across measured closes rose from 718.7 to 757.4 MiB (VS2022) and
+697.1 to 798.7 MiB (VS2026); no collection was forced in either IDE. Whole-process
+growth alone neither proves nor disproves a retained-editor leak. Raw memory,
+managed-heap counters and latency samples remain under
+`artifacts/log/Debug/VisualStudioSmoke/a2928bf1f6cd4c29bcd4cfcbce3aa7d5/` and
+`artifacts/log/Debug/VisualStudioSmoke/f499aff75b584cfc850c4933725deba4/`.
+Both xUnit wrappers and all 26 report/ownership checks passed; the initial
+restricted runner stalled before producing a result and was stopped before the
+successful noninteractive rerun. TRX files are under
+`artifacts/log/Debug/LocalizationAcceptance/`.
+
+Remaining support/release checks are explicit: real Trados Studio, memoQ and
+Phrase TMS round trips remain deferred at the owner's request; the older VS2022
+17.9 native resource surface, screen-reader speech, native high contrast and
+mixed-DPI observations still require their documented manual environments.
+NuGet publication/fresh published-package verification is a separate release
+gate. Milestone four's separately deferred interactive check is unchanged.
+
+Implementation and automated acceptance are complete for the installed hosts;
+the checks above remain explicitly pending. Commit:
+`Complete localization acceptance coverage and documentation`.
 
 ## Follow-up: resource item template (2026-10-08)
 

@@ -34,6 +34,7 @@ namespace Alarmlist.VisualStudio.UI
         private int _tokenStart;
         private int _tokenEnd;
         private int _completionVersion;
+        private int _pendingCompletionVersion;
 
         public string RawText { get => (string)GetValue(RawTextProperty); set => SetValue(RawTextProperty, value); }
         public string ResolvedText { get => (string)GetValue(ResolvedTextProperty); set => SetValue(ResolvedTextProperty, value); }
@@ -43,6 +44,9 @@ namespace Alarmlist.VisualStudio.UI
         public IEnumerable ArgumentBindings { get => (IEnumerable)GetValue(ArgumentBindingsProperty); set => SetValue(ArgumentBindingsProperty, value); }
         public Func<Task<bool>> ValidateSuggestions { get => (Func<Task<bool>>)GetValue(ValidateSuggestionsProperty); set => SetValue(ValidateSuggestionsProperty, value); }
         internal Task PendingCompletion { get; private set; } = Task.CompletedTask;
+        // Obsolete validation can still finish in the background, but must not
+        // consume commit keys after its completion context has been closed.
+        private bool IsCompletionPending => _pendingCompletionVersion == _completionVersion && !PendingCompletion.IsCompleted;
         internal bool IsCompletionOpen => _popup.IsOpen;
         internal int CompletionCount => _list.Items.Count;
 
@@ -120,11 +124,11 @@ namespace Alarmlist.VisualStudio.UI
                 _explicitCompletion = true;
                 _dismissedText = null;
                 RefreshCompletion();
-                return IsCompletionOpen || !PendingCompletion.IsCompleted;
+                return IsCompletionOpen || IsCompletionPending;
             }
             if (!IsCompletionOpen)
             {
-                if (PendingCompletion.IsCompleted) return false;
+                if (!IsCompletionPending) return false;
                 if (key == Key.Escape) { _dismissedText = RawText; CloseCompletion(); return true; }
                 return key == Key.Enter || key == Key.Tab;
             }
@@ -194,6 +198,7 @@ namespace Alarmlist.VisualStudio.UI
 
         private async Task ShowValidatedCompletionAsync(PropertyCompletion[] matches, string selectedName, string raw, int caret, int selectionLength, IEnumerable suggestions, int version)
         {
+            _pendingCompletionVersion = version;
             if (ValidateSuggestions == null || !await ValidateSuggestions()) return;
             if (version != _completionVersion || !IsLoaded || !IsKeyboardFocusWithin || RawText != raw || CaretIndex != caret || SelectionLength != selectionLength
                 || !ReferenceEquals(Suggestions, suggestions)) return;
@@ -242,6 +247,7 @@ namespace Alarmlist.VisualStudio.UI
             int selectionLength = SelectionLength;
             CloseCompletion();
             int version = _completionVersion;
+            _pendingCompletionVersion = version;
             if (ValidateSuggestions == null || !await ValidateSuggestions()) return;
             if (version == _completionVersion && IsLoaded && IsKeyboardFocusWithin && RawText == raw && CaretIndex == caret && SelectionLength == selectionLength
                 && ReferenceEquals(Suggestions, suggestions)) InsertCompletion(property, start, end);

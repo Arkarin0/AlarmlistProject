@@ -38,6 +38,14 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         [InlineData("1000-100-properties")]
         public void PropertyDesigner(string scenario) => Run(typeof(DesignerBenchmarks), scenario, 6);
 
+        [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Localization")]
+        [InlineData("1000-100-localization")]
+        public void LocalizationBridge(string scenario) => Run(typeof(BridgeBenchmarks), scenario, 2);
+
+        [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Localization")]
+        [InlineData("1000-100-localization")]
+        public void LocalizationDesigner(string scenario) => Run(typeof(DesignerBenchmarks), scenario, 6);
+
         private void Run(Type benchmark, string scenario, int expectedReports)
         {
             Assert.Equal(8, IntPtr.Size);

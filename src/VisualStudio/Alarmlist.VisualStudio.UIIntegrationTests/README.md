@@ -47,6 +47,10 @@ Resource Explorer saves a committed cell automatically on the verified VS2022
 17.14 and VS2026 hosts; the case checks that unfinished cell drafts remain off disk.
 Alarmlist
 still consumes only saved files and does not trigger saves itself.
+The resource-creation case waits for Resource Explorer initialization before
+closing its new document. Native-cell cases hide a restored Alarmlist Preview
+window only in their owned IDE so a persisted floating pane cannot cover the
+cell. Foreground and focused-field guards still precede keyboard input.
 
 ## Run
 

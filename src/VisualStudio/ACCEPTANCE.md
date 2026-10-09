@@ -57,7 +57,7 @@ for the current validation results and outstanding gates.
 ## Linked contexts and provenance
 
 For localization, use the isolated fixtures retained by the `Area=Localization`
-functional cases. Choose **Preview language** beside **Analysis project context**:
+functional cases. Choose **Preview language** on the native **Alarmlist** toolbar:
 keyword displays complete `$(loc:Key)` tokens; de-DE may use a saved de translation.
 Verify that each project's choice survives solution reopen without altering build
 cultures or compiled output. Change the language while an ALMX field has a draft;
@@ -77,8 +77,9 @@ Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
    also included by South. Wait for both projects to finish loading. With no
    context selected, the designer should ask for a project context instead of
    guessing which project's `Base` to use.
-2. Choose North in **Analysis project context**. Select `Shared.Child`, expand
-   **Resolved alarm preview**, and check the following values.
+2. Choose North in **Analysis project context**. Select `Shared.Child`, open
+   **View > Other Windows > Alarmlist Preview**, select **Selected alarm**, and
+   check the following values.
 
    | Field | North | South | Origin |
    | --- | --- | --- | --- |
@@ -106,7 +107,7 @@ Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
    Clear and exactly the three current effective entries. Reset is unchanged.
    Undo once restores the original section and inheritance. Redo/Undo should
    restore the same result without duplicate entries.
-4. Leave **Resolved alarm preview** expanded and choose **Override locally** on
+4. Leave **Selected alarm** visible and choose **Override locally** on
    inherited Name. Both previews clear during the uncommitted draft. The local
    Name editor must stay in view and receive keyboard focus, with the caret after
    the copied value. Escape restores inheritance without changing source.
@@ -117,7 +118,7 @@ Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
 
 ## Keyboard, copy, themes, and layout
 
-1. Navigate the expanded previews with Tab/Shift+Tab. Text and source links must
+1. Navigate the Preview window tabs with Tab/Shift+Tab. Text and source links must
    expose descriptive accessible names and origin help. Chain adorners are
    decorative: they must neither take focus nor intercept text selection.
    Scalar action names must identify their field (for example, **Override Name
@@ -125,7 +126,7 @@ Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
 2. Select text in a resolved field using Shift+Arrow. Ctrl+C and paste into a
    temporary unsaved text document should preserve the selected text. Attempted
    typing in the preview must not change source. Do not save the scratch document.
-3. Expand **Compiled project XML preview**, focus its text, and use Ctrl+A/Ctrl+C.
+3. Select **Compiled XML**, focus its text, and use Ctrl+A/Ctrl+C.
    Paste into a scratch XML document. It should contain the whole selected
    project's resolved output, including current unsaved edits. ReferenceName and
    Clear directives must not appear. Close the scratch document without saving.

@@ -62,10 +62,6 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             using var automation = new UIA3Automation();
             using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
             var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
-            // The experimental profile can restore a floating Preview window over
-            // the resource cells. Hide it only in this test's owned IDE.
-            foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
             ide.Automation.Solution.Projects.Item(1).ProjectItems.Item("Labels.de.resx").Open(Constants.vsViewKindPrimary).Activate();
             window.SetForeground();
             AutomationElement table = null;

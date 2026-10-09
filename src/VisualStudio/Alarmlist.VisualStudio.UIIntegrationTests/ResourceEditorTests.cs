@@ -38,6 +38,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.Solution.Projects.Item(1).ProjectItems.AddFromTemplate(template, "Translations.de.resx");
             VisualStudioSession.Wait(() => File.Exists(path), "RESX item template creation with the requested culture suffix");
             Assert.Empty(XDocument.Load(path).Root.Elements("data"));
+            using var automation = new UIA3Automation();
+            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
+            var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            Assert.NotNull(window);
+            // File creation precedes asynchronous Resource Explorer initialization.
+            // Closing the document during that initialization can stall VS2022.
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByAutomationId("resourceTable")
+                .And(cf.ByControlType(ControlType.DataGrid))) != null, "new resource editor readiness before close");
             ide.Automation.Documents.Item(path).Close(vsSaveChanges.vsSaveChangesNo);
             File.WriteAllText(path, """
                 <?xml version="1.0" encoding="utf-8"?>
@@ -52,10 +60,6 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ProjectItem item = ide.Automation.Solution.Projects.Item(1).ProjectItems.Item("Translations.de.resx");
             item.Open(Constants.vsViewKindPrimary).Activate();
 
-            using var automation = new UIA3Automation();
-            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
-            var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
-            Assert.NotNull(window);
             window.SetForeground();
             AutomationElement table = null;
             VisualStudioSession.Wait(() =>
@@ -118,6 +122,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         internal static TextBox BeginEdit(VisualStudioSession ide, AutomationElement table, string before)
         {
+            // Previous preview scenarios can persist a floating tool window over
+            // this cell. Normalize only the owned IDE before real mouse input.
+            foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+            table.Focus();
             AutomationElement cell = FindValue(table, before);
             Assert.NotNull(cell);
             ide.RequireForeground();

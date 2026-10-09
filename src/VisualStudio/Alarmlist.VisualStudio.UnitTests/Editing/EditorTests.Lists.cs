@@ -95,6 +95,49 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             });
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void CancelledListValidationDoesNotSwallowTheNextCommit(bool accepting)
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession(ListTestData.Source))
+                using (var host = ExpressionHost())
+                {
+                    AnalyzeLookups(session, catalogue: ListTestData.Catalogue, resources: ListTestData.Resources);
+                    var control = new EditFileControl(session.View) { Width = 900, Height = 850 };
+                    host.RootVisual = control;
+                    InheritanceAdornerTests.Pump();
+                    ExpressionTextBox box = ExpressionBox(control, "Name");
+                    box.BringIntoView(); Assert.True(box.Focus());
+                    var validation = new TaskCompletionSource<bool>();
+                    if (!accepting) session.Analysis.Validation = validation.Task;
+                    box.Text = "$(list:Wires#W";
+                    box.CaretIndex = box.Text.Length;
+                    if (accepting)
+                    {
+                        Assert.True(box.IsCompletionOpen);
+                        session.Analysis.Validation = validation.Task;
+                        RaiseExpressionKey(box, host, Key.Enter);
+                    }
+                    Assert.False(box.PendingCompletion.IsCompleted);
+                    box.Text = "replacement draft";
+                    box.CaretIndex = box.Text.Length;
+                    RaiseExpressionKey(box, host, Key.Enter);
+                    Assert.Equal(1, session.Buffer.Edits);
+                    Assert.Contains("<Name>replacement draft</Name>", session.Buffer.Current.Text);
+                    validation.SetResult(true);
+                    InheritanceAdornerTests.Pump();
+                    Assert.False(box.IsCompletionOpen);
+                    Assert.Equal("replacement draft", box.Text);
+                    Assert.Equal(1, session.Buffer.Edits);
+                    session.Buffer.Undo();
+                    Assert.Equal(ListTestData.Source, session.Buffer.Current.Text);
+                }
+            });
+        }
+
         [Fact]
         public void ListValueSearchAndLateValidationRespectSelectionAndSavedInputs()
         {

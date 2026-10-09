@@ -428,6 +428,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   It keeps raw CSV/JSON, summaries, test results and revision/runtime details under
   `artifacts/log/`. Normal tests skip measurements; do not introduce machine-dependent
   timing assertions. These measurements exclude live VS/RDT capture and CPS debounce.
+- The isolated `Area=Localization` performance workload captures 10,002 translations
+  for 1,000 alarms. Keep its culture/parent-origin and named-argument correctness
+  checks outside measured intervals, and pass the same captured resources into
+  designer publication. Its completion measurement filters localization keys.
 - Live performance xUnit wrappers require `ALARMLIST_RUN_LIVE_VS_TESTS=1` and explicit
   host paths;
   they run only on net472 in PerformanceTests and use the dedicated live measurement

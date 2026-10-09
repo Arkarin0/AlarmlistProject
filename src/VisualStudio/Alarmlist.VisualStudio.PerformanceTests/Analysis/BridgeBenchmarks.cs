@@ -12,7 +12,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Analysis
         private AnalysisFixture _fixture;
         private AnalysisResponse _response;
 
-        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties")]
+        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties", "1000-100-localization")]
         public string Scenario { get; set; }
 
         [GlobalSetup]

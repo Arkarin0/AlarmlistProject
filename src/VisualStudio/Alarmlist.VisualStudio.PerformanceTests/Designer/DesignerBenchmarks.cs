@@ -35,7 +35,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         private bool _queryResult;
         private PropertyCompletion[] _completionResult;
 
-        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties")]
+        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties", "1000-100-localization")]
         public string Scenario { get; set; }
 
         [GlobalSetup]
@@ -46,7 +46,8 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             _fixture = new AnalysisFixture(Scenario);
             AnalysisInput selected = _fixture.Inputs.Last();
             _project = new AnalysisProject(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(selected.FilePath), "Performance.almproj"),
-                "Performance", _fixture.Bridge.CompilerPath, _fixture.Inputs.Select(input => input.FilePath), _fixture.Context);
+                "Performance", _fixture.Bridge.CompilerPath, _fixture.Inputs.Select(input => input.FilePath), _fixture.Context,
+                resources: _fixture.Context.Resources.Select(resource => new AnalysisResourceItem(resource.FilePath, resource.Culture)));
             _captured = _fixture.Inputs.Select(input => new CapturedAnalysisInput(input)).ToArray();
             _analysis = new CapturedDesignerAnalysis(selected.FilePath, _project);
             _model = new AlmxDocumentModel(new ReadOnlyBuffer(selected), new AlmxEditingService());
@@ -76,7 +77,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         {
             AnalysisResponse response = _fixture.Bridge.Analyze(_fixture.Inputs, context: _fixture.Context);
             _fixture.Validate(response);
-            _nextState = new ProjectAnalysisState(++_generation, _project, ProjectAnalysisStatus.Available, null, response, _captured);
+            _nextState = new ProjectAnalysisState(++_generation, _project, ProjectAnalysisStatus.Available, null, response, _captured, _fixture.Context.Resources);
         }
 
         [IterationSetup(Target = nameof(ContextChangeAndLayout))]
@@ -85,8 +86,8 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             AnalysisContext context = _generation % 2 == 0 ? _fixture.Context : _fixture.AlternateContext;
             AnalysisResponse response = _fixture.Bridge.Analyze(_fixture.Inputs, context: context);
             _fixture.Validate(response);
-            var project = new AnalysisProject(_project.ProjectPath, context.Configuration, _project.CompilerPath, _project.Inputs, context);
-            _nextState = new ProjectAnalysisState(++_generation, project, ProjectAnalysisStatus.Available, null, response, _captured);
+            var project = new AnalysisProject(_project.ProjectPath, context.Configuration, _project.CompilerPath, _project.Inputs, context, resources: _project.Resources);
+            _nextState = new ProjectAnalysisState(++_generation, project, ProjectAnalysisStatus.Available, null, response, _captured, context.Resources);
         }
 
         [IterationSetup(Target = nameof(DraftAndLayout))]
@@ -110,7 +111,8 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         [Benchmark, STAThread]
         public void CompletionQueries100()
         {
-            for (int index = 0; index < 100; index++) _completionResult = ExpressionTextBox.FindMatches(_view.CompletionProperties, "AlarmlistAlarm");
+            for (int index = 0; index < 100; index++) _completionResult = ExpressionTextBox.FindMatches(_view.CompletionProperties,
+                _fixture.HasLocalization ? "loc:Alarm.Name" : "AlarmlistAlarm");
         }
 
         [Benchmark, STAThread]

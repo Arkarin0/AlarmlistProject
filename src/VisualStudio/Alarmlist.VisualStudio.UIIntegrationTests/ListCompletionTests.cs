@@ -91,7 +91,15 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => name.Text == "$(list:Wires#W1)", "direct reference insertion");
             ResourceEditorTests.RequireFieldFocus(ide, name);
             Keyboard.Type(VirtualKeyShort.RETURN);
-            VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath).Contains("<Name>$(list:Wires#W1)</Name>"), "list reference commit");
+            string committed = null;
+            try
+            {
+                VisualStudioSession.Wait(() => (committed = ide.ReadText(workspace.AlarmPath)).Contains("<Name>$(list:Wires#W1)</Name>"), "list reference commit");
+            }
+            finally
+            {
+                File.WriteAllText(Path.Combine(workspace.DirectoryPath, "list-reference-commit.xml"), committed ?? "Buffer was unavailable.");
+            }
             ResourceEditorTests.RequireFieldFocus(ide, name);
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
             VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == source, "single Undo restores source");
