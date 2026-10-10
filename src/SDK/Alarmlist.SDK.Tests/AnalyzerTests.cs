@@ -120,5 +120,33 @@ namespace Alarmlist.MSBuild.SDK.Tests
             Assert.Contains("SAMPLE001", error.Output);
             Assert.Equal(previous, File.ReadAllBytes(app.OutputPath));
         }
+
+        [Theory]
+        [InlineData(@"Plant\[1/Alarm].almx", "Plant[1/Alarm].almx", "Other/Plant[1/Alarm].almx")]
+        [InlineData("Alarm{0..9223372036854775807}.almx", "Alarm9223372036854775807.almx", "Alarm9223372036854775808.almx")]
+        public void EscapedAndNumericSectionsSuppressOnlyMatchingPhysicalInputs(string pattern, string matching, string nonmatching)
+        {
+            var app = _fixture.CreateTestApp("Analyzers");
+            string project = Path.Combine(app.WorkingDirectory, "Plant.almproj");
+            string matchingPath = Path.Combine(app.WorkingDirectory, matching);
+            Directory.CreateDirectory(Path.GetDirectoryName(matchingPath));
+            File.Move(Path.Combine(app.WorkingDirectory, "Alarm.almx"), matchingPath);
+            File.WriteAllText(project, File.ReadAllText(project).Replace("Alarm.almx", matching));
+            File.WriteAllText(Path.Combine(app.WorkingDirectory, ".editorconfig"),
+                "root=true\n[" + pattern + "]\nAlarmlist_diagnostic.SAMPLE001.severity=none");
+            BuildResult suppressed = app.Run(_output, "/t:Build", "/p:TreatWarningsAsErrors=true");
+            Assert.Equal(0, suppressed.ExitCode);
+            Assert.DoesNotContain("SAMPLE001", suppressed.Output);
+            byte[] previous = File.ReadAllBytes(app.OutputPath);
+
+            string nonmatchingPath = Path.Combine(app.WorkingDirectory, nonmatching);
+            Directory.CreateDirectory(Path.GetDirectoryName(nonmatchingPath));
+            File.Move(matchingPath, nonmatchingPath);
+            File.WriteAllText(project, File.ReadAllText(project).Replace(matching, nonmatching));
+            BuildResult promoted = app.Run(_output, "/t:Build", "/p:TreatWarningsAsErrors=true");
+            Assert.NotEqual(0, promoted.ExitCode);
+            Assert.Contains("SAMPLE001", promoted.Output);
+            Assert.Equal(previous, File.ReadAllBytes(app.OutputPath));
+        }
     }
 }

@@ -216,3 +216,41 @@ opt-in cases skipped. Compiler counts are 440 net472 / 441 net8.0, SDK consumers
 48 per framework, and VS unit tests 349. The focused desktop MSBuild/net472
 analyzer run passed all 5 cases, including the new disposal-failure consumer.
 No live IDE or timing workload was rerun for this test-only iteration.
+
+## Escaped paths and numeric globs iteration 6 (2026-10-10)
+
+An escaped opening bracket no longer hides a later path separator during section
+scoping. For example, `Plant\[1/Alarm].almx` matches only that relative path, not
+`Other/Plant[1/Alarm].almx`. A regression reproduced the incorrect suppression on
+both frameworks before the fix. Escaped separators still anchor the pattern.
+
+Numeric brace ranges now encode complete digit suffix intervals once instead of
+recursively duplicating them. This avoids exponential regex construction for
+large valid ranges while retaining inclusive bounds, signed values and existing
+leading-zero behavior. New cases exercise Int64 endpoints, out-of-range values,
+escaped/nested alternatives and integer comparisons across sign/digit boundaries.
+This extends the focused [specification](https://spec.editorconfig.org/#glob-expressions)
+coverage; it does not claim complete upstream conformance.
+
+Packaged consumer cases verify suppression only for the intended physical source,
+then move it outside the section and check warning promotion and preserved output.
+The opt-in xUnit/BenchmarkDotNet analyzer workload now includes an additional
+`Input{0..9223372036854775807}.almx` scenario using the same 1,000-alarm fixture,
+warning counts, changed-prefix context and host-isolation checks as the baseline.
+
+Validation: the full Release solution run passed 1,588 ordinary tests (473 compiler
+net472 / 474 net8.0, 50 SDK consumers per framework, other counts as in iteration 5),
+with 47 opt-in cases skipped. All 7 focused desktop MSBuild/net472 analyzer cases
+also passed. Live IDE scenarios were not rerun for this compiler matcher change.
+
+Both `Area=Analyzers` performance cases passed through xUnit, producing four
+BenchmarkDotNet reports (Short job, two warmups/five samples, x64 .NET Framework
+4.8.1 on the same i7-11700K host). Ordinary-pattern means were 287.2 ms with 1,000
+warnings and 262.6 ms with the configured prefix; large-range means were 290.8 ms
+and 261.9 ms respectively. These measure complete bridge calls, including captured
+configuration construction; they are not typing latency or a regression threshold.
+Host allocation figures do not measure the complete isolated SDK domain.
+
+Raw CSV/JSON and summaries are retained under
+`artifacts/log/Release/Milestone6Performance/BridgeBenchmarks-1000-100-analyzers-994688c1cda5400f8b9a486b4688f359/`
+and `BridgeBenchmarks-1000-100-analyzers-ranges-f983fde97d5a4e3f81a80089cdb3318e/`.

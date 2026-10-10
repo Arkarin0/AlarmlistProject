@@ -451,8 +451,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   designer publication. Its completion measurement filters localization keys.
 - The isolated `Area=Analyzers` bridge workload captures the sample analyzer and
   saved configuration for 1,000 alarms, validating warning counts and host isolation
-  outside timing. Keep its sample DLL a test asset, never a compiler reference in
-  the performance host. Functional `Area=Analyzers` cases belong in UIIntegrationTests.
+  outside timing. Its paired range scenario uses a full positive Int64 glob range;
+  retain both ordinary-pattern and large-range measurements. Keep its sample DLL
+  a test asset, never a compiler reference in the performance host. Functional
+  `Area=Analyzers` cases belong in UIIntegrationTests.
 - Live performance xUnit wrappers require `ALARMLIST_RUN_LIVE_VS_TESTS=1` and explicit
   host paths;
   they run only on net472 in PerformanceTests and use the dedicated live measurement

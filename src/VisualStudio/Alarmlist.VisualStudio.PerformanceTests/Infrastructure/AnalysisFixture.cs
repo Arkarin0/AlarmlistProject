@@ -28,6 +28,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         public bool HasLocalization { get; private set; }
         public bool HasAnalyzers { get; private set; }
         private IReadOnlyList<CapturedAnalyzerReference> _analyzers;
+        private bool _hasAnalyzerRanges;
 
         public AnalysisFixture(string scenario)
         {
@@ -44,7 +45,8 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                 AlarmCount = int.Parse(size[0]);
                 HasProperties = size.Length == 3 && size[2] == "properties";
                 HasLocalization = size.Length == 3 && size[2] == "localization";
-                HasAnalyzers = size.Length == 3 && size[2] == "analyzers";
+                HasAnalyzers = size.Length >= 3 && size[2] == "analyzers";
+                _hasAnalyzerRanges = HasAnalyzers && size.Length == 4 && size[3] == "ranges";
                 if (HasAnalyzers)
                 {
                     string analyzer = Path.Combine(_directory, "analyzers", "Alarmlist.SampleAnalyzer.dll");
@@ -65,7 +67,8 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
             culture: HasLocalization ? configuration == "Performance" ? "de-DE" : "en-US" : null,
             analyzers: _analyzers,
             configurations: HasAnalyzers ? new[] { new CapturedEditorConfig(Path.Combine(_directory, ".editorconfig"),
-                "root=true\n[*.almx]\nalarmlist_diagnostic.SAMPLE001.severity=warning\nalarmlist_sample.code_prefix="
+                "root=true\n[" + (_hasAnalyzerRanges ? "Input{0..9223372036854775807}.almx" : "*.almx")
+                    + "]\nalarmlist_diagnostic.SAMPLE001.severity=warning\nalarmlist_sample.code_prefix="
                     + (configuration == "Performance" ? "AL-" : "C")) } : null);
 
         private AnalysisResourceInput[] CreateResources()
