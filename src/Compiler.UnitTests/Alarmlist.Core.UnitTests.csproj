@@ -1,8 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <AssemblyMetadata Include="RepositoryRoot" Value="$(RepoRoot)" />
     <ProjectReference Include="..\Compiler\Alarmlist.Core.csproj" />
     <ProjectReference Include="../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Moq" Version="4.8.3" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
   </ItemGroup>
   <Target Name="CopyAnalyzerTestAsset" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
     <MSBuild Projects="../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" Targets="GetTargetPath"

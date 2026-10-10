@@ -114,8 +114,9 @@ reader's LF, preserving the intended content assertion on Windows.
 
 ## Remaining validation
 
-- Expand EditorConfig conformance against the upstream suite; current coverage is
-  focused, not a claim of full conformance.
+- EditorConfig compatibility now includes the pinned upstream glob/parser/filetree
+  corpus through the cached xUnit fixture (iteration 8). Explicit adaptations and
+  API exclusions are documented; full EditorConfig core certification is not claimed.
 - Bounded lifecycle checks now cover 32 analyzers, repeated execution, cleanup
   failures and .NET 8 context collection (iteration 5). Long-running plugin
   lifecycle and whole-IDE memory/latency measurements remain unmeasured. No
@@ -283,3 +284,25 @@ Validation: 1,594 ordinary Release tests passed, with 47 opt-in cases skipped.
 The SDK suite passed 53 tests per framework in both Debug and Release. The three
 example cases also passed using desktop MSBuild/net472. No IDE was launched and
 the opt-in timing workloads were not rerun for this example-only change.
+
+## Upstream compatibility fixture iteration 8 (2026-10-10)
+
+At the owner's request, upstream data stays out of source control. An xUnit fixture
+checks an ignored revision-specific ZIP cache, downloads the pinned GitHub archive
+only when missing, verifies SHA-256, and reads it in memory. Failed downloads and
+corrupt caches fail explicitly. Concurrent framework runs use atomic installation.
+Network-free tests cover first download, offline reuse, corrupt cached/downloaded
+data, unavailable downloads and concurrent installation cleanup.
+
+The adapter executes 185 glob/parser/filetree cases on Windows plus a native-path
+case on each framework. It retains the upstream Windows exclusions and documents
+13 expectation adaptations (current literal bracket rules, the existing numeric
+leading-zero contract, and effective unset removal). The whitespace-filename case
+uses an extension on Windows to avoid terminal-space path normalization. CLI and
+formatting-default behavior are outside this API. See
+`../Compiler.UnitTests/Configuration/README.md` for the pin and exact differences.
+
+Validation: the full compiler suite passed 482 tests on net472 and 483 on net8.0.
+The fixture's real cold download and subsequent warm-cache runs succeeded. No
+compiler/runtime behavior changed; downstream, IDE and performance suites were
+not rerun for this test-fixture iteration. The existing example edit is preserved.

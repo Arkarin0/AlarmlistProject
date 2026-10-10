@@ -139,6 +139,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - Add or update regression tests for behavior changes using existing xUnit
   conventions and helpers. Assert observable behavior, diagnostics, and output,
   rather than duplicating implementation details.
+- Compiler EditorConfig compatibility tests use a pinned upstream archive, cached
+  under `artifacts/testassets/editorconfig/`. Their xUnit fixture downloads it only
+  when missing and verifies SHA-256; a warm cache needs no network. See
+  `src/Compiler.UnitTests/Configuration/README.md` for explicit suite adaptations.
 - Start with the affected suite. For shared compiler, build configuration, task,
   or packaging changes, also validate the affected downstream suites and both
   target frameworks when the environment supports them. Omitting `--framework`
