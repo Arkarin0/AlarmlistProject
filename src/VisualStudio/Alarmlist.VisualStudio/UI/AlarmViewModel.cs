@@ -56,6 +56,7 @@ namespace Alarmlist.VisualStudio.UI
         }
         public bool HasChanges => _hasEditDraft || IsPresent != _originalPresent || (IsPresent && Value != _originalValue);
         public bool IsScalar => Name == "Name" || Name == "Code" || Name == "Category" || Name == "Description";
+        public bool IsReference => Name == "ReferenceName";
         public bool IsInherited => !HasChanges && _analysis?.IsInherited == true;
         public bool ShowLocalEditor => !IsInherited;
         public string EffectiveValue => IsInherited ? (_valuesCurrent && _analysis.IsValueAvailable ? _analysis.EffectiveValue : _analysis.EffectiveExpression) : string.Empty;

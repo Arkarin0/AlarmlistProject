@@ -17,6 +17,22 @@
       <Setter Property="Padding" Value="5,3" />
     </Style>
     <Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
+    <Style TargetType="ui:ReferenceComboBox" BasedOn="{StaticResource {x:Type TextBox}}">
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ui:ReferenceComboBox">
+        <Border x:Name="ReferenceBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+          <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="28" /></Grid.ColumnDefinitions>
+            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+            <Button x:Name="PART_ReferenceToggle" Grid.Column="1" Content="▾" Focusable="False" IsTabStop="False" Padding="0" Margin="0" Tag="PreserveDraft"
+                    ToolTip="Show matching references (F4 or Alt+Down). Type an identifier or alarm name to filter."
+                    AutomationProperties.Name="Show reference choices" />
+          </Grid>
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ReferenceBorder" Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.65" /></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style TargetType="ContextMenu">
       <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
@@ -168,22 +184,17 @@
           <StackPanel IsEnabled="{Binding CanEdit}">
           <CheckBox Content="Abstract template" IsChecked="{Binding IsAbstract}" Margin="0,0,8,12" AutomationProperties.Name="Abstract template"
                     ToolTip="A template can supply inherited values but is excluded from compiled alarm output." />
-          <StackPanel Margin="0,0,8,12">
-            <TextBlock Text="Reference selection" FontWeight="SemiBold" Margin="0,0,0,4" />
-            <ComboBox ItemsSource="{Binding ReferenceChoices}" SelectedItem="{Binding SelectedReferenceChoice}" DisplayMemberPath="Label"
-                      IsTextSearchEnabled="True" TextSearch.TextPath="Identifier" AutomationProperties.Name="Reference candidates" Margin="0,0,0,5" />
-            <WrapPanel>
-              <Button Content="Use selected reference" Command="{Binding ApplyReferenceCommand}" />
-              <Button Content="Go to reference" Command="{Binding GoToReferenceCommand}" />
-            </WrapPanel>
-          </StackPanel>
           <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding CanEdit}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <Grid Margin="0,0,8,8">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="135" /><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                  <Label x:Name="FieldLabel" Content="{Binding Name}" Target="{Binding ElementName=LocalValueEditor}" Padding="0,5,6,0"
-                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                  <Label x:Name="FieldLabel" Content="{Binding Name}" Padding="0,5,6,0"
+                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <Label.Style><Style TargetType="Label"><Setter Property="Target" Value="{Binding ElementName=LocalValueEditor}" /><Style.Triggers>
+                      <DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Target" Value="{Binding ElementName=ReferenceValueEditor}" /></DataTrigger>
+                    </Style.Triggers></Style></Label.Style>
+                  </Label>
                   <AdornerDecorator Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
                     <ContentControl Width="26" Height="27" Focusable="False" IsHitTestVisible="False"
                                     ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}"
@@ -191,6 +202,9 @@
                   </AdornerDecorator>
                   <ui:ExpressionTextBox x:Name="LocalValueEditor" Grid.Column="2" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.LabeledBy="{Binding ElementName=FieldLabel}" AutomationProperties.HelpText="{Binding EditHelp}" ToolTip="{Binding EditHelp}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False"
                                         ContextMenuOpening="OnActionsMenuOpening" Unloaded="OnActionsUnloaded">
+                    <ui:ExpressionTextBox.Style><Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type ui:ExpressionTextBox}}"><Style.Triggers>
+                      <DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                    </Style.Triggers></Style></ui:ExpressionTextBox.Style>
                     <ui:ExpressionTextBox.ContextMenu>
                       <ContextMenu>
                         <MenuItem Header="Cut" Command="ApplicationCommands.Cut" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
@@ -206,6 +220,15 @@
                       </ContextMenu>
                     </ui:ExpressionTextBox.ContextMenu>
                   </ui:ExpressionTextBox>
+                  <DockPanel Grid.Column="2" Visibility="{Binding IsReference, Converter={StaticResource Visibility}}">
+                    <Button DockPanel.Dock="Right" Content="↗" Margin="4,0,0,0" Command="{Binding DataContext.GoToReferenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            ToolTip="Open the referenced alarm's source." AutomationProperties.Name="Go to reference" />
+                    <ui:ReferenceComboBox x:Name="ReferenceValueEditor" Text="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}" Choices="{Binding DataContext.ReferenceChoices, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                          ApplyChoice="{Binding DataContext.AcceptReference, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                          AutomationProperties.Name="ReferenceName" AutomationProperties.LabeledBy="{Binding ElementName=FieldLabel}" MinHeight="27" IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus"
+                                          ToolTip="Type an identifier or alarm name to search. Arrows choose and Enter applies. Escape closes suggestions first; Enter then commits a literal value. Clear the text to remove the reference."
+                                          AutomationProperties.HelpText="Search by identifier or alarm name. F4 opens choices; arrows choose; Enter applies; Escape closes. Literal references remain editable." />
+                  </DockPanel>
                 </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>

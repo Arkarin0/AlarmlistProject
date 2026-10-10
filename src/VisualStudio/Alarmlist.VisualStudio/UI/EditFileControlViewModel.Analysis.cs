@@ -26,8 +26,17 @@ namespace Alarmlist.VisualStudio.UI
     {
         public AnalysisAlarm Alarm { get; }
         public string Identifier => Alarm.Origin.FullyQualifiedName;
-        public string Label => (Alarm.Fields.FirstOrDefault(field => field.Name == "Name")?.EffectiveValue ?? Identifier)
-            + " — " + Identifier + " — " + Alarm.Origin.Location?.FilePath;
+        public string Name
+        {
+            get
+            {
+                AnalysisField name = Alarm.Fields.FirstOrDefault(field => field.Name == "Name");
+                return name?.IsValueAvailable == true ? name.EffectiveValue ?? Identifier : name?.EffectiveExpression ?? Identifier;
+            }
+        }
+        public string Label => Name
+            + " — " + Identifier + " — " + Path.GetFileName(Alarm.Origin.Location?.FilePath);
+        public string HelpText => Name + " — " + Identifier + " — " + Alarm.Origin.Location?.FilePath;
         public ReferenceChoice(AnalysisAlarm alarm) { Alarm = alarm; }
     }
 
@@ -69,10 +78,12 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand ApplyReferenceCommand { get; private set; }
         public DelegateCommand GoToReferenceCommand { get; private set; }
         public Task PendingAnalysisAction { get; private set; } = Task.CompletedTask;
+        public Func<string, Func<bool>, Task<bool>> AcceptReference { get; private set; }
 
         private void InitializeAnalysis(IDesignerAnalysis analysis)
         {
             _analysis = analysis;
+            AcceptReference = ApplyReferenceSelectionAsync;
             ValidateCompletion = ValidateCompletionAsync;
             ApplyReferenceCommand = new DelegateCommand(() => StartAnalysisAction(ApplyReference),
                 () => CanUseAnalysis && _referenceChoice != null && ReferenceChoices.Contains(_referenceChoice));
@@ -281,6 +292,36 @@ namespace Alarmlist.VisualStudio.UI
             field.Value = choice.Identifier;
             field.IsPresent = true;
             CommitPending();
+        }
+
+        private async Task<bool> ApplyReferenceSelectionAsync(string identifier, Func<bool> canApply)
+        {
+            if (_disposed || _analysisBusy || !CanEdit || _analysis?.Current?.Status != ProjectAnalysisStatus.Available) return false;
+            ProjectAnalysisState state = _analysis.Current;
+            AlarmSource original = _original;
+            int version = _draftVersion;
+            ReferenceChoice choice = ReferenceChoices.FirstOrDefault(item => item.Identifier == identifier);
+            if (choice == null) return false;
+            _analysisBusy = true;
+            RefreshAnalysis();
+            try
+            {
+                bool current = await _analysis.IsCurrentAsync(state, _analysisLifetime.Token);
+                if (!canApply() || _disposed) return false;
+                if (!current || version != _draftVersion || !ReferenceEquals(original, _original)
+                    || !ReferenceEquals(state, _analysis.Current) || !ReferenceChoices.Contains(choice))
+                {
+                    _error = "The source or reference draft changed. Wait for current analysis and choose the reference again.";
+                    Notify(nameof(Error));
+                    return false;
+                }
+                Fields.Single(field => field.IsReference).EditValue = identifier;
+                return CommitPending();
+            }
+            catch (OperationCanceledException) when (_analysisLifetime.IsCancellationRequested) { return false; }
+            catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception))
+            { if (!_disposed) { _error = exception.Message; Notify(nameof(Error)); } return false; }
+            finally { _analysisBusy = false; RefreshAnalysis(); }
         }
 
         private void GoToReference(ProjectAnalysisState state, AnalysisAlarm alarm)

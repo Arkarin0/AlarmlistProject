@@ -240,10 +240,15 @@ saving an untouched field does not create an override. Analysis refreshes preser
 active local drafts. The **Abstract template** checkbox still controls exclusion
 from compiled output and follows the Visual Studio theme.
 
-Choose a project context for a file linked into multiple projects. The reference
-picker lists unambiguous identifiers from that project and excludes self/cyclic
-choices. **Use selected reference** edits only ReferenceName; literal entry remains
-available. **Go to reference** opens the immediate target, while **Go to source**
+Choose a project context for a file linked into multiple projects. **ReferenceName**
+combines literal editing with searchable choices: type any part of an identifier
+or alarm name, use arrows to choose and Enter to apply. F4/Alt+Down opens the list;
+Escape closes it without changing the draft. Enter then commits a literal value,
+including unresolved references. Clearing the text and pressing Enter removes the
+reference's value without automatically choosing a candidate. Suggestions show
+their defining file, omit ambiguous/self/cyclic targets and use virtualized rows.
+Selections revalidate the current project inputs before committing. The adjacent
+**Go to reference** action opens the immediate target, while **Go to source**
 opens the actual defining field through multi-hop inheritance. Copy, picker, and
 navigation commands revalidate captured inputs before acting. Pending, incomplete,
 unavailable, and loose-file states retain local editing without stale inheritance.

@@ -23,7 +23,8 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Build failure/Clean/Rebuild | Error List, failure preserves output, updated live errors preserve Build errors, Clean removes output, Rebuild restores it | `Build` |
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
 | Procedure editing | Cleared draft hide/show, Enter commit/shared Undo, add/move/remove focus, Shift+Enter multiline text, and saved source/output preservation | `Procedures` |
-| Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, raw override and saved build parity | `Properties` |
+| Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, direct local edits, inheritance context-menu reset/Undo and saved build parity | `Properties` |
+| Searchable references | 1,200 template candidates, case-insensitive name search, keyboard selection, shared Undo, unresolved literal entry, clearing and saved source/output preservation | `References` |
 | Linked property contexts | North/South project values, configuration reevaluation, shared unsaved file assignment, property diagnostics before Build, discard and unload/reload | `Properties` |
 | Native resource editor | Open RESX in an ALMX project, retain saved disk contents during cell drafts, Undo/Escape drafts, commit a cell, Save, and reopen | `Resources` |
 | Saved localization and linked contexts | Native drafts stay private, save/external changes refresh two project scopes, independent language choices persist after reopening | `Localization` |

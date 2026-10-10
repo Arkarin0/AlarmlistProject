@@ -103,6 +103,8 @@ namespace Alarmlist.VisualStudio
         private void OnPreviewKeyDown(object sender, KeyEventArgs args)
         {
             _inputVersion++;
+            if (args.OriginalSource is ReferenceComboBox reference && reference.HandleChoiceKey(args.Key, Keyboard.Modifiers))
+            { args.Handled = true; return; }
             if (args.OriginalSource is ExpressionTextBox expression && expression.HandleCompletionKey(args.Key, Keyboard.Modifiers))
             { args.Handled = true; return; }
             if (args.Key == Key.Escape) { ViewModel.CancelPending(); args.Handled = true; }
@@ -113,6 +115,7 @@ namespace Alarmlist.VisualStudio
             if (!IsKeyboardFocusWithin || !(Keyboard.FocusedElement is TextBox text)) return false;
             if (!execute || text.IsReadOnly) return true;
             _inputVersion++;
+            if (text is ReferenceComboBox reference && reference.HandleChoiceKey(Key.Enter, modifiers)) return true;
             if (text is ExpressionTextBox expression && expression.HandleCompletionKey(Key.Enter, modifiers)) return true;
             if (modifiers == ModifierKeys.Shift)
             {

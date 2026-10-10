@@ -633,3 +633,40 @@ VS2022 TRX directory: `artifacts/log/Debug/VisualStudioUI/TestResults/a976a67c12
 VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/829744ef9fe643dfa9d142cbb76661ff/`.
 Reviewed diff/whitespace and updated usage documentation. Remaining: 5b, 5c, 6, 7;
 no current blocker. Account allowance at the last checkpoint: 34% remaining.
+
+### Iteration 5b: searchable references (2026-10-11)
+
+Replaced the separate candidate picker/button and ReferenceName editor with one
+editable control exposing ComboBox/Value/ExpandCollapse automation. Its text stays
+private while keyboard arrows highlight a candidate. Identifier/name filtering is
+case-insensitive substring matching, including raw names on abstract templates;
+rows show defining files and use bounded-height virtualization. Shared suggestion
+styles keep selection readable without moving keyboard focus out of the editor.
+
+Decisions: F4/Alt+Down opens choices; Enter applies the highlighted nonempty-query
+match after saved-input validation. Escape closes choices first, preserving the
+literal draft; Enter with no popup/no matches commits that literal. An empty query
+has no automatic selection, so Enter clears the reference. Down explicitly selects
+a candidate from an empty query. Late validation is rejected after input, Escape,
+focus loss, unload, source or project changes. Existing unambiguous/self/cycle
+candidate checks remain authoritative; typing an invalid literal remains allowed.
+
+Validation: initial focused checks passed 10 cases, including 1,201 candidates with
+fewer than 40 realized WPF rows, name/identifier search, unchanged text during arrow
+navigation, selection/Undo, literals and stale-result rejection. Full VS unit suite
+passed 373 cases; the final abstract-name and compact-label refinements passed eight
+reference checks and four reference/completion presentation checks, all zero skipped.
+Suggestion rows show filenames; tooltips and automation help retain full paths.
+
+Live `Area=References|Area=Properties|Area=Keyboard` passed four cases on each host,
+zero skipped, including 1,200 abstract targets, private queries, selection, Undo,
+invalid literals and clearing. VS2022 TRX directory:
+`artifacts/log/Debug/VisualStudioUI/TestResults/13c0042a182d4fe4ac8192a6c53a9dc2/`;
+VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/f2a893c49bbc48f4aedbb356f8add0f6/`.
+The final compact-label reference scenario passed again on both hosts: VS2022
+`2afbde853efc46cf99394e5e6cdb7c8e`, VS2026 `c800c747a5d64f82bc0f8b0eaeb795c2`
+under the same TestResults directory. Reviewed the actual dark-theme popup.
+One VS2022 query took 564 ms including physical typing and UIA result observation;
+this is functional timing evidence, not a latency benchmark. The tests rebuilt and
+deployed SDK/VSIX assets. Reviewed diff/whitespace and updated both usage guides.
+No compiler or format changes; no current blocker. Remaining: 5c, 6 and 7.
