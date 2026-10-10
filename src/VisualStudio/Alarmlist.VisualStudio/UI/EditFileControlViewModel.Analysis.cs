@@ -15,6 +15,7 @@ namespace Alarmlist.VisualStudio.UI
     {
         public string ProjectPath { get; }
         public string Configuration { get; }
+        public string Label => Path.GetFileName(ProjectPath) + " (" + Configuration + ")";
         public AnalysisProjectChoice(AnalysisProject project)
         {
             ProjectPath = project.ProjectPath;
@@ -57,6 +58,10 @@ namespace Alarmlist.VisualStudio.UI
         private ProjectAnalysisState _choicesState;
         private AnalysisAlarm _choicesAlarm;
         public IReadOnlyList<AnalysisProjectChoice> Projects { get; private set; } = BindingCollection.Create(Array.Empty<AnalysisProjectChoice>());
+        public bool HasMultipleProjects => Projects.Count > 1;
+        public bool HasSingleProjectContext => !HasMultipleProjects;
+        public string ProjectContextLabel => Projects.FirstOrDefault(project => string.Equals(project.ProjectPath, SelectedProjectPath, StringComparison.OrdinalIgnoreCase))?.Label
+            ?? (Projects.Count == 1 ? Projects[0].Label : "No project context selected");
         public IReadOnlyList<ReferenceChoice> ReferenceChoices { get; private set; } = Array.Empty<ReferenceChoice>();
         public ReferenceChoice SelectedReferenceChoice
         {
@@ -208,7 +213,7 @@ namespace Alarmlist.VisualStudio.UI
                     || choice.Configuration != projects[index].Configuration).Any())
                 {
                     Projects = BindingCollection.Create(projects.Select(project => new AnalysisProjectChoice(project)));
-                    Notify(nameof(Projects));
+                    Notify(nameof(Projects)); Notify(nameof(HasMultipleProjects)); Notify(nameof(HasSingleProjectContext));
                 }
                 RefreshLocalization(state);
                 RefreshDiagnostics(state);
@@ -244,7 +249,7 @@ namespace Alarmlist.VisualStudio.UI
                     : alarm == null ? "Waiting for analysis of the current document."
                     : !alarm.IsResolved ? "This alarm's reference could not be resolved. Check ReferenceName."
                     : "Values from " + Path.GetFileName(state.Project.ProjectPath) + " (" + state.Project.Configuration + ").";
-                Notify(nameof(SelectedProjectPath)); Notify(nameof(AnalysisMessage));
+                Notify(nameof(SelectedProjectPath)); Notify(nameof(ProjectContextLabel)); Notify(nameof(AnalysisMessage));
                 ApplyReferenceCommand?.Refresh(); GoToReferenceCommand?.Refresh();
             }
             finally { _refreshingAnalysis = false; }

@@ -224,10 +224,16 @@ from document contents. **Open With > XML (Text) Editor** remains available.
 
 Filter the alarm list by name or identifier, select an alarm, and edit its local
 `FullyQualifiedName`, `Name`, `Code`, `Category`, `Description`, or `ReferenceName`.
-A checked field is present in the source; clearing its checkbox removes it. An
-empty checked field remains an explicit empty local value and can still inherit.
-The list becomes a
-selector when the designer pane is narrow.
+The list becomes a selector when the designer pane is narrow.
+
+**File settings** contains the project context, file parameters and live project
+diagnostics. **Alarm settings** contains filtering/navigation, alarm parameters,
+properties and procedures for the selected alarm. Each area scrolls independently.
+Use either header to collapse its area; drag the divider or focus it and use
+Up/Down to resize. These actions preserve private drafts. Collapse states and the
+divider position are restored from Visual Studio user settings. A single project
+context is shown as a label; linked files with multiple contexts get a labelled
+selector in File settings.
 
 The property form aligns labels on the left and editors on the right, with a
 narrow inheritance-icon gutter between them. Edit a field directly to create a

@@ -362,7 +362,8 @@ include tests/docs with the behavior and commit each successful iteration.
 | 5a. Direct property form | Deliver labels-left/editors-right fields with the adorner gutter, automatic local edits, context-menu inheritance reset and readable Abstract theme states. Depends on iteration 4. | Test unchanged-focus/no XML writes, absent/local/inherited editing, raw expressions, reset/Undo and light/dark states; live keyboard/context-menu checks on both hosts. |
 | 5b. Searchable reference | Merge literal editing and candidate selection into one searchable reference combobox. Depends on 5a. | Test invalid/literal references, current-input validation, keyboard/popup behavior and 1,000+ candidates; live selection on both hosts. |
 | 5c. File/alarm scopes | Separate resizable/collapsible file and alarm panes, move labelled project context, persist layout in the existing user settings store. Depends on 5b. | Test linked contexts, independent scrolling, draft-safe resize/collapse, keyboard divider and layout restoration; live checks on both hosts. |
-| 6. Preview table and column preferences | Deliver the reference-style wrapped table, combined Test method rendering, column chooser/reordering and project-user layout persistence described above. Depends on iterations 4-5. | Verify effective procedure text/order and exclusions, multiline rows, keyboard column controls, layout round-trip/project isolation, unrelated user properties, clipboard layout, drafts/stale-input guards and 1,000+ row virtualization. Run focused VS unit, SDK rule/package and live checks on both hosts. |
+| 6a. Preview report table | Deliver the reference-style wrapped table and combined Test method rendering. Depends on iterations 4-5. | Verify effective procedure text/order and exclusions, multiline rows, clipboard quoting, drafts/stale-input guards and 1,000+ row virtualization. Run VS unit and live checks on both hosts. |
+| 6b. Preview column preferences | Add column chooser, keyboard/drag reordering, width/reset and project-user layout persistence. Depends on 6a. | Verify layout round-trip/project isolation, unrelated user properties, displayed-column clipboard order and stale/lifetime guards. Run VS unit, SDK rule/package and live checks on both hosts. |
 | 7. Integrated UX acceptance | Validate the agreed common workflows, responsive behavior and lifecycle after the redesign. Depends on iterations 2-6. | VS unit, VSIX/template and functional IDE checks on VS2022/2026; targeted layout/lifetime measurements where changed. Record manual keyboard, theme/high-contrast, screen-reader and DPI evidence separately from automated checks. Carry unrun gates explicitly. |
 
 ## Implementation decisions under delegated discretion
@@ -670,3 +671,41 @@ One VS2022 query took 564 ms including physical typing and UIA result observatio
 this is functional timing evidence, not a latency benchmark. The tests rebuilt and
 deployed SDK/VSIX assets. Reviewed diff/whitespace and updated both usage guides.
 No compiler or format changes; no current blocker. Remaining: 5c, 6 and 7.
+
+### Iteration 5c: file and alarm scopes (2026-10-11)
+
+Added separate labelled File settings and Alarm settings areas with independent
+scrolling, collapsible headers and a keyboard/mouse divider. File settings owns
+the project context, file parameters and diagnostics; alarm filtering/actions stay
+with alarm navigation. A single project is a static label; linked contexts retain
+the guarded project selector with full-path accessibility information.
+
+Decision: default file area proportion is 25%, bounded to 10-80% when resizing.
+Both areas start expanded. Collapse and divider preferences use separate keys in
+the existing VS user settings store, never ALMX or shared project content. Headers
+remain available when both areas are collapsed. Focus moves to the matching header
+before collapsing a focused field, keeping its private draft intact. Layout event
+subscriptions are removed on unload.
+
+Validation: full VS unit suite passed 378 cases, zero skipped. The new checks cover
+independent scrolling and private drafts at 440/650/900 widths, keyboard resizing,
+focus before collapse, both collapsed headers, settings round-trip/invalid values,
+unload detachment and linked-context selection. The initial exact-double assertion
+was corrected to a tolerance for text serialization; no functional failure remained.
+All five focused scope/context cases passed again after adding simulated dark
+palette renders; reviewed the 440px layout. This is not OS theme/DPI evidence.
+Updated usage documentation, including removal of superseded presence-checkbox text.
+
+Live `Area=Scopes|Area=Properties|Area=References|Area=Keyboard|Area=Procedures`
+passed six cases on each host, zero skipped, including private typing, keyboard
+divider/collapse, editor-reopen layout persistence, linked contexts and existing
+procedure/reference workflows. VS2022 TRX directory:
+`artifacts/log/Debug/VisualStudioUI/TestResults/2a344a2174784149bc43ed513164ea6e/`;
+VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/2fb3601e4d9040ffb4c1ab3cc5f6b371/`.
+The tests rebuilt/deployed the SDK/VSIX; reviewed the actual VS2022 dark layout.
+Saved sample source/output remained unchanged. Final manual/theme/DPI gates remain
+in iteration 7; no current blocker. The unrelated example edit is preserved.
+
+Planning refinement: split the remaining iteration 6 into report rendering (6a)
+and column preferences/persistence (6b), with separate validation/commit boundaries.
+The approved scope and final acceptance gates remain unchanged.

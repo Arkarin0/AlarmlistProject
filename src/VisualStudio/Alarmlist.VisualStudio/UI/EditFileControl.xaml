@@ -5,9 +5,13 @@
   xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
   Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
   Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
-  SizeChanged="OnSizeChanged" PreviewKeyDown="OnPreviewKeyDown" PreviewMouseDown="OnPreviewMouseDown" Unloaded="OnUnloaded">
+  SizeChanged="OnSizeChanged" PreviewKeyDown="OnPreviewKeyDown" PreviewMouseDown="OnPreviewMouseDown" Loaded="OnLoaded" Unloaded="OnUnloaded">
   <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /></ResourceDictionary.MergedDictionaries>
     <BooleanToVisibilityConverter x:Key="Visibility" />
+    <Style x:Key="ScopeArrow" TargetType="TextBlock">
+      <Setter Property="Text" Value="▸" /><Setter Property="Margin" Value="0,0,8,0" />
+      <Style.Triggers><DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True"><Setter Property="Text" Value="▾" /></DataTrigger></Style.Triggers>
+    </Style>
     <Style TargetType="Expander">
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
     </Style>
@@ -81,7 +85,7 @@
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
         <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-          <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
         </Border>
         <ControlTemplate.Triggers>
           <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /></Trigger>
@@ -117,28 +121,29 @@
     </DataTemplate>
   </ResourceDictionary></UserControl.Resources>
   <Grid Margin="12">
-    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-    <ui:ParameterListControl DataContext="{Binding FileParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,0,12" />
-    <DockPanel Grid.Row="1" Margin="0,0,0,8">
-      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-        <Button Content="_Add alarm" Command="{Binding AddCommand}" />
-        <Button Content="_Delete" Command="{Binding DeleteCommand}" />
-      </StackPanel>
-      <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
-      <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter alarms" ToolTip="Filter alarms by name or identifier" Margin="0,0,10,0" />
-    </DockPanel>
-    <StackPanel Grid.Row="2" Margin="0,0,0,8">
-      <ComboBox ItemsSource="{Binding Projects}" SelectedValuePath="ProjectPath" SelectedValue="{Binding SelectedProjectPath}"
-                AutomationProperties.Name="Analysis project context" Margin="0,0,0,4">
+    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition x:Name="FileAreaRow" Height="1*" /><RowDefinition Height="Auto" /><RowDefinition x:Name="AlarmAreaRow" Height="3*" /></Grid.RowDefinitions>
+    <ToggleButton x:Name="FileAreaHeader" IsChecked="{Binding DesignerLayout.FileExpanded}" Tag="PreserveDraft" HorizontalContentAlignment="Left" Padding="8,5" Margin="0,0,0,6"
+                  AutomationProperties.Name="File settings" ToolTip="Show or hide file settings. File parameters apply to every alarm in this file. Layout changes keep drafts private.">
+      <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ScopeArrow}" /><TextBlock Text="File settings" FontWeight="SemiBold" /></StackPanel>
+    </ToggleButton>
+    <ScrollViewer x:Name="FileAreaScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="File settings content">
+    <StackPanel Margin="0,0,8,8">
+      <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+      <Label Content="Project context" Target="{Binding ElementName=ProjectContextSelector}" Padding="0,3,10,0" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+      <TextBlock Grid.Column="1" Text="{Binding ProjectContextLabel}" ToolTip="{Binding SelectedProjectPath}" TextWrapping="Wrap" VerticalAlignment="Center"
+                 Visibility="{Binding HasSingleProjectContext, Converter={StaticResource Visibility}}" AutomationProperties.Name="Current project context" />
+      <ComboBox x:Name="ProjectContextSelector" Grid.Column="1" ItemsSource="{Binding Projects}" SelectedValuePath="ProjectPath" SelectedValue="{Binding SelectedProjectPath}"
+                Visibility="{Binding HasMultipleProjects, Converter={StaticResource Visibility}}" ToolTip="Choose which project supplies analysis for this linked file."
+                AutomationProperties.Name="Analysis project context">
         <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem">
           <Setter Property="AutomationProperties.Name"><Setter.Value>
             <MultiBinding StringFormat="{}{0} ({1})"><Binding Path="ProjectPath" /><Binding Path="Configuration" /></MultiBinding>
           </Setter.Value></Setter>
         </Style></ComboBox.ItemContainerStyle>
-        <ComboBox.ItemTemplate><DataTemplate><TextBlock><TextBlock.Text>
-          <MultiBinding StringFormat="{}{0} ({1})"><Binding Path="ProjectPath" /><Binding Path="Configuration" /></MultiBinding>
-        </TextBlock.Text></TextBlock></DataTemplate></ComboBox.ItemTemplate>
+        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" ToolTip="{Binding ProjectPath}" /></DataTemplate></ComboBox.ItemTemplate>
       </ComboBox>
+      </Grid>
+      <ui:ParameterListControl DataContext="{Binding FileParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,0,8" />
       <ui:LiveStatusTextBlock Text="{Binding CultureGuidance}" TextWrapping="Wrap" />
       <ui:LiveStatusTextBlock Text="{Binding AnalysisMessage}" TextWrapping="Wrap" />
       <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
@@ -167,7 +172,32 @@
         </ScrollViewer>
       </Expander>
     </StackPanel>
+    </ScrollViewer>
+    <GridSplitter x:Name="ScopeDivider" Grid.Row="2" Height="7" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                  Tag="PreserveDraft" Focusable="True" KeyboardIncrement="12" DragCompleted="OnScopeDragCompleted" KeyUp="OnScopeDividerKeyUp"
+                  AutomationProperties.Name="Resize file and alarm areas" ToolTip="Drag to resize file and alarm areas, or focus this divider and use Up/Down. Drafts are preserved.">
+      <GridSplitter.Style><Style TargetType="GridSplitter">
+        <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
+        <Style.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /></Trigger></Style.Triggers>
+      </Style></GridSplitter.Style>
+    </GridSplitter>
     <Grid Grid.Row="3">
+    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+    <ToggleButton x:Name="AlarmAreaHeader" IsChecked="{Binding DesignerLayout.AlarmExpanded}" Tag="PreserveDraft" HorizontalContentAlignment="Left" Padding="8,5" Margin="0,6,0,6"
+                  AutomationProperties.Name="Alarm settings" ToolTip="Show or hide alarm editing. Fields and procedures apply to the selected alarm. Layout changes keep drafts private.">
+      <StackPanel Orientation="Horizontal"><TextBlock Style="{StaticResource ScopeArrow}" /><TextBlock Text="Alarm settings" FontWeight="SemiBold" /><TextBlock Text="{Binding Selected.Title, StringFormat=  — {0}}" TextTrimming="CharacterEllipsis" /></StackPanel>
+    </ToggleButton>
+    <Grid x:Name="AlarmAreaContent" Grid.Row="1">
+    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+    <DockPanel Margin="0,0,0,8">
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Content="_Add alarm" Command="{Binding AddCommand}" />
+        <Button Content="_Delete" Command="{Binding DeleteCommand}" />
+      </StackPanel>
+      <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
+      <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter alarms" ToolTip="Filter alarms by name or identifier" Margin="0,0,10,0" />
+    </DockPanel>
+    <Grid Grid.Row="1">
       <Grid.ColumnDefinitions><ColumnDefinition x:Name="ListColumn" Width="220" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
       <ListBox x:Name="AlarmList" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" Background="Transparent" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,12,0" AutomationProperties.Name="Alarms">
         <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Title}" /></Style></ListBox.ItemContainerStyle>
@@ -177,7 +207,7 @@
         <ComboBox x:Name="AlarmSelector" DockPanel.Dock="Top" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" DisplayMemberPath="Title" Visibility="Collapsed" Margin="0,0,0,8" AutomationProperties.Name="Selected alarm">
           <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Title}" /></Style></ComboBox.ItemContainerStyle>
         </ComboBox>
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="AlarmAreaScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Alarm settings content">
           <StackPanel>
 
           <ui:ParameterListControl DataContext="{Binding AlarmParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,8,12" />
@@ -324,6 +354,8 @@
           </StackPanel>
         </ScrollViewer>
       </DockPanel>
+    </Grid>
+    </Grid>
     </Grid>
   </Grid>
 </UserControl>

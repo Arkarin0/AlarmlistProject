@@ -32,7 +32,11 @@ namespace Alarmlist.VisualStudio
             if (IsKeyboardFocusWithin && !Equals((args.NewFocus as FrameworkElement)?.Tag, "PreserveDraft")) ViewModel.CommitPending();
         }
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
-        private void OnUnloaded(object sender, RoutedEventArgs args) => _inputVersion++;
+        private void OnUnloaded(object sender, RoutedEventArgs args)
+        {
+            _inputVersion++;
+            UnsubscribeLayout();
+        }
         private void OnInheritanceActions(object sender, RoutedEventArgs args)
         {
             var button = (Button)sender;

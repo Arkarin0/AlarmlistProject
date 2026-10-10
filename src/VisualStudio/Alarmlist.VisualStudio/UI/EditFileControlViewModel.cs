@@ -14,9 +14,10 @@ namespace Alarmlist.VisualStudio.UI
     internal sealed class EditFileViewModelFactory
     {
         private readonly AlarmViewModelFactory _alarms;
+        private readonly IEditorLayoutSettings _settings;
         [ImportingConstructor]
-        public EditFileViewModelFactory(AlarmViewModelFactory alarms) { _alarms = alarms; }
-        public EditFileControlViewModel Create(AlmxDocumentModel model, IDesignerAnalysis analysis) => new EditFileControlViewModel(model, _alarms, analysis);
+        public EditFileViewModelFactory(AlarmViewModelFactory alarms, IEditorLayoutSettings settings) { _alarms = alarms; _settings = settings; }
+        public EditFileControlViewModel Create(AlmxDocumentModel model, IDesignerAnalysis analysis) => new EditFileControlViewModel(model, _alarms, analysis, _settings);
     }
 
     internal sealed partial class EditFileControlViewModel : ObservableObject, IDisposable
@@ -39,6 +40,7 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand AddCommand { get; }
         public DelegateCommand DeleteCommand { get; }
         public bool HasPending => _pending;
+        public DesignerLayoutViewModel DesignerLayout { get; }
         public bool IsValid => _model.Projection.IsValid;
         public bool CanEdit => IsValid && _selected != null;
         public string Error => _error ?? _model.Projection.Error;
@@ -57,10 +59,11 @@ namespace Alarmlist.VisualStudio.UI
             }
         }
 
-        public EditFileControlViewModel(AlmxDocumentModel model, AlarmViewModelFactory factory, IDesignerAnalysis analysis = null)
+        public EditFileControlViewModel(AlmxDocumentModel model, AlarmViewModelFactory factory, IDesignerAnalysis analysis = null, IEditorLayoutSettings settings = null)
         {
             _model = model;
             _factory = factory;
+            DesignerLayout = new DesignerLayoutViewModel(settings);
             Fields = BindingCollection.Create(AlarmSource.FieldNames.Select(name => new AlarmFieldViewModel(name, OnDraftChanged)));
             ProcedureSections = BindingCollection.Create(new[] { "Instructions", "Reset" }
                 .Select(name => _factory.CreateProcedureSection(name, OnDraftChanged, EditProcedure)));
