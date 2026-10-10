@@ -31,14 +31,14 @@ namespace Alarmlist.VisualStudio.Testing
 
     internal static class LiveVisualStudioRun
     {
-        public static Task ExecuteAsync(string version, ITestOutputHelper output)
+        public static Task ExecuteAsync(string version, ITestOutputHelper output, bool analyzers = false)
         {
             // .NET Framework process pipe readers must not inherit xUnit's bounded
             // synchronization context while this caller waits for process completion.
-            return Task.Run(() => ExecuteCore(version, output));
+            return Task.Run(() => ExecuteCore(version, output, analyzers));
         }
 
-        private static void ExecuteCore(string version, ITestOutputHelper output)
+        private static void ExecuteCore(string version, ITestOutputHelper output, bool analyzers)
         {
             // Serialize across both test assemblies, not just within an xUnit collection.
             using (var gate = new Mutex(false, "Local\\Alarmlist.LiveVisualStudioTests"))
@@ -47,12 +47,12 @@ namespace Alarmlist.VisualStudio.Testing
                 try { entered = gate.WaitOne(0); }
                 catch (AbandonedMutexException) { entered = true; }
                 Require(entered, "Another live Visual Studio test is running. Run live test projects sequentially.");
-                try { Run(version, output); }
+                try { Run(version, output, analyzers); }
                 finally { gate.ReleaseMutex(); }
             }
         }
 
-        private static void Run(string version, ITestOutputHelper output)
+        private static void Run(string version, ITestOutputHelper output, bool analyzers)
         {
             string repository = Metadata("RepositoryRoot");
             string configuration = Metadata("BuildConfiguration");
@@ -68,6 +68,7 @@ namespace Alarmlist.VisualStudio.Testing
             int timeout = EnvironmentInteger("ALARMLIST_VS_TIMEOUT_SECONDS", 1800, 30, 7200);
             string directory = Path.Combine(repository, "artifacts", "log", configuration, "LiveVisualStudioTests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
+            VisualStudioTestDeployment.Ensure(version, installation, suffix, directory, output.WriteLine);
             string reportPath = Path.Combine(directory, "result.xml");
             string cancelPath = Path.Combine(directory, "cancel");
             string ownershipPath = Path.Combine(directory, "owned-ide.xml");
@@ -78,6 +79,7 @@ namespace Alarmlist.VisualStudio.Testing
                 + " -RootSuffix " + Quote(suffix) + " -ResultFile " + Quote(reportPath) + " -CancellationFile " + Quote(cancelPath)
                 + " -OwnedProcessFile " + Quote(ownershipPath);
             arguments += " -MeasureAnalysis -MeasurementIterations " + iterations + " -MeasurementAlarmCount " + alarms;
+            if (analyzers) arguments += " -AnalyzerWorkload";
             output.WriteLine("Live VS" + version + " artifacts: " + directory);
             string systemDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),
                 Environment.Is64BitProcess ? "System32" : "Sysnative");
@@ -116,7 +118,7 @@ namespace Alarmlist.VisualStudio.Testing
             XElement report;
             using (XmlReader reader = XmlReader.Create(reportPath, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit }))
                 report = XDocument.Load(reader).Root;
-            Validate(report, major, iterations, alarms);
+            Validate(report, major, iterations, alarms, analyzers);
             Require(Text(report, "Configuration") == configuration && Text(report, "RootSuffix") == suffix, "The report belongs to another configuration/profile.");
             string runDirectory = Path.GetFullPath(Text(report, "RunDirectory"));
             Require(runDirectory.StartsWith(fixtureRoot, StringComparison.OrdinalIgnoreCase), "Unexpected measurement artifacts directory.");
@@ -164,7 +166,7 @@ namespace Alarmlist.VisualStudio.Testing
         }
 
         // Also exercised by ordinary tests, without launching an IDE.
-        internal static void Validate(XElement report, int major, int iterations, int alarms)
+        internal static void Validate(XElement report, int major, int iterations, int alarms, bool analyzers = false)
         {
             Require(report?.Name == "LiveVisualStudioRun" && Text(report, "SchemaVersion") == "1", "Invalid live test report schema.");
             Require(Boolean(report, "Succeeded"), "Live IDE checks failed: " + Text(report, "Failure"));
@@ -172,11 +174,13 @@ namespace Alarmlist.VisualStudio.Testing
             Require(Integer(report, "DriverBitness") == 64, "The IDE driver must run in x64 Windows PowerShell.");
             Require(Version.TryParse(Text(report, "HostVersion"), out Version host) && host.Major == major, "Wrong Visual Studio host in report.");
             Require(Boolean(report, "Measurements"), "The requested measurement mode did not run.");
+            Require(Boolean(report, "AnalyzerWorkload") == analyzers, "The report belongs to another analyzer workload.");
             Require(Integer(report, "Iterations") == iterations && Integer(report, "AdditionalAlarms") == alarms, "The measurement scenario does not match the request.");
             Require(Boolean(report, "SourcesPreserved"), "Unsaved measurements did not preserve source/output hashes.");
             XElement[] latencies = report.Element("Latencies")?.Elements("Sample").ToArray() ?? Array.Empty<XElement>();
-            Require(latencies.Length == 2 * (iterations + 2), "Incomplete latency samples.");
-            foreach (string mode in new[] { "XmlBuffer", "DesignerReopen" })
+            string[] modes = analyzers ? new[] { "XmlBuffer", "DesignerReopen", "SavedConfiguration" } : new[] { "XmlBuffer", "DesignerReopen" };
+            Require(latencies.Length == modes.Length * (iterations + 2), "Incomplete latency samples.");
+            foreach (string mode in modes)
             {
                 XElement[] samples = latencies.Where(row => Text(row, "Mode") == mode).ToArray();
                 ValidateSamples(samples, iterations);

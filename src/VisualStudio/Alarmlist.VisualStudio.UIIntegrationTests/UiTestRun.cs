@@ -54,6 +54,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 var workspace = new UiTestWorkspace(version, scenario);
                 string directory = workspace.DirectoryPath;
                 output.WriteLine("UI test artifacts: " + directory);
+                VisualStudioTestDeployment.Ensure(version, Environment.GetEnvironmentVariable("ALARMLIST_VS" + version + "_PATH"),
+                    Environment.GetEnvironmentVariable("ALARMLIST_VS_ROOT_SUFFIX") ?? "AlarmlistExp", directory, output.WriteLine);
                 VisualStudioAutomation.Log = message =>
                 {
                     output.WriteLine(message);

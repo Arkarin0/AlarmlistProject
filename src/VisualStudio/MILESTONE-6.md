@@ -1,8 +1,9 @@
 # Milestone six: configurable diagnostics and external analyzers
 
-Status: compiler, build and IDE implementation present on 2026-10-09; ordinary
-Release regression suites pass. Focused live IDE and analyzer performance checks
-also pass; remaining acceptance is recorded below. The owner removed the 15%
+Status: scoped implementation and automated validation complete on 2026-10-10.
+Release regressions, adapted upstream EditorConfig cases, functional IDE checks
+and extended live analyzer measurements pass. Validation limits and separate
+release gates are recorded below. The owner removed the 15%
 remaining-allowance stop condition on 2026-10-10. Commit each completed implementation
 iteration and report a short summary before starting the next iteration.
 
@@ -68,8 +69,8 @@ inform the project policy. Alarmlist interprets its own diagnostic prefix.
 Inspected Roslyn's parser and editorconfig-core-net's parser. Both inspected
 implementations strip inline #/; values, contrary to the current specification.
 This increment uses a small captured-text parser/matcher without a new runtime
-dependency. Focused tests cover the required behavior; passing the complete
-upstream conformance suite has not yet been established. Root build configuration,
+dependency. Focused tests and the adapted upstream corpus cover this API's
+behavior; full EditorConfig core certification is not claimed. Root build configuration,
 Arcade integration and compiler/host framework support remain unchanged.
 
 ## Implementation record
@@ -112,15 +113,16 @@ prove the desktop task path. The existing CA1416 warning in the shared test help
 remains. Two lookup test expectations now normalize C# raw-string CRLF to the XML
 reader's LF, preserving the intended content assertion on Windows.
 
-## Remaining validation
+## Validation scope and release boundaries
 
 - EditorConfig compatibility now includes the pinned upstream glob/parser/filetree
   corpus through the cached xUnit fixture (iteration 8). Explicit adaptations and
   API exclusions are documented; full EditorConfig core certification is not claimed.
-- Bounded lifecycle checks now cover 32 analyzers, repeated execution, cleanup
-  failures and .NET 8 context collection (iteration 5). Long-running plugin
-  lifecycle and whole-IDE memory/latency measurements remain unmeasured. No
-  performance threshold or leak-freedom claim.
+- Bounded lifecycle checks cover 32 analyzers, repeated execution, cleanup
+  failures and .NET 8 context collection (iteration 5). Extended live measurements
+  now cover 300 analyzer updates and 100 designer reopen cycles per supported IDE
+  host, with 1,000 background alarms (iteration 9). Whole-IDE latency and memory
+  are recorded without a machine-dependent threshold or leak-freedom claim.
 - Existing milestone-five manual/vendor/release gates remain separate. No package
   has been published and no VSIX has been distributed for this milestone.
 
@@ -306,3 +308,62 @@ Validation: the full compiler suite passed 482 tests on net472 and 483 on net8.0
 The fixture's real cold download and subsequent warm-cache runs succeeded. No
 compiler/runtime behavior changed; downstream, IDE and performance suites were
 not rerun for this test-fixture iteration. The existing example edit is preserved.
+
+## Automatic test setup and live analyzer iteration 9 (2026-10-10)
+
+Functional and live-performance xUnit setup now checks the actual installed VSIX
+payload against its built test asset, including templates and dependencies. It
+deploys only missing/outdated payloads through the selected host's desktop MSBuild
+and VSSDK tasks, then verifies the installed bytes. Matching installations are
+reused. Setup runs under the shared live-test mutex, before launching the owned
+IDE or measuring, and refuses an already-open target profile without closing it.
+Ordinary non-opt-in runs never deploy. The dedicated engineering target deploys
+the prebuilt asset without rebuilding assemblies loaded by the test runner.
+
+The live analyzer workload measures unsaved XML edits, designer open/edit/close
+cycles, and saved EditorConfig prefix changes with 1,000 background alarms. Each
+mode has two warmups and 100 measured samples. Unique SAMPLE001 messages establish
+publication of each new state. Configuration is restored, source/output/analyzer
+hashes are preserved, reports require all three modes, and every designer close
+must leave zero open documents. Functional saved-file writes retry only transient
+sharing/lock violations for at most five seconds; other failures remain immediate.
+
+Validation: the full Release solution run passed 1,633 ordinary tests, with 49
+opt-in cases skipped. This includes 47 performance-infrastructure tests, covering
+missing/matching/changed deployment payloads, profile guards and report validation.
+Both functional analyzer cases then passed in the actual VS2022 and VS2026 hosts,
+including automatic setup, live severity/configuration changes, navigation and
+source/output preservation. The bounded sharing retry was validated by this final
+two-case run after the ordinary solution run.
+
+Functional artifacts: `artifacts/log/Release/VisualStudioUI/ConfiguredAnalyzer/2022/aa8b769cf55449809d7eb4948e27a4e2/`
+and `2026/774060a7792043baad2d66aae8d43fbe/`; the final TRX is under
+`artifacts/log/Release/Milestone6UI/` (19:40 local time).
+
+Both live analyzer xUnit cases passed with complete reports and owned-IDE cleanup:
+VS2022 17.14.36930.0 and VS2026 18.10.12224.181, Release/x64, AlarmlistExp.
+Each table cell summarizes 100 measured samples, excluding the two warmups.
+
+| Host | XML buffer median/max (ms) | Designer median/max (ms) | Saved configuration median/max (ms) |
+| --- | --- | --- | --- |
+| VS2022 | 450.3 / 545.0 | 455.4 / 547.4 | 442.4 / 504.6 |
+| VS2026 | 455.1 / 529.7 | 465.4 / 555.8 | 454.7 / 520.6 |
+
+These timings include the 50 ms diagnostic polling interval and COM overhead,
+exclude editor opening, and measure state publication rather than typing/paint.
+The 100 designer-close memory samples all record zero open documents. From the
+first to last measured close, VS2022 private bytes rose 229.9 MiB (921.0 to
+1,150.8 MiB), with managed heap counters 208.6 to 237.0 MiB and Gen2 collections
+6 to 14. VS2026 private bytes rose 239.2 MiB (1,105.9 to 1,345.1 MiB), with managed
+heap counters 234.7 to 429.7 MiB and Gen2 collections 6 to 11. No collection was
+forced in either IDE. These whole-process observations do not identify retained
+Alarmlist objects, establish a memory budget, or prove absence of leaks.
+
+Successful xUnit reports and deployment logs are under
+`artifacts/log/Release/LiveVisualStudioTests/68ea4dec855a4627a03496307a3e9e96/`
+(VS2022) and `01778b8e70c0476abfef011f3ab68da0/` (VS2026). Raw latency/memory CSVs
+and metadata are under
+`artifacts/log/Release/VisualStudioSmoke/ed2970e884fa4e2cbd2941251c0b1ba6/`
+and `dff875ed39474938b604f6cb07aeb4ce/`, respectively. Generated host runsettings
+and measurement artifacts remain untracked. No package publication or VSIX
+distribution was performed.

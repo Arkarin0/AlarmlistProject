@@ -458,12 +458,19 @@ IDE. Logs are retained in `artifacts/log/<Configuration>/VisualStudioTests/`.
 ## Experimental IDE smoke test
 
 The separate [UI integration suite](Alarmlist.VisualStudio.UIIntegrationTests/README.md)
-owns all automated functional IDE checks as 14 individual xUnit cases across
+owns all automated functional IDE checks across
 VS2022 and VS2026. It covers template/file lifecycle, shared editors, Save As,
 live diagnostics, build/Clean/Rebuild and actual designer keyboard commit/undo.
 The external net8.0-windows/x64 runner uses DTE/shell APIs and FlaUI. Live cases
 are opt-in and require an unlocked desktop; ordinary solution tests skip them.
 Package-consumer tests and performance measurements remain separate.
+
+Opted-in functional and live-performance xUnit runs prepare deployment themselves.
+They compare the installed extension, templates and dependencies with the built
+VSIX test asset and use the selected host's desktop MSBuild/VSSDK to deploy only
+when missing or outdated. An already-open target profile is refused without
+closing or changing its IDE. Deployment happens before measurements, under the
+shared live-test mutex; ordinary solution tests never deploy or launch an IDE.
 
 For the linked-project semantic UI checks, run
 `powershell.exe -NoProfile -File eng/prepare-visualstudio-acceptance.ps1` after
@@ -496,7 +503,7 @@ creating the project. **Add Existing Project** is for an existing `.almproj` fil
 The startup program uses the hosting Visual Studio installation. Each version
 has its own `AlarmlistExp` instance; deployment and F5 target that host together.
 
-Deploy using the selected **Visual Studio installation's desktop MSBuild**, with Visual Studio extension
+For manual deployment, use the selected **Visual Studio installation's desktop MSBuild**, with Visual Studio extension
 development tools installed. Find its path and instance ID with `vswhere`:
 
 ```powershell

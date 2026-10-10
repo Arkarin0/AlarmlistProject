@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
     <Compile Include="../../shared/VisualStudioTesting/LiveVisualStudioRun.cs" Link="LiveVisualStudio/LiveVisualStudioRun.cs" />
+    <Compile Include="../../shared/VisualStudioTesting/VisualStudioTestDeployment.cs" Link="LiveVisualStudio/VisualStudioTestDeployment.cs" />
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" />
     <ProjectReference Include="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" PrivateAssets="all" />
@@ -33,6 +34,11 @@
     <AssemblyMetadata Include="BuildConfiguration" Value="$(Configuration)" />
   </ItemGroup>
   <Target Name="PrepareAnalysisBridgeTestAssets" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_ExtensionAssembly" />
+    </MSBuild>
+    <Copy SourceFiles="@(_ExtensionAssembly->'%(RootDir)%(Directory)Alarmlist.VisualStudio.vsix')" DestinationFolder="$(TargetDir)testassets" />
     <MSBuild Projects="../../SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj" Targets="GetSdkPackagePath"
              Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
       <Output TaskParameter="TargetOutputs" ItemName="_AnalysisSdkPackage" />
