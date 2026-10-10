@@ -209,7 +209,7 @@ namespace Alarmlist.VisualStudio.UI
                     field.SetAnalysis(!identityDraft && alarm?.IsResolved == true
                         ? alarm.Fields.FirstOrDefault(item => item.Name == field.Name) : null, !HasPending);
                 foreach (ProcedureSectionViewModel section in ProcedureSections)
-                    section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasChanges)
+                    section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasKindChanges)
                         ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry), !HasPending);
                 if (!ReferenceEquals(_choicesState, state) || !ReferenceEquals(_choicesAlarm, alarm))
                 {

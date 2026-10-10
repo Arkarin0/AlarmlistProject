@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Input;
@@ -335,9 +336,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     var control = new EditFileControl(session.View) { Width = 900, Height = 800 };
                     host.RootVisual = control;
                     InheritanceAdornerTests.Pump();
-                    Expander excluded = VisualChildren(control).OfType<Expander>().First(item => Equals(item.Header, "Excluded by Clear"));
+                    ToggleButton excluded = VisualChildren(control).OfType<ToggleButton>().First(item =>
+                        AutomationProperties.GetName(item) == "Show cleared Instructions entries");
                     Assert.Equal(Visibility.Visible, excluded.Visibility);
-                    excluded.IsExpanded = true;
+                    Assert.True(excluded.IsChecked);
                     InheritanceAdornerTests.Pump();
                     ContentControl inherited = VisualChildren(control).OfType<ContentControl>().First(item =>
                         item.DataContext is ProcedureAnalysisRow row && row.IsInherited && InheritedValueBehavior.GetIsInherited(item));
@@ -351,6 +353,102 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.False(enter.Handled); // Enter must reach Button's command handling.
                     Assert.Equal(0, session.Buffer.Edits);
                     Assert.False(session.View.HasPending);
+                }
+            });
+        }
+
+        [Fact]
+        public void ClearedVisibilityPreservesLocalDraftsBoundariesAndIndependentSections()
+        {
+            string source = WithProcedure(ChildAlarm,
+                "<Instructions><Step>Earlier local</Step><Clear/><Warning>Also excluded</Warning><Clear/><Note>Survivor</Note></Instructions>"
+                + "<Reset><Clear/><Step>Reset locally</Step></Reset>");
+            using (var session = new SemanticSession(source))
+            {
+                session.Analyze(ProcedureBase);
+                ProcedureSectionViewModel section = session.View.ProcedureSections[0];
+                ProcedureItemViewModel local = section.Items[0];
+                local.Text = "Private cleared draft";
+                Assert.True(local.IsExcluded);
+                Assert.True(local.CanEdit);
+                Assert.False(section.HasAnalysis);
+                section.ShowCleared = false;
+                Assert.False(local.IsVisible);
+                Assert.All(section.InheritedSequence, row => Assert.False(row.IsVisible));
+                Assert.Equal(new[] { "Clear", "Clear", "Note" }, section.Items.Where(item => item.IsVisible).Select(item => item.Kind));
+                Assert.True(session.View.ProcedureSections[1].ShowCleared);
+                Assert.True(Assert.Single(session.View.ProcedureSections[1].InheritedSequence).IsVisible);
+                Assert.True(session.View.HasPending);
+                Assert.Equal(source, session.Buffer.Current.Text);
+                Assert.Equal(0, session.Buffer.Edits);
+                section.ShowCleared = true;
+                Assert.Same(local, section.Items[0]);
+                Assert.Equal("Private cleared draft", local.Text);
+                Assert.True(local.IsVisible);
+                Assert.True(session.View.CommitPending());
+                Assert.Equal(1, session.Buffer.Edits);
+                Assert.Contains("<Step>Private cleared draft</Step><Clear/>", session.Buffer.Current.Text);
+                session.Buffer.Undo();
+                Assert.Equal(source, session.Buffer.Current.Text);
+            }
+        }
+
+        [Fact]
+        public void InlineInheritedOrderIncludesAncestorExclusionsWithoutDuplicatingLocalRows()
+        {
+            string ancestors = "<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName><TestProcedure><Instructions>"
+                + "<Step>B0</Step><Clear/><Step>B1</Step></Instructions></TestProcedure></Alarm>"
+                + "<Alarm><FullyQualifiedName>Middle</FullyQualifiedName><ReferenceName>Base</ReferenceName><TestProcedure><Instructions>"
+                + "<Step>M0</Step><Clear/><Note>M1</Note></Instructions></TestProcedure></Alarm></Alarmlist>";
+            using (var session = new SemanticSession(WithProcedure(ChildAlarm.Replace(">Base<", ">Middle<"),
+                "<Instructions><Step>C0</Step></Instructions>")))
+            {
+                session.Analyze(ancestors);
+                ProcedureSectionViewModel section = session.View.ProcedureSections[0];
+                Assert.Equal(new[] { "B0", "B1", "M0", "M1" }, section.InheritedSequence.Select(row => row.Text));
+                Assert.Equal(new[] { true, true, true, false }, section.InheritedSequence.Select(row => row.IsExcluded));
+                Assert.All(section.InheritedSequence, row => Assert.True(row.IsInherited));
+                Assert.Equal("C0", Assert.Single(section.Items).Text);
+                section.ShowCleared = false;
+                Assert.Equal("M1", Assert.Single(section.InheritedSequence.Where(row => row.IsVisible)).Text);
+                Assert.Equal(0, session.Buffer.Edits);
+            }
+        }
+
+        [Fact]
+        public void ClearedToggleTakesFocusWithoutCommittingAndRestoresTheSameEditor()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                string source = WithProcedure(ChildAlarm, "<Instructions><Step>Earlier</Step><Clear/><Step>After</Step></Instructions>");
+                using (var session = new SemanticSession(source))
+                using (var host = ExpressionHost())
+                {
+                    session.Analyze(ProcedureBase);
+                    var control = new EditFileControl(session.View) { Width = 900, Height = 850 };
+                    host.RootVisual = control;
+                    InheritanceAdornerTests.Pump();
+                    ProcedureItemViewModel local = session.View.ProcedureSections[0].Items[0];
+                    ExpressionTextBox editor = VisualChildren(control).OfType<ExpressionTextBox>().Single(item => ReferenceEquals(item.DataContext, local));
+                    editor.BringIntoView();
+                    Assert.True(editor.Focus());
+                    editor.Text = "Uncommitted cleared entry";
+                    ToggleButton toggle = VisualChildren(control).OfType<ToggleButton>().Single(item =>
+                        AutomationProperties.GetName(item) == "Show cleared Instructions entries");
+                    toggle.BringIntoView();
+                    Assert.True(toggle.Focus());
+                    toggle.IsChecked = false;
+                    InheritanceAdornerTests.Pump();
+                    Assert.False(editor.IsVisible);
+                    Assert.Same(toggle, Keyboard.FocusedElement);
+                    Assert.True(session.View.HasPending);
+                    Assert.Equal(0, session.Buffer.Edits);
+                    toggle.IsChecked = true;
+                    InheritanceAdornerTests.Pump();
+                    Assert.True(editor.IsVisible);
+                    Assert.Equal("Uncommitted cleared entry", editor.Text);
+                    Assert.Same(editor, VisualChildren(control).OfType<ExpressionTextBox>().Single(item => ReferenceEquals(item.DataContext, local)));
+                    Assert.Equal(source, session.Buffer.Current.Text);
                 }
             });
         }

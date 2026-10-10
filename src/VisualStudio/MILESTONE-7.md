@@ -483,3 +483,39 @@ plan and retained all accepted preview, tooltip and persistence decisions.
 Validation: documentation consistency, relative links and whitespace review.
 No production tests required for this planning follow-up. The unrelated
 `example/North/Alarms1.almx` edit remains excluded from commits.
+
+### Iteration 2: inline procedure layout (2026-10-11)
+
+Implemented one inline sequence per Instructions/Reset group with decorated,
+read-only inherited rows followed by local source rows. Compiler-owned exclusion
+history supplies order and provenance; cleared rows are muted and local rows stay
+editable. Per-group eye controls retain view-local visibility across alarm changes,
+keep Clear boundaries visible, and preserve text drafts and their controls while
+hiding/showing. Kind/reference changes still invalidate structural analysis.
+Origin, exclusion and command explanations are available as contextual help.
+
+The first live dark-theme screenshot exposed low contrast in the new toggle;
+its template now uses the existing editor theme brushes and visible focus border.
+The new `Area=Procedures` live scenario types a cleared draft, hides/restores it,
+commits with Enter and undoes through the shared buffer, verifying saved source
+and build output remain unchanged. Fresh VS2026 profile checks initially failed
+because a startup notification was mistaken for the main window and release notes
+activated over the editor. The keyboard/procedure harness now locates the owned
+designer tree and reactivates its frame during bounded startup readiness checks.
+
+Validation evidence:
+
+- Full VS unit suite: 352 passed, zero skipped. Focused procedure/WPF suite:
+  26 passed, including a repeat after the theme correction.
+- The test builds regenerated the net472 extension/VSIX and both SDK runtimes.
+- VS2026 18.10, isolated `AlarmlistM7` profile: final `Area=Procedures|Area=Keyboard`
+  run passed both cases, zero skipped; TRX directory
+  `artifacts/log/Debug/VisualStudioUI/TestResults/693cdc89257d44b0bba68d5c5ed5b896/`.
+- VS2022 17.14, `AlarmlistExp`: final two focused live cases passed, zero skipped;
+  TRX directory `artifacts/log/Debug/VisualStudioUI/TestResults/cb17971bf0e7433d9292cc0ca8b64512/`.
+- Reviewed the actual VS2026 dark-theme procedure screenshot. This does not replace
+  integrated light/high-contrast, DPI, screen-reader or final manual acceptance.
+
+No compiler/source-format changes. The unrelated sample edit remains untouched.
+Remaining work: iterations 3-7; the current property/reference layout and global
+button/combobox theme styling will be replaced in their planned iterations.

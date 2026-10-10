@@ -23,7 +23,7 @@ namespace Alarmlist.VisualStudio
             // Shell toolbars live outside this view. Leaving the designer keeps
             // its draft private; moving to another designer control still commits.
             // Explicit Save/Enter and editor layout changes also commit as before.
-            if (IsKeyboardFocusWithin) ViewModel.CommitPending();
+            if (IsKeyboardFocusWithin && !Equals((args.NewFocus as FrameworkElement)?.Tag, "PreserveDraft")) ViewModel.CommitPending();
         }
         private void OnPresenceChanged(object sender, RoutedEventArgs args) => ViewModel.CommitPending();
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;

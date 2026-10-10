@@ -22,6 +22,7 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Configured external analyzer | Live warning/navigation, saved severity and option refresh, promoted build failure preserves output, and source DLL remains unlocked | `Analyzers` |
 | Build failure/Clean/Rebuild | Error List, failure preserves output, updated live errors preserve Build errors, Clean removes output, Rebuild restores it | `Build` |
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
+| Cleared procedure rows | Real typing in a cleared local entry, draft-safe hide/show, Enter commit and shared Undo, with saved source/output preservation | `Procedures` |
 | Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, raw override and saved build parity | `Properties` |
 | Linked property contexts | North/South project values, configuration reevaluation, shared unsaved file assignment, property diagnostics before Build, discard and unload/reload | `Properties` |
 | Native resource editor | Open RESX in an ALMX project, retain saved disk contents during cell drafts, Undo/Escape drafts, commit a cell, Save, and reopen | `Resources` |

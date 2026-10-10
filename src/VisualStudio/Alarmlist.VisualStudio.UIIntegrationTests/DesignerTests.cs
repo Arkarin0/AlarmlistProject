@@ -31,16 +31,23 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             string path = Path.Combine(workspace.DirectoryPath, "Probe.almx");
             File.WriteAllText(path, original);
             using var automation = new UIA3Automation();
-            Window window;
             using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
-            window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
-            Assert.NotNull(window);
             ide.OpenDesigner(path);
-            window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            // A fresh experimental profile can still report its startup window
+            // as MainWindowHandle. Locate the owned window with the editor tree.
+            Window window = null;
+            AutomationElement designer = null;
+            VisualStudioSession.Wait(() =>
+            {
+                window = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.Window)))
+                    .Select(element => element.AsWindow()).SingleOrDefault(candidate =>
+                        candidate.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))) != null);
+                designer = window?.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)));
+                if (designer == null) Alarmlist.VisualStudio.Testing.VisualStudioAutomation.OpenMeasurementDesigner(ide.Automation, path);
+                return designer != null;
+            }, "loaded designer window");
             Assert.Equal(ide.ProcessId, window.Properties.ProcessId.Value);
             window.SetForeground();
-            AutomationElement designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)));
-            Assert.NotNull(designer);
             designer.Focus();
             ide.RequireForeground();
             designer.Click();
