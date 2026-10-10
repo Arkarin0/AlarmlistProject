@@ -1,6 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\Compiler\Alarmlist.Core.csproj" />
+    <ProjectReference Include="../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Moq" Version="4.8.3" />
   </ItemGroup>
+  <Target Name="CopyAnalyzerTestAsset" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)">
+      <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzer" />
+    </MSBuild>
+    <Copy SourceFiles="@(_SampleAnalyzer)" DestinationFolder="$(TargetDir)testassets" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

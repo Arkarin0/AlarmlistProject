@@ -116,8 +116,10 @@ reader's LF, preserving the intended content assertion on Windows.
 
 - Expand EditorConfig conformance against the upstream suite; current coverage is
   focused, not a claim of full conformance.
-- Larger analyzer counts, long-running plugin lifecycle and whole-IDE memory/latency
-  measurements remain unmeasured. No performance threshold or leak-freedom claim.
+- Bounded lifecycle checks now cover 32 analyzers, repeated execution, cleanup
+  failures and .NET 8 context collection (iteration 5). Long-running plugin
+  lifecycle and whole-IDE memory/latency measurements remain unmeasured. No
+  performance threshold or leak-freedom claim.
 - Existing milestone-five manual/vendor/release gates remain separate. No package
   has been published and no VSIX has been distributed for this milestone.
 
@@ -186,3 +188,31 @@ infrastructure tests. The focused desktop MSBuild/net472 analyzer run passed all
 4 cases. Live IDE and benchmarks were not rerun for this parsing iteration.
 Stopped after this validated iteration at the owner's then-active 15% remaining
 allowance limit, subsequently removed on 2026-10-10.
+
+## Analyzer lifecycle iteration 5 (2026-10-10)
+
+Added executable cleanup coverage using the existing xUnit projects. Compiler
+tests prove captured-image isolation, missing/invalid image diagnostics and
+idempotent disposal on both runtimes. The .NET 8 case loads and releases twenty
+collectible contexts, retains their disposed loaders and compilation results,
+and confirms collection without losing diagnostic text. The sample DLL is a
+copied test asset, not a reference loaded into the test host's default context.
+
+SDK bridge cases run 32 analyzers ten times, validate all 320 disposals, and retain
+detached results after AppDomain unload. Constructor and execution failure cases
+check ALM0025; cancellation checks disposal before returning. A disposal failure
+still releases the other instances, makes live analysis unavailable, and allows
+the next request to succeed. No plugin or compiler assemblies enter the VS host.
+
+A packaged consumer builds its own disposable analyzer against the restored
+compiler, checks a single disposal after both cultures, then changes source and
+throws during disposal. Both previous outputs and the ownership manifest remain
+unchanged; a subsequent successful build installs the updated source. Disposal
+failures surface as host failures, rather than successful partial results. No
+runtime behavior changes were required for these lifecycle cases.
+
+Validation: the full Release solution run passed 1,518 ordinary tests, with 47
+opt-in cases skipped. Compiler counts are 440 net472 / 441 net8.0, SDK consumers
+48 per framework, and VS unit tests 349. The focused desktop MSBuild/net472
+analyzer run passed all 5 cases, including the new disposal-failure consumer.
+No live IDE or timing workload was rerun for this test-only iteration.

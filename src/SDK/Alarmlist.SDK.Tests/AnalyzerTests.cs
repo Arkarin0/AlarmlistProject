@@ -1,5 +1,6 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
+using System;
 using System.IO;
 using System.Linq;
 using Xunit;
@@ -13,6 +14,41 @@ namespace Alarmlist.MSBuild.SDK.Tests
         private readonly TestProjectFixture _fixture;
         private readonly ITestOutputHelper _output;
         public AnalyzerTests(TestProjectFixture fixture, ITestOutputHelper output) { _fixture = fixture; _output = output; }
+
+        [Fact]
+        public void AnalyzerDisposalFailurePreservesAllCultureOutputsAndOwnership()
+        {
+            var app = _fixture.CreateTestApp("AnalyzerLifecycle");
+            app.Build(_output);
+            string runtime = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ALARMLIST_TEST_MSBUILD_PATH")) ? "net8.0" : "net472";
+            string compiler = Path.Combine(app.PackageDirectory, "tasks", runtime, "Alarmlist.Core.dll");
+            BuildResult rules = app.RunProject(_output, Path.Combine(app.WorkingDirectory, "Rules.csproj"), "/restore", "/p:CompilerPath=" + compiler);
+            Assert.True(rules.ExitCode == 0, rules.Output);
+            string project = Path.Combine(app.WorkingDirectory, "Plant.almproj");
+            app.Build(_output);
+            Assert.Equal(new[] { "keyword", "en" }, File.ReadAllLines(project + ".analyzed"));
+            Assert.Single(File.ReadAllLines(project + ".disposed"));
+            string[] outputs = { app.OutputPath, Path.Combine(app.WorkingDirectory, "bin", "Debug", "en", "Plant.Alarmlist.xml") };
+            byte[][] previous = outputs.Select(File.ReadAllBytes).ToArray();
+            string manifest = Directory.GetFiles(Path.Combine(app.WorkingDirectory, "obj"), "*.outputs.xml", SearchOption.AllDirectories).Single();
+            byte[] ownership = File.ReadAllBytes(manifest);
+
+            File.WriteAllText(project + ".fail-disposal", "fail");
+            string source = Path.Combine(app.WorkingDirectory, "PartA.almx");
+            File.WriteAllText(source, File.ReadAllText(source).Replace("Smoke detected", "Updated smoke alarm"));
+            BuildResult failed = app.Run(_output, "/t:Build");
+            Assert.NotEqual(0, failed.ExitCode);
+            Assert.Contains("Test analyzer disposal failure", failed.Output);
+            Assert.Equal(new[] { "keyword", "en", "keyword", "en" }, File.ReadAllLines(project + ".analyzed"));
+            Assert.Equal(2, File.ReadAllLines(project + ".disposed").Length);
+            for (int i = 0; i < outputs.Length; i++) Assert.Equal(previous[i], File.ReadAllBytes(outputs[i]));
+            Assert.Equal(ownership, File.ReadAllBytes(manifest));
+            using (File.Open(Path.Combine(app.WorkingDirectory, "rules", "LifecycleRules.dll"), FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+            File.Delete(project + ".fail-disposal");
+            app.Build(_output);
+            Assert.All(outputs, output => Assert.Contains("Updated smoke alarm", File.ReadAllText(output)));
+            Assert.Equal(3, File.ReadAllLines(project + ".disposed").Length);
+        }
 
         [Fact]
         public void ReferencedAnalyzerHonorsSavedConfigurationAndPreservesEveryCultureOnPromotion()
