@@ -10,8 +10,63 @@ These instructions apply to the entire repository. Follow any more specific
   changing behavior. Keep changes focused; avoid unrelated formatting or renames.
 - Treat the checked-in source and build configuration as authoritative. Update
   this guide when project structure or supported workflows change.
+- When the user gives a new durable guideline or corrects an earlier decision,
+  check whether it is documented and update the relevant instructions in the same
+  iteration. Revise superseded guidance rather than leaving contradictory rules.
+  Keep milestone-specific scope and acceptance decisions in the milestone plan,
+  and link them here when they affect future work across the repository.
 - Never add credentials, machine-specific paths, or generated build outputs.
 - Report what changed, which checks ran, and any checks that could not run.
+
+## Milestone planning and iteration workflow
+
+Plan milestone work as numbered, independently reviewable iterations before
+implementation. Maintain the plan as work proceeds, following the existing
+`src/VisualStudio/MILESTONE-<number>.md` convention for Visual Studio milestones.
+Extend the existing milestone document for follow-up work instead of creating a
+competing plan or renumbering completed iterations.
+
+1. Record the milestone's intended outcome, confirmed scope, exclusions, design
+   decisions, and open questions. Consult the architectural references below.
+2. Give each iteration a concrete deliverable, dependencies, relevant validation,
+   and completion criteria. Keep the compiler, SDK, and extension usable together
+   at iteration boundaries. Include tests and documentation with the behavior
+   they cover instead of postponing all validation to the final iteration.
+3. Implement and validate one iteration at a time. Update the remaining plan when
+   user decisions or findings change scope; preserve completed results and make
+   changed assumptions explicit.
+4. Record actual changes, validation commands/results, and remaining limitations
+   in the milestone document. Keep planned acceptance separate from evidence.
+   If an essential check fails or cannot run, record the blocker and do not call
+   the iteration successful. Keep separately deferred manual, vendor, or release
+   gates visible even when the scoped implementation checks pass.
+5. **Commit after each successful iteration, before starting the next**, unless
+   the user explicitly asks to defer commits. Include its implementation, tests,
+   plan/results, and relevant instruction updates in a focused commit. Review
+   the diff and stage only that iteration's files or hunks; preserve unrelated
+   working-tree and staged changes.
+6. **Show a short summary after each iteration's commit**: iteration identifier,
+   completed behavior, validation result, commit hash, and any remaining blocker
+   or next step. Continue already-authorized iterations without waiting for
+   another confirmation; ask only when a required decision remains unresolved.
+
+For documentation-only iterations, review the diff, links, paths, and consistency;
+a full build is normally unnecessary. State that tests were not run. Do not
+describe an iteration as committed until Git confirms the commit succeeded.
+
+Existing plans and iteration records:
+
+| Plan | Scope |
+| --- | --- |
+| [Milestone 2](src/VisualStudio/MILESTONE-2.md) | Shared ALMX document, designer/XML editing, and editor lifecycle. |
+| [Milestone 3](src/VisualStudio/MILESTONE-3.md) | Reference-aware editing, analysis, diagnostics, previews, and lifecycle/performance follow-ups. |
+| [Milestone 4](src/VisualStudio/MILESTONE-4.md) | Property expressions, parameters, abstract alarms, and designer support; see its [design contract](src/VisualStudio/MILESTONE-4-DESIGN.md). |
+| [Milestone 5](src/VisualStudio/MILESTONE-5.md) | Localization and XLIFF, including HMI lookup, named-list, and preview follow-up iterations; see its [design contract](src/VisualStudio/MILESTONE-5-DESIGN.md) and [lookup specification](src/VisualStudio/HMI-LOOKUPS.md). |
+| [Milestone 6](src/VisualStudio/MILESTONE-6.md) | EditorConfig, diagnostic policy, external analyzers, and compatibility/lifecycle validation iterations. |
+
+Read the selected plan's current status and remaining gates before resuming it.
+[FUTURE-FEATURES.md](FUTURE-FEATURES.md) holds ideas and design history; it does not
+authorize implementation or supersede the confirmed scope in a milestone plan.
 
 ## Project map
 
