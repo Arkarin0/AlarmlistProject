@@ -254,3 +254,32 @@ Host allocation figures do not measure the complete isolated SDK domain.
 Raw CSV/JSON and summaries are retained under
 `artifacts/log/Release/Milestone6Performance/BridgeBenchmarks-1000-100-analyzers-994688c1cda5400f8b9a486b4688f359/`
 and `BridgeBenchmarks-1000-100-analyzers-ranges-f983fde97d5a4e3f81a80089cdb3318e/`.
+
+## Example playground iteration 7 (2026-10-10)
+
+The persistent North/South example now explicitly references the sample analyzer.
+The preparation helper builds and copies both runtimes into ignored `.analyzers/`
+folders; the existing launchers invoke it automatically. Persistent sample inputs
+and compiled playground output remain untouched by preparation. Missing analyzer
+preparation produces an actionable build error before compilation.
+
+New local Diagnostics.almx files demonstrate N-/S- prefixes, local overrides and
+an inherited legacy-code warning. The linked Shared/Diagnostics.almx demonstrates
+physical source scoping with an SH- prefix in both contexts. Root and per-project
+EditorConfig files intentionally leave earlier exercises suppressed and produce
+two SAMPLE001 warnings per project/culture, with successful default builds.
+Configuration links, solution items and the example README expose severity,
+suppression, warning promotion, unset and saved-configuration exercises.
+
+ExamplePlaygroundTests builds isolated copies of the actual example inputs,
+checks warning controls and physical scoping, verifies abstract/inherited output,
+and asserts preservation of sources, all culture outputs and ownership on failure.
+The shared consumer-test helper now isolates the NuGet cache for nested projects
+as well as fixture-root projects. The actual example was prepared from Debug
+artifacts without launching an IDE or overwriting its compiled output. The owner's
+pre-existing Alarms1.almx edit is preserved and excluded from the commit.
+
+Validation: 1,594 ordinary Release tests passed, with 47 opt-in cases skipped.
+The SDK suite passed 53 tests per framework in both Debug and Release. The three
+example cases also passed using desktop MSBuild/net472. No IDE was launched and
+the opt-in timing workloads were not rerun for this example-only change.

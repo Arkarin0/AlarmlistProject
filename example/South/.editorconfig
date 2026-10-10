@@ -1,0 +1,3 @@
+# This nearer configuration overrides the example-wide prefix for local inputs.
+[Diagnostics.almx]
+alarmlist_sample.code_prefix = S-

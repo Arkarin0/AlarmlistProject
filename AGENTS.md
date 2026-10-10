@@ -427,6 +427,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   The example targets link Shared/Hmi.almlookup and HmiInstructions.almx into both
   projects; RESX Set/Press patterns demonstrate named arguments, individually
   translated HMI labels and explicit metadata without duplicating sentence keys.
+  Milestone-six Diagnostics.almx samples use saved per-project/root EditorConfig,
+  explicit sample analyzer references, and intentional nonfatal warnings. The
+  preparation helper builds both analyzer runtimes into ignored example/.analyzers;
+  preserve these references and validate changes through ExamplePlaygroundTests.
 - `eng/measure-visualstudio-live.ps1` (also reached through the compatibility
   `test-visualstudio.ps1 -MeasureAnalysis` option) measures running-IDE buffer-to-diagnostic
   latency and repeated designer close/process-memory samples. Parameters select

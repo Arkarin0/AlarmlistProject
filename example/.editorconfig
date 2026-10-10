@@ -1,0 +1,13 @@
+root = true
+
+# Keep the earlier playground exercises quiet; opt the diagnostics demo in below.
+[*.almx]
+alarmlist_diagnostic.SAMPLE001.severity = none
+
+[**/Diagnostics.almx]
+alarmlist_diagnostic.SAMPLE001.severity = warning
+alarmlist_sample.code_prefix = AL-
+
+# Linked inputs use their physical directory, not North's or South's settings.
+[Shared/Diagnostics.almx]
+alarmlist_sample.code_prefix = SH-
