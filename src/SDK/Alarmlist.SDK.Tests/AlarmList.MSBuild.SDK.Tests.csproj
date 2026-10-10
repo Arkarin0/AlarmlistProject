@@ -15,6 +15,9 @@
       <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
     </ProjectReference>
     <Content Include="testassets/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../example/**/*.almx;../../../example/**/*.resx;../../../example/**/*.almlookup;../../../example/**/*.almproj;../../../example/**/.editorconfig;../../../example/Directory.Build.props;../../../example/Directory.Build.targets"
+             Exclude="../../../example/**/bin/**;../../../example/**/obj/**;../../../example/**/.*/**"
+             Link="testassets/Example/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false">
       <SkipGetTargetFrameworkProperties Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">true</SkipGetTargetFrameworkProperties>
       <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>

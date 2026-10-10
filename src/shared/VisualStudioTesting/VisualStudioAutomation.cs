@@ -78,11 +78,19 @@ namespace Alarmlist.VisualStudio.Testing
         }
         public static bool HasErrorDescription(object automation, string description)
         {
+            return HasDiagnosticDescription(automation, description, EnvDTE80.vsBuildErrorLevel.vsBuildErrorLevelHigh);
+        }
+        public static bool HasWarningDescription(object automation, string description)
+        {
+            return HasDiagnosticDescription(automation, description, EnvDTE80.vsBuildErrorLevel.vsBuildErrorLevelMedium);
+        }
+        private static bool HasDiagnosticDescription(object automation, string description, EnvDTE80.vsBuildErrorLevel level)
+        {
             var errors = ((EnvDTE80.DTE2)automation).ToolWindows.ErrorList.ErrorItems;
             for (int i = 1; i <= errors.Count; i++)
             {
                 var error = errors.Item(i);
-                if (error.ErrorLevel == EnvDTE80.vsBuildErrorLevel.vsBuildErrorLevelHigh
+                if (error.ErrorLevel == level
                     && error.Description == description) return true;
             }
             return false;

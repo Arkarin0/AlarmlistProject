@@ -70,6 +70,58 @@ namespace Alarmlist.Core.UnitTests.Configuration
         }
 
         [Theory]
+        [InlineData("[")]
+        [InlineData("[*.resx")]
+        [InlineData("[*.resx] # not a header")]
+        [InlineData("[*.resx] ; not a header")]
+        public void InvalidHeadersDoNotDiscardCurrentSectionOrEndPreamble(string invalidLine)
+        {
+            var configuration = new AnalyzerConfiguration(new[]
+            {
+                Config("project", "[*.almx]\nouter=value"),
+                Config("project/sub", invalidLine + "\nroot=true\n[*.almx]\nrule=before\n" + invalidLine + "\nrule=after")
+            });
+            IReadOnlyDictionary<string, string> options = configuration.GetOptionsForSourcePath(Source("project/sub/Alarm.almx"));
+            Assert.Equal("after", options["rule"]);
+            Assert.False(options.ContainsKey("outer"));
+        }
+
+        [Fact]
+        public void HeaderClassificationPrecedesPairsButBracketPrefixedKeysRemainValid()
+        {
+            var configuration = new AnalyzerConfiguration(new[] { Config("project",
+                "[Al=arm.almx]\n[Custom=literal\nrule=matching\n[Other.almx]\nrule=other") });
+            IReadOnlyDictionary<string, string> options = configuration.GetOptionsForSourcePath(Source("project/Al=arm.almx"));
+            Assert.Equal("literal", options["[custom"]);
+            Assert.Equal("matching", options["rule"]);
+        }
+
+        [Fact]
+        public void EmptyHeaderEndsPreambleAndCurrentSectionWithoutMatchingSources()
+        {
+            var configuration = new AnalyzerConfiguration(new[]
+            {
+                Config("project", "[*.almx]\nouter=retained"),
+                Config("project/sub", "[]\nroot=true\n[*.almx]\nrule=retained\n[]\nrule=must-not-apply")
+            });
+            IReadOnlyDictionary<string, string> options = configuration.GetOptionsForSourcePath(Source("project/sub/Alarm.almx"));
+            Assert.Equal("retained", options["outer"]);
+            Assert.Equal("retained", options["rule"]);
+            Assert.False(options.ContainsKey("root"));
+        }
+
+        [Fact]
+        public void AcceptsSpecificationMinimumLengthsWithoutReadingSourcePaths()
+        {
+            string pattern = "[" + new string('x', 1016) + "A].almx";
+            string key = new string('k', 1024);
+            string value = new string('v', 4096);
+            Assert.Equal(1024, pattern.Length);
+            var configuration = new AnalyzerConfiguration(new[] { Config("project", "[" + pattern + "]\n" + key + "=" + value) });
+            Assert.Equal(value, configuration.GetOptionsForSourcePath(Source("project/A.almx"))[key]);
+        }
+
+        [Theory]
         [InlineData("*.almx", "sub/Alarm.almx", true)]
         [InlineData("*.almx", "Alarm.ALMX", false)]
         [InlineData("sub/*.almx", "sub/deeper/Alarm.almx", false)]
@@ -108,10 +160,63 @@ namespace Alarmlist.Core.UnitTests.Configuration
         [InlineData("Alarm{one}.almx", "Alarm{one}.almx", true)]
         [InlineData("Alarm\\{one\\}.almx", "Alarm{one}.almx", true)]
         [InlineData("Alarm[#;].almx", "Alarm#.almx", true)]
+        [InlineData(@"Plant\[1/Alarm].almx", "Plant[1/Alarm].almx", true)]
+        [InlineData(@"Plant\[1/Alarm].almx", "Other/Plant[1/Alarm].almx", false)]
+        [InlineData(@"Plant\[1]/Alarm.almx", "Plant[1]/Alarm.almx", true)]
+        [InlineData(@"Plant\[1]/Alarm.almx", "Other/Plant[1]/Alarm.almx", false)]
+        [InlineData(@"Plant\[1\]/Alarm.almx", "Other/Plant[1]/Alarm.almx", false)]
+        [InlineData(@"Plant\/Alarm.almx", "Plant/Alarm.almx", true)]
+        [InlineData(@"Plant\/Alarm.almx", "Other/Plant/Alarm.almx", false)]
+        [InlineData(@"Alarm[\]12].almx", "Alarm].almx", true)]
+        [InlineData(@"Alarm[!\]12].almx", "Alarm].almx", false)]
+        [InlineData(@"Alarm{North\,South,West}.almx", "AlarmNorth,South.almx", true)]
+        [InlineData(@"Alarm{North\,South,West}.almx", "AlarmNorth.almx", false)]
+        [InlineData(@"Alarm{North,\},West}.almx", "Alarm}.almx", true)]
+        [InlineData("Alarm{,{North,South}}.almx", "Alarm.almx", true)]
+        [InlineData("Alarm{,{North,South}}.almx", "AlarmSouth.almx", true)]
+        [InlineData("Alarm{North,{South}}.almx", "Alarm{South}.almx", true)]
+        [InlineData("Alarm{North,{South}}.almx", "AlarmSouth.almx", false)]
         public void MatchesEditorConfigSectionGlobs(string pattern, string path, bool expected)
         {
             var configuration = new AnalyzerConfiguration(new[] { Config("project", "[" + pattern + "]\nmatched=yes") });
             Assert.Equal(expected, configuration.GetOptionsForSourcePath(Source("project/" + path)).ContainsKey("matched"));
+        }
+
+        [Theory]
+        [InlineData("{-9223372036854775808..9223372036854775807}", "-9223372036854775808", true)]
+        [InlineData("{-9223372036854775808..9223372036854775807}", "9223372036854775807", true)]
+        [InlineData("{-9223372036854775808..9223372036854775807}", "-9223372036854775809", false)]
+        [InlineData("{-9223372036854775808..9223372036854775807}", "9223372036854775808", false)]
+        [InlineData("{-9223372036854775808..9223372036854775807}", "0", true)]
+        [InlineData("{-9223372036854775808..9223372036854775807}", "-0", true)]
+        [InlineData("{123456789..9876543210}", "123456788", false)]
+        [InlineData("{123456789..9876543210}", "123456789", true)]
+        [InlineData("{123456789..9876543210}", "5000000000", true)]
+        [InlineData("{123456789..9876543210}", "9876543210", true)]
+        [InlineData("{123456789..9876543210}", "9876543211", false)]
+        [InlineData("{-9876543210..-123456789}", "-5000000000", true)]
+        [InlineData("{-9876543210..-123456789}", "-9876543211", false)]
+        [InlineData("{-9876543210..-123456789}", "-123456788", false)]
+        [InlineData("{0..999999999999999999}", "999999999999999999", true)]
+        [InlineData("{0..999999999999999999}", "1000000000000000000", false)]
+        public void LargeNumericRangesMatchBoundariesWithoutExpandingIndividualNumbers(string range, string number, bool expected)
+        {
+            var configuration = new AnalyzerConfiguration(new[] { Config("project", "[Alarm" + range + ".almx]\nmatched=yes") });
+            Assert.Equal(expected, configuration.GetOptionsForSourcePath(Source("project/Alarm" + number + ".almx")).ContainsKey("matched"));
+        }
+
+        [Fact]
+        public void NumericRangesAgreeWithIntegerComparisonAcrossDigitAndSignBoundaries()
+        {
+            foreach (int minimum in new[] { -101, -99, -10, -1, 0, 9, 99 })
+            foreach (int maximum in new[] { -100, -9, 0, 1, 10, 100, 102 })
+            {
+                if (minimum >= maximum) continue;
+                var configuration = new AnalyzerConfiguration(new[] { Config("project", "[Alarm{" + minimum + ".." + maximum + "}.almx]\nmatched=yes") });
+                for (int value = -103; value <= 103; value++)
+                    Assert.Equal(value >= minimum && value <= maximum,
+                        configuration.GetOptionsForSourcePath(Source("project/Alarm" + value + ".almx")).ContainsKey("matched"));
+            }
         }
 
         [Fact]

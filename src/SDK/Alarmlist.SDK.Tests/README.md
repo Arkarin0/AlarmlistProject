@@ -18,6 +18,16 @@ and [TestApp](https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Ar
   Each invocation receives a separate log, including expected failures.
 - Tests cover package contents, compilation, conditional inputs, diagnostics,
   framework selection, and Clean/Rebuild behavior.
+- `ExamplePlaygroundTests` builds isolated copies of the example's current source
+  inputs with the packaged SDK and both prepared sample-analyzer runtimes. It
+  checks project/shared configuration scope, warning controls, source preservation,
+  output preservation on promotion, and the missing-preparation message. It does
+  not build or modify the persistent playground's outputs.
+- `AnalyzerLifecycle` builds a disposable analyzer against the restored SDK's
+  compiler for the selected MSBuild runtime. It checks one disposal after a
+  multi-culture batch, output/manifest preservation on disposal failure, and
+  recovery on the following build. Desktop coverage requires the matching .NET
+  Framework developer pack, as well as desktop MSBuild.
 - `AnalysisContract` loads the compiler from the restored SDK's selected task
   runtime and calls its public snapshot analysis API through reflection. It checks
   contract version, field/procedure origins, Clear, result isolation, opt-in XML

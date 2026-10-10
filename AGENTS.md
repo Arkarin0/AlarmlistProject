@@ -36,7 +36,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/` | Packaged VSIX and template-consumer tests on both frameworks. |
 | `src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/` | All automated functional IDE scenarios under xUnit, including FlaUI keyboard interaction; out-of-process net8.0-windows/x64 runner. |
 | `src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/` | Opt-in xUnit-hosted BenchmarkDotNet bridge/WPF measurements and running-IDE latency/memory validation; net472 only. |
-| `src/shared/VisualStudioTesting/` | Shared C# IDE automation primitives and opt-in performance-driver invocation/report validation. |
+| `src/shared/VisualStudioTesting/` | Shared C# IDE automation, automatic test deployment preparation, and opt-in performance-driver invocation/report validation. |
 | `src/shared/Unittesting/` | Shared compiler/task test helpers linked through build configuration. |
 | `eng/` | Repository build settings, version properties, and common build tooling. |
 | `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
@@ -139,6 +139,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - Add or update regression tests for behavior changes using existing xUnit
   conventions and helpers. Assert observable behavior, diagnostics, and output,
   rather than duplicating implementation details.
+- Compiler EditorConfig compatibility tests use a pinned upstream archive, cached
+  under `artifacts/testassets/editorconfig/`. Their xUnit fixture downloads it only
+  when missing and verifies SHA-256; a warm cache needs no network. See
+  `src/Compiler.UnitTests/Configuration/README.md` for explicit suite adaptations.
 - Start with the affected suite. For shared compiler, build configuration, task,
   or packaging changes, also validate the affected downstream suites and both
   target frameworks when the environment supports them. Omitting `--framework`
@@ -427,6 +431,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   The example targets link Shared/Hmi.almlookup and HmiInstructions.almx into both
   projects; RESX Set/Press patterns demonstrate named arguments, individually
   translated HMI labels and explicit metadata without duplicating sentence keys.
+  Milestone-six Diagnostics.almx samples use saved per-project/root EditorConfig,
+  explicit sample analyzer references, and intentional nonfatal warnings. The
+  preparation helper builds both analyzer runtimes into ignored example/.analyzers;
+  preserve these references and validate changes through ExamplePlaygroundTests.
 - `eng/measure-visualstudio-live.ps1` (also reached through the compatibility
   `test-visualstudio.ps1 -MeasureAnalysis` option) measures running-IDE buffer-to-diagnostic
   latency and repeated designer close/process-memory samples. Parameters select
@@ -451,8 +459,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   designer publication. Its completion measurement filters localization keys.
 - The isolated `Area=Analyzers` bridge workload captures the sample analyzer and
   saved configuration for 1,000 alarms, validating warning counts and host isolation
-  outside timing. Keep its sample DLL a test asset, never a compiler reference in
-  the performance host. Functional `Area=Analyzers` cases belong in UIIntegrationTests.
+  outside timing. Its paired range scenario uses a full positive Int64 glob range;
+  retain both ordinary-pattern and large-range measurements. Keep its sample DLL
+  a test asset, never a compiler reference in the performance host. Functional
+  `Area=Analyzers` cases belong in UIIntegrationTests.
+- Live `Host=VisualStudio&Area=Analyzers` performance cases extend that measurement
+  driver with saved sample-analyzer/configuration inputs, unique analyzer messages,
+  and a third saved-configuration mode. Require the workload marker and complete
+  three-mode reports; restore configuration and preserve source/output/DLL hashes.
 - Live performance xUnit wrappers require `ALARMLIST_RUN_LIVE_VS_TESTS=1` and explicit
   host paths;
   they run only on net472 in PerformanceTests and use the dedicated live measurement
@@ -460,6 +474,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Preserve ordinary-run skipping, trait filters,
   cross-process serialization, complete-report validation and the driver's ownership
   of its test IDE. Keep the matching deployed configuration/profile explicit.
+- Functional and live-performance xUnit setup shares `VisualStudioTestDeployment`.
+  Compare the actual deployed VSIX payload with the built test asset, automatically
+  deploying only if missing/outdated. Use the selected host's desktop MSBuild and
+  the opt-in `eng/targets/VisualStudioTestDeployment.targets` to reuse VSSDK tasks
+  without rebuilding runner-held assemblies. Keep setup under the shared mutex,
+  refuse open target profiles, retain setup logs and verify the installed bytes.
+  Ordinary tests never deploy. No independent deployment command is needed before
+  opted-in xUnit runs; first-run IDE screens still require interactive setup.
 - All functional UI integration tests require `ALARMLIST_RUN_UI_VS_TESTS=1` and the
   same explicit host paths/profile. Their net8.0-windows runner uses FlaUI 5 outside
   the IDE; keep its dependencies out of the VSIX. Preserve normal-run skipping,

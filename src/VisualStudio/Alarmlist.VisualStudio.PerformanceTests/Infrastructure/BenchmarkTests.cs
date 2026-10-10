@@ -48,6 +48,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
 
         [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Analyzers")]
         [InlineData("1000-100-analyzers")]
+        [InlineData("1000-100-analyzers-ranges")]
         public void AnalyzerBridge(string scenario) => Run(typeof(BridgeBenchmarks), scenario, 2);
 
         private void Run(Type benchmark, string scenario, int expectedReports)

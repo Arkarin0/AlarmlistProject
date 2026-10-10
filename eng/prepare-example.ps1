@@ -30,6 +30,21 @@ try {
 
 $packagePath = Join-Path $repoRoot "artifacts/packages/$Configuration/NonShipping/Alarmlist.MSBuild.SDK.$sdkVersion.nupkg"
 if (!(Test-Path -LiteralPath $packagePath)) { throw "Build the matching SDK package first: $packagePath" }
+
+# Build the opt-in sample for both task runtimes before entering the consumer's
+# isolated NuGet environment. Keep generated DLLs out of persistent source files.
+Push-Location $repoRoot
+try {
+  & dotnet build 'src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj' --configuration $Configuration --nologo --verbosity minimal
+  if ($LASTEXITCODE -ne 0) { throw 'Example analyzer preparation failed.' }
+} finally { Pop-Location }
+foreach ($framework in @('net472', 'net8.0')) {
+  $analyzerSource = Join-Path $repoRoot "artifacts/bin/Alarmlist.SampleAnalyzer/$Configuration/$framework/Alarmlist.SampleAnalyzer.dll"
+  if (!(Test-Path -LiteralPath $analyzerSource)) { throw "Build the sample analyzer first: $analyzerSource" }
+  $analyzerDirectory = Join-Path $exampleRoot ".analyzers/$framework"
+  New-Item -ItemType Directory -Path $analyzerDirectory -Force | Out-Null
+  Copy-Item -LiteralPath $analyzerSource -Destination (Join-Path $analyzerDirectory 'Alarmlist.SampleAnalyzer.dll') -Force
+}
 # Development builds can change package contents without changing the version.
 # A content-specific cache avoids stale compiler assemblies without deleting caches.
 $packageHash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -74,4 +89,4 @@ try {
   Pop-Location
 }
 Write-Output "Example solution: $(Join-Path $exampleRoot 'Example.sln')"
-Write-Output "Prepared Alarmlist.MSBuild.SDK/$sdkVersion from the $Configuration build. Example source files are preserved."
+Write-Output "Prepared Alarmlist.MSBuild.SDK/$sdkVersion and the sample analyzer for both runtimes from the $Configuration build. Example source files are preserved."

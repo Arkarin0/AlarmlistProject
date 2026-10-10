@@ -18,6 +18,24 @@ namespace Alarmlist.VisualStudio.PerformanceTests.LiveVisualStudio
         }
 
         [Theory]
+        [InlineData("valid"), InlineData("workload"), InlineData("missing-workload"), InlineData("missing-sample"), InlineData("wrong-mode")]
+        public void AnalyzerEvidenceRequiresTheRequestedWorkloadAndConfigurationSamples(string fault)
+        {
+            XElement report = Report(analyzers: true);
+            switch (fault)
+            {
+                case "valid": break;
+                case "workload": report.SetAttributeValue("AnalyzerWorkload", false); break;
+                case "missing-workload": report.Attribute("AnalyzerWorkload").Remove(); break;
+                case "missing-sample": report.Element("Latencies").Elements().Last().Remove(); break;
+                case "wrong-mode": report.Element("Latencies").Elements().Last().SetAttributeValue("Mode", "XmlBuffer"); break;
+                default: throw new ArgumentException(fault);
+            }
+            if (fault == "valid") LiveVisualStudioRun.Validate(report, 17, 2, 1000, analyzers: true);
+            else Assert.Throws<InvalidDataException>(() => LiveVisualStudioRun.Validate(report, 17, 2, 1000, analyzers: true));
+        }
+
+        [Theory]
         [InlineData("valid"), InlineData("driver"), InlineData("executable"), InlineData("outside")]
         [InlineData("prefix"), InlineData("traversal"), InlineData("pid"), InlineData("start"), InlineData("schema")]
         public void CleanupRequiresTheOwnedFixtureProcess(string fault)
@@ -79,12 +97,13 @@ namespace Alarmlist.VisualStudio.PerformanceTests.LiveVisualStudio
             Assert.Throws<InvalidDataException>(() => LiveVisualStudioRun.Validate(report, 17, 2, 1000));
         }
 
-        private static XElement Report()
+        private static XElement Report(bool analyzers = false)
         {
             return new XElement("LiveVisualStudioRun", new XAttribute("SchemaVersion", 1), new XAttribute("Succeeded", true),
                 new XAttribute("CleanupCompleted", true), new XAttribute("DriverBitness", 64), new XAttribute("HostVersion", "17.14.1.0"), new XAttribute("Measurements", true),
                 new XAttribute("Iterations", 2), new XAttribute("AdditionalAlarms", 1000), new XAttribute("SourcesPreserved", true),
-                new XElement("Latencies", new[] { "XmlBuffer", "DesignerReopen" }.SelectMany(mode => Enumerable.Range(-1, 4).Select(sample =>
+                new XAttribute("AnalyzerWorkload", analyzers),
+                new XElement("Latencies", (analyzers ? new[] { "XmlBuffer", "DesignerReopen", "SavedConfiguration" } : new[] { "XmlBuffer", "DesignerReopen" }).SelectMany(mode => Enumerable.Range(-1, 4).Select(sample =>
                     new XElement("Sample", new XAttribute("Mode", mode), new XAttribute("Sample", sample),
                         new XAttribute("Warmup", sample <= 0), new XAttribute("Milliseconds", "123.45"))))),
                 new XElement("Memory", Enumerable.Range(-1, 4).Select(sample => new XElement("Sample", new XAttribute("Sample", sample),

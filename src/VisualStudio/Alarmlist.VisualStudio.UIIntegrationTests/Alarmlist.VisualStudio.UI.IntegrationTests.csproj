@@ -13,6 +13,7 @@
   <ItemGroup>
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioAutomation.cs" Link="VisualStudioAutomation.cs" />
+    <Compile Include="../../shared/VisualStudioTesting/VisualStudioTestDeployment.cs" Link="VisualStudioTestDeployment.cs" />
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" />
     <ProjectReference Include="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false"

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm abstract="true">
+    <FullyQualifiedName>Templates.South.LegacyCode</FullyQualifiedName>
+    <Code>LEGACY-SOUTH</Code>
+    <Category>Analyzer playground</Category>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Plant.South.Diagnostics.Valid</FullyQualifiedName>
+    <ReferenceName>Templates.South.LegacyCode</ReferenceName>
+    <Name>Valid South code</Name>
+    <Code>S-001</Code>
+    <Description>South's saved .editorconfig requires the S- prefix.</Description>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Plant.South.Diagnostics.PrefixWarning</FullyQualifiedName>
+    <ReferenceName>Templates.South.LegacyCode</ReferenceName>
+    <Name>Inherited code warning</Name>
+    <Description>Intentionally inherits LEGACY-SOUTH. Set a local Code to S-002 to clear SAMPLE001, then Undo.</Description>
+    <TestProcedure>
+      <Instructions>
+        <Note>Change the project warning controls to promote or suppress SAMPLE001.</Note>
+      </Instructions>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>

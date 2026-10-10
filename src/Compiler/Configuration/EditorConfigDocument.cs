@@ -27,11 +27,10 @@ namespace Alarmlist.Configuration
                 {
                     line = line.Trim();
                     if (line.Length == 0 || line[0] == '#' || line[0] == ';') continue;
-                    if (line[0] == '[')
+                    if (EditorConfigPreamble.IsSectionHeader(line))
                     {
                         // The last bracket closes the section; brackets inside a glob are literal syntax.
-                        current = line.Length > 2 && line[line.Length - 1] == ']'
-                            ? new Section(line.Substring(1, line.Length - 2)) : new Section(null);
+                        current = new Section(line.Substring(1, line.Length - 2));
                         sections.Add(current);
                         continue;
                     }

@@ -1,0 +1,8 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup>
+    <AlarmlistCultures>keyword;en</AlarmlistCultures>
+  </PropertyGroup>
+  <ItemGroup>
+    <AlarmlistAnalyzer Include="rules/LifecycleRules.dll" Condition="Exists('rules/LifecycleRules.dll')" />
+  </ItemGroup>
+</Project>
