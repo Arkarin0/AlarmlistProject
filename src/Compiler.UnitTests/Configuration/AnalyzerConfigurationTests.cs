@@ -70,6 +70,58 @@ namespace Alarmlist.Core.UnitTests.Configuration
         }
 
         [Theory]
+        [InlineData("[")]
+        [InlineData("[*.resx")]
+        [InlineData("[*.resx] # not a header")]
+        [InlineData("[*.resx] ; not a header")]
+        public void InvalidHeadersDoNotDiscardCurrentSectionOrEndPreamble(string invalidLine)
+        {
+            var configuration = new AnalyzerConfiguration(new[]
+            {
+                Config("project", "[*.almx]\nouter=value"),
+                Config("project/sub", invalidLine + "\nroot=true\n[*.almx]\nrule=before\n" + invalidLine + "\nrule=after")
+            });
+            IReadOnlyDictionary<string, string> options = configuration.GetOptionsForSourcePath(Source("project/sub/Alarm.almx"));
+            Assert.Equal("after", options["rule"]);
+            Assert.False(options.ContainsKey("outer"));
+        }
+
+        [Fact]
+        public void HeaderClassificationPrecedesPairsButBracketPrefixedKeysRemainValid()
+        {
+            var configuration = new AnalyzerConfiguration(new[] { Config("project",
+                "[Al=arm.almx]\n[Custom=literal\nrule=matching\n[Other.almx]\nrule=other") });
+            IReadOnlyDictionary<string, string> options = configuration.GetOptionsForSourcePath(Source("project/Al=arm.almx"));
+            Assert.Equal("literal", options["[custom"]);
+            Assert.Equal("matching", options["rule"]);
+        }
+
+        [Fact]
+        public void EmptyHeaderEndsPreambleAndCurrentSectionWithoutMatchingSources()
+        {
+            var configuration = new AnalyzerConfiguration(new[]
+            {
+                Config("project", "[*.almx]\nouter=retained"),
+                Config("project/sub", "[]\nroot=true\n[*.almx]\nrule=retained\n[]\nrule=must-not-apply")
+            });
+            IReadOnlyDictionary<string, string> options = configuration.GetOptionsForSourcePath(Source("project/sub/Alarm.almx"));
+            Assert.Equal("retained", options["outer"]);
+            Assert.Equal("retained", options["rule"]);
+            Assert.False(options.ContainsKey("root"));
+        }
+
+        [Fact]
+        public void AcceptsSpecificationMinimumLengthsWithoutReadingSourcePaths()
+        {
+            string pattern = "[" + new string('x', 1016) + "A].almx";
+            string key = new string('k', 1024);
+            string value = new string('v', 4096);
+            Assert.Equal(1024, pattern.Length);
+            var configuration = new AnalyzerConfiguration(new[] { Config("project", "[" + pattern + "]\n" + key + "=" + value) });
+            Assert.Equal(value, configuration.GetOptionsForSourcePath(Source("project/A.almx"))[key]);
+        }
+
+        [Theory]
         [InlineData("*.almx", "sub/Alarm.almx", true)]
         [InlineData("*.almx", "Alarm.ALMX", false)]
         [InlineData("sub/*.almx", "sub/deeper/Alarm.almx", false)]

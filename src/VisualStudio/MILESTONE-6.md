@@ -159,3 +159,28 @@ The full Release solution run passed again after this correction: 1,480 ordinary
 tests passed and 47 opt-in cases skipped. The targeted desktop/IDE/benchmark runs
 above preceded this final matcher correction; their simple `*.almx` configurations
 were unchanged. No additional live or timing claim is made for the ten new patterns.
+
+## Section parsing iteration 4 (2026-10-10)
+
+Configuration parsing and saved-input discovery now share the same complete-header
+check: a section starts with `[` and ends with `]`. Previously an unfinished header
+or a header followed by inline comment text could discard subsequent diagnostic
+settings or stop discovery from recognizing `root=true`. Invalid header-only lines
+now leave the active section/preamble intact. Valid empty sections still end them;
+headers containing `=` take precedence over pairs, and bracket-prefixed pair keys
+remain valid outside a complete header.
+
+Added seven compiler cases, four host-discovery cases and a packaged analyzer
+regression covering suppression, subsequent scope changes and preservation of
+previous output on error. The compiler checks also cover the specification's
+minimum supported section/key/value lengths (1024/1024/4096 characters).
+The focused compiler run passed 437 tests per net472/net8.0. Full upstream
+conformance remains unclaimed. The pre-existing edit to `example/North/Alarms1.almx`
+is outside this iteration and is preserved.
+
+Validation: the full Release solution run passed 1,504 ordinary tests, with 47
+opt-in cases skipped. Counts are 437 compiler, 68 task unit, 4 task integration,
+47 SDK and 11 VSIX consumer tests per framework, plus 344 VS unit and 26 performance
+infrastructure tests. The focused desktop MSBuild/net472 analyzer run passed all
+4 cases. Live IDE and benchmarks were not rerun for this parsing iteration.
+Stopped after this validated iteration at the owner's 15% remaining allowance.

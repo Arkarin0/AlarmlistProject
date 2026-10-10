@@ -67,5 +67,22 @@ namespace Alarmlist.MSBuild.SDK.Tests
             Assert.Contains("ALM0025", failed.Output);
             Assert.Equal(previous, File.ReadAllBytes(app.OutputPath));
         }
+
+        [Fact]
+        public void MalformedSectionDoesNotDiscardSuppressionButValidSectionChangesScope()
+        {
+            var app = _fixture.CreateTestApp("Analyzers");
+            string config = Path.Combine(app.WorkingDirectory, ".editorconfig");
+            File.WriteAllText(config, "[unfinished\nroot=true\n[*.almx]\n[broken\nalarmlist_diagnostic.SAMPLE001.severity=none");
+            BuildResult suppressed = app.Run(_output, "/t:Build", "/p:TreatWarningsAsErrors=true");
+            Assert.Equal(0, suppressed.ExitCode);
+            Assert.DoesNotContain("SAMPLE001", suppressed.Output);
+            byte[] previous = File.ReadAllBytes(app.OutputPath);
+            File.WriteAllText(config, "root=true\n[*.almx]\n[*.resx]\nalarmlist_diagnostic.SAMPLE001.severity=none");
+            BuildResult error = app.Run(_output, "/t:Build", "/p:TreatWarningsAsErrors=true");
+            Assert.NotEqual(0, error.ExitCode);
+            Assert.Contains("SAMPLE001", error.Output);
+            Assert.Equal(previous, File.ReadAllBytes(app.OutputPath));
+        }
     }
 }

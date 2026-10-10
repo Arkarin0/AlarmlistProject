@@ -116,6 +116,25 @@ namespace AlarmList.MSBuild.UnitTests
                 CancellationToken.None, path => throw new UnauthorizedAccessException("Cannot read configuration")));
         }
 
+        [Theory]
+        [InlineData("[")]
+        [InlineData("[unfinished")]
+        [InlineData("[*.almx] # not a header")]
+        [InlineData("[*.almx] ; not a header")]
+        public void InvalidHeaderBeforeRootDoesNotReadParentConfiguration(string invalidLine)
+        {
+            int reads = 0;
+            string path = Path.Combine(_directory, ".editorconfig");
+            var captured = SavedEditorConfigCapture.Capture(new[] { Path.Combine(_directory, "Alarm.almx") }, CancellationToken.None, candidate =>
+            {
+                reads++;
+                Assert.Equal(path, candidate);
+                return invalidLine + "\nroot=true\n[*.almx]\nroot=false";
+            });
+            Assert.Equal(path, Assert.Single(captured).FilePath);
+            Assert.Equal(1, reads);
+        }
+
         [Fact]
         public void OutputCannotReplaceAnAbsentConfigurationCandidate()
         {

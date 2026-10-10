@@ -138,6 +138,8 @@ default. The primary diagnostic location selects its configuration; related
 locations do not. Location-free or relative-path diagnostics use project controls
 only. Keys/IDs are case-insensitive; globs and custom values preserve case.
 Inline `#` and `;` remain part of values. `.globalconfig` is not supported.
+A section header must start with `[` and end with `]`. Malformed header-only
+lines do not change the active section or end the preamble used for `root`.
 
 The order is rule default, file severity, `NoWarn`, then warning promotion.
 `WarningsAsErrors` overrides `WarningsNotAsErrors`; the latter exempts only
