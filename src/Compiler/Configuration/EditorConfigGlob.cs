@@ -122,6 +122,10 @@ namespace Alarmlist.Configuration
         private static string Digits(string minimum, string maximum)
         {
             if (minimum == maximum) return minimum;
+            // A complete suffix interval is a digit count, not two recursively
+            // duplicated boundary trees. Keep large ranges compact to construct.
+            if (minimum == new string('0', minimum.Length) && maximum == new string('9', maximum.Length))
+                return "[0-9]{" + minimum.Length.ToString(CultureInfo.InvariantCulture) + "}";
             if (minimum[0] == maximum[0]) return minimum[0] + Digits(minimum.Substring(1), maximum.Substring(1));
             var alternatives = new List<string>
             {
@@ -137,6 +141,14 @@ namespace Alarmlist.Configuration
         {
             for (int i = 0; i < pattern.Length; i++)
             {
+                // An escaped '[' is a literal, so it cannot hide a later slash
+                // inside a character sequence. An escaped '/' remains a separator.
+                if (pattern[i] == '\\' && i + 1 < pattern.Length)
+                {
+                    i++;
+                    if (pattern[i] == '/') return true;
+                    continue;
+                }
                 if (pattern[i] == '[') { int end = FindClosing(pattern, i, '[', ']'); if (end >= 0) { i = end; continue; } }
                 if (pattern[i] == '/') return true;
             }

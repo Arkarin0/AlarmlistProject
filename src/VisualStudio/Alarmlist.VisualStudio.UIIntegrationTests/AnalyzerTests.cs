@@ -66,8 +66,22 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             using (File.Open(analyzerPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
         }
 
-        private static void WriteConfiguration(string path, string severity, string prefix) => File.WriteAllText(path,
-            "root = true\n[*.almx]\nalarmlist_diagnostic.SAMPLE001.severity = " + severity + "\nalarmlist_sample.code_prefix = " + prefix + "\n");
+        private static void WriteConfiguration(string path, string severity, string prefix)
+        {
+            string text = "root = true\n[*.almx]\nalarmlist_diagnostic.SAMPLE001.severity = " + severity
+                + "\nalarmlist_sample.code_prefix = " + prefix + "\n";
+            for (int attempt = 0; ; attempt++)
+            {
+                try { File.WriteAllText(path, text); return; }
+                // The IDE can briefly hold the saved configuration while processing
+                // the previous change. Retry only sharing/lock violations, for 5s.
+                catch (IOException exception) when (attempt < 100
+                    && (exception.HResult == unchecked((int)0x80070020) || exception.HResult == unchecked((int)0x80070021)))
+                {
+                    System.Threading.Thread.Sleep(50);
+                }
+            }
+        }
 
         private static bool HasDiagnostic(VisualStudioSession ide, string description, vsBuildErrorLevel? level)
         {

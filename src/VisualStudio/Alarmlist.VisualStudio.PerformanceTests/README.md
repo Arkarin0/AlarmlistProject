@@ -91,10 +91,13 @@ No wall-clock performance limit or memory-growth threshold is asserted. Validati
 requires complete host/scenario evidence, two warmups per mode, finite samples,
 source/output preservation and owned-IDE cleanup.
 
-First build and deploy the matching extension/SDK configuration to the experimental
-profile, and complete any Visual Studio first-run screens manually. See the
-[deployment instructions](../README.md#experimental-ide-smoke-test). The wrappers
-do not deploy or change an existing installation. Set the path for each host you
+The xUnit setup compares the installed extension, templates and dependencies
+with its built VSIX asset. It automatically deploys missing or outdated test
+extensions through the selected host's desktop MSBuild/VSSDK, before measurements.
+Matching payloads are reused; an open target profile is refused without changing
+or stopping its IDE. This shares setup and serialization with functional UI tests.
+Build assets through `dotnet test`; complete Visual Studio first-run screens
+manually if needed and close that profile. Set the path for each host you
 want to run; unconfigured hosts are skipped:
 
 ```powershell
@@ -110,7 +113,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/Alarmlist.V
 
 Restore/unset the environment variables after the opt-in run. Root suffix defaults
 to AlarmlistExp, measured iterations to 20 (range 1-100), and additional alarms to
-1,000 (range 1-10,000). Match the deployed configuration with `-c Release` if needed.
+1,000 (range 1-10,000). Use `-c Release` for measurements; setup prepares that configuration.
 Run the projects sequentially; a cross-process mutex rejects simultaneous live
 runs. Performance tests also disable within-assembly parallelism. Do not run other
 benchmarks or builds alongside measurements. A watchdog defaults to 30 minutes;
@@ -128,6 +131,24 @@ metadata under `VisualStudioSmoke/`. Failures retain logs and cannot pass with a
 empty, partial, wrong-host or unsuccessful report. No collection is forced in the
 measured IDE. Diagnostic polling includes COM overhead and does not measure typing
 to paint; memory totals do not establish leak freedom.
+
+`Host=VisualStudio&Area=Analyzers` selects two additional xUnit cases, one per IDE
+host, with the same opt-in variables and ownership rules. The fixture explicitly
+references the saved sample analyzer DLL and captures EditorConfig. Its 1,000
+additional alarms satisfy their configured prefix; the live input produces a
+unique SAMPLE001 diagnostic per edit. It measures unsaved XML buffers, repeated
+designer open/edit/close, and saved EditorConfig prefix changes. Each mode retains
+two warmups plus the requested sample count. Original configuration is restored,
+and source, output, configuration and analyzer image hashes are checked. Reports
+must identify this workload and include all three modes to pass validation.
+
+```powershell
+dotnet test src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/Alarmlist.VisualStudio.PerformanceTests.csproj --configuration Release --filter 'Host=VisualStudio&Area=Analyzers'
+```
+
+Set `ALARMLIST_VS_MEASUREMENT_ITERATIONS=100` for the extended lifecycle run. These
+measurements observe the whole IDE without forcing garbage collection. They do
+not establish a timing budget or prove absence of leaks.
 
 ## Heap and lifetime investigation
 

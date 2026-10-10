@@ -1,3 +1,7 @@
 <Project>
   <!-- This is an SDK consumer, so do not inherit the repository's Arcade build. -->
+  <PropertyGroup>
+    <!-- The diagnostics exercise starts with visible warnings and successful builds. -->
+    <TreatWarningsAsErrors Condition="'$(TreatWarningsAsErrors)' == ''">false</TreatWarningsAsErrors>
+  </PropertyGroup>
 </Project>

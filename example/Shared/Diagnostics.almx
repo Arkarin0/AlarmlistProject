@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <!-- Both projects check this physical path with the shared SH- prefix. -->
+  <Alarm>
+    <FullyQualifiedName>Plant.Shared.Diagnostics.Valid</FullyQualifiedName>
+    <Name>Valid shared code</Name>
+    <Code>SH-001</Code>
+    <Category>Analyzer playground</Category>
+    <Description>The shared file uses the example-wide EditorConfig in both project contexts.</Description>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Plant.Shared.Diagnostics.PrefixWarning</FullyQualifiedName>
+    <Name>Shared code warning</Name>
+    <Code>LEGACY-SHARED</Code>
+    <Category>Analyzer playground</Category>
+    <Description>Set Code to SH-002 to clear SAMPLE001 in both projects, then Undo.</Description>
+  </Alarm>
+</Alarmlist>

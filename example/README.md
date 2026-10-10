@@ -1,7 +1,8 @@
 # Alarmlist example playground
 
 Run `scripts/start-vs2022.bat` or `scripts/start-vs2026.bat` from the repository.
-The launcher builds and deploys the current extension, prepares its matching SDK,
+The launcher builds and deploys the current extension, prepares its matching SDK
+and sample analyzer,
 and opens **example/Example.sln** in the `AlarmlistExp` instance. Close that
 experimental instance before running the launcher again. No manual NuGet feed or
 SDK version setup is needed. `--deploy-only` prepares everything without opening
@@ -34,8 +35,10 @@ the IDE; use **File > Open > Project/Solution** to open `Example.sln` yourself.
    **South.Alarmlist.xml**. Try Clean/Rebuild and the project output properties.
    Live previews reflect unsaved ALMX edits without writing these files.
 
-The initial solution has no compiler errors: North compiles eight alarms and South
-compiles four in each build culture. With preview language **en**, the shared
+The initial solution has no compiler errors: North compiles twelve alarms and South
+compiles eight in each build culture. Each project has two intentional **SAMPLE001**
+warnings per culture from the diagnostics exercise below; builds still succeed.
+With preview language **en**, the shared
 `Plant.Pump.PressureLow` alarm shows:
 
 | Value | North context | South context |
@@ -187,6 +190,80 @@ a literal alternative. Missing translated descriptions do not invalidate literal
 identifiers. Removing an explicitly referenced entry fails with **ALM0021** and
 preserves previous outputs. Restore exploratory edits afterward.
 
+## Try configurable diagnostics and external analyzers
+
+Both projects explicitly reference the [sample code-prefix analyzer](../src/Analyzers/Alarmlist.SampleAnalyzer/README.md).
+Preparation builds its **net472** and **net8.0** DLLs into ignored `.analyzers/`
+folders. `Directory.Build.targets` selects net472 for Visual Studio/desktop
+MSBuild and net8.0 for `dotnet msbuild`. The SDK package supplies the compiler.
+
+Open **Diagnostics.almx** in North or South and inspect **Error List > Build +
+IntelliSense**. The `Diagnostics.Valid` alarm has a valid local code. The
+`Diagnostics.PrefixWarning` alarm deliberately inherits an invalid legacy code
+from an abstract template. **SAMPLE001** points to the consuming alarm and retains
+the template's code as a related location. The abstract template itself is not
+checked or emitted. Set the warning alarm's local Code to **N-002** in North or
+**S-002** in South to clear it, then Undo.
+
+Open **Diagnostics.Shared.almx**, linked into both projects from
+**Shared/Diagnostics.almx**. Its valid code is **SH-001**; the intentional warning
+uses **LEGACY-SHARED**. Change that code to **SH-002** to clear the warning in both
+contexts, then Undo. The shared file uses its physical source path for settings,
+so North's and South's local prefixes do not apply to it.
+
+Open **Configuration > Example.editorconfig** and **Project.editorconfig** in
+either project (the links point to the actual `.editorconfig` files). The root
+file is also under **Solution Items**. The configured rules are:
+
+| Physical source | Expected code prefix | Rule severity |
+| --- | --- | --- |
+| North/Diagnostics.almx | N-, from North/.editorconfig | warning |
+| South/Diagnostics.almx | S-, from South/.editorconfig | warning |
+| Shared/Diagnostics.almx | SH-, from the root .editorconfig | warning |
+| Earlier playground samples | Not checked visibly | none |
+
+The example's `root = true` stops ancestor configuration. Later matching sections
+override the initial suppression; nearer project files override the prefix for
+local files. In North's `[Diagnostics.almx]` section, add a severity setting and
+**save** to try:
+
+```ini
+alarmlist_diagnostic.SAMPLE001.severity = error
+```
+
+Use **warning**, **suggestion**, **silent**, **none**, or **default** instead to
+compare behavior. `error` blocks previews/build output; `suggestion` is nonfatal;
+`silent` and `none` have no live Error List row. `default` restores the rule's
+warning default. The shared warning is unaffected by this project-local section.
+Remove the added line to restore the starting state. Setting
+`alarmlist_sample.code_prefix = unset` removes the custom prefix, so this analyzer
+uses its **AL-** default; restore **N-** or **S-** afterward.
+
+Unsaved `.editorconfig` drafts do not change analysis. Saving refreshes live
+diagnostics without saving ALMX drafts or rebuilding output. ALMX buffer edits
+still participate in live analysis; command-line builds use saved sources.
+
+Set project warning controls in an individual `.almproj`, or use the shared
+**Solution Items > Directory.Build.props** default. From the repository root,
+these commands demonstrate their effects using saved inputs:
+
+```powershell
+# Succeeds with the two intentional warnings per culture.
+dotnet msbuild example/North/North.almproj /t:Build /nr:false
+# Fails and preserves all three previous outputs and their ownership manifest.
+dotnet msbuild example/North/North.almproj /t:Build /p:TreatWarningsAsErrors=true /nr:false
+# Exempts SAMPLE001 from blanket promotion; warnings remain visible.
+dotnet msbuild example/North/North.almproj /t:Build /p:TreatWarningsAsErrors=true /p:WarningsNotAsErrors=SAMPLE001 /nr:false
+# Explicitly promotes just this rule.
+dotnet msbuild example/North/North.almproj /t:Build /p:WarningsAsErrors=SAMPLE001 /nr:false
+# Suppresses the rule, including when warnings are treated as errors.
+dotnet msbuild example/North/North.almproj /t:Build /p:TreatWarningsAsErrors=true /p:NoWarn=SAMPLE001 /nr:false
+```
+
+Restore the starting configuration before moving on. Compiler errors
+**ALM0001–ALM0025** remain mandatory even with `NoWarn` or `severity = none`.
+For example, the missing-reference exercise below still fails the build.
+
 ## Try live diagnostics
 
 In North's `Alarms.almx`, temporarily change the panel's ReferenceName to
@@ -207,7 +284,7 @@ After building the VSIX separately, prepare the example without deploying or
 starting Visual Studio:
 
 ```powershell
-powershell.exe -NoProfile -File eng/prepare-example.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File eng/prepare-example.ps1
 dotnet msbuild example/Example.sln /t:Build
 ```
 
@@ -217,13 +294,20 @@ This selects the package build; the example still opens in Debug by default.
 `-MSBuildPath '<VS installation>/MSBuild/Current/Bin/MSBuild.exe'` optionally uses
 desktop MSBuild for preparation, as the launchers do.
 
-The helper reads the SDK version from the built VSIX template and generates
+The helper builds both sample analyzer runtimes, reads the SDK version from the
+built VSIX template, and generates
 ignored `global.json` and `NuGet.Config` files here. Only the repository's matching
 local package feed is used. Its cache is under `.packages/<package SHA256>/`, so
 rebuilding the SDK with the same version still loads fresh contents. Local
 `Directory.Build.props/targets` keep the repository's Arcade configuration out of
 these consumer projects, following the existing SDK test/acceptance fixtures.
-The targets file also links the common HMI and electrical catalogues and samples.
+The targets file also links the common HMI, electrical and diagnostic samples,
+the saved EditorConfig files, and the prepared analyzer. Analyzer DLLs live under
+ignored `.analyzers/net472/` and `.analyzers/net8.0/`; rerunning preparation updates
+them without replacing ALMX, RESX, lookup or EditorConfig inputs. Preparation
+restores the projects but does not compile their output. After analyzer replacement,
+the IDE renews its isolated analysis domain; use a fresh desktop MSBuild process
+(`/nr:false`) for command-line builds.
 The launchers clear `NUGET_PACKAGES` only in their child process environment so
 the IDE honors this isolated cache; they do not change user NuGet settings.
 

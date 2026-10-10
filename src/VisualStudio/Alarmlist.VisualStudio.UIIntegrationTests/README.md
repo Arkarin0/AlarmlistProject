@@ -19,6 +19,7 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Designer Save As | Local and linked destinations and back, two views sharing RDT/buffer identity, subsequent saves and preservation of previous files | `SaveAs` |
 | XML Save As | The same Save As contract starting with the XML editor | `SaveAs` |
 | Live diagnostics | Publication before Build, exact navigation position, unload/reload, XML-only unsaved correction, disk/output preservation, discard and deletion | `LiveDiagnostics` |
+| Configured external analyzer | Live warning/navigation, saved severity and option refresh, promoted build failure preserves output, and source DLL remains unlocked | `Analyzers` |
 | Build failure/Clean/Rebuild | Error List, failure preserves output, updated live errors preserve Build errors, Clean removes output, Rebuild restores it | `Build` |
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
 | Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, raw override and saved build parity | `Properties` |
@@ -55,12 +56,15 @@ cell. Foreground and focused-field guards still precede keyboard input.
 ## Run
 
 Use Windows, an unlocked interactive desktop, the .NET 8 desktop runtime and a
-supported Visual Studio installation. First build and deploy the matching
-configuration to the selected experimental profile using the
-[deployment workflow](../README.md#experimental-ide-smoke-test).
-Complete first-run screens manually and close that profile before testing.
-The tests build package assets but do not deploy or compare the deployed DLL to
-the checkout; matching the configuration and deployment is the caller's responsibility.
+supported Visual Studio installation. `dotnet test` builds the package assets.
+The shared setup compares the selected profile's installed extension, templates
+and dependencies with the built VSIX bytes and automatically deploys when missing
+or outdated, using that installation's desktop MSBuild/VSSDK targets. It deploys
+the already-built asset without rebuilding assemblies held by the test runner.
+Matching installations are reused. Setup runs under the live-test mutex and
+refuses an already-open target profile; it never closes an existing user IDE.
+Complete Visual Studio first-run screens manually if needed and close that
+profile before testing. Ordinary non-opt-in test runs never deploy or launch.
 
 The existing entry point now launches xUnit and writes TRX results:
 
@@ -71,7 +75,7 @@ powershell.exe -NoProfile -File eng/test-visualstudio.ps1 -VisualStudioPath '<VS
 
 It fails if the selection executes no cases or skips cases. It chooses VS2022/2026
 from the installation, sets/restores opt-in variables and
-runs only that host. Use `-Configuration Release` for a Release deployment.
+runs only that host. Use `-Configuration Release` for Release test assets.
 Functional runs always close their IDEs; `-KeepOpen` is no longer a functional-test
 option. Use the acceptance fixture or `scripts/start-vs2022.bat`/`start-vs2026.bat`
 for interactive inspection. The old `-MeasureAnalysis` command delegates to the

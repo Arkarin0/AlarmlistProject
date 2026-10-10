@@ -70,7 +70,7 @@ namespace Alarmlist.MSBuild.SDK.Tests
                 };
                 // Isolate package-consumer apps, but let repository queries use the restored
                 // repository toolset rather than downloading Arcade into each temporary cache.
-                if (Path.GetDirectoryName(Path.GetFullPath(projectPath)) == WorkingDirectory)
+                if (Path.GetFullPath(projectPath).StartsWith(WorkingDirectory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                     process.StartInfo.EnvironmentVariables["NUGET_PACKAGES"] = Path.Combine(WorkingDirectory, ".packages");
                 output.WriteLine("Working directory: " + WorkingDirectory);
                 output.WriteLine("Build log: " + logPath + ".binlog");

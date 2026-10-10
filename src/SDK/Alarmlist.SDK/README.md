@@ -138,6 +138,8 @@ default. The primary diagnostic location selects its configuration; related
 locations do not. Location-free or relative-path diagnostics use project controls
 only. Keys/IDs are case-insensitive; globs and custom values preserve case.
 Inline `#` and `;` remain part of values. `.globalconfig` is not supported.
+A section header must start with `[` and end with `]`. Malformed header-only
+lines do not change the active section or end the preamble used for `root`.
 
 The order is rule default, file severity, `NoWarn`, then warning promotion.
 `WarningsAsErrors` overrides `WarningsNotAsErrors`; the latter exempts only
@@ -173,7 +175,12 @@ Analyzers are trusted in-process code with cooperative cancellation, not a secur
 sandbox or a hard timeout. They run once per successfully bound/evaluated culture;
 they do not run against an invalid compiler model. Instances must support repeated
 calls, avoid retaining inputs, and stop promptly on cancellation. Disposable
-instances are released before output installation. .NET 8 uses collectible load
+instances are released before output installation. If disposal throws, the build
+fails without installing outputs and live analysis reports an incomplete result;
+the loader still attempts to dispose every other instance and load context. A
+.NET 8 unloading-callback failure is also reported after the remaining cleanup;
+the interrupted unload is retried once and loader-owned references are released.
+.NET 8 uses collectible load
 contexts. .NET Framework retains loaded assemblies until its AppDomain exits;
 conflicting/replaced DLL bytes require a fresh domain or desktop MSBuild process
 (`/nodeReuse:false`). The IDE recreates its SDK domain automatically when analyzer

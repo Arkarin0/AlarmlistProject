@@ -51,6 +51,7 @@
   <Import Project="$(PkgMicrosoft_VSSDK_BuildTools)/tools/VSSDK/Microsoft.VsSDK.targets"
           Condition="Exists('$(PkgMicrosoft_VSSDK_BuildTools)/tools/VSSDK/Microsoft.VsSDK.targets')" />
   <Import Project="../../../eng/targets/VisualStudioTemplates.targets" />
+  <Import Project="../../../eng/targets/VisualStudioTestDeployment.targets" />
   <Target Name="EnsureAlarmlistVssdkBuildTools" BeforeTargets="PrepareForBuild"
           Condition="!Exists('$(PkgMicrosoft_VSSDK_BuildTools)/tools/VSSDK/Microsoft.VsSDK.targets')">
     <Error Text="Microsoft.VSSDK.BuildTools has not been restored. Restore NuGet packages for Alarmlist.VisualStudio.csproj, then reload the project and build again." />

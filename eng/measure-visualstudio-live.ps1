@@ -7,6 +7,7 @@ param(
   [string]$RootSuffix = 'AlarmlistExp',
   [switch]$KeepOpen,
   [switch]$MeasureAnalysis = $true,
+  [switch]$AnalyzerWorkload,
   [ValidateRange(1, 100)]
   [int]$MeasurementIterations = 20,
   [ValidateRange(1, 10000)]
@@ -85,6 +86,11 @@ function Read-ClrCounter([string]$Instance, [string]$Name) {
   try { return $counter.RawValue } finally { $counter.Dispose() }
 }
 
+function Test-LiveDiagnostic([string]$Message) {
+  if ($AnalyzerWorkload) { return [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::HasWarningDescription($dte, $Message) }
+  return [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::HasErrorDescription($dte, $Message)
+}
+
 function Measure-LiveAnalysis {
   # This exercises the running IDE through its supported automation/SDK APIs.
   # It measures buffer replacement to Error List publication, not keystroke paint.
@@ -102,7 +108,8 @@ function Measure-LiveAnalysis {
     HostVersion = (Get-Item (Join-Path $VisualStudioPath 'Common7/IDE/devenv.exe')).VersionInfo.FileVersion
     Configuration = $Configuration; RootSuffix = $RootSuffix; ProcessId = $ide.Id
     AdditionalAlarms = $MeasurementAlarmCount; Iterations = $MeasurementIterations
-    Workload = 'Scoped file properties and alarm-field dependencies'
+    Workload = $(if ($AnalyzerWorkload) { 'External analyzer: buffers, designer reopen and saved configuration' } else { 'Scoped file properties and alarm-field dependencies' })
+    AnalyzerWorkload = $AnalyzerWorkload.IsPresent
     DiagnosticPollMilliseconds = 50; ForcedIdeCollection = $false
     CollectAutomationClientBeforeMemorySample = $true
     StartedUtc = [DateTime]::UtcNow.ToString('O')
@@ -112,6 +119,11 @@ function Measure-LiveAnalysis {
   $sourceHash = (Get-FileHash -LiteralPath $livePath -Algorithm SHA256).Hash
   $measurementHash = (Get-FileHash -LiteralPath $measurementPath -Algorithm SHA256).Hash
   $outputHash = (Get-FileHash -LiteralPath $outputFile -Algorithm SHA256).Hash
+  if ($AnalyzerWorkload) {
+    $configurationText = [IO.File]::ReadAllText($analyzerConfiguration)
+    $configurationHash = (Get-FileHash -LiteralPath $analyzerConfiguration -Algorithm SHA256).Hash
+    $analyzerHash = (Get-FileHash -LiteralPath $analyzerPath -Algorithm SHA256).Hash
+  }
   $dte.Documents.CloseAll(2)
   $clrInstance = $null
   try {
@@ -122,7 +134,10 @@ function Measure-LiveAnalysis {
   } catch { Write-Warning "CLR memory counters are unavailable: $_" }
   Write-Output "CLR memory counter instance: $clrInstance (blank means unavailable)"
 
-  foreach ($mode in @('XmlBuffer', 'DesignerReopen')) {
+  $modes = @('XmlBuffer', 'DesignerReopen')
+  if ($AnalyzerWorkload) { $modes += 'SavedConfiguration' }
+  try {
+  foreach ($mode in $modes) {
     # The first two samples warm the editor, SDK, and process; retain them but
     # exclude them from the summary. Each error has a unique reference so an old
     # row or the immediate stale-result clear cannot satisfy publication.
@@ -130,16 +145,20 @@ function Measure-LiveAnalysis {
       $reference = "Missing$mode$sample"
       $text = $liveText.Replace('MissingLive', $reference)
       $message = "Alarm 'Live' references missing alarm '$reference'."
+      if ($AnalyzerWorkload) { $message = "Alarm 'Live' has code '$reference'; expected prefix 'AL-'." }
       if ($mode -eq 'DesignerReopen') {
         [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::OpenMeasurementDesigner($dte, $livePath)
-      } elseif ($sample -eq -1) {
+      } elseif ($mode -eq 'XmlBuffer' -and $sample -eq -1) {
         Wait-For { [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::ReplaceXmlBuffer($dte, $livePath, $liveText) } 'measurement XML buffer opening' | Out-Null
       }
       $timer = [Diagnostics.Stopwatch]::StartNew()
-      if (![Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::ReplaceOpenBuffer($dte, $livePath, $text)) {
+      if ($mode -eq 'SavedConfiguration') {
+        [IO.File]::WriteAllText($analyzerConfiguration, $configurationText.Replace('code_prefix=AL-', ('code_prefix=AL-' + $sample)))
+        $message = "Alarm 'Live' has code 'MissingLive'; expected prefix 'AL-$sample'."
+      } elseif (![Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::ReplaceOpenBuffer($dte, $livePath, $text)) {
         throw 'Measurement buffer was not available for editing.'
       }
-      Wait-For { [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::HasErrorDescription($dte, $message) } 'measured live diagnostic publication' 50 | Out-Null
+      Wait-For { Test-LiveDiagnostic $message } 'measured live diagnostic publication' 50 | Out-Null
       $timer.Stop()
       $latencies.Add([pscustomobject]@{ Mode = $mode; Sample = $sample; Warmup = ($sample -le 0); Milliseconds = $timer.Elapsed.TotalMilliseconds })
       $latencies | Select-Object Mode, Sample, Warmup, @{ Name = 'Milliseconds'; Expression = {
@@ -147,7 +166,7 @@ function Measure-LiveAnalysis {
       } } | Export-Csv (Join-Path $runDirectory 'analysis-latency.csv') -NoTypeInformation
       if ($mode -eq 'DesignerReopen') {
         $dte.Documents.Item($livePath).Close(2)
-        Wait-For { [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::HasErrorDescription($dte, $liveMessage) } 'measurement close restores disk analysis' 50 | Out-Null
+        Wait-For { Test-LiveDiagnostic $liveMessage } 'measurement close restores disk analysis' 50 | Out-Null
         if ($dte.Documents.Count -ne 0) { throw 'A measurement document remained open after close.' }
         # Release temporary COM wrappers in this PowerShell driver before reading
         # the other process. Never force collection inside the IDE being measured.
@@ -179,13 +198,24 @@ function Measure-LiveAnalysis {
     }
     if ($mode -eq 'XmlBuffer') {
       $dte.Documents.Item($livePath).Close(2)
-      Wait-For { [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::HasErrorDescription($dte, $liveMessage) } 'XML measurement close restores disk analysis' | Out-Null
+      Wait-For { Test-LiveDiagnostic $liveMessage } 'XML measurement close restores disk analysis' | Out-Null
     }
+    if ($mode -eq 'SavedConfiguration') {
+      [IO.File]::WriteAllText($analyzerConfiguration, $configurationText)
+      Wait-For { Test-LiveDiagnostic $liveMessage } 'restored configuration analysis' | Out-Null
+    }
+  }
+  } finally {
+    if ($AnalyzerWorkload) { [IO.File]::WriteAllText($analyzerConfiguration, $configurationText) }
   }
   if ((Get-FileHash -LiteralPath $livePath -Algorithm SHA256).Hash -ne $sourceHash -or
       (Get-FileHash -LiteralPath $measurementPath -Algorithm SHA256).Hash -ne $measurementHash -or
       (Get-FileHash -LiteralPath $outputFile -Algorithm SHA256).Hash -ne $outputHash) {
     throw 'Analysis measurements changed source or compiled output on disk.'
+  }
+  if ($AnalyzerWorkload -and ((Get-FileHash -LiteralPath $analyzerConfiguration -Algorithm SHA256).Hash -ne $configurationHash -or
+      (Get-FileHash -LiteralPath $analyzerPath -Algorithm SHA256).Hash -ne $analyzerHash)) {
+    throw 'Analyzer measurements did not preserve the original configuration and analyzer image.'
   }
   $script:measurementSourcesPreserved = $true
   Wait-For { [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::FindItem($dte, $null, 'Measurement.almx', 'delete') } 'measurement input cleanup' | Out-Null
@@ -235,17 +265,39 @@ try {
   if ($dte.Solution.SolutionBuild.LastBuildInfo -ne 0) { throw 'The new project did not build.' }
   Assert-AlarmCount 1
   Write-Output 'Created a project from the installed template and built its starter alarm.'
+  if ($AnalyzerWorkload) {
+    [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::CloseSolution($dte, $false)
+    $project = $null
+    $analyzerPath = Join-Path $projectDirectory 'Analyzers/Alarmlist.SampleAnalyzer.dll'
+    New-Item -ItemType Directory -Path (Split-Path $analyzerPath) -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $repoRoot "artifacts/bin/Alarmlist.SampleAnalyzer/$Configuration/net472/Alarmlist.SampleAnalyzer.dll") -Destination $analyzerPath
+    $analyzerConfiguration = Join-Path $projectDirectory '.editorconfig'
+    [IO.File]::WriteAllText($analyzerConfiguration, "root=true`n[*.almx]`nalarmlist_diagnostic.SAMPLE001.severity=none`n[Measurement.almx]`nalarmlist_diagnostic.SAMPLE001.severity=warning`nalarmlist_sample.code_prefix=001`n[Live.almx]`nalarmlist_diagnostic.SAMPLE001.severity=warning`nalarmlist_sample.code_prefix=AL-`n")
+    $projectPath = Join-Path $projectDirectory 'Plant.almproj'
+    $projectXml = [xml][IO.File]::ReadAllText($projectPath)
+    $items = $projectXml.CreateElement('ItemGroup')
+    $item = $projectXml.CreateElement('AlarmlistAnalyzer')
+    $item.SetAttribute('Include', 'Analyzers/Alarmlist.SampleAnalyzer.dll')
+    [void]$items.AppendChild($item)
+    [void]$projectXml.DocumentElement.AppendChild($items)
+    $projectXml.Save($projectPath)
+    [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::OpenSolution($dte, $solutionPath)
+  }
   $outputFile = Join-Path $projectDirectory 'bin/Debug/keyword/Plant.Alarmlist.xml'
   $livePath = Join-Path $projectDirectory 'Live.almx'
   $liveText = "<Alarmlist>`r`n  <Alarm><FullyQualifiedName>Live</FullyQualifiedName>`r`n    <ReferenceName>MissingLive</ReferenceName></Alarm>`r`n</Alarmlist>"
   $liveMessage = "Alarm 'Live' references missing alarm 'MissingLive'."
+  if ($AnalyzerWorkload) {
+    $liveText = '<Alarmlist><Alarm><FullyQualifiedName>Live</FullyQualifiedName><Code>MissingLive</Code></Alarm></Alarmlist>'
+    $liveMessage = "Alarm 'Live' has code 'MissingLive'; expected prefix 'AL-'."
+  }
   [IO.File]::WriteAllText($livePath, $liveText)
   Wait-For { [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::FindItem($dte, $null, 'Live.almx', '') } 'live input discovery' | Out-Null
   Write-Output 'Discovered the live diagnostic input.'
-  Wait-For { [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::HasErrorDescription($dte, $liveMessage) } 'live diagnostic before Build' | Out-Null
+  Wait-For { Test-LiveDiagnostic $liveMessage } 'live diagnostic before Build' | Out-Null
   if ($MeasureAnalysis) { Measure-LiveAnalysis }
   Wait-For { [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::FindItem($dte, $null, 'Live.almx', 'delete') } 'live input deletion' | Out-Null
-  Wait-For { ![Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::HasErrorDescription($dte, $liveMessage) } 'removed input clears live diagnostic' | Out-Null
+  Wait-For { !(Test-LiveDiagnostic $liveMessage) } 'removed input clears live diagnostic' | Out-Null
   Write-Output 'Live measurement fixture cleanup passed.'
 
   if ($KeepOpen) {
@@ -284,6 +336,7 @@ try {
       RunDirectory = $runDirectory; Configuration = $Configuration; RootSuffix = $RootSuffix
       HostVersion = '{0}.{1}.{2}.{3}' -f $hostFile.FileMajorPart, $hostFile.FileMinorPart, $hostFile.FileBuildPart, $hostFile.FilePrivatePart
       Measurements = $MeasureAnalysis.IsPresent; Iterations = $MeasurementIterations
+      AnalyzerWorkload = $AnalyzerWorkload.IsPresent
       AdditionalAlarms = $MeasurementAlarmCount; SourcesPreserved = $measurementSourcesPreserved
       Failure = $failureMessage
     }

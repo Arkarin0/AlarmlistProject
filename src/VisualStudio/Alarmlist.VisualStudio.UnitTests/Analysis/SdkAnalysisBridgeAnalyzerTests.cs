@@ -15,6 +15,74 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
 {
     public partial class SdkAnalysisBridgeTests
     {
+        [Theory]
+        [InlineData("none", 3)]
+        [InlineData("constructor", 2)]
+        [InlineData("analysis", 3)]
+        [InlineData("disposal", 3)]
+        public void AnalyzerCleanupCoversPartialConstructionAndFailures(string failure, int disposedCount)
+        {
+            using (var sdk = new SdkAsset())
+            {
+                string path = CompileLifecycleAnalyzers(sdk, 3, failure);
+                string log = Path.Combine(sdk.DirectoryPath, "disposed.txt");
+                var context = new AnalysisContext(analyzers: SavedAnalyzerCapture.Capture(new[] { path }, CancellationToken.None));
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    AnalysisResponse response = bridge.Analyze(Array.Empty<AnalysisInput>(), context: context);
+                    Assert.Equal(Enumerable.Range(0, disposedCount).Select(index => "Rule" + index), File.ReadAllLines(log));
+                    if (failure == "disposal")
+                    {
+                        Assert.Equal(AnalysisAvailability.AnalysisFailed, response.Availability);
+                        Assert.Contains("disposal failure", response.Message);
+                        Assert.Null(response.Snapshot);
+                        Assert.Null(response.CompiledXml);
+                    }
+                    else
+                    {
+                        Assert.Equal(AnalysisAvailability.Available, response.Availability);
+                        Assert.Equal(failure == "none", response.Snapshot.Success);
+                        if (failure != "none")
+                        {
+                            Assert.Contains(response.Snapshot.Diagnostics, diagnostic => diagnostic.Id == "ALM0025" && diagnostic.Message.Contains(failure + " failure"));
+                            Assert.Null(response.CompiledXml);
+                        }
+                    }
+                    Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
+                    using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+                }
+            }
+        }
+
+        [Fact]
+        public void RepeatedRunsDisposeEveryAnalyzerAndRetainDetachedResults()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                const int count = 32;
+                const int iterations = 10;
+                string path = CompileLifecycleAnalyzers(sdk, count, "none");
+                var context = new AnalysisContext(analyzers: SavedAnalyzerCapture.Capture(new[] { path }, CancellationToken.None));
+                AnalysisResponse first = null;
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                {
+                    for (int iteration = 0; iteration < iterations; iteration++)
+                    {
+                        AnalysisResponse response = bridge.Analyze(Array.Empty<AnalysisInput>(), context: context);
+                        Assert.True(response.Snapshot?.Success == true, response.Message);
+                        Assert.Equal(count, response.Snapshot.Diagnostics.Count);
+                        first = first ?? response;
+                    }
+                    Assert.Equal(count * iterations, File.ReadAllLines(Path.Combine(sdk.DirectoryPath, "disposed.txt")).Length);
+                }
+                Assert.Equal(count, first.Snapshot.Diagnostics.Select(diagnostic => diagnostic.Id).Distinct().Count());
+                Assert.All(first.Snapshot.Diagnostics, diagnostic => Assert.Equal("reported", diagnostic.Message));
+                Assert.NotNull(first.CompiledXml);
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Rules" || assembly.GetName().Name == "Alarmlist.Core");
+                using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+            }
+        }
+
         [Fact]
         public void ExternalAnalyzerRunsInSdkDomainWithConfiguredSeverityAndDetachedResults()
         {
@@ -85,8 +153,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             using (var cancellation = new CancellationTokenSource())
             {
                 string project = Path.Combine(sdk.DirectoryPath, "Plant.almproj");
-                string path = CompileAnalyzer(sdk, "System.IO.File.WriteAllText(context.ProjectPath + \".started\", \"started\");"
-                    + " cancellationToken.WaitHandle.WaitOne(10000); cancellationToken.ThrowIfCancellationRequested(); return new Alarmlist.Diagnostics.Diagnostic[0];");
+                string path = CompileDisposableAnalyzer(sdk, "System.IO.File.WriteAllText(context.ProjectPath + \".started\", \"started\");"
+                    + " cancellationToken.WaitHandle.WaitOne(10000); cancellationToken.ThrowIfCancellationRequested(); return new Alarmlist.Diagnostics.Diagnostic[0];",
+                    "System.IO.File.WriteAllText(@\"" + project.Replace("\"", "\"\"") + ".disposed\", \"disposed\");");
                 using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
                 {
                     var context = new AnalysisContext(projectPath: project, analyzers: SavedAnalyzerCapture.Capture(new[] { path }, CancellationToken.None));
@@ -98,23 +167,47 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
 #pragma warning disable VSTHRD003 // The task was started above on the pool; no UI join is involved.
                     await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await running);
 #pragma warning restore VSTHRD003
+                    Assert.Equal("disposed", File.ReadAllText(project + ".disposed"));
                     Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
                 }
             }
         }
 
         private static string CompileAnalyzer(SdkAsset sdk, string body, params string[] dependencies)
+            => CompileDisposableAnalyzer(sdk, body, "", dependencies);
+
+        private static string CompileDisposableAnalyzer(SdkAsset sdk, string body, string disposeBody, params string[] dependencies)
         {
             string directory = Path.Combine(sdk.DirectoryPath, "analyzers");
             Directory.CreateDirectory(directory);
             string path = Path.Combine(directory, "Rules.dll");
-            string source = "public sealed class RuleAnalyzer : Alarmlist.Analyzers.IAlarmAnalyzer {"
+            string source = "public sealed class RuleAnalyzer : Alarmlist.Analyzers.IAlarmAnalyzer, System.IDisposable {"
                 + " private static readonly Alarmlist.Diagnostics.DiagnosticDescriptor Rule = new Alarmlist.Diagnostics.DiagnosticDescriptor(\"TEST001\", \"Test\", \"{0}\", Alarmlist.Diagnostics.DiagnosticSeverity.Warning);"
                 + " public int ContractVersion { get { return 1; } }"
                 + " public System.Collections.Generic.IReadOnlyList<Alarmlist.Diagnostics.DiagnosticDescriptor> SupportedDiagnostics { get { return new[] { Rule }; } }"
                 + " public System.Collections.Generic.IEnumerable<Alarmlist.Diagnostics.Diagnostic> Analyze(Alarmlist.Analyzers.AlarmAnalyzerContext context, System.Threading.CancellationToken cancellationToken) {"
-                + body + " } }";
+                + body + " } public void Dispose() { " + disposeBody + " } }";
             CompileLibrary(path, source, new[] { sdk.CompilerPath, "System.dll", "System.Core.dll" }.Concat(dependencies).ToArray());
+            return path;
+        }
+
+        private static string CompileLifecycleAnalyzers(SdkAsset sdk, int count, string failure)
+        {
+            string directory = Path.Combine(sdk.DirectoryPath, "analyzers");
+            Directory.CreateDirectory(directory);
+            string path = Path.Combine(directory, "Rules.dll");
+            string log = Path.Combine(sdk.DirectoryPath, "disposed.txt").Replace("\"", "\"\"");
+            string source = string.Join(Environment.NewLine, Enumerable.Range(0, count).Select(index =>
+                "public sealed class Rule" + index + " : Alarmlist.Analyzers.IAlarmAnalyzer, System.IDisposable {"
+                + " public Rule" + index + "() { " + (failure == "constructor" && index == 2 ? "throw new System.InvalidOperationException(\"constructor failure\");" : "") + " }"
+                + " private static readonly Alarmlist.Diagnostics.DiagnosticDescriptor Rule = new Alarmlist.Diagnostics.DiagnosticDescriptor(\"TEST" + index + "\", \"Test\", \"{0}\", Alarmlist.Diagnostics.DiagnosticSeverity.Warning);"
+                + " public int ContractVersion { get { return 1; } }"
+                + " public System.Collections.Generic.IReadOnlyList<Alarmlist.Diagnostics.DiagnosticDescriptor> SupportedDiagnostics { get { return new[] { Rule }; } }"
+                + " public System.Collections.Generic.IEnumerable<Alarmlist.Diagnostics.Diagnostic> Analyze(Alarmlist.Analyzers.AlarmAnalyzerContext context, System.Threading.CancellationToken cancellationToken) {"
+                + (failure == "analysis" && index == 0 ? "throw new System.InvalidOperationException(\"analysis failure\");" : "return new[] { new Alarmlist.Diagnostics.Diagnostic(Rule, \"reported\") };") + " }"
+                + " public void Dispose() { System.IO.File.AppendAllText(@\"" + log + "\", \"Rule" + index + "\" + System.Environment.NewLine); "
+                + (failure == "disposal" && index == 0 ? "throw new System.InvalidOperationException(\"disposal failure\");" : "") + " } }"));
+            CompileLibrary(path, source, sdk.CompilerPath, "System.dll", "System.Core.dll");
             return path;
         }
 

@@ -1,4 +1,4 @@
-# Functional IDE scenarios are owned by xUnit. Deploy the selected profile first.
+# Functional IDE scenarios and deployment preparation are owned by xUnit.
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)]

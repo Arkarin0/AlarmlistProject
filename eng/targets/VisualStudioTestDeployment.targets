@@ -1,0 +1,18 @@
+<Project>
+  <!-- Explicit xUnit setup only: deploy the already-built test asset through the
+       VSSDK tasks without rebuilding assemblies loaded by the test runner. -->
+  <PropertyGroup Condition="'$(AlarmlistTestVsixPath)' != ''">
+    <DeployExtension>true</DeployExtension>
+    <IntermediateVsixManifest>$(AlarmlistTestVsixManifest)</IntermediateVsixManifest>
+    <GetVsixDeploymentPathDependsOn>ValidateAlarmlistTestDeployment</GetVsixDeploymentPathDependsOn>
+    <DeployVsixExtensionFilesDependsOn>ValidateAlarmlistTestDeployment;GetVsixDeploymentPath;FindExistingDeploymentPath</DeployVsixExtensionFilesDependsOn>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(AlarmlistTestVsixPath)' != ''">
+    <_CreatedVsixContainer Include="$(AlarmlistTestVsixPath)" />
+  </ItemGroup>
+  <Target Name="ValidateAlarmlistTestDeployment">
+    <Error Condition="'$(MSBuildRuntimeType)' == 'Core'" Text="Test VSIX deployment requires the selected Visual Studio's desktop MSBuild." />
+    <Error Condition="!Exists('$(AlarmlistTestVsixPath)') or !Exists('$(AlarmlistTestVsixManifest)')" Text="Build the xUnit project before deploying its VSIX test asset." />
+    <Error Condition="'$(DeployTargetInstanceId)' == '' or '$(VSSDKTargetPlatformRegRootSuffix)' == ''" Text="Test deployment requires an explicit Visual Studio instance and experimental profile." />
+  </Target>
+</Project>
