@@ -117,7 +117,8 @@ namespace Alarmlist.VisualStudio.UI
         {
             var selected = new HashSet<AlarmPreviewRow>(selection);
             if (selected.Count == 0 || selected.Any(row => !AlarmTableRows.Contains(row))) return;
-            string[] columns = { "Name", "Code", "Category", "Description", "TestMethod", "Identity", "Source" };
+            string[] columns = PreviewColumns.OrderedColumns.Where(column => column.IsVisible).Select(column => column.Id).ToArray();
+            if (columns.Length == 0) return;
             string text = string.Join("\t", columns.Select(column => column == "TestMethod" ? "Test method" : column)) + "\r\n" + string.Join("\r\n", AlarmTableRows.Where(selected.Contains)
                 .Select(row => string.Join("\t", columns.Select(column => QuoteTableCell(row.Column(column))))));
             StartPreviewAction(() => copy(text));

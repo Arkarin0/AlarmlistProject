@@ -41,6 +41,7 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand DeleteCommand { get; }
         public bool HasPending => _pending;
         public DesignerLayoutViewModel DesignerLayout { get; }
+        public PreviewColumnLayout PreviewColumns { get; } = new PreviewColumnLayout();
         public bool IsValid => _model.Projection.IsValid;
         public bool CanEdit => IsValid && _selected != null;
         public string Error => _error ?? _model.Projection.Error;
@@ -64,6 +65,7 @@ namespace Alarmlist.VisualStudio.UI
             _model = model;
             _factory = factory;
             DesignerLayout = new DesignerLayoutViewModel(settings);
+            PreviewColumns.Changed += OnPreviewColumnsChanged;
             Fields = BindingCollection.Create(AlarmSource.FieldNames.Select(name => new AlarmFieldViewModel(name, OnDraftChanged)));
             ProcedureSections = BindingCollection.Create(new[] { "Instructions", "Reset" }
                 .Select(name => _factory.CreateProcedureSection(name, OnDraftChanged, EditProcedure)));
@@ -197,6 +199,7 @@ namespace Alarmlist.VisualStudio.UI
             if (!_committing && !_pending) Refresh();
             else { Notify(nameof(IsValid)); Notify(nameof(CanEdit)); Notify(nameof(Error)); AddCommand.Refresh(); DeleteCommand.Refresh(); RefreshAnalysis(); }
         }
-        public void Dispose() { _model.Changed -= OnModelChanged; DisposeAnalysis(); PendingChanged = null; }
+        private void OnPreviewColumnsChanged(object sender, EventArgs args) => InvalidatePreviewActions();
+        public void Dispose() { _model.Changed -= OnModelChanged; PreviewColumns.Dispose(); DisposeAnalysis(); PendingChanged = null; }
     }
 }

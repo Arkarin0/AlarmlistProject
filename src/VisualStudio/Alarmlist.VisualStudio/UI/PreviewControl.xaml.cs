@@ -16,8 +16,11 @@ namespace Alarmlist.VisualStudio.UI
         {
             InitializeComponent();
             DataObject.AddCopyingHandler(this, OnCopyingText);
-            DataContextChanged += (sender, args) => UpdateSortArrows();
-            Loaded += (sender, args) => UpdateSortArrows();
+            DataContextChanged += (sender, args) => { UpdateSortArrows(); BindColumnLayout(); };
+            Loaded += (sender, args) => { UpdateSortArrows(); BindColumnLayout(); };
+            Unloaded += (sender, args) => { AlarmTable.ContextMenu.IsOpen = false; DetachColumnLayout(); };
+            AlarmTable.AddHandler(System.Windows.Controls.Primitives.Thumb.DragCompletedEvent,
+                new System.Windows.Controls.Primitives.DragCompletedEventHandler(OnColumnResizeCompleted), handledEventsToo: true);
         }
         private EditFileControlViewModel View => DataContext as EditFileControlViewModel;
 

@@ -53,7 +53,10 @@ capability, file schemas, and project properties under `tools/Rules/`.
 Configurations default to `Debug|AnyCPU` and `Release|AnyCPU`. A consumer can
 replace these defaults by declaring its own `ProjectConfiguration` items with
 `Configuration` and `Platform` metadata. The `.almproj.user` file is imported
-for CPS user settings such as Show All Files. Design-time builds do not compile
+for CPS user settings such as Show All Files and the hidden, configuration-independent
+`AlarmlistPreviewColumnLayout`. The Preview window writes column visibility/order/width
+through CPS to this user file; these preferences do not change source or compiler
+output. Design-time builds do not compile
 or write output. Normal IDE builds always invoke MSBuild to reflect removed or
 conditional inputs. ALMX files open in the XML editor in this first milestone.
 

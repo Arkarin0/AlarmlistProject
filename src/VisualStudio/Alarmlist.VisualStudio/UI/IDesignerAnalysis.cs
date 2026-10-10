@@ -8,6 +8,10 @@ using Alarmlist.VisualStudio.Analysis;
 
 namespace Alarmlist.VisualStudio.UI
 {
+    internal interface IDesignerPreviewSettings
+    {
+        ProjectUserSetting GetPreviewLayout();
+    }
     // Each view chooses its own project context. Host adapters own dispatch,
     // buffer identity, current-input validation and document navigation.
     internal interface IDesignerAnalysis : IDisposable

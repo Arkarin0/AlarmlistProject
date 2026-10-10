@@ -110,6 +110,13 @@ and source paths. Select a row to inspect its details, or double-click/press Ent
 to navigate to its source. Source-path tooltips identify linked files. Ctrl+C or
 **Copy selected rows** copies the selection in display order as tab-separated
 text with column headings; tabs, newlines and quotes inside values are quoted.
+Use **Columns** to show/hide columns, enter widths, move columns left/right with
+the keyboard, or reset the layout. Headers also support drag reordering and edge
+resizing. Copy includes visible columns in their display order. The chooser stays
+available even with all columns hidden. Preferences are shared across the project's
+ALMX previews and saved in `<project>.almproj.user`, independently of configuration.
+Unrelated user properties are preserved; save failures leave the session layout
+usable and show an error. Loose files use session preferences.
 Copying revalidates saved resources/lookups and source snapshots first. Errors
 mark unavailable row values and disable compiled XML; drafts clear all previews.
 

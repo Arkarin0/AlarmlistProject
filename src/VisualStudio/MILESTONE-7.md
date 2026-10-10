@@ -15,6 +15,10 @@ finish the current focused task safely, record the checkpoint, pause the goal an
 wait for feedback. The initial reading was 66% remaining. Earlier discussion
 records below describe historical deferral, superseded by this authorization.
 
+Checkpoint (2026-10-11): implementation iterations through 6b are validated;
+iteration 7 has not started. Pausing at the requested usage boundary after the
+6b commit. This milestone is not yet fully accepted; remaining gates are below.
+
 ## Intended outcome and confirmed scope
 
 Make everyday ALMX authoring easier: find an alarm, understand its values, edit
@@ -738,3 +742,60 @@ invalidation. SDK/VSIX assets rebuilt/deployed. VS2022 TRX directory:
 VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/33669173e7bd4e6da77c56f6380834bb/`.
 Reviewed the actual VS2022 dark report screenshot and diff/whitespace. No current
 blocker; remaining implementation is 6b followed by integrated acceptance 7.
+
+### Iteration 6b: personal preview columns (2026-10-11)
+
+Added an always-reachable Columns chooser with visibility, numeric width,
+keyboard Move left/right and Reset layout. Headers support drag reorder/resize;
+copy uses only visible columns in display order and cancels late copies after a
+layout change. All columns may be hidden; the chooser remains available.
+
+Persistence uses hidden `AlarmlistPreviewColumnLayout` in the existing CPS
+ConfigurationGeneral rule with `Persistence="UserFile"` and no configuration
+condition. The adapter uses the pinned CPS rule/property API and SaveUserFileAsync,
+never direct project XML mutation. Each loaded project owns one shared setting;
+views detach on context change/disposal. Coalesced sequential writes preserve the
+latest value, late initial reads cannot replace edits, and read/write errors are
+shown while retaining a usable session layout. The versioned format uses stable
+column IDs, validates widths/order/visibility and ignores unknown future columns.
+
+Initial checks: extension/SDK builds passed with zero warnings/errors; five new
+column/settings tests and the full 386-case VS unit suite passed, zero skipped.
+SDK package checks passed three cases per framework; the full SDK suite then
+passed 53 cases on net472 and 53 on net8.0, zero skipped. Seven final focused
+column/schema/lifetime cases passed, including handling an already-handled header
+drag event and releasing disposed models from the shared project setting.
+
+Live validation initially found a test assumption (UIA header collection order is
+not display order), corrected by checking screen position. It then found a real
+resize-persistence defect: WPF marks the header drag event handled before the grid
+receives it. The listener now includes handled events, saves only visible column
+widths and ignores unrelated scrollbar drags. The subsequent mouse-reorder failure
+was traced to stale screen coordinates: saving the user preference triggered an
+analysis-status layout transition, so the test clicked a data row instead of its
+header. It now waits for fresh results and stable table geometry before dragging.
+Temporary input tracing was removed. The readiness check uses fresh rows rather
+than requiring a selection, which analysis invalidation legitimately clears.
+
+Final live `Area=PreviewTable` passed on VS2022 and VS2026, one case per host,
+zero skipped. It verifies native header resize/reorder, keyboard move/width/hide,
+visible-column clipboard order, shared choices across documents, fresh CPS reads
+after solution reopen, reset, preserved unrelated user properties, and unchanged
+source/shared project files. SDK/VSIX assets rebuilt/deployed on both hosts.
+VS2022 TRX directory:
+`artifacts/log/Debug/VisualStudioUI/TestResults/388ef4a42ad0453887f07abca97e19c4/`;
+VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/624728ef722648bd95b1389b5d549ba6/`.
+Reviewed the actual VS2022 dark report with restored custom columns, the code diff,
+documentation and whitespace. No current 6b blocker. Integrated acceptance and
+the separately listed manual checks remain iteration 7 work.
+
+### Usage checkpoint (2026-10-11)
+
+The account reached 12% remaining during iteration 6b. Per the owner's instruction,
+finished this focused column-preferences task and its validation/commit boundary,
+then paused for feedback. The last reading while finishing was 7% remaining.
+Do not start iteration 7 without renewed instruction. Its integrated solution build,
+full downstream/packaged-extension and functional IDE suites, final performance
+and lifetime checks, and remaining manual theme/DPI/accessibility gates remain
+pending. Earlier scoped passes do not replace that acceptance work. The unrelated
+`example/North/Alarms1.almx` edit remains preserved and excluded from commits.

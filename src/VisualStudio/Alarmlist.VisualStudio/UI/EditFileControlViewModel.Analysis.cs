@@ -208,6 +208,7 @@ namespace Alarmlist.VisualStudio.UI
             try
             {
                 ProjectAnalysisState state = _analysis?.Current;
+                PreviewColumns.SetStore((_analysis as IDesignerPreviewSettings)?.GetPreviewLayout());
                 var projects = _analysis?.Projects ?? Array.Empty<AnalysisProject>();
                 if (Projects.Count != projects.Count || Projects.Where((choice, index) => choice.ProjectPath != projects[index].ProjectPath
                     || choice.Configuration != projects[index].Configuration).Any())

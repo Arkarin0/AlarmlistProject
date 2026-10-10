@@ -33,4 +33,7 @@
       <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
     </BoolProperty.DataSource>
   </BoolProperty>
+  <StringProperty Name="AlarmlistPreviewColumnLayout" Visible="False">
+    <StringProperty.DataSource><DataSource Persistence="UserFile" HasConfigurationCondition="False" /></StringProperty.DataSource>
+  </StringProperty>
 </Rule>

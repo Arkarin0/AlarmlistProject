@@ -2,6 +2,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using System.Xaml;
 using Microsoft.Build.Framework.XamlTypes;
 using Xunit;
@@ -10,6 +11,14 @@ namespace Alarmlist.VisualStudio.UnitTests
 {
     public class RuleTests
     {
+        [Fact]
+        public void PreviewColumnLayoutIsAHiddenConfigurationIndependentUserProperty()
+        {
+            var rule = Assert.IsType<Rule>(XamlServices.Load(Path.Combine(AppContext.BaseDirectory, "Rules", "General.xaml")));
+            var property = Assert.IsType<StringProperty>(rule.Properties.Single(item => item.Name == "AlarmlistPreviewColumnLayout"));
+            Assert.False(property.Visible); Assert.Equal("UserFile", property.DataSource.Persistence);
+            Assert.False(property.DataSource.HasConfigurationCondition);
+        }
         [Theory]
         [InlineData("General")]
         [InlineData("GeneralBrowseObject")]

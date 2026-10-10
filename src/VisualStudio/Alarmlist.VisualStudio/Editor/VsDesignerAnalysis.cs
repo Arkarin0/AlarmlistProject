@@ -44,7 +44,7 @@ namespace Alarmlist.VisualStudio.Editor
         }
     }
 
-    internal sealed class VsDesignerAnalysis : IDesignerAnalysis
+    internal sealed class VsDesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings
     {
         private readonly DesignerAnalysisNotifications _notifications;
         private readonly ProjectAnalysisRegistry _registry;
@@ -55,6 +55,7 @@ namespace Alarmlist.VisualStudio.Editor
         private bool _disposed;
         private string _selectedProjectPath;
         public event EventHandler Changed;
+        public ProjectUserSetting GetPreviewLayout() => _disposed ? null : _registry.GetPreviewLayout(Current?.Project);
         public string DocumentPath => _document?.FilePath;
         public IReadOnlyList<AnalysisProject> Projects => Contexts.Select(context => context.Current.Project).ToArray();
         private IReadOnlyList<ProjectAnalysisService> Contexts => _registry.GetContexts(DocumentPath);

@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Alarmlist.VisualStudio.Testing;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
@@ -30,6 +31,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 + "<TestProcedure><Instructions><Step>Removed local</Step><Clear/><Step>Set key switch to inspection.&#10;Open the safety door.</Step>"
                 + "<Hint>Be careful.</Hint><Warning>Keep clear.</Warning><Note>Record $(AlarmlistAlarmCode).</Note></Instructions></TestProcedure></Alarm></Alarmlist>";
             string otherPath = Path.Combine(workspace.ProjectDirectory, "Other.almx");
+            string projectPath = Directory.GetFiles(workspace.ProjectDirectory, "*.almproj").Single();
+            string userPath = projectPath + ".user";
+            var user = File.Exists(userPath) ? XDocument.Load(userPath) : new XDocument(new XElement("Project"));
+            user.Root.Add(new XElement(user.Root.Name.Namespace + "PropertyGroup", new XElement(user.Root.Name.Namespace + "KeepUserPreference", "preserve me")));
+            user.Save(userPath);
             File.WriteAllText(workspace.AlarmPath, source);
             File.WriteAllText(Path.Combine(workspace.ProjectDirectory, "Base.almx"),
                 "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><Name>$(loc:Inspection)</Name>"
@@ -110,7 +116,88 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ResourceEditorTests.RequireFieldFocus(ide, code);
             Keyboard.Type(VirtualKeyShort.ESCAPE);
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 2, "cancel restores table");
+            CheckPreviewColumns(ide, workspace, window, projectPath, userPath, otherPath, source);
         }
+
+        private static void CheckPreviewColumns(VisualStudioSession ide, UiTestWorkspace workspace, Window window, string projectPath, string userPath, string otherPath, string source)
+        {
+            string projectBefore = File.ReadAllText(projectPath);
+            AutomationElement chooser = window.FindFirstDescendant(cf => cf.ByName("Preview columns"));
+            chooser.Patterns.ExpandCollapse.Pattern.Expand();
+            AutomationElement showName = window.FindFirstDescendant(cf => cf.ByName("Show Name column"));
+            showName.Patterns.Toggle.Pattern.Toggle();
+            Button left = window.FindFirstDescendant(cf => cf.ByName("Move Test method column left")).AsButton();
+            TextBox width = window.FindFirstDescendant(cf => cf.ByName("Width of Test method column")).AsTextBox();
+            width.Focus(); width.Text = "360"; left.Focus();
+            for (int index = 0; index < 4; index++) left.Invoke();
+            VisualStudioSession.Wait(() => SavedLayout(userPath).StartsWith("1;TestMethod,1,360;Name,0,", StringComparison.Ordinal), "CPS user-file layout save");
+            string layout = SavedLayout(userPath);
+            Assert.Equal(projectBefore, File.ReadAllText(projectPath)); Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            Assert.Equal("preserve me", XDocument.Load(userPath).Descendants().Single(element => element.Name.LocalName == "KeepUserPreference").Value);
+            chooser.Patterns.ExpandCollapse.Pattern.Collapse();
+            VisualStudioSession.Wait(() => PreviewHeaders(window).First().Name == "Test method", "reordered report header");
+            Assert.DoesNotContain(PreviewTable(window).FindAllDescendants(cf => cf.ByControlType(ControlType.HeaderItem)), header => header.Name == "Name");
+            PreviewRows(window).First().Patterns.SelectionItem.Pattern.Select();
+            window.FindFirstDescendant(cf => cf.ByName("Copy selected preview rows")).AsButton().Invoke();
+            VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().StartsWith("Test method\tCode\tCategory\tDescription\tIdentity\tSource\r\n", StringComparison.Ordinal), "visible column clipboard order");
+            var methodBounds = PreviewHeaders(window).Single(header => header.Name == "Test method").BoundingRectangle;
+            ide.RequireForeground();
+            Mouse.DragHorizontally(new System.Drawing.Point(methodBounds.Right - 2, methodBounds.Top + methodBounds.Height / 2), 40);
+            VisualStudioSession.Wait(() => double.Parse(SavedLayout(userPath).Split(';').Single(item => item.StartsWith("TestMethod,", StringComparison.Ordinal)).Split(',')[2],
+                System.Globalization.CultureInfo.InvariantCulture) > 380, "mouse column resize persistence");
+            // Saving the user file can briefly show the analysis-status message,
+            // moving the table. Wait for fresh results and stable screen geometry.
+            var stable = System.Diagnostics.Stopwatch.StartNew();
+            var previousBounds = PreviewTable(window).BoundingRectangle;
+            VisualStudioSession.Wait(() =>
+            {
+                var currentBounds = PreviewTable(window).BoundingRectangle;
+                if (currentBounds != previousBounds || PreviewRows(window).Length != 2)
+                { previousBounds = currentBounds; stable.Restart(); return false; }
+                return stable.ElapsedMilliseconds >= 500;
+            }, "stable report layout after saving column width");
+            var codeBounds = PreviewHeaders(window).Single(header => header.Name == "Code").BoundingRectangle;
+            methodBounds = PreviewHeaders(window).Single(header => header.Name == "Test method").BoundingRectangle;
+            ide.RequireForeground();
+            // FlaUI Drag teleports directly to the end. WPF needs subsequent
+            // motion after crossing its drag threshold to update the drop target.
+            Mouse.MoveTo(new System.Drawing.Point(codeBounds.Left + codeBounds.Width / 2, codeBounds.Top + codeBounds.Height / 2));
+            Mouse.Down();
+            try
+            {
+                FlaUI.Core.Input.Wait.UntilInputIsProcessed();
+                Mouse.MoveTo(new System.Drawing.Point(methodBounds.Left + 30, methodBounds.Top + methodBounds.Height / 2));
+            }
+            finally { Mouse.Up(); }
+            VisualStudioSession.Wait(() => SavedLayout(userPath).StartsWith("1;Code,", StringComparison.Ordinal), "mouse column reorder persistence");
+            chooser.Patterns.ExpandCollapse.Pattern.Expand();
+            window.FindFirstDescendant(cf => cf.ByName("Move Test method column left")).AsButton().Invoke();
+            VisualStudioSession.Wait(() => SavedLayout(userPath).StartsWith("1;TestMethod,", StringComparison.Ordinal), "keyboard order after mouse reorder");
+            layout = SavedLayout(userPath);
+            chooser.Patterns.ExpandCollapse.Pattern.Collapse();
+            ide.OpenDesigner(otherPath); SelectDesigner(window);
+            VisualStudioSession.Wait(() => PreviewHeaders(window).FirstOrDefault()?.Name == "Test method", "shared layout across project documents");
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "preview-column-layout.png"));
+            // Reopen the solution to require a fresh CPS read of the user file.
+            VisualStudioAutomation.CloseSolution(ide.Automation, false);
+            VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
+            ide.OpenDesigner(workspace.AlarmPath); SelectDesigner(window);
+            VisualStudioSession.Wait(() => PreviewHeaders(window).FirstOrDefault()?.Name == "Test method", "restored project-user layout");
+            Assert.Equal(layout, SavedLayout(userPath));
+            chooser = window.FindFirstDescendant(cf => cf.ByName("Preview columns")); chooser.Patterns.ExpandCollapse.Pattern.Expand();
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Show Name column")).Patterns.Toggle.Pattern.ToggleState == ToggleState.Off, "restored column visibility");
+            window.FindFirstDescendant(cf => cf.ByName("Reset preview column layout")).AsButton().Invoke();
+            VisualStudioSession.Wait(() => SavedLayout(userPath).StartsWith("1;Name,1,200;Code,1,100;", StringComparison.Ordinal), "reset user layout");
+            chooser.Patterns.ExpandCollapse.Pattern.Collapse();
+            Assert.Equal(projectBefore, File.ReadAllText(projectPath)); Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
+        }
+        private static string SavedLayout(string userPath)
+        {
+            try { return XDocument.Load(userPath).Descendants().SingleOrDefault(element => element.Name.LocalName == "AlarmlistPreviewColumnLayout")?.Value ?? ""; }
+            catch (IOException) { return ""; }
+        }
+        private static AutomationElement[] PreviewHeaders(Window window) => PreviewTable(window)?.FindAllDescendants(cf => cf.ByControlType(ControlType.HeaderItem))
+            .Where(header => !header.IsOffscreen).OrderBy(header => header.BoundingRectangle.Left).ToArray() ?? Array.Empty<AutomationElement>();
 
         private static AutomationElement PreviewTable(Window window)
             => window.FindFirstDescendant(cf => cf.ByName("Resolved alarm table").And(cf.ByControlType(ControlType.DataGrid)));

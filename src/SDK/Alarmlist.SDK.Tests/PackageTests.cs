@@ -70,6 +70,13 @@ namespace Alarmlist.MSBuild.SDK.Tests
                 "<Lookup xmlns='urn:alarmlist:lookup:1'><Path Key='P'/></Lookup>").Validate(schemas, null));
             var nuspec = XDocument.Load(Path.Combine(app.PackageDirectory, "alarmlist.msbuild.sdk.nuspec"));
             Assert.Empty(nuspec.Descendants().Where(element => element.Name.LocalName == "dependency"));
+            XNamespace ruleNamespace = "http://schemas.microsoft.com/build/2009/properties";
+            var rules = XDocument.Load(Path.Combine(app.PackageDirectory, "tools", "Rules", "General.xaml"));
+            XElement layout = rules.Root.Elements(ruleNamespace + "StringProperty").Single(property => (string)property.Attribute("Name") == "AlarmlistPreviewColumnLayout");
+            Assert.Equal("False", (string)layout.Attribute("Visible"));
+            XElement dataSource = layout.Descendants(ruleNamespace + "DataSource").Single();
+            Assert.Equal("UserFile", (string)dataSource.Attribute("Persistence"));
+            Assert.Equal("False", (string)dataSource.Attribute("HasConfigurationCondition"));
         }
     }
 }

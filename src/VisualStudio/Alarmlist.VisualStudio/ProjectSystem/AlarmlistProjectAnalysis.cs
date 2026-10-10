@@ -11,6 +11,7 @@ using System.Threading.Tasks.Dataflow;
 using Alarmlist.VisualStudio.Analysis;
 using Alarmlist.VisualStudio.Diagnostics;
 using Microsoft.VisualStudio.ProjectSystem;
+using Microsoft.VisualStudio.ProjectSystem.Properties;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Threading;
 
@@ -49,7 +50,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 if (_analysis != null) return;
                 _analysis = new ProjectAnalysisService(new ProjectAnalysisInputSource(_documents), _factory, ThreadHelper.JoinableTaskContext);
                 _diagnosticSubscription = _diagnostics.Attach(_analysis);
-                _registry.Add(_analysis, SetPreviewCultureAsync);
+                _registry.Add(_analysis, SetPreviewCultureAsync, new ProjectUserSetting(ReadPreviewLayoutAsync, WritePreviewLayoutAsync));
                 _active.Changed += OnActiveChanged;
                 _updates = new ActionBlock<IProjectVersionedValue<IProjectSnapshot>>(OnEvaluation,
                     new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 1 });
@@ -59,6 +60,36 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         }
 
         protected override Task InitializeCoreAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        private const string PreviewLayoutProperty = "AlarmlistPreviewColumnLayout";
+        private async Task<IProperty> PreviewLayoutPropertyAsync(ConfiguredProject active, CancellationToken token)
+        {
+            var catalog = await active.Services.PropertyPagesCatalog.GetCatalogAsync(PropertyPageContexts.Project, token);
+            var rule = catalog.BindToContext("ConfigurationGeneral", (string)null, null, null);
+            return rule?.GetProperty(PreviewLayoutProperty) ?? throw new InvalidOperationException("The SDK does not support preview column preferences.");
+        }
+        private ConfiguredProject PreviewLayoutProject()
+        {
+            lock (_gate)
+            {
+                DisposalToken.ThrowIfCancellationRequested();
+                return _active.ActiveConfiguredProject ?? throw new InvalidOperationException("The project is not available.");
+            }
+        }
+        private async Task<string> ReadPreviewLayoutAsync(CancellationToken token)
+        {
+            var property = await PreviewLayoutPropertyAsync(PreviewLayoutProject(), token);
+            return (await property.GetValueAsync()) as string;
+        }
+        private async Task WritePreviewLayoutAsync(string value, CancellationToken token)
+        {
+            ConfiguredProject active = PreviewLayoutProject();
+            var property = await PreviewLayoutPropertyAsync(active, token);
+            token.ThrowIfCancellationRequested(); DisposalToken.ThrowIfCancellationRequested();
+            await property.SetValueAsync(value);
+            // Flush the CPS UserFile only; never save a shared project draft.
+            await active.UnconfiguredProject.SaveUserFileAsync();
+        }
 
         private async Task SetPreviewCultureAsync(AnalysisProject expected, string culture, CancellationToken token)
         {

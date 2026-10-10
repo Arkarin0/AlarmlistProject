@@ -35,7 +35,7 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Lookup and template completion | Saved metadata choices while lookup XML is dirty, named argument slots, expression insertion/Undo, keyword and translated preview, saved catalogue regeneration, unchanged source/output bytes | `Lookups` |
 | Named list completion | Contextual argument choices, saved list inputs, translated descriptions and literal identifiers | `Lists` |
 | Preview window | Docking, active-document/culture changes, private drafts, source navigation, closing and reopening | `Preview` |
-| Alarm table | Concrete alarms, localized values, wrapped multiline Test method/automatic row height, Clear exclusions, sorting/filtering, validated copying, keyboard source navigation and draft clearing | `PreviewTable` |
+| Alarm table | Wrapped Test method/effective entries, sorting/filtering, validated copying/navigation, drafts, keyboard/mouse column controls, CPS user-file preservation and project-reopen layout restoration | `PreviewTable` |
 
 Project and document lifecycle checks retain the former smoke script's shell/API
 operations. They do not simulate clicks through New Project or Save As dialogs.
