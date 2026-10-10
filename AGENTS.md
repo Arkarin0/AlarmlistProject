@@ -63,7 +63,7 @@ Existing plans and iteration records:
 | [Milestone 4](src/VisualStudio/MILESTONE-4.md) | Property expressions, parameters, abstract alarms, and designer support; see its [design contract](src/VisualStudio/MILESTONE-4-DESIGN.md). |
 | [Milestone 5](src/VisualStudio/MILESTONE-5.md) | Localization and XLIFF, including HMI lookup, named-list, and preview follow-up iterations; see its [design contract](src/VisualStudio/MILESTONE-5-DESIGN.md) and [lookup specification](src/VisualStudio/HMI-LOOKUPS.md). |
 | [Milestone 6](src/VisualStudio/MILESTONE-6.md) | EditorConfig, diagnostic policy, external analyzers, and compatibility/lifecycle validation iterations. |
-| [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX, prioritizing procedure editing; source review, proposed iterations and open interaction decisions. |
+| [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX: procedures, property fields, IntelliSense, searchable references, file/alarm scope separation and preview-table rendering/column preferences; accepted direction and open interaction details. |
 
 Read the selected plan's current status and remaining gates before resuming it.
 [FUTURE-FEATURES.md](FUTURE-FEATURES.md) holds ideas and design history; it does not
@@ -430,6 +430,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   presentation rows through the existing notification base. WPF's non-notifying
   collection cache and PropertyDescriptor subscriptions can retain closed views
   and analysis snapshots. Keep analysis DTOs independent of UI notification types.
+- Add concise contextual tooltips to editor/preview controls when they clarify
+  actions, states or unfamiliar concepts. Keep essential guidance visible and
+  provide equivalent accessible help for keyboard/screen-reader users. Help must
+  preserve focus and drafts; see [milestone seven's tooltip design](src/VisualStudio/MILESTONE-7.md#contextual-tooltips-and-help-2026-10-10).
 - Resolved previews use SDK effective fields and surviving procedure entries.
   The dockable Alarmlist Preview window follows the shell's DocumentFrame selection
   through a weak document context. Detach on hide/close and invalidate pending

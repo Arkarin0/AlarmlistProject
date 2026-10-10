@@ -6,9 +6,13 @@ committed milestones, or a delivery schedule.
 
 Planning update (2026-10-10): the owner selected improvements to the existing ALMX
 file editor's UI/UX for [milestone seven](src/VisualStudio/MILESTONE-7.md), with
-procedure editing identified as the first priority. Its source review and proposed
-iterations cover procedure layout, editing actions, inheritance/expressions and
-supporting editor feedback. Specific interaction decisions are
+procedure editing identified as the first priority. The procedure preview is
+accepted; confirmed additions cover a labels-left/editors-right property form,
+direct field editing, context-menu inheritance reset, searchable references,
+dark-theme legibility, separate file/alarm areas, IntelliSense labels and a preview
+table with multiline procedure rendering and configurable columns. Project-user
+column layout persistence is specified in the milestone plan. Its iterations include
+procedure layout, editing actions and inheritance/expressions. Some interaction details are
 still open. Custom procedure groups and the other backlog features below are not
 the selected milestone-seven scope.
 
