@@ -11,6 +11,15 @@ namespace Alarmlist.VisualStudio.UI
 {
     internal enum ProcedureAction { Add, Delete, MoveUp, MoveDown }
 
+    internal sealed class ProcedureFocusRequest
+    {
+        public AlarmSource Alarm { get; }
+        public ProcedureSectionViewModel Section { get; }
+        public int Index { get; }
+        public ProcedureFocusRequest(AlarmSource alarm, ProcedureSectionViewModel section, int index)
+        { Alarm = alarm; Section = section; Index = index; }
+    }
+
     internal sealed class ProcedureSectionViewModel : ObservableObject
     {
         private readonly Action _changed;

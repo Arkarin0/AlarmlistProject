@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Alarmlist.VisualStudio.Testing;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
@@ -84,8 +85,58 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => toggle.IsEnabled, "cleared provenance after Undo");
             toggle.Focus();
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "cleared-procedures.png"));
+
+            AutomationElement add = window.FindFirstDescendant(cf => cf.ByName("Add Instructions entry"));
+            Press(ide, add, VirtualKeyShort.SPACE);
+            TextBox added = null;
+            VisualStudioSession.Wait(() => (added = window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
+                .Select(element => element.AsTextBox()).SingleOrDefault(element => element.Properties.HasKeyboardFocus.Value)) != null, "Add focuses new procedure entry");
+            Assert.Equal("", added.Text);
+            ide.RequireForeground();
+            Keyboard.Type("Added procedure");
+            VisualStudioSession.Wait(() => added.Text == "Added procedure", "typing after Add keeps the caret");
+            ide.RequireForeground();
+            Assert.True(added.Properties.HasKeyboardFocus.Value);
+            Keyboard.Press(VirtualKeyShort.SHIFT);
+            try
+            {
+                Keyboard.Type(VirtualKeyShort.RETURN);
+                VisualStudioSession.Wait(() => added.Text.Replace("\r", "") == "Added procedure\n", "Shift Enter inserts newline");
+            }
+            finally
+            {
+                Keyboard.Release(VirtualKeyShort.SHIFT);
+                File.WriteAllText(Path.Combine(workspace.DirectoryPath, "procedure-keyboard-state.txt"),
+                    "Editor: " + added.Text.Replace("\r", "\\r").Replace("\n", "\\n") + "\nXML: " + ide.ReadText(workspace.AlarmPath));
+            }
+            ide.RequireForeground();
+            Assert.True(added.Properties.HasKeyboardFocus.Value);
+            Keyboard.Type("Second line");
+            VisualStudioSession.Wait(() => added.Text.Replace("\r", "") == "Added procedure\nSecond line", "multiline draft typing");
+            Assert.DoesNotContain("Added procedure", ide.ReadText(workspace.AlarmPath));
+            Press(ide, added, VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => Entries(ide, workspace).Last().Value.Replace("\r", "") == "Added procedure\nSecond line", "multiline entry commit");
+            Press(ide, window.FindAllDescendants(cf => cf.ByName("Move procedure entry up")).Last(), VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => Entries(ide, workspace)[2].Value.StartsWith("Added procedure", StringComparison.Ordinal), "move source order");
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
+                .Select(element => element.AsTextBox()).Any(element => element.Properties.HasKeyboardFocus.Value && element.Text.StartsWith("Added procedure", StringComparison.Ordinal)), "move follows entry focus");
+            Press(ide, window.FindAllDescendants(cf => cf.ByName("Remove procedure entry"))[2], VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => XNode.DeepEquals(XDocument.Parse(source), XDocument.Parse(ide.ReadText(workspace.AlarmPath))), "remove restores original procedure content");
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
+                .Select(element => element.AsTextBox()).Any(element => element.Properties.HasKeyboardFocus.Value && element.Text == "Surviving local"), "remove focuses next entry");
             Assert.Equal(disk, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllText(workspace.OutputPath));
+        }
+
+        private static XElement[] Entries(VisualStudioSession ide, UiTestWorkspace workspace) => XDocument.Parse(ide.ReadText(workspace.AlarmPath))
+            .Root.Elements("Alarm").First().Element("TestProcedure").Element("Instructions").Elements().ToArray();
+        private static void Press(VisualStudioSession ide, AutomationElement target, VirtualKeyShort key)
+        {
+            Assert.NotNull(target);
+            target.Focus();
+            VisualStudioSession.Wait(() => target.Properties.HasKeyboardFocus.Value, "procedure action focus");
+            ide.RequireForeground();
+            Keyboard.Type(key);
         }
     }
 }

@@ -29,6 +29,7 @@ namespace Alarmlist.VisualStudio.UI
         private readonly LiveStatusTextBlock _status;
         private readonly Popup _popup;
         private bool _displayChange;
+        private bool _writingRaw;
         private bool _explicitCompletion;
         private string _dismissedText;
         private int _tokenStart;
@@ -81,6 +82,11 @@ namespace Alarmlist.VisualStudio.UI
 
         private void RefreshDisplay()
         {
+            // A source update can synchronously invalidate resolved analysis.
+            // Replacing Text inside its native insertion changes the caret before
+            // WPF finishes that insertion (notably the first character in an
+            // empty resolved field). The current Text is already the new draft.
+            if (_writingRaw) return;
             string display = !IsKeyboardFocusWithin && HasResolvedValue ? ResolvedText ?? "" : RawText ?? "";
             if (Text == display) return;
             int start = SelectionStart;
@@ -107,7 +113,9 @@ namespace Alarmlist.VisualStudio.UI
         {
             base.OnTextChanged(args);
             if (_displayChange) return;
-            SetCurrentValue(RawTextProperty, Text);
+            _writingRaw = true;
+            try { SetCurrentValue(RawTextProperty, Text); }
+            finally { _writingRaw = false; }
             RefreshCompletion();
         }
 

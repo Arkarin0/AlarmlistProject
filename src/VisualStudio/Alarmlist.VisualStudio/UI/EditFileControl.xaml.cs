@@ -1,8 +1,13 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using Alarmlist.VisualStudio.UI;
 
@@ -31,6 +36,49 @@ namespace Alarmlist.VisualStudio
         // This WPF event handler only awaits the view model's guarded command and
         // UI dispatch. Recoverable command failures are handled by the view model.
 #pragma warning disable VSTHRD100
+        private async void OnProcedureAction(object sender, RoutedEventArgs args)
+        {
+            var button = (Button)sender;
+            EditFileControlViewModel view = ViewModel;
+            ProcedureFocusRequest previous = view.ProcedureFocus;
+            int version = _inputVersion;
+            TextBox source = Children(this).OfType<ExpressionTextBox>().FirstOrDefault(editor =>
+                ReferenceEquals(editor.DataContext, button.DataContext));
+            int start = source?.SelectionStart ?? 0, length = source?.SelectionLength ?? 0;
+            // Click precedes ICommand execution. Let its source edit and bindings
+            // finish before focusing the new row, as in the parameter list.
+            bool newerInput = false;
+            PreProcessInputEventHandler observeInput = (inputSender, inputArgs) =>
+            {
+                RoutedEvent routedEvent = inputArgs.StagingItem.Input.RoutedEvent;
+                if (routedEvent == Keyboard.PreviewKeyDownEvent || routedEvent == Mouse.PreviewMouseDownEvent) newerInput = true;
+            };
+            InputManager.Current.PreProcessInput += observeInput;
+            try { await Dispatcher.Yield(DispatcherPriority.Background); }
+            finally { InputManager.Current.PreProcessInput -= observeInput; }
+            ProcedureFocusRequest request = view.ProcedureFocus;
+            if (newerInput || version != _inputVersion || !IsLoaded || !ReferenceEquals(view, ViewModel)
+                || request == null || ReferenceEquals(previous, request)
+                || !ReferenceEquals(request.Alarm, view.Selected?.Source)
+                // Deleting the focused row can temporarily focus the native XML
+                // view. The removed button is no longer loaded; newer physical
+                // input anywhere in the shell still cancels this focus request.
+                || (button.IsLoaded && Keyboard.FocusedElement != null && !IsKeyboardFocusWithin)) return;
+
+            ProcedureItemViewModel row = request.Index < 0 ? null : request.Section.Items.ElementAtOrDefault(request.Index);
+            FrameworkElement target = row == null ? Children(this).OfType<Button>().FirstOrDefault(item =>
+                ReferenceEquals(item.DataContext, request.Section) && ReferenceEquals(item.Command, request.Section.AddCommand))
+                : row.IsTextEnabled ? (FrameworkElement)Children(this).OfType<ExpressionTextBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, row))
+                : Children(this).OfType<ComboBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, row));
+            if (target == null || !target.IsVisible || !target.IsEnabled) return;
+            target.BringIntoView();
+            // Prepare selection before exposing keyboard focus. Native input may
+            // arrive reentrantly from Focus, so nothing may reset it afterwards.
+            if (target is TextBox text)
+                text.Select(Math.Min(start, text.Text.Length), Math.Min(length, text.Text.Length - Math.Min(start, text.Text.Length)));
+            target.Focus();
+        }
+
         private async void OnOverrideLocally(object sender, RoutedEventArgs args)
         {
             var button = (Button)sender;
@@ -63,8 +111,20 @@ namespace Alarmlist.VisualStudio
             if (args.OriginalSource is ExpressionTextBox expression && expression.HandleCompletionKey(args.Key, Keyboard.Modifiers))
             { args.Handled = true; return; }
             if (args.Key == Key.Escape) { ViewModel.CancelPending(); args.Handled = true; }
-            else if (args.Key == Key.Enter && Keyboard.Modifiers != ModifierKeys.Shift && args.OriginalSource is TextBox text && !text.IsReadOnly)
-            { ViewModel.CommitPending(); args.Handled = true; }
+            else if (args.Key == Key.Enter) args.Handled = HandleReturnCommand(true, Keyboard.Modifiers);
+        }
+        internal bool HandleReturnCommand(bool execute, ModifierKeys modifiers)
+        {
+            if (!IsKeyboardFocusWithin || !(Keyboard.FocusedElement is TextBox text)) return false;
+            if (!execute || text.IsReadOnly) return true;
+            _inputVersion++;
+            if (text is ExpressionTextBox expression && expression.HandleCompletionKey(Key.Enter, modifiers)) return true;
+            if (modifiers == ModifierKeys.Shift)
+            {
+                if (text.AcceptsReturn) EditingCommands.EnterLineBreak.Execute(null, text);
+            }
+            else ViewModel.CommitPending();
+            return true;
         }
         private void OnSizeChanged(object sender, SizeChangedEventArgs args)
         {
@@ -72,6 +132,15 @@ namespace Alarmlist.VisualStudio
             ListColumn.Width = new GridLength(narrow ? 0 : 220);
             AlarmList.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
             AlarmSelector.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
+        }
+        private static IEnumerable<DependencyObject> Children(DependencyObject parent)
+        {
+            for (int index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, index);
+                yield return child;
+                foreach (DependencyObject nested in Children(child)) yield return nested;
+            }
         }
     }
 }

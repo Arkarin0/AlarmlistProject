@@ -519,3 +519,53 @@ Validation evidence:
 No compiler/source-format changes. The unrelated sample edit remains untouched.
 Remaining work: iterations 3-7; the current property/reference layout and global
 button/combobox theme styling will be replaced in their planned iterations.
+
+### Iteration 3: procedure editing actions (2026-10-11)
+
+Add focuses the appended text editor (or the type selector for Clear); move follows
+the entry and carries its selection; remove focuses the following/previous entry
+or the group's Add button when empty. Requests are published only after successful
+source edits and discarded on source/selection refresh, view unload or later user
+input. Existing Enter, Shift+Enter, Escape, Tab, completion and shared Undo/Redo
+commands remain unchanged. Compact remove buttons retain accessible names and
+tooltips. Action buttons use the same theme/focus pattern as the parameter editor.
+
+Decision: when moving an active entry across Clear makes it excluded while hidden
+rows are enabled, retain that editor until focus leaves; do not silently change
+the group's visibility preference or remove the editor while typing.
+
+Validation: full VS unit suite passed 358 cases, zero skipped, after the native
+text-insertion fix. New tests cover added/moved/deleted focus, selection, failed
+source edits, cleared-row refresh while focused, reentrant focus input and native
+text composition into an empty resolved entry. After the final delete-focus fix,
+the focused procedure/keyboard unit selection passed all 29 cases, zero skipped.
+
+The live typing check found an existing empty-resolved-field defect: the first
+character triggered analysis invalidation and a reentrant Text refresh before WPF
+finished insertion, moving that character to the end of subsequent typing. A new
+WPF text-composition test reproduced it without Add/focus commands and passed after
+blocking display refresh during the raw source update. Focus handling additionally
+sets selection before exposing keyboard focus, avoiding post-input caret changes.
+
+The expanded live scenario also exposed Shift+Enter being translated by VS into
+VSStd2K RETURN and forwarded to the hidden XML editor, inserting a newline there
+instead of in the private draft. Return now routes to the focused designer field,
+with completion precedence, multiline insertion and commit semantics shared with
+the WPF key path. XML focus still uses the native command route. A WPF regression
+test verifies status queries do not edit, Shift+Enter stays private, Enter commits,
+and read-only fields/source-pane focus do not alter another editor.
+
+Deleting a focused row also lets WPF briefly focus the native XML pane. Focus
+restoration now tolerates that removed control while observing subsequent physical
+input across the shell; later user input cancels the deferred request. The temporary
+input observation is always detached after the dispatcher yield.
+
+Final live validation rebuilt/deployed the VSIX and passed `Area=Procedures|Area=Keyboard`
+on both hosts, two cases per host, zero skipped: VS2022 TRX directory
+`artifacts/log/Debug/VisualStudioUI/TestResults/ae837e52796b47df97e13d500f8a820a/`
+and VS2026 `artifacts/log/Debug/VisualStudioUI/TestResults/620c017773e04ede92a7f96e1174751e/`.
+The extended scenario verifies cleared drafts, Undo, Add/immediate typing,
+Shift+Enter, multiline commit, move/remove source order and resulting focus, with
+saved files/build output unchanged. Earlier failures above are resolved by these
+final runs. Reviewed the diff and whitespace; updated the editor usage guide.
+Remaining work: iterations 4-7. No genuine blocker at this boundary.

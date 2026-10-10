@@ -17,7 +17,24 @@
       <Setter Property="Padding" Value="5,3" />
     </Style>
     <Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
-    <Style TargetType="Button"><Setter Property="Padding" Value="9,3" /><Setter Property="Margin" Value="0,0,6,0" /></Style>
+    <Style TargetType="Button">
+      <Setter Property="Padding" Value="9,3" /><Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+          <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+        </Border>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /></Trigger>
+          <Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /></Trigger>
+          <Trigger Property="IsPressed" Value="True"><Setter Property="Opacity" Value="0.75" /></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5" /></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style TargetType="ToggleButton">
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
       <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
@@ -203,18 +220,20 @@
                       <WrapPanel Margin="0,0,0,8">
                         <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding NewKind}" MinWidth="92" Margin="0,0,6,0"
                                   AutomationProperties.Name="{Binding Name, StringFormat=New {0} entry kind}" />
-                        <Button Content="Add entry" Command="{Binding AddCommand}"
+                        <Button Content="+ Add entry" Command="{Binding AddCommand}" Click="OnProcedureAction" ToolTip="Append an entry to this group and start editing it."
                                 AutomationProperties.Name="{Binding Name, StringFormat=Add {0} entry}" />
                       </WrapPanel>
                       <ItemsControl ItemsSource="{Binding Items}">
                         <ItemsControl.ItemTemplate>
                           <DataTemplate>
                             <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
-                                    Padding="6" Margin="0,0,0,5" Visibility="{Binding IsVisible, Converter={StaticResource Visibility}}"
+                                    Padding="6" Margin="0,0,0,5"
                                     ToolTip="{Binding HelpText}">
-                              <Border.Style><Style TargetType="Border"><Style.Triggers>
+                              <Border.Style><Style TargetType="Border">
+                                <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource Visibility}}" />
+                                <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsExcluded}" Value="True"><Setter Property="Opacity" Value="0.78" /></DataTrigger>
-                                <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="Opacity" Value="1" /></Trigger>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="Opacity" Value="1" /><Setter Property="Visibility" Value="Visible" /></Trigger>
                               </Style.Triggers></Style></Border.Style>
                               <StackPanel>
                                 <WrapPanel Margin="0,0,0,5">
@@ -222,9 +241,9 @@
                                   <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind, UpdateSourceTrigger=PropertyChanged}"
                                             IsEnabled="{Binding CanEdit}" MinWidth="88" Margin="0,0,6,0"
                                             AutomationProperties.Name="Procedure entry kind" LostKeyboardFocus="OnFieldLostFocus" />
-                                  <Button Content="↑" Command="{Binding MoveUpCommand}" ToolTip="Move entry up" AutomationProperties.Name="Move procedure entry up" />
-                                  <Button Content="↓" Command="{Binding MoveDownCommand}" ToolTip="Move entry down" AutomationProperties.Name="Move procedure entry down" />
-                                  <Button Content="Remove" Command="{Binding DeleteCommand}" ToolTip="Remove this local source entry. Undo restores it." AutomationProperties.Name="Remove procedure entry" />
+                                  <Button Content="↑" Command="{Binding MoveUpCommand}" Click="OnProcedureAction" ToolTip="Move entry up. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry up" />
+                                  <Button Content="↓" Command="{Binding MoveDownCommand}" Click="OnProcedureAction" ToolTip="Move entry down. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry down" />
+                                  <Button Content="×" Command="{Binding DeleteCommand}" Click="OnProcedureAction" ToolTip="Remove this local source entry. Undo restores it." AutomationProperties.Name="Remove procedure entry" />
                                 </WrapPanel>
                                 <Separator Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
                                 <TextBlock Text="Clear preceding entries" FontWeight="SemiBold" Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />

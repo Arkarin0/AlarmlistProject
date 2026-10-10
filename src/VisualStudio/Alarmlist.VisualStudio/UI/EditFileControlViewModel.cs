@@ -35,6 +35,7 @@ namespace Alarmlist.VisualStudio.UI
         public ObservableCollection<AlarmViewModel> Alarms { get; } = new ObservableCollection<AlarmViewModel>();
         public IReadOnlyList<AlarmFieldViewModel> Fields { get; }
         public IReadOnlyList<ProcedureSectionViewModel> ProcedureSections { get; }
+        public ProcedureFocusRequest ProcedureFocus { get; private set; }
         public DelegateCommand AddCommand { get; }
         public DelegateCommand DeleteCommand { get; }
         public bool HasPending => _pending;
@@ -136,6 +137,7 @@ namespace Alarmlist.VisualStudio.UI
         }
         private void LoadFields()
         {
+            ProcedureFocus = null;
             _baseline = _model.Projection;
             _original = _selected?.Source;
             foreach (AlarmFieldViewModel field in Fields) field.Load(_original);
@@ -146,18 +148,27 @@ namespace Alarmlist.VisualStudio.UI
         private void EditProcedure(string section, int index, ProcedureAction action, string kind)
         {
             if (!CommitPending() || !CanEdit) return;
+            bool edited = false;
             switch (action)
             {
                 case ProcedureAction.Add:
-                    _model.AddProcedureItem(_selected.Source, section, kind, out _error);
+                    edited = _model.AddProcedureItem(_selected.Source, section, kind, out _error);
                     break;
                 case ProcedureAction.Delete:
-                    _model.DeleteProcedureItem(_selected.Source, section, index, out _error);
+                    edited = _model.DeleteProcedureItem(_selected.Source, section, index, out _error);
                     break;
                 case ProcedureAction.MoveUp:
                 case ProcedureAction.MoveDown:
-                    _model.MoveProcedureItem(_selected.Source, section, index, action == ProcedureAction.MoveUp ? -1 : 1, out _error);
+                    edited = _model.MoveProcedureItem(_selected.Source, section, index, action == ProcedureAction.MoveUp ? -1 : 1, out _error);
                     break;
+            }
+            if (edited)
+            {
+                ProcedureSectionViewModel group = ProcedureSections.Single(item => item.Name == section);
+                int target = action == ProcedureAction.Add ? group.Items.Count - 1
+                    : action == ProcedureAction.MoveUp ? index - 1 : action == ProcedureAction.MoveDown ? index + 1
+                    : Math.Min(index, group.Items.Count - 1);
+                ProcedureFocus = new ProcedureFocusRequest(_selected.Source, group, target);
             }
             Notify(nameof(Error));
         }

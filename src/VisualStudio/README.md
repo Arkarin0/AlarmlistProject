@@ -275,7 +275,9 @@ current value after a conflict.
 Expand **Test procedure** below the alarm fields to edit the local **Instructions**
 and **Reset** sections. Choose Step, Hint, Warning, Note, or Clear and select
 **Add entry**. Each entry has a kind selector, multiline text, move up/down, and
-Remove controls. Clear has no text: it discards all entries preceding it in that
+Remove controls. Add focuses the new entry; moving keeps its text selection, and
+removing focuses the next entry (or the previous entry/group Add button).
+Clear has no text: it discards all entries preceding it in that
 section, including inherited entries. Their order therefore matters.
 
 Procedure drafts use the same Enter/focus-loss, Escape, Save, and Undo behavior
@@ -284,11 +286,15 @@ independent Instructions and Reset edits can be combined. Duplicate procedure
 containers/sections and entries containing nested markup or comments must be
 edited in XML. Unknown entries and surrounding source remain intact.
 
-Inherited procedure rows have a chain icon, origin text, and **Go to source**.
-**Excluded by Clear** explains omitted inherited and earlier local entries; local
-rows remain editable in the source-order list below it. **Effective sequence**
-shows only surviving entries in execution order. Drafts hide a section's semantic
-view until committed or cancelled; they are never replaced by analysis refreshes.
+Inherited procedure rows stay read-only and have a chain icon and **Go to source**;
+origin/exclusion details are available in tooltips. Cleared rows appear inline with
+muted styling and an explicit Cleared label. Local cleared rows remain editable.
+Each group's eye button hides/shows cleared rows without committing a draft or
+changing XML; Clear boundaries always remain visible. These choices last for the
+editor view, including alarm switches. Moving a focused entry across Clear keeps
+its editor visible until focus leaves. Analysis never replaces private drafts;
+text-only drafts retain structural exclusion information but suppress resolved
+values until committed or cancelled.
 
 **Use local entries only** inserts a leading Clear while preserving existing
 entries and directives. **Make local copy** replaces that section with a leading
