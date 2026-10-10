@@ -229,11 +229,16 @@ empty checked field remains an explicit empty local value and can still inherit.
 The list becomes a
 selector when the designer pane is narrow.
 
-Inherited Name, Code, Category, and Description values are selectable, read-only
-fields with a chain icon and defining alarm/file text. **Override locally** starts
-a draft copied from the current effective value; **Use inherited value** removes
-the local XML element. Viewing, focusing, or saving an untouched inherited field
-does not create an override. Analysis refreshes preserve active local drafts.
+The property form aligns labels on the left and editors on the right, with a
+narrow inheritance-icon gutter between them. Edit a field directly to create a
+local value; XML-presence checkboxes are no longer needed. Inherited Name, Code,
+Category and Description show a chain icon and origin tooltip. Focus shows their
+raw expression; typing starts a local draft. **Use inherited value** in the field's
+context menu removes its local XML element. Right-click or Shift+F10 opens this
+menu, including clipboard and source-navigation actions. Viewing, focusing, or
+saving an untouched field does not create an override. Analysis refreshes preserve
+active local drafts. The **Abstract template** checkbox still controls exclusion
+from compiled output and follows the Visual Studio theme.
 
 Choose a project context for a file linked into multiple projects. The reference
 picker lists unambiguous identifiers from that project and excludes self/cyclic

@@ -31,7 +31,6 @@ namespace Alarmlist.VisualStudio
             // Explicit Save/Enter and editor layout changes also commit as before.
             if (IsKeyboardFocusWithin && !Equals((args.NewFocus as FrameworkElement)?.Tag, "PreserveDraft")) ViewModel.CommitPending();
         }
-        private void OnPresenceChanged(object sender, RoutedEventArgs args) => ViewModel.CommitPending();
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
         private void OnUnloaded(object sender, RoutedEventArgs args) => _inputVersion++;
         private void OnInheritanceActions(object sender, RoutedEventArgs args)
@@ -40,8 +39,8 @@ namespace Alarmlist.VisualStudio
             PrepareActionsMenu(button);
             button.ContextMenu.IsOpen = true;
         }
-        private void OnActionsMenuOpening(object sender, ContextMenuEventArgs args) => PrepareActionsMenu((Button)sender);
-        private static void PrepareActionsMenu(Button button)
+        private void OnActionsMenuOpening(object sender, ContextMenuEventArgs args) => PrepareActionsMenu((FrameworkElement)sender);
+        private static void PrepareActionsMenu(FrameworkElement button)
         {
             button.ContextMenu.DataContext = button.DataContext;
             button.ContextMenu.PlacementTarget = button;
@@ -49,7 +48,7 @@ namespace Alarmlist.VisualStudio
         }
         private void OnActionsUnloaded(object sender, RoutedEventArgs args)
         {
-            var menu = ((Button)sender).ContextMenu;
+            var menu = ((FrameworkElement)sender).ContextMenu;
             menu.IsOpen = false;
             menu.DataContext = null;
             menu.PlacementTarget = null;
@@ -100,31 +99,6 @@ namespace Alarmlist.VisualStudio
             target.Focus();
         }
 
-        private async void OnOverrideLocally(object sender, RoutedEventArgs args)
-        {
-            var button = (Button)sender;
-            var field = (AlarmFieldViewModel)button.DataContext;
-            var editor = (TextBox)button.Tag;
-            EditFileControlViewModel viewModel = ViewModel;
-            AlarmViewModel selected = viewModel.Selected;
-            int inputVersion = _inputVersion;
-
-            // WPF executes the bound command after Click. Wait for that command's
-            // validation and for the cleared previews to finish changing layout.
-            await Dispatcher.Yield(DispatcherPriority.Background);
-#pragma warning disable VSTHRD003
-            await viewModel.PendingAnalysisAction;
-#pragma warning restore VSTHRD003
-            await Dispatcher.Yield(DispatcherPriority.Background);
-            if (inputVersion != _inputVersion || !IsLoaded || !IsKeyboardFocusWithin
-                || !ReferenceEquals(DataContext, viewModel) || !ReferenceEquals(viewModel.Selected, selected)
-                || !ReferenceEquals(editor.DataContext, field) || !field.HasChanges
-                || !editor.IsVisible || !editor.IsEnabled) return;
-
-            editor.Focus();
-            editor.CaretIndex = editor.Text.Length;
-            editor.BringIntoView();
-        }
 #pragma warning restore VSTHRD100
         private void OnPreviewKeyDown(object sender, KeyEventArgs args)
         {

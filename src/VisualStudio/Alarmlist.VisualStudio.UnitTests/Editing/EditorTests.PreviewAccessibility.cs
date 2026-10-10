@@ -81,14 +81,17 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     host.RootVisual = control;
                     InheritanceAdornerTests.Pump();
                     Button[] buttons = VisualChildren(control).OfType<Button>().ToArray();
-                    string[] scalarActions = buttons.Where(button => button.DataContext is AlarmFieldViewModel field
-                        && field.IsScalar && button.Visibility == Visibility.Visible)
-                        .Select(button => new ButtonAutomationPeer(button).GetName()).ToArray();
+                    var scalarEditors = VisualChildren(control).OfType<ExpressionTextBox>().Where(editor => editor.DataContext is AlarmFieldViewModel field && field.IsScalar);
+                    string[] scalarActions = scalarEditors.SelectMany(editor =>
+                    {
+                        editor.ContextMenu.DataContext = editor.DataContext;
+                        return editor.ContextMenu.Items.OfType<MenuItem>().Where(item => item.Command is DelegateCommand)
+                            .Select(item => new MenuItemAutomationPeer(item).GetName());
+                    }).ToArray();
                     Assert.Equal(new[]
                     {
-                        "Override Name locally", "Go to source for Name", "Use inherited Name",
-                        "Use inherited Code", "Override Category locally", "Go to source for Category",
-                        "Override Description locally", "Go to source for Description"
+                        "Use inherited Name", "Go to source for Name", "Use inherited Code", "Go to source for Code",
+                        "Use inherited Category", "Go to source for Category", "Use inherited Description", "Go to source for Description"
                     }, scalarActions);
                     string[] sectionActions = buttons.Where(button => button.DataContext is ProcedureSectionViewModel
                         && button.ContextMenu != null)

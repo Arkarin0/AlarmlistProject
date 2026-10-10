@@ -604,3 +604,32 @@ Reviewed diff/whitespace; no compiler or source-format changes, no current block
 Planning refinement: split the still-unimplemented iteration 5 into 5a/5b/5c so
 each independent behavior has its own validation and commit boundary. The agreed
 scope, ordering, final gates and completed iteration identifiers are unchanged.
+
+### Iteration 5a: direct property form (2026-10-11)
+
+Implemented aligned labels/editors with a reserved, right-aligned adorner gutter
+and no form headers or presence checkboxes. A dedicated edit value presents the
+inherited raw expression without changing source presence. Actual typing starts a
+local draft; focus alone never writes. Empty drafts remain stable until commit,
+including clearing an already-empty local scalar that inherits (no extra XML edit).
+The field context menu retains clipboard commands and offers inheritance reset and
+source navigation. The Abstract template checkbox now uses VS/system theme brushes
+for its text, check mark, background and focus border.
+
+Removed the obsolete override-button focus callback/tests; direct-edit tests cover
+the replacement's focus, selection, cancellation, raw expressions and Undo. The
+existing guarded model copy/navigation commands and source edit rules are retained.
+Validation: initial focused selection passed 14 cases and the full VS unit suite
+passed 365, all zero skipped. Reviewed simulated light/dark/high-contrast form
+renders at 900/650/440 widths and the actual VS2022 dark form/context menu; the
+Abstract label/check border are readable. The full OS theme/DPI matrix remains
+iteration 7's gate. VSIX/SDK assets rebuilt.
+
+Live `Area=Procedures|Area=Properties|Area=Keyboard` passed all four cases per host,
+zero skipped. The new workflow verifies inherited focus produces no write, typing
+creates a local raw expression, Shift+F10 opens the field menu, reset removes the
+element, Undo restores it, and the subsequent saved build evaluates correctly.
+VS2022 TRX directory: `artifacts/log/Debug/VisualStudioUI/TestResults/a976a67c12764528ba90c1fcd598bc13/`;
+VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/829744ef9fe643dfa9d142cbb76661ff/`.
+Reviewed diff/whitespace and updated usage documentation. Remaining: 5b, 5c, 6, 7;
+no current blocker. Account allowance at the last checkpoint: 34% remaining.

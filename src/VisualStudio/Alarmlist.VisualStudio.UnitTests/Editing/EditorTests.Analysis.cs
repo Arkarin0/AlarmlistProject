@@ -50,20 +50,20 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     host.RootVisual = control;
                     InheritanceAdornerTests.Pump();
                     TextBox inherited = VisualChildren(control).OfType<TextBox>().Single(box =>
-                        box.IsReadOnly && AutomationProperties.GetName(box) == "Name");
+                        AutomationProperties.GetName(box) == "Name");
+                    Assert.False(inherited.IsReadOnly);
                     Assert.Equal("Inherited", inherited.Text);
                     Assert.Contains("Inherited from Base", AutomationProperties.GetHelpText(inherited));
                     Assert.False(session.View.HasPending);
                     Assert.Equal(0, session.Buffer.Edits);
-                    Button button = VisualChildren(control).OfType<Button>().Single(item =>
-                        Equals(item.Content, "Override locally") && item.DataContext == session.Field("Name"));
-                    Assert.True(button.Command.CanExecute(null));
-                    button.Command.Execute(null);
+                    Assert.True(inherited.Focus());
+                    Assert.False(session.View.HasPending);
+                    inherited.Text = "Local draft";
                     InheritanceAdornerTests.Pump();
                     TextBox local = VisualChildren(control).OfType<TextBox>().Single(box =>
                         !box.IsReadOnly && AutomationProperties.GetName(box) == "Name");
                     Assert.Equal(Visibility.Visible, local.Visibility);
-                    Assert.Equal("Inherited", local.Text);
+                    Assert.Equal("Local draft", local.Text);
                     Assert.True(session.View.HasPending);
                     Assert.Equal(0, session.Buffer.Edits);
                     session.View.CancelPending();

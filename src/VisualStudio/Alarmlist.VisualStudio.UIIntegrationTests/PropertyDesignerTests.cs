@@ -131,16 +131,29 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Press(ide, abstractBox, VirtualKeyShort.SPACE);
             VisualStudioSession.Wait(() => Child(ide, workspace).Attribute("abstract") == null, "concrete XML synchronization");
 
-            // Copying an inherited expression must leave the tokens editable.
-            AutomationElement copy = null;
-            VisualStudioSession.Wait(() => (copy = window.FindFirstDescendant(cf => cf.ByName("Override Name locally")
-                .And(cf.ByControlType(ControlType.Button))))?.IsEnabled == true, "override available after abstract analysis");
-            Press(ide, copy, VirtualKeyShort.SPACE);
-            TextBox name = null;
-            VisualStudioSession.Wait(() => (name = Box(window, "Name"))?.Properties.HasKeyboardFocus.Value == true, "override focuses raw expression draft");
+            // Focusing an inherited field shows its raw expression without a write.
+            TextBox name = Box(window, "Name");
+            VisualStudioSession.Wait(() => name.Text == "Alarm 001", "inherited Name after abstract analysis");
+            string beforeFocus = ide.ReadText(workspace.AlarmPath);
+            Focus(ide, name);
             Assert.Equal("Alarm $(par1)", name.Text);
+            Assert.Equal(beforeFocus, ide.ReadText(workspace.AlarmPath));
+            Type(ide, name, "Alarm $(par1) edited");
             PressFocused(ide, name, VirtualKeyShort.RETURN);
-            Assert.Equal("Alarm $(par1)", Child(ide, workspace).Element("Name").Value);
+            VisualStudioSession.Wait(() => Child(ide, workspace).Element("Name")?.Value == "Alarm $(par1) edited", "direct inherited edit creates local raw value");
+            RequireFocus(ide, name);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
+            AutomationElement reset = null;
+            VisualStudioSession.Wait(() => (reset = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName("Use inherited Name").And(cf.ByControlType(ControlType.MenuItem))))
+                .SingleOrDefault())?.IsEnabled == true, "keyboard field context menu");
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "direct-property-form.png"));
+            Press(ide, reset, VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => Child(ide, workspace).Element("Name") == null, "context menu restores inheritance");
+            Focus(ide, name);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => Child(ide, workspace).Element("Name")?.Value == "Alarm $(par1) edited", "inheritance reset Undo");
+            VisualStudioSession.Wait(() => name.Text == "Alarm $(par1) edited", "Undo keeps raw local text focused");
             Assert.Equal(diskBefore, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(outputBefore, File.ReadAllText(workspace.OutputPath));
             ide.Automation.ExecuteCommand("File.SaveAll", "");
@@ -148,7 +161,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             XElement emitted = XDocument.Load(workspace.OutputPath).Root.Elements("Alarm").Single();
             Assert.Equal("001", emitted.Element("Code").Value);
             Assert.Equal("Inspect 001", emitted.Element("Description").Value);
-            Assert.Equal("Alarm 001", emitted.Element("Name").Value);
+            Assert.Equal("Alarm 001 edited", emitted.Element("Name").Value);
             Assert.Contains("Check 001 $(literal)", emitted.Value);
             Assert.Contains("$(par1)", File.ReadAllText(workspace.AlarmPath));
         }

@@ -34,10 +34,27 @@ namespace Alarmlist.VisualStudio.UI
         private bool _originalPresent;
         private AnalysisField _analysis;
         private bool _valuesCurrent;
+        private bool _hasEditDraft;
         public string Name { get; }
         public string Value { get => _value; set { if (_value == value) return; _value = value; Notify(); NotifyPresentation(); _changed(); } }
         public bool IsPresent { get => _isPresent; set { if (_isPresent == value) return; _isPresent = value; Notify(); NotifyPresentation(); _changed(); } }
-        public bool HasChanges => IsPresent != _originalPresent || (IsPresent && Value != _originalValue);
+        // Editing an inherited display is explicit user input. Merely presenting
+        // its raw expression must never materialize a local XML element.
+        public string EditValue
+        {
+            get => !_hasEditDraft && IsInherited ? _analysis.EffectiveExpression ?? string.Empty : Value;
+            set
+            {
+                value = value ?? string.Empty;
+                if (EditValue == value) return;
+                _value = value;
+                _isPresent = true;
+                _hasEditDraft = true;
+                Notify(nameof(Value)); Notify(nameof(IsPresent)); NotifyPresentation();
+                _changed();
+            }
+        }
+        public bool HasChanges => _hasEditDraft || IsPresent != _originalPresent || (IsPresent && Value != _originalValue);
         public bool IsScalar => Name == "Name" || Name == "Code" || Name == "Category" || Name == "Description";
         public bool IsInherited => !HasChanges && _analysis?.IsInherited == true;
         public bool ShowLocalEditor => !IsInherited;
@@ -50,12 +67,15 @@ namespace Alarmlist.VisualStudio.UI
         public string OriginText => !IsInherited ? string.Empty : "Inherited from " + (_analysis.DefiningAlarm?.FullyQualifiedName ?? "unnamed alarm")
             + " in " + Path.GetFileName(_analysis.ValueLocation?.FilePath)
             + (IsPresent ? ". The local element is empty." : ".");
+        public string EditHelp => (IsInherited ? OriginText + " Edit to create a local value. " : "") + ValueStatus
+            + " Enter commits; Shift+Enter adds a line; Escape cancels. Right-click or Shift+F10 for inheritance and clipboard actions.";
         public DelegateCommand OverrideCommand { get; internal set; }
         public DelegateCommand UseInheritedCommand { get; internal set; }
         public DelegateCommand GoToSourceCommand { get; internal set; }
         public AlarmFieldViewModel(string name, Action changed) { Name = name; _changed = changed; }
         public void Load(AlarmSource source)
         {
+            _hasEditDraft = false;
             _value = source?.GetValue(Name) ?? string.Empty;
             _isPresent = source?.HasField(Name) ?? false;
             _originalValue = _value;
@@ -69,6 +89,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             Notify(nameof(IsInherited)); Notify(nameof(ShowLocalEditor)); Notify(nameof(EffectiveValue)); Notify(nameof(OriginText));
             Notify(nameof(ResolvedValue)); Notify(nameof(CanShowResolved)); Notify(nameof(ValueStatus));
+            Notify(nameof(EditValue)); Notify(nameof(EditHelp));
             OverrideCommand?.Refresh(); UseInheritedCommand?.Refresh(); GoToSourceCommand?.Refresh();
         }
     }

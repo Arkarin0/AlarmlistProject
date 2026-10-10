@@ -21,6 +21,25 @@
       <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
     </Style>
+    <Style TargetType="CheckBox">
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox">
+        <StackPanel Orientation="Horizontal">
+          <Border x:Name="CheckBorder" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center"
+                  Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+            <Path x:Name="CheckMark" Data="M 2,7 L 6,11 L 12,3" Stroke="{TemplateBinding Foreground}" StrokeThickness="2" Visibility="Collapsed" />
+          </Border>
+          <ContentPresenter VerticalAlignment="Center" RecognizesAccessKey="True" />
+        </StackPanel>
+        <ControlTemplate.Triggers>
+          <Trigger Property="IsChecked" Value="True"><Setter TargetName="CheckMark" Property="Visibility" Value="Visible" /></Trigger>
+          <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CheckBorder" Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /><Setter TargetName="CheckBorder" Property="BorderThickness" Value="2" /></Trigger>
+          <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.65" /></Trigger>
+        </ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style TargetType="Button">
       <Setter Property="Padding" Value="9,3" /><Setter Property="Margin" Value="0,0,6,0" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
@@ -142,13 +161,13 @@
         <ComboBox x:Name="AlarmSelector" DockPanel.Dock="Top" ItemsSource="{Binding Alarms}" SelectedItem="{Binding Selected}" DisplayMemberPath="Title" Visibility="Collapsed" Margin="0,0,0,8" AutomationProperties.Name="Selected alarm">
           <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem"><Setter Property="AutomationProperties.Name" Value="{Binding Title}" /></Style></ComboBox.ItemContainerStyle>
         </ComboBox>
-        <TextBlock DockPanel.Dock="Bottom" Text="Checkboxes describe local XML elements. Empty scalar values can still inherit. Use Override locally to start an editable copy; Escape cancels it." TextWrapping="Wrap" Opacity="0.7" Margin="0,8,0,0" />
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel>
 
           <ui:ParameterListControl DataContext="{Binding AlarmParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,8,12" />
           <StackPanel IsEnabled="{Binding CanEdit}">
-          <CheckBox Content="Abstract template (excluded from output)" IsChecked="{Binding IsAbstract}" Margin="0,0,8,12" AutomationProperties.Name="Abstract template" />
+          <CheckBox Content="Abstract template" IsChecked="{Binding IsAbstract}" Margin="0,0,8,12" AutomationProperties.Name="Abstract template"
+                    ToolTip="A template can supply inherited values but is excluded from compiled alarm output." />
           <StackPanel Margin="0,0,8,12">
             <TextBlock Text="Reference selection" FontWeight="SemiBold" Margin="0,0,0,4" />
             <ComboBox ItemsSource="{Binding ReferenceChoices}" SelectedItem="{Binding SelectedReferenceChoice}" DisplayMemberPath="Label"
@@ -161,26 +180,33 @@
           <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding CanEdit}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <StackPanel Margin="0,0,8,10">
-                  <CheckBox Content="{Binding Name}" IsChecked="{Binding IsPresent}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,0,0,4" Click="OnPresenceChanged" ToolTip="Include a local value for this field" />
-                  <ui:ExpressionTextBox x:Name="LocalValueEditor" RawText="{Binding Value, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" IsEnabled="{Binding IsPresent}" Visibility="{Binding ShowLocalEditor, Converter={StaticResource Visibility}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding ValueStatus}" ToolTip="{Binding ValueStatus}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False" />
-                  <AdornerDecorator Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}">
-                    <TextBox Text="{Binding EffectiveValue, Mode=OneWay}" IsReadOnly="True" Padding="26,3,5,3"
-                             ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}" AutomationProperties.Name="{Binding Name}"
-                             AutomationProperties.HelpText="{Binding OriginText}" ToolTip="{Binding OriginText}"
-                             TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" />
+                <Grid Margin="0,0,8,8">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="135" /><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                  <Label x:Name="FieldLabel" Content="{Binding Name}" Target="{Binding ElementName=LocalValueEditor}" Padding="0,5,6,0"
+                         Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                  <AdornerDecorator Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <ContentControl Width="26" Height="27" Focusable="False" IsHitTestVisible="False"
+                                    ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}"
+                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                   </AdornerDecorator>
-                  <TextBlock Text="{Binding OriginText}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}" TextWrapping="Wrap" Margin="0,3,0,3" />
-                  <WrapPanel Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}" Margin="0,4,0,0">
-                    <Button Content="Override locally" Command="{Binding OverrideCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}"
-                            Tag="{Binding ElementName=LocalValueEditor}" Click="OnOverrideLocally"
-                            AutomationProperties.Name="{Binding Name, StringFormat=Override {0} locally}" />
-                    <Button Content="Go to source" Command="{Binding GoToSourceCommand}" Visibility="{Binding IsInherited, Converter={StaticResource Visibility}}"
-                            AutomationProperties.Name="{Binding Name, StringFormat=Go to source for {0}}" />
-                    <Button Content="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsPresent, Converter={StaticResource Visibility}}"
-                            AutomationProperties.Name="{Binding Name, StringFormat=Use inherited {0}}" />
-                  </WrapPanel>
-                </StackPanel>
+                  <ui:ExpressionTextBox x:Name="LocalValueEditor" Grid.Column="2" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.LabeledBy="{Binding ElementName=FieldLabel}" AutomationProperties.HelpText="{Binding EditHelp}" ToolTip="{Binding EditHelp}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False"
+                                        ContextMenuOpening="OnActionsMenuOpening" Unloaded="OnActionsUnloaded">
+                    <ui:ExpressionTextBox.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="Cut" Command="ApplicationCommands.Cut" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <MenuItem Header="Copy" Command="ApplicationCommands.Copy" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <MenuItem Header="Paste" Command="ApplicationCommands.Paste" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <MenuItem Header="Select all" Command="ApplicationCommands.SelectAll" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <Separator />
+                        <MenuItem Header="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}"
+                                  ToolTip="Remove this local field. The reference supplies its value again; Undo restores the local value."
+                                  AutomationProperties.Name="{Binding Name, StringFormat=Use inherited {0}}" />
+                        <MenuItem Header="Go to source" Command="{Binding GoToSourceCommand}" Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}"
+                                  ToolTip="Open the source that supplies this inherited value." AutomationProperties.Name="{Binding Name, StringFormat=Go to source for {0}}" />
+                      </ContextMenu>
+                    </ui:ExpressionTextBox.ContextMenu>
+                  </ui:ExpressionTextBox>
+                </Grid>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>

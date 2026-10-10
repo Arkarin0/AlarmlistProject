@@ -75,8 +75,7 @@ namespace Alarmlist.VisualStudio.UI
         private void OnDraftChanged()
         {
             if (_refreshing) return;
-            _pending = Fields.Any(field => field.IsPresent != (_original?.HasField(field.Name) ?? false)
-                || (field.IsPresent && field.Value != (_original?.GetValue(field.Name) ?? string.Empty)))
+            _pending = Fields.Any(field => field.HasChanges)
                 || ProcedureSections.Any(section => section.Items.Any(item => item.HasChanges)) || AllParameters.Any(row => row.HasChanges);
             PendingChanged?.Invoke(this, EventArgs.Empty);
             Notify(nameof(HasPending));
