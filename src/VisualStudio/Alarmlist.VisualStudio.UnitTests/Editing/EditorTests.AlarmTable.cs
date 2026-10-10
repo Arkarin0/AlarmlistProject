@@ -105,7 +105,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 string copied = null;
                 session.View.CopyPreviewRows(session.View.AlarmTableRows, text => copied = text);
                 await session.View.PendingAnalysisAction;
-                Assert.StartsWith("Name\tCode\tCategory\tDescription\tIdentity\tSource\r\nInspect 001\t", copied);
+                Assert.StartsWith("Name\tCode\tCategory\tDescription\tTest method\tIdentity\tSource\r\nInspect 001\t", copied);
                 AnalyzeLocalization(session, "keyword");
                 Assert.Equal("$(loc:Alarm.Inspect-now)", Assert.Single(session.View.AlarmTableRows).Name);
                 AnalyzeLocalization(session, saved: "<root><data name='Alarm.Inspect-now'><value>Line&#10;Tab&#9;&quot;Quoted&quot;</value></data></root>");
@@ -188,7 +188,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     InheritanceAdornerTests.Pump();
                     var table = (DataGrid)control.FindName("AlarmTable");
                     Assert.True(table.IsReadOnly);
-                    Assert.Equal(6, table.Columns.Count);
+                    Assert.Equal(7, table.Columns.Count);
                     Assert.Equal("Resolved alarm table", AutomationProperties.GetName(table));
                     session.View.SortAlarmTable("Code");
                     session.View.AlarmTableFilter = "Child";

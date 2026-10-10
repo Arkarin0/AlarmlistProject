@@ -102,7 +102,10 @@ and never writes build output. Source buttons revalidate the captured inputs.
 Closing the document or switching to another document clears its preview; reopening
 the window follows the current document. Visual Studio manages docking and layout.
 The alarm table includes every concrete alarm in the selected project context.
-Click column headings to sort; the filter searches resolved fields, identities
+Cells wrap and rows grow to fit their contents. **Test method** combines effective
+Instructions and Reset alarm sections with bullet steps and Hint/Warning/Note
+labels; cleared entries and Clear directives are omitted. Multiline text retains
+its line breaks. Click column headings to sort; the filter searches resolved fields, procedures, identities
 and source paths. Select a row to inspect its details, or double-click/press Enter
 to navigate to its source. Source-path tooltips identify linked files. Ctrl+C or
 **Copy selected rows** copies the selection in display order as tab-separated

@@ -14,11 +14,16 @@
    <Setter Property="Padding" Value="5,3" />
   </Style>
   <Style TargetType="Button"><Setter Property="Padding" Value="9,3" /></Style>
+  <Style x:Key="ReportCellText" TargetType="TextBlock">
+   <Setter Property="TextWrapping" Value="Wrap" /><Setter Property="VerticalAlignment" Value="Top" />
+   <Setter Property="Margin" Value="6,4" />
+  </Style>
   <Style x:Key="TableAction" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
    <Setter Property="IsEnabled" Value="{Binding CanUseProjectPreview}" />
    <Style.Triggers><DataTrigger Binding="{Binding SelectedPreviewRow}" Value="{x:Null}"><Setter Property="IsEnabled" Value="False" /></DataTrigger></Style.Triggers>
   </Style>
   <Style TargetType="DataGridColumnHeader">
+   <Setter Property="ToolTip" Value="Click to sort. Drag a column edge to resize. Test method shows the effective instructions and reset steps." />
    <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
    <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
    <Setter Property="Padding" Value="7,5" />
@@ -91,14 +96,16 @@
       </StackPanel>
       <DataGrid x:Name="AlarmTable" ItemsSource="{Binding AlarmTableRows, NotifyOnTargetUpdated=True}" SelectedItem="{Binding SelectedPreviewRow}" TargetUpdated="OnTableRowsUpdated"
                 AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False"
-                SelectionMode="Extended" SelectionUnit="FullRow" ClipboardCopyMode="None" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                EnableRowVirtualization="True" EnableColumnVirtualization="True" RowHeight="28"
+                SelectionMode="Extended" SelectionUnit="FullRow" ClipboardCopyMode="None" HeadersVisibility="Column" GridLinesVisibility="All"
+                EnableRowVirtualization="True" EnableColumnVirtualization="False" MinRowHeight="28"
+                ScrollViewer.CanContentScroll="True" VirtualizingPanel.ScrollUnit="Pixel" VirtualizingPanel.VirtualizationMode="Recycling"
                 Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
                 Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
                 BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
                 HorizontalGridLinesBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
+                VerticalGridLinesBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
                 Sorting="OnTableSorting" MouseDoubleClick="OnTableDoubleClick" SelectionChanged="OnTableSelectionChanged" AutomationProperties.Name="Resolved alarm table"
-                AutomationProperties.HelpText="Select a row to inspect it. Double-click or press Enter to go to source. Ctrl+C copies selected rows.">
+                AutomationProperties.HelpText="Read-only resolved values with wrapped procedures. Select a row to inspect it. Double-click or press Enter to go to source. Ctrl+C copies selected rows.">
        <DataGrid.RowStyle><Style TargetType="DataGridRow">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
@@ -114,15 +121,17 @@
         <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=DataGridRow}}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Padding" Value="6,4" />
+        <Setter Property="VerticalContentAlignment" Value="Top" />
         <Setter Property="BorderThickness" Value="0" />
        </Style></DataGrid.CellStyle>
        <DataGrid.Columns>
-        <DataGridTextColumn Header="Name" Binding="{Binding Name}" SortMemberPath="Name" Width="200" />
-        <DataGridTextColumn Header="Code" Binding="{Binding Code}" SortMemberPath="Code" Width="100" />
-        <DataGridTextColumn Header="Category" Binding="{Binding Category}" SortMemberPath="Category" Width="130" />
-        <DataGridTextColumn Header="Description" Binding="{Binding Description}" SortMemberPath="Description" Width="300" />
-        <DataGridTextColumn Header="Identity" Binding="{Binding Identity}" SortMemberPath="Identity" Width="220" />
-        <DataGridTextColumn Header="Source" Binding="{Binding Source}" SortMemberPath="Source" Width="180" />
+        <DataGridTextColumn Header="Name" Binding="{Binding Name}" SortMemberPath="Name" Width="200" ElementStyle="{StaticResource ReportCellText}" />
+        <DataGridTextColumn Header="Code" Binding="{Binding Code}" SortMemberPath="Code" Width="100" ElementStyle="{StaticResource ReportCellText}" />
+        <DataGridTextColumn Header="Category" Binding="{Binding Category}" SortMemberPath="Category" Width="130" ElementStyle="{StaticResource ReportCellText}" />
+        <DataGridTextColumn Header="Description" Binding="{Binding Description}" SortMemberPath="Description" Width="300" ElementStyle="{StaticResource ReportCellText}" />
+        <DataGridTextColumn Header="Test method" Binding="{Binding TestMethod}" SortMemberPath="TestMethod" Width="420" ElementStyle="{StaticResource ReportCellText}" />
+        <DataGridTextColumn Header="Identity" Binding="{Binding Identity}" SortMemberPath="Identity" Width="220" ElementStyle="{StaticResource ReportCellText}" />
+        <DataGridTextColumn Header="Source" Binding="{Binding Source}" SortMemberPath="Source" Width="180" ElementStyle="{StaticResource ReportCellText}" />
        </DataGrid.Columns>
       </DataGrid>
      </DockPanel>

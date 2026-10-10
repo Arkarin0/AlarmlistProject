@@ -709,3 +709,32 @@ in iteration 7; no current blocker. The unrelated example edit is preserved.
 Planning refinement: split the remaining iteration 6 into report rendering (6a)
 and column preferences/persistence (6b), with separate validation/commit boundaries.
 The approved scope and final acceptance gates remain unchanged.
+
+### Iteration 6a: preview report table (2026-10-11)
+
+Added wrapped, top-aligned report cells with both gridline directions, automatic
+row heights and a combined Test method column. Instructions and Reset retain
+compiler order/evaluated text; steps have bullets and Hint/Warning/Note keep their
+labels. Only compiler-effective entries are included. Filtering, sorting and
+quoted multiline clipboard output include Test method.
+
+Decision: retain recycling row virtualization with pixel scrolling so tall rows
+remain readable. Disable column virtualization for the seven fixed columns: row
+height must include procedure content even when that column is horizontally out
+of view. This bounds realized rows while avoiding height changes from horizontal
+scrolling. Column preferences remain the separate 6b deliverable.
+
+Validation: 17 focused report/table checks and the full 380-case VS unit suite
+passed, zero skipped. The new compiler-backed checks verify inherited reset text,
+local/inherited exclusions, evaluated expressions, all entry labels, multiline
+clipboard quoting, wrapping/resize row heights and fewer than 30 realized rows
+while scrolling through 1,200 alarms. Reviewed the simulated dark report render.
+
+The expanded live `Area=PreviewTable` case passed on both hosts, zero skipped,
+including automatic row height, localized values, quoted procedure copy, excluded
+text absence, multi-selection/Ctrl+C, sorting/filtering, source navigation and draft
+invalidation. SDK/VSIX assets rebuilt/deployed. VS2022 TRX directory:
+`artifacts/log/Debug/VisualStudioUI/TestResults/d06aeb8567b340b6ac2bcdaaf127b6a4/`;
+VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/33669173e7bd4e6da77c56f6380834bb/`.
+Reviewed the actual VS2022 dark report screenshot and diff/whitespace. No current
+blocker; remaining implementation is 6b followed by integrated acceptance 7.

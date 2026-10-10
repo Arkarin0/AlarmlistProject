@@ -104,7 +104,7 @@ namespace Alarmlist.VisualStudio.UI
 
         internal void SortAlarmTable(string column)
         {
-            if (!new[] { "Name", "Code", "Category", "Description", "Identity", "Source" }.Contains(column)) return;
+            if (!new[] { "Name", "Code", "Category", "Description", "TestMethod", "Identity", "Source" }.Contains(column)) return;
             AlarmTableSortDescending = column == AlarmTableSortColumn && !AlarmTableSortDescending;
             AlarmTableSortColumn = column;
             InvalidatePreviewActions();
@@ -117,8 +117,8 @@ namespace Alarmlist.VisualStudio.UI
         {
             var selected = new HashSet<AlarmPreviewRow>(selection);
             if (selected.Count == 0 || selected.Any(row => !AlarmTableRows.Contains(row))) return;
-            string[] columns = { "Name", "Code", "Category", "Description", "Identity", "Source" };
-            string text = string.Join("\t", columns) + "\r\n" + string.Join("\r\n", AlarmTableRows.Where(selected.Contains)
+            string[] columns = { "Name", "Code", "Category", "Description", "TestMethod", "Identity", "Source" };
+            string text = string.Join("\t", columns.Select(column => column == "TestMethod" ? "Test method" : column)) + "\r\n" + string.Join("\r\n", AlarmTableRows.Where(selected.Contains)
                 .Select(row => string.Join("\t", columns.Select(column => QuoteTableCell(row.Column(column))))));
             StartPreviewAction(() => copy(text));
         }
