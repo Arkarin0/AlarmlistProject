@@ -156,7 +156,9 @@ and editor command routing, without a global reference to an editor or project.
 
 Type `$(loc:` or use Ctrl+Space in expression fields for case-sensitive key
 completion. Suggestions show saved translation text, parent-culture provenance
-and comments; used translations can show evaluated values outside drafts. Enter
+and comments; used translations can show evaluated values outside drafts. All
+expression suggestions use `name (additional information)` labels, with values and
+origin details available without changing the inserted token. Enter
 or Tab inserts the full token into the draft; a subsequent Enter commits it.
 Escape first closes completion, then cancels the draft. Saved inputs are checked
 again before displaying and accepting localization suggestions. RESX diagnostics
@@ -296,6 +298,8 @@ its editor visible until focus leaves. Analysis never replaces private drafts;
 text-only drafts retain structural exclusion information but suppress resolved
 values until committed or cancelled.
 
+Each group's **Inheritance** menu offers whole-section actions. Opening it keeps
+pending drafts private; tooltips explain each action and disabled copy state.
 **Use local entries only** inserts a leading Clear while preserving existing
 entries and directives. **Make local copy** replaces that section with a leading
 Clear and its current effective sequence, each entry once. It captures a snapshot:

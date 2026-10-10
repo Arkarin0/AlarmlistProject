@@ -131,7 +131,8 @@ namespace Alarmlist.VisualStudio.UI
         public bool IsVisible => !IsExcluded || ShowCleared;
         public bool ShowCleared { get => _showCleared; set { _showCleared = value; Notify(nameof(IsVisible)); } }
         public string State => IsExcluded ? "Inherited · Cleared" : "Inherited";
-        public string HelpText => OriginText + (IsExcluded ? ". " + ExclusionText + ". Read-only inherited entry." : ". Read-only inherited entry.");
+        public string HelpText => OriginText + (IsExcluded ? ". " + ExclusionText : "")
+            + ". Read-only inherited entry. Use the group's Inheritance menu to copy its complete effective sequence.";
         public string Label { get; }
         public string OriginText => (IsInherited ? "Inherited from " : "Local entry from ") + OriginLabel(Entry.Origin);
         public string ExclusionText => Entry.ExcludedBy == null ? string.Empty : "Excluded by Clear in " + OriginLabel(Entry.ExcludedBy);
@@ -170,7 +171,9 @@ namespace Alarmlist.VisualStudio.UI
         public bool IsVisible => !IsExcluded || ShowCleared;
         public bool ShowCleared { get => _showCleared; set { _showCleared = value; Notify(nameof(IsVisible)); } }
         public string State => IsExcluded ? "Local · Cleared" : "Local";
-        public string HelpText => IsExcluded ? ExclusionText + (CanEdit ? ". This local entry is still editable." : ". Edit this entry in XML.") : Guidance;
+        public string HelpText => IsExcluded ? ExclusionText + (CanEdit ? ". This local entry is still editable. " + EditingHelp : ". Edit this entry in XML.")
+            : string.IsNullOrEmpty(Guidance) ? EditingHelp : Guidance;
+        private const string EditingHelp = "Focus to edit the raw text or expression; resolved text is shown after leaving. Enter commits, Shift+Enter adds a line, Escape cancels. Suggestions handle Enter/Escape first.";
         public bool ShowText => !IsClear;
         public string ExclusionText => _excludedBy == null ? string.Empty : "Excluded by Clear in " + ProcedureAnalysisRow.OriginLabel(_excludedBy);
         public string Guidance => !CanEdit ? "Edit this entry in XML to preserve its markup or resolve repeated sections."

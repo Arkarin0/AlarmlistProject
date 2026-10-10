@@ -109,6 +109,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == null && code.Text == "001", "unassign resumes file fallback");
 
             Type(ide, code, "$(par");
+            VisualStudioSession.Wait(() => automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)))
+                .Any(item => item.Name.StartsWith("par1 (value pending; declaration: ", StringComparison.Ordinal)
+                    && item.Name.Contains("; assignment: ") && item.Name.EndsWith(")", StringComparison.Ordinal)), "parenthesized completion metadata");
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "parameter-completion.png"));
             Assert.DoesNotContain("<Code>$(par</Code>", ide.ReadText(workspace.AlarmPath));
             PressFocused(ide, code, VirtualKeyShort.ESCAPE);
             Assert.Equal("$(par", code.Text);

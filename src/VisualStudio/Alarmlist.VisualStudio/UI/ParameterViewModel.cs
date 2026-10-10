@@ -96,7 +96,7 @@ namespace Alarmlist.VisualStudio.UI
     {
         public string Name { get; }
         public string Detail { get; }
-        public string Label => Name + " — " + Detail;
+        public string Label => Name + " (" + Detail.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ') + ")";
         public bool IsLocalization { get; }
         public bool RequiresValidation { get; }
         public string Insertion { get; }
@@ -113,11 +113,11 @@ namespace Alarmlist.VisualStudio.UI
             RequiresValidation = true;
             string value = !translation.IsAvailable ? "missing translation" : translation.IsKeyword ? translation.RawValue
                 : currentValues && use?.IsValueAvailable == true ? use.Value : translation.RawValue;
-            Detail = value + (translation.IsKeyword ? " — keyword" : " — " + translation.RequestedCulture
+            Detail = value + (translation.IsKeyword ? "; keyword" : "; " + translation.RequestedCulture
                 + (translation.SupplyingCulture == null ? "" : translation.SupplyingCulture == translation.RequestedCulture ? ""
                     : " from " + translation.SupplyingCulture))
-                + (translation.ValueLocation == null ? "" : " — " + Path.GetFileName(translation.ValueLocation.FilePath))
-                + (string.IsNullOrEmpty(translation.Comment) ? "" : " — " + translation.Comment);
+                + (translation.ValueLocation == null ? "" : "; " + Path.GetFileName(translation.ValueLocation.FilePath))
+                + (string.IsNullOrEmpty(translation.Comment) ? "" : "; " + translation.Comment);
         }
         public PropertyCompletion(AnalysisProperty property, bool currentValues)
         {
@@ -125,8 +125,8 @@ namespace Alarmlist.VisualStudio.UI
             Insertion = "$(" + Name + ")";
             string value = !currentValues ? "value pending" : !property.IsValueAvailable ? "unassigned/unavailable"
                 : property.EffectiveValue == "" ? "(empty)" : property.EffectiveValue;
-            Detail = value + (property.IsWellKnown ? " — well-known property" : " — declaration " + ParameterViewModel.Describe(property.DeclarationOrigin)
-                + "; assignment " + ParameterViewModel.Describe(property.ValueOrigin));
+            Detail = value + (property.IsWellKnown ? "; well-known property" : "; declaration: " + ParameterViewModel.Describe(property.DeclarationOrigin)
+                + "; assignment: " + ParameterViewModel.Describe(property.ValueOrigin));
         }
 
         public PropertyCompletion(string key, IReadOnlyList<string> arguments)
@@ -136,7 +136,7 @@ namespace Alarmlist.VisualStudio.UI
             ArgumentOffset = Insertion.IndexOf("\"\"", StringComparison.Ordinal);
             IsLocalization = true;
             RequiresValidation = true;
-            Detail = "template — fill arguments: " + string.Join(", ", arguments) + "; select a value and use Ctrl+Space to insert an expression";
+            Detail = "template; fill arguments: " + string.Join(", ", arguments) + "; select a value and use Ctrl+Space to insert an expression";
         }
 
         public PropertyCompletion(string expression, string value, string detail)
@@ -144,7 +144,7 @@ namespace Alarmlist.VisualStudio.UI
             Insertion = expression;
             Name = expression.Substring(2, expression.Length - 3);
             RequiresValidation = true;
-            Detail = (value ?? "translation unavailable") + " — " + detail;
+            Detail = (value ?? "translation unavailable") + "; " + detail;
         }
 
         public PropertyCompletion(AnalysisLookupListEntry entry, IEnumerable<AnalysisArgumentBinding> bindings)

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -33,6 +34,26 @@ namespace Alarmlist.VisualStudio
         private void OnPresenceChanged(object sender, RoutedEventArgs args) => ViewModel.CommitPending();
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
         private void OnUnloaded(object sender, RoutedEventArgs args) => _inputVersion++;
+        private void OnInheritanceActions(object sender, RoutedEventArgs args)
+        {
+            var button = (Button)sender;
+            PrepareActionsMenu(button);
+            button.ContextMenu.IsOpen = true;
+        }
+        private void OnActionsMenuOpening(object sender, ContextMenuEventArgs args) => PrepareActionsMenu((Button)sender);
+        private static void PrepareActionsMenu(Button button)
+        {
+            button.ContextMenu.DataContext = button.DataContext;
+            button.ContextMenu.PlacementTarget = button;
+            button.ContextMenu.Placement = PlacementMode.Bottom;
+        }
+        private void OnActionsUnloaded(object sender, RoutedEventArgs args)
+        {
+            var menu = ((Button)sender).ContextMenu;
+            menu.IsOpen = false;
+            menu.DataContext = null;
+            menu.PlacementTarget = null;
+        }
         // This WPF event handler only awaits the view model's guarded command and
         // UI dispatch. Recoverable command failures are handled by the view model.
 #pragma warning disable VSTHRD100

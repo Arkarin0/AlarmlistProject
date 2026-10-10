@@ -347,7 +347,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Single(AdornerLayer.GetAdornerLayer(inherited).GetAdorners(inherited));
                     Assert.True(Assert.Single(VisualChildren(inherited).OfType<TextBox>()).IsReadOnly);
                     Assert.Contains(VisualChildren(control).OfType<TextBlock>(), item => item.Text == "Clear preceding entries" && item.Visibility == Visibility.Visible);
-                    Button command = VisualChildren(control).OfType<Button>().First(item => Equals(item.Content, "Make local copy"));
+                    Button command = VisualChildren(control).OfType<Button>().First(item => Equals(item.Content, "Inheritance ▾"));
                     var enter = new KeyEventArgs(Keyboard.PrimaryDevice, host, 0, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
                     command.RaiseEvent(enter);
                     Assert.False(enter.Handled); // Enter must reach Button's command handling.

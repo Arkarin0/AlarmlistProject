@@ -359,7 +359,9 @@ include tests/docs with the behavior and commit each successful iteration.
 | 2. Procedure layout | Implement the accepted inline structure with per-group headers and cleared-entry toggles after defining the draft/focus contract. Depends on iteration 1. | WPF/model and focused live checks on both hosts. Preserve XML, drafts and source selection during navigation; display local/inherited/excluded states correctly, including multiple Clear entries and editable local cleared rows. |
 | 3. Procedure editing actions | Improve add/type/reorder/remove with immediate focus, stable selection and suitable keyboard commands; specify insertion/duplication if selected. Depends on iteration 2. | Regressions for source order, Clear boundaries, unsupported XML, completion, Enter/Escape/Tab, Undo/Redo and refresh while typing; live keyboard workflows on both hosts. No draft loss or unexpected edits. |
 | 4. Procedure inheritance and expressions | Simplify provenance and local-copy presentation; clarify raw/resolved values without weakening source semantics. Present IntelliSense suggestions as name followed by parenthesized details across property/procedure editors. Depends on iteration 3 and any explicit expression-display decision. | Preserve inheritance/exclusions, expression-preserving section copies and stale-input rejection. Test drafts, copy/undo, linked contexts, culture changes, completion labels/details and unchanged insertion. Check selected/unselected completion contrast in light/dark themes. Inherited procedure content stays read-only unless the user invokes a defined operation. |
-| 5. Property form, reference search and scope separation | Deliver labels-left/editors-right fields without presence checkboxes, automatic local edits, context-menu inheritance reset, readable Abstract theme states, one searchable reference control and distinct resizable/collapsible file/alarm areas. Depends on iterations 2-4 and the remaining commit/search contract. | Test unchanged-focus/no XML writes, local edit creation, raw expressions, inherited reset/Undo, invalid/literal references, 1,000+ candidates, linked contexts, light/dark themes, independent pane scrolling and draft-safe resize/collapse. Live keyboard and context-menu checks on both hosts. |
+| 5a. Direct property form | Deliver labels-left/editors-right fields with the adorner gutter, automatic local edits, context-menu inheritance reset and readable Abstract theme states. Depends on iteration 4. | Test unchanged-focus/no XML writes, absent/local/inherited editing, raw expressions, reset/Undo and light/dark states; live keyboard/context-menu checks on both hosts. |
+| 5b. Searchable reference | Merge literal editing and candidate selection into one searchable reference combobox. Depends on 5a. | Test invalid/literal references, current-input validation, keyboard/popup behavior and 1,000+ candidates; live selection on both hosts. |
+| 5c. File/alarm scopes | Separate resizable/collapsible file and alarm panes, move labelled project context, persist layout in the existing user settings store. Depends on 5b. | Test linked contexts, independent scrolling, draft-safe resize/collapse, keyboard divider and layout restoration; live checks on both hosts. |
 | 6. Preview table and column preferences | Deliver the reference-style wrapped table, combined Test method rendering, column chooser/reordering and project-user layout persistence described above. Depends on iterations 4-5. | Verify effective procedure text/order and exclusions, multiline rows, keyboard column controls, layout round-trip/project isolation, unrelated user properties, clipboard layout, drafts/stale-input guards and 1,000+ row virtualization. Run focused VS unit, SDK rule/package and live checks on both hosts. |
 | 7. Integrated UX acceptance | Validate the agreed common workflows, responsive behavior and lifecycle after the redesign. Depends on iterations 2-6. | VS unit, VSIX/template and functional IDE checks on VS2022/2026; targeted layout/lifetime measurements where changed. Record manual keyboard, theme/high-contrast, screen-reader and DPI evidence separately from automated checks. Carry unrun gates explicitly. |
 
@@ -569,3 +571,36 @@ Shift+Enter, multiline commit, move/remove source order and resulting focus, wit
 saved files/build output unchanged. Earlier failures above are resolved by these
 final runs. Reviewed the diff and whitespace; updated the editor usage guide.
 Remaining work: iterations 4-7. No genuine blocker at this boundary.
+
+### Iteration 4: inheritance and expression presentation (2026-10-11)
+
+Replaced repeated section-action rows with each group's keyboard-accessible
+Inheritance menu. Opening it preserves private drafts; Make local copy retains
+the existing current-analysis, draft and unsupported-source guards. Popups release
+their target/data context on unload. Inherited rows stay read-only with their
+chain adorners and a compact source action; tooltips explain origin, exclusion,
+whole-section copying and raw/resolved keyboard behavior.
+
+All expression suggestions now display `name (details)`, with semicolon-separated
+value/declaration/assignment information. Multiline values are flattened only for
+the one-line label; raw metadata and insertion tokens remain intact. Selected
+suggestions use system highlight/text brushes even though keyboard focus remains
+in the editor; unselected rows use VS theme resources. Full labels are exposed to
+automation and tooltips. Reviewed generated light, dark and high-contrast palette
+renders; these are simulated WPF palettes, not OS theme-switch evidence.
+
+Validation: focused WPF/model selection passed 53 cases, full VS unit suite passed
+362, and the final multiline-label change passed four focused checks (one newly
+added case); all zero skipped. VSIX/SDK assets rebuilt. Live `Area=Procedures|Area=Properties`
+passed all three cases per host, zero skipped: procedure actions/menu/copy/Undo,
+parameter/completion/abstract/raw-expression workflows and linked project/configuration
+switching. VS2022 TRX directory:
+`artifacts/log/Debug/VisualStudioUI/TestResults/99b670931f564b7d8dc941b906674169/`;
+VS2026: `artifacts/log/Debug/VisualStudioUI/TestResults/895f026cc6284e9ea7b68895acea3bbc/`.
+Reviewed actual VS2022 dark-menu/completion screenshots as well as WPF palette
+renders. OS light/high-contrast switching remains part of final acceptance.
+Reviewed diff/whitespace; no compiler or source-format changes, no current blocker.
+
+Planning refinement: split the still-unimplemented iteration 5 into 5a/5b/5c so
+each independent behavior has its own validation and commit boundary. The agreed
+scope, ordering, final gates and completed iteration identifiers are unchanged.

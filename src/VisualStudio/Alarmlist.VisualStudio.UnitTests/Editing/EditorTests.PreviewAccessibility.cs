@@ -91,12 +91,11 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                         "Override Description locally", "Go to source for Description"
                     }, scalarActions);
                     string[] sectionActions = buttons.Where(button => button.DataContext is ProcedureSectionViewModel
-                        && (Equals(button.Content, "Use local entries only") || Equals(button.Content, "Make local copy")))
+                        && button.ContextMenu != null)
                         .Select(button => new ButtonAutomationPeer(button).GetName()).ToArray();
                     Assert.Equal(new[]
                     {
-                        "Use local Instructions entries only", "Make local copy of Instructions",
-                        "Use local Reset entries only", "Make local copy of Reset"
+                        "Inheritance actions for Instructions", "Inheritance actions for Reset"
                     }, sectionActions);
                     Assert.Equal(0, session.Buffer.Edits);
                 }

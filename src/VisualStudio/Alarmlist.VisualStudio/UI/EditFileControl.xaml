@@ -17,6 +17,10 @@
       <Setter Property="Padding" Value="5,3" />
     </Style>
     <Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
+    <Style TargetType="ContextMenu">
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+    </Style>
     <Style TargetType="Button">
       <Setter Property="Padding" Value="9,3" /><Setter Property="Margin" Value="0,0,6,0" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
@@ -63,7 +67,7 @@
             </Style.Triggers></Style></Border.Style>
             <StackPanel>
               <DockPanel Margin="0,0,0,4">
-                <Button DockPanel.Dock="Right" Content="Go to source" Command="{Binding GoToSourceCommand}"
+                <Button DockPanel.Dock="Right" Content="↗ Source" Command="{Binding GoToSourceCommand}"
                         ToolTip="{Binding OriginText}" AutomationProperties.Name="{Binding Kind, StringFormat=Go to source for inherited {0}}" />
                 <TextBlock Text="{Binding Kind}" FontWeight="SemiBold" Margin="0,0,12,0" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding State}" VerticalAlignment="Center" />
@@ -199,6 +203,19 @@
                             <TextBlock Text="{Binding ClearedToggleText}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                           </StackPanel>
                         </ToggleButton>
+                        <Button DockPanel.Dock="Right" Content="Inheritance ▾" Click="OnInheritanceActions" Tag="PreserveDraft"
+                                Unloaded="OnActionsUnloaded" ContextMenuOpening="OnActionsMenuOpening"
+                                ToolTip="Actions for this entire procedure group. Inherited entries remain read-only."
+                                AutomationProperties.Name="{Binding Name, StringFormat=Inheritance actions for {0}}">
+                          <Button.ContextMenu>
+                            <ContextMenu>
+                              <MenuItem Header="Use local entries only" Command="{Binding UseLocalEntriesCommand}"
+                                        ToolTip="Insert Clear before local entries to exclude inherited entries. Undo restores the previous source." />
+                              <MenuItem Header="Make local copy" Command="{Binding MakeLocalCopyCommand}" ToolTipService.ShowOnDisabled="True"
+                                        ToolTip="Copy the effective sequence, preserving raw expressions. Future reference changes stop flowing into this group. Commit or cancel drafts first." />
+                            </ContextMenu>
+                          </Button.ContextMenu>
+                        </Button>
                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
                       </DockPanel>
                       <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
@@ -207,15 +224,6 @@
                           <DataTrigger Binding="{Binding HasAnalysis}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
                         </Style.Triggers></Style></TextBlock.Style>
                       </TextBlock>
-                      <WrapPanel Margin="0,0,0,8">
-                        <Button Content="Use local entries only" Command="{Binding UseLocalEntriesCommand}"
-                                ToolTip="Insert Clear before local entries to exclude inherited entries. Undo restores the previous source."
-                                AutomationProperties.Name="{Binding Name, StringFormat=Use local {0} entries only}" />
-                        <Button Content="Make local copy" Command="{Binding MakeLocalCopyCommand}"
-                                ToolTip="Copy the current effective sequence into this section. Future reference changes will no longer flow here. Commit or cancel drafts first."
-                                ToolTipService.ShowOnDisabled="True"
-                                AutomationProperties.Name="{Binding Name, StringFormat=Make local copy of {0}}" />
-                      </WrapPanel>
                       <ItemsControl ItemsSource="{Binding InheritedSequence}" ItemTemplate="{StaticResource InlineInheritedProcedure}" />
                       <WrapPanel Margin="0,0,0,8">
                         <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding NewKind}" MinWidth="92" Margin="0,0,6,0"

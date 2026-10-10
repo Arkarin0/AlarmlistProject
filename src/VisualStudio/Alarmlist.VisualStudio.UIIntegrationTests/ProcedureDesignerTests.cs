@@ -124,6 +124,21 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => XNode.DeepEquals(XDocument.Parse(source), XDocument.Parse(ide.ReadText(workspace.AlarmPath))), "remove restores original procedure content");
             VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
                 .Select(element => element.AsTextBox()).Any(element => element.Properties.HasKeyboardFocus.Value && element.Text == "Surviving local"), "remove focuses next entry");
+            string beforeCopy = ide.ReadText(workspace.AlarmPath);
+            AutomationElement inheritance = window.FindFirstDescendant(cf => cf.ByName("Inheritance actions for Instructions"));
+            Press(ide, inheritance, VirtualKeyShort.SPACE);
+            AutomationElement copy = null;
+            VisualStudioSession.Wait(() => (copy = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName("Make local copy").And(cf.ByControlType(ControlType.MenuItem))))
+                .SingleOrDefault())?.IsEnabled == true, "procedure inheritance menu");
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "procedure-inheritance-menu.png"));
+            Press(ide, copy, VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => Entries(ide, workspace).Select(entry => entry.Name.LocalName).SequenceEqual(new[] { "Clear", "Note" }), "section copy excludes cleared entries");
+            inheritance.Focus();
+            VisualStudioSession.Wait(() => inheritance.Properties.HasKeyboardFocus.Value, "inheritance menu focus after copy");
+            ide.RequireForeground();
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == beforeCopy, "section copy Undo restores source exactly");
             Assert.Equal(disk, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllText(workspace.OutputPath));
         }
