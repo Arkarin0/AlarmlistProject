@@ -2,8 +2,9 @@
 
 Status: compiler, build and IDE implementation present on 2026-10-09; ordinary
 Release regression suites pass. Focused live IDE and analyzer performance checks
-also pass; remaining acceptance is recorded below. Stop at a validated checkpoint when the account usage allowance reaches
-approximately 15% remaining. Commit each completed implementation iteration.
+also pass; remaining acceptance is recorded below. The owner removed the 15%
+remaining-allowance stop condition on 2026-10-10. Commit each completed implementation
+iteration and report a short summary before starting the next iteration.
 
 ## Scope and iterations
 
@@ -183,4 +184,5 @@ opt-in cases skipped. Counts are 437 compiler, 68 task unit, 4 task integration,
 47 SDK and 11 VSIX consumer tests per framework, plus 344 VS unit and 26 performance
 infrastructure tests. The focused desktop MSBuild/net472 analyzer run passed all
 4 cases. Live IDE and benchmarks were not rerun for this parsing iteration.
-Stopped after this validated iteration at the owner's 15% remaining allowance.
+Stopped after this validated iteration at the owner's then-active 15% remaining
+allowance limit, subsequently removed on 2026-10-10.
