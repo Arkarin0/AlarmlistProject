@@ -4,6 +4,14 @@ Status: ideas for future development, recorded on 2026-09-24. These notes captur
 intent and open design questions; they do not define implemented behavior,
 committed milestones, or a delivery schedule.
 
+Planning update (2026-10-10): the owner selected improvements to the existing ALMX
+file editor's UI/UX for [milestone seven](src/VisualStudio/MILESTONE-7.md), with
+procedure editing identified as the first priority. Its source review and proposed
+iterations cover procedure layout, editing actions, inheritance/expressions and
+supporting editor feedback. Specific interaction decisions are
+still open. Custom procedure groups and the other backlog features below are not
+the selected milestone-seven scope.
+
 Implementation update (2026-10-10): localization, generated lookups/named lists,
 the dockable preview and alarm table are implemented in
 [milestone five](src/VisualStudio/MILESTONE-5.md); its manual/vendor/release gates

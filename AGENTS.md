@@ -63,6 +63,7 @@ Existing plans and iteration records:
 | [Milestone 4](src/VisualStudio/MILESTONE-4.md) | Property expressions, parameters, abstract alarms, and designer support; see its [design contract](src/VisualStudio/MILESTONE-4-DESIGN.md). |
 | [Milestone 5](src/VisualStudio/MILESTONE-5.md) | Localization and XLIFF, including HMI lookup, named-list, and preview follow-up iterations; see its [design contract](src/VisualStudio/MILESTONE-5-DESIGN.md) and [lookup specification](src/VisualStudio/HMI-LOOKUPS.md). |
 | [Milestone 6](src/VisualStudio/MILESTONE-6.md) | EditorConfig, diagnostic policy, external analyzers, and compatibility/lifecycle validation iterations. |
+| [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX, prioritizing procedure editing; source review, proposed iterations and open interaction decisions. |
 
 Read the selected plan's current status and remaining gates before resuming it.
 [FUTURE-FEATURES.md](FUTURE-FEATURES.md) holds ideas and design history; it does not
