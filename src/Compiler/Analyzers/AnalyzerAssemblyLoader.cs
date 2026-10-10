@@ -72,9 +72,19 @@ namespace Alarmlist.Analyzers
             finally
             {
                 _analyzers = null;
-                foreach (Scope scope in _scopes) scope.Dispose();
-                _scopes.Clear();
-                _instances.Clear();
+                try
+                {
+                    foreach (Scope scope in _scopes)
+                    {
+                        try { scope.Dispose(); }
+                        catch (Exception exception) when (IsRecoverable(exception)) { failure = failure ?? exception; }
+                    }
+                }
+                finally
+                {
+                    _scopes.Clear();
+                    _instances.Clear();
+                }
             }
             if (failure != null) throw new InvalidOperationException("Analyzer disposal failed: " + failure.Message, failure);
         }
@@ -177,13 +187,25 @@ namespace Alarmlist.Analyzers
 #endif
             public void Dispose()
             {
+                try
+                {
 #if NET8_0_OR_GREATER
-                _context.Unload();
+                    try { _context.Unload(); }
+                    catch (Exception exception) when (IsRecoverable(exception))
+                    {
+                        // .NET 8 clears Unloading handlers and suppresses finalization
+                        // before invoking callbacks. A thrown callback can therefore
+                        // prevent native release; retry once and retain the failure.
+                        try { _context.Unload(); }
+                        catch (Exception retry) when (IsRecoverable(retry)) { }
+                        throw;
+                    }
 #else
-                AppDomain.CurrentDomain.AssemblyResolve -= Resolve;
-                lock (_owned) _owned.Clear();
+                    AppDomain.CurrentDomain.AssemblyResolve -= Resolve;
+                    lock (_owned) _owned.Clear();
 #endif
-                _images.Clear();
+                }
+                finally { _images.Clear(); }
             }
         }
 

@@ -367,3 +367,30 @@ and metadata are under
 and `dff875ed39474938b604f6cb07aeb4ce/`, respectively. Generated host runsettings
 and measurement artifacts remain untracked. No package publication or VSIX
 distribution was performed.
+
+## Analyzer unloading hardening iteration 10 (2026-10-10)
+
+Post-completion review found that a .NET 8 analyzer throwing from its load-context
+Unloading callback interrupted the remaining context disposal and retained the
+loader's instance/image collections. The new regression first reproduced the
+failure: the following context's callback had not run.
+
+Cleanup now attempts each context independently and releases loader-owned
+references in a finally block, while retaining the first failure for the caller.
+The interrupted .NET 8 unload is retried once: the
+[runtime implementation](https://github.com/dotnet/runtime/blob/v8.0.0/src/libraries/System.Private.CoreLib/src/System/Runtime/Loader/AssemblyLoadContext.cs)
+clears its callback list and suppresses finalization before invoking callbacks,
+so a callback exception can otherwise prevent native unload initiation. A callback
+failure still fails disposal; it does not become a successful build.
+
+The regression checks both callbacks, unloading state, idempotent disposal and
+collection of both contexts while retaining the disposed loader. Focused loader
+tests passed on both frameworks (3 net472, 5 net8.0). This change keeps the existing
+loader structure and public API; no new dependency or host reload contract is added.
+
+Validation: `dotnet test AlarmlistProject.slnx --configuration Release --nologo -v:minimal`
+passed 1,634 ordinary tests, with 49 opt-in cases skipped. Compiler counts are
+482 net472 / 484 net8.0; packaged SDK consumers passed 53 per test framework, and
+VS unit tests passed 349. Live IDE, desktop-MSBuild opt-in and timing workloads
+were not rerun for this cleanup failure-path change. The existing CA1416 warning
+remains. The owner's example edit is preserved and excluded from the commit.
