@@ -6,6 +6,22 @@
   Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="Visibility" />
+    <ContextMenu x:Key="ParameterRowMenu" Opened="OnRowMenuOpened" Closed="OnRowMenuClosed"
+                 Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+                 Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
+      <MenuItem Header="Cut" Tag="TextEditing" Command="ApplicationCommands.Cut" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+      <MenuItem Header="Copy" Tag="TextEditing" Command="ApplicationCommands.Copy" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+      <MenuItem Header="Paste" Tag="TextEditing" Command="ApplicationCommands.Paste" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+      <MenuItem Header="Select all" Tag="TextEditing" Command="ApplicationCommands.SelectAll" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+      <Separator Tag="TextEditing" />
+      <MenuItem Header="Assign value…" Command="{Binding AssignCommand}" Click="OnAssign" ToolTip="Create a local assignment and edit its value." />
+      <MenuItem Header="Assign empty value" Command="{Binding AssignEmptyCommand}" ToolTip="Assign an empty value here, stopping fallback to outer scopes." />
+      <MenuItem Header="{Binding FallbackLabel}" Command="{Binding UseFallbackCommand}" IsChecked="{Binding UsesFallback, Mode=OneWay}"
+                ToolTip="Remove the local assignment and use the value from an outer scope." />
+      <Separator />
+      <MenuItem Header="Declare here" Command="{Binding DeclareCommand}" ToolTip="Add a local declaration for this inherited parameter." />
+      <MenuItem Header="Remove local declaration" Command="{Binding RemoveCommand}" ToolTip="Remove this local declaration and its assignment. An inherited declaration may remain visible." />
+    </ContextMenu>
     <Style x:Key="CellEditor" TargetType="TextBox">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListViewItem}}" />
@@ -14,6 +30,8 @@
       <Setter Property="Padding" Value="6,4" />
       <Setter Property="MinHeight" Value="28" />
       <Setter Property="IsUndoEnabled" Value="False" />
+      <Setter Property="ContextMenu" Value="{StaticResource ParameterRowMenu}" />
+      <Setter Property="ToolTip" Value="{Binding RowHelp}" />
       <EventSetter Event="GotKeyboardFocus" Handler="OnCellFocus" />
       <Style.Triggers>
         <Trigger Property="IsKeyboardFocused" Value="True">
@@ -67,7 +85,9 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
-            <Setter Property="AutomationProperties.HelpText" Value="{Binding OriginText}" />
+            <Setter Property="AutomationProperties.HelpText" Value="{Binding RowHelp}" />
+            <Setter Property="ToolTip" Value="{Binding RowHelp}" />
+            <Setter Property="ContextMenu" Value="{StaticResource ParameterRowMenu}" />
             <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListViewItem">
@@ -88,7 +108,7 @@
                 <GridViewColumn.CellTemplate><DataTemplate>
                   <TextBox Style="{StaticResource CellEditor}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                            IsReadOnly="{Binding IsNameReadOnly}"
-                           AutomationProperties.Name="{Binding NameAutomationName}" AutomationProperties.HelpText="{Binding OriginText}" />
+                           AutomationProperties.Name="{Binding NameAutomationName}" AutomationProperties.HelpText="{Binding RowHelp}" />
                 </DataTemplate></GridViewColumn.CellTemplate>
               </GridViewColumn>
               <GridViewColumn x:Name="ValueColumn" Header="Value" Width="280">
@@ -96,7 +116,7 @@
                   <Grid>
                     <TextBox x:Name="ValueEditor" Style="{StaticResource CellEditor}" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}"
                              Visibility="{Binding CanEditValue, Converter={StaticResource Visibility}}"
-                             AutomationProperties.Name="{Binding ValueAutomationName}" AutomationProperties.HelpText="{Binding OriginText}" />
+                             AutomationProperties.Name="{Binding ValueAutomationName}" AutomationProperties.HelpText="{Binding RowHelp}" />
                     <TextBlock Text="(empty)" FontStyle="Italic" Opacity="0.7" Margin="7,5" IsHitTestVisible="False">
                       <TextBlock.Style><Style TargetType="TextBlock">
                         <Setter Property="Visibility" Value="Collapsed" />
@@ -110,7 +130,7 @@
                     <DockPanel Visibility="{Binding IsValueReadOnly, Converter={StaticResource Visibility}}">
                       <TextBlock DockPanel.Dock="Right" Text="{Binding ValueSourceHint}" VerticalAlignment="Center" Margin="6,0" Opacity="0.7" />
                       <TextBox Style="{StaticResource CellEditor}" Text="{Binding DisplayValue, Mode=OneWay}" IsReadOnly="True"
-                               AutomationProperties.Name="{Binding ValueAutomationName}" AutomationProperties.HelpText="{Binding OriginText}" />
+                               AutomationProperties.Name="{Binding ValueAutomationName}" AutomationProperties.HelpText="{Binding RowHelp}" />
                     </DockPanel>
                   </Grid>
                 </DataTemplate></GridViewColumn.CellTemplate>
@@ -124,22 +144,9 @@
     </Expander>
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
       <Button Content="+ Add" Command="{Binding AddCommand}" Click="OnAdd" Padding="7,2" Margin="0,0,4,0"
-              AutomationProperties.Name="{Binding ScopeName, StringFormat=Add {0} parameter}" />
+              AutomationProperties.Name="{Binding ScopeName, StringFormat=Add {0} parameter}" ToolTip="Add a local parameter and edit its name." />
       <Button Content="Remove" Command="{Binding RemoveCommand}" Padding="7,2" Margin="0,0,4,0"
-              AutomationProperties.Name="{Binding ScopeName, StringFormat=Remove {0} parameter}" />
-      <Button x:Name="RowActionsButton" Content="Row actions ▾" Click="OnRowActions" Padding="7,2" Margin="0"
-              AutomationProperties.Name="{Binding ScopeName, StringFormat=Row actions for {0} parameters}">
-        <Button.ContextMenu>
-          <ContextMenu>
-            <MenuItem Header="Assign value…" Command="{Binding AssignCommand}" Click="OnAssign" />
-            <MenuItem Header="Assign empty value" Command="{Binding AssignEmptyCommand}" />
-            <MenuItem Header="{Binding FallbackLabel}" Command="{Binding UseFallbackCommand}" IsChecked="{Binding UsesFallback, Mode=OneWay}" />
-            <Separator />
-            <MenuItem Header="Declare here" Command="{Binding DeclareCommand}" />
-            <MenuItem Header="Remove local declaration" Command="{Binding RemoveCommand}" />
-          </ContextMenu>
-        </Button.ContextMenu>
-      </Button>
+              AutomationProperties.Name="{Binding ScopeName, StringFormat=Remove {0} parameter}" ToolTip="Remove the selected local parameter declaration and its assignment." />
     </StackPanel>
   </Grid>
 </UserControl>

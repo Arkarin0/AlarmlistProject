@@ -178,11 +178,12 @@ package-consumer testing rather than importing new upstream infrastructure.
 Following the owner's 2026-10-07 UI approval, separate two-column Name/Value
 ListViews edit the file and alarm scopes simultaneously. File declarations sit at
 the top of the file editor above alarm browsing, including when no alarm is selected.
-Alarm declarations remain below the previews in the selected alarm pane. Each list
-has Add/Remove and Row actions, and shows declaration/assignment details for its
+Milestone seven places these lists in File settings and Alarm settings. Each list
+has Add/Remove and row context menus, and shows declaration/assignment details for its
 selected row. Inherited/project rows are context, not edits to other sources.
-Row actions explicitly assign a value, assign empty, restore outer-scope fallback,
-declare here, or remove a local declaration. No scope selector or third column is needed.
+The row menus (right-click or Shift+F10) explicitly assign a value, assign empty,
+restore outer-scope fallback, declare here, or remove a local declaration. Cell
+menus also retain normal text-editing commands. No scope selector or third column is needed.
 Clearing an assigned editor writes empty; removing the assignment restores fallback.
 The Abstract checkbox updates only the selected alarm's source attribute.
 Drafts from both lists and alarm fields share one atomic edit/Undo transaction;

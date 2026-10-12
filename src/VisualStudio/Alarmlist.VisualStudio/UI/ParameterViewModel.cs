@@ -41,6 +41,7 @@ namespace Alarmlist.VisualStudio.UI
             : "Declaration: " + Describe(_analysis.DeclarationOrigin) + ". Assignment: "
                 + (_currentValues && !HasChanges ? Describe(_analysis.ValueOrigin) : "awaiting current analysis") + "."
                 + (IsEmpty ? " Explicitly empty; fallback is stopped." : "");
+        public string RowHelp => OriginText + " Right-click or press Shift+F10 for assignment, fallback and declaration actions.";
         public DelegateCommand DeleteCommand { get; }
         public DelegateCommand DeclareCommand { get; }
 
@@ -77,6 +78,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             Notify(nameof(CanEditValue)); Notify(nameof(IsValueReadOnly)); Notify(nameof(IsEmpty));
             Notify(nameof(EffectiveDisplay)); Notify(nameof(DisplayValue)); Notify(nameof(ValueSourceHint)); Notify(nameof(OriginText));
+            Notify(nameof(RowHelp));
         }
 
         internal static string Describe(AnalysisPropertyOrigin origin) => origin == null ? "none"

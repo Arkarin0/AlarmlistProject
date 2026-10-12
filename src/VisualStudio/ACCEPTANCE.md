@@ -67,7 +67,7 @@ property checks have **not been accepted interactively**.
 1. Select `Property.Child`. North shows Name `North 001`, South shows `South 001`,
    and both show Code `001` and Description `Inspect 001 - Shared`. The base's
    assigned `par1` value must not appear. Release changes the project value to `101`.
-2. In the two-column Alarm parameters list, use Row actions to assign `par1` to
+2. In the two-column Alarm parameters list, right-click `par1` or use Shift+F10 to assign it to
    `002`. The dependent fields and procedure update without Build. Undo/Redo must
    restore the exact shared XML.
    An assigned empty string stops fallback; **Use file/project value** resumes it.

@@ -240,10 +240,16 @@ from document contents. **Open With > XML (Text) Editor** remains available.
 Filter the alarm list by name or identifier, select an alarm, and edit its local
 `FullyQualifiedName`, `Name`, `Code`, `Category`, `Description`, or `ReferenceName`.
 The list becomes a selector when the designer pane is narrow.
+The Add alarm and Delete buttons expose A/D access keys in their tooltips and
+accessible help: press A or D while the designer has focus outside a text field.
+Inside text fields, letters remain ordinary input and Ctrl+A selects all text.
 
 **File settings** contains the project context, file parameters and live project
 diagnostics. **Alarm settings** contains filtering/navigation, alarm parameters,
 properties and procedures for the selected alarm. Each area scrolls independently.
+In either parameter list, right-click a row or focus a cell and press Shift+F10
+for assignment, explicit-empty, fallback and declaration actions. Cell menus also
+retain normal text-editing commands. Add and Remove remain above each list.
 Use either header to collapse its area; drag the divider or focus it and use
 Up/Down to resize. These actions preserve private drafts. Collapse states and the
 divider position are restored from Visual Studio user settings. A single project

@@ -105,7 +105,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             RequireFocus(ide, value);
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Y);
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == "002", "parameter Redo");
-            ParameterAction(ide, automation, window, "Alarm", "Use file/project value");
+            ParameterAction(ide, automation, window, "Alarm", "Use file/project value", keyboard: false);
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == null && code.Text == "001", "unassign resumes file fallback");
 
             Type(ide, code, "$(par");
@@ -154,6 +154,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
             VisualStudioSession.Wait(() => Child(ide, workspace).Element("Name")?.Value == "Alarm $(par1) edited", "inheritance reset Undo");
             VisualStudioSession.Wait(() => name.Text == "Alarm $(par1) edited", "Undo keeps raw local text focused");
+            CheckAlarmAccessKeys(ide, workspace, window);
             Assert.Equal(diskBefore, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(outputBefore, File.ReadAllText(workspace.OutputPath));
             ide.Automation.ExecuteCommand("File.SaveAll", "");
@@ -245,15 +246,44 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         private static string LocalValue(VisualStudioSession ide, UiTestWorkspace workspace) => (string)Child(ide, workspace).Element("Properties").Element("Property").Attribute("Value");
         private static AutomationElement ParameterGrid(Window window, string name) => window.FindAllDescendants(cf => cf.ByName(name))
             .Single(element => element.Patterns.Grid.IsSupported);
-        private static void ParameterAction(VisualStudioSession ide, UIA3Automation automation, Window window, string scope, string action)
+        private static void ParameterAction(VisualStudioSession ide, UIA3Automation automation, Window window, string scope, string action, bool keyboard = true)
         {
-            AutomationElement button = window.FindFirstDescendant(cf => cf.ByName("Row actions for " + scope + " parameters").And(cf.ByControlType(ControlType.Button)));
-            Press(ide, button, VirtualKeyShort.SPACE);
+            // A restored floating preview can cover this cell even while UIA
+            // focus succeeds. Normalize only the owned IDE before mouse input.
+            if (!keyboard)
+                foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                    if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+            TextBox cell = Box(window, scope + " name of par1");
+            Focus(ide, cell);
+            if (keyboard) Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
+            else cell.RightClick();
             AutomationElement item = null;
             VisualStudioSession.Wait(() => (item = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
                 .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName(action).And(cf.ByControlType(ControlType.MenuItem))))
                 .SingleOrDefault()) != null, "parameter row action menu");
             Press(ide, item, VirtualKeyShort.RETURN);
+        }
+
+        private static void CheckAlarmAccessKeys(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
+        {
+            string before = ide.ReadText(workspace.AlarmPath);
+            int count = XDocument.Parse(before).Root.Elements("Alarm").Count();
+            AutomationElement add = window.FindFirstDescendant(cf => cf.ByName("Add alarm").And(cf.ByControlType(ControlType.Button)));
+            AutomationElement delete = window.FindFirstDescendant(cf => cf.ByName("Delete").And(cf.ByControlType(ControlType.Button)));
+            Assert.Contains("Shortcut: A", add.Properties.HelpText.Value);
+            Assert.Contains("Shortcut: D", delete.Properties.HelpText.Value);
+            Focus(ide, add);
+            Keyboard.Type(VirtualKeyShort.KEY_A);
+            VisualStudioSession.Wait(() => XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Count() == count + 1, "Add alarm access key");
+            Focus(ide, delete);
+            Keyboard.Type(VirtualKeyShort.KEY_D);
+            VisualStudioSession.Wait(() => XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Count() == count, "Delete alarm access key");
+            RequireFocus(ide, delete);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Count() == count + 1, "Undo access-key delete");
+            RequireFocus(ide, delete);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == before, "Undo access-key add");
         }
         private static TextBox Box(Window window, string name) => window.FindAllDescendants(cf => cf.ByName(name).And(cf.ByControlType(ControlType.Edit)))
             .Select(element => element.AsTextBox()).SingleOrDefault(element => !element.IsReadOnly && element.IsEnabled);

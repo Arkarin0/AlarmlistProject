@@ -1,8 +1,11 @@
 # Milestone seven: ALMX editor user experience
 
-Status: implementation and scoped automated acceptance completed on 2026-10-12
-on `dev/milestone7`. Manual accessibility/display and release gates remain visible
-in the closeout below. Implementation was authorized on 2026-10-10; the owner accepted the latest
+Status: initial implementation and scoped automated acceptance completed on
+2026-10-12 on `dev/milestone7`. The [authorized follow-up](#authorized-follow-up-2026-10-13)
+is in progress: iterations 8–9 are complete; 10–14 remain. The current pause
+boundary is 15% account allowance remaining, superseding the original run's 12%.
+Manual accessibility/display and release gates remain visible in the closeout
+below. Implementation was authorized on 2026-10-10; the owner accepted the latest
 full-editor and Preview View designs and requested autonomous implementation,
 validation and a commit after each successful iteration. The owner selected
 improving the existing file editor's UI/UX as this milestone's purpose, then
@@ -1061,3 +1064,45 @@ Validation evidence:
 - Reviewed the focused diff and `git diff --check`; no whitespace errors.
   No compiler or file-format change, unrelated change or generated output is
   included. No iteration-8 blocker remains. Iteration 9 is next.
+
+### Iteration 9 — parameter menus and alarm access-key help (complete)
+
+Both parameter scopes now expose assignment, empty, fallback and declaration
+commands directly on rows/cells via right-click or Shift+F10. Cell menus retain
+Cut/Copy/Paste/Select all; row-edge menus omit text commands. Add/Remove remain
+visible. Opening a menu selects its target through the existing commit/conflict
+guard. It preserves a current-row draft and text selection, closes on a selection
+change, restores editing focus after assignment, and releases popup context on
+unload. Tooltips and accessible row help explain the actions. The current README,
+acceptance checklist and parameter design contract describe these menus.
+
+Alarm button help documents bare A/D while the designer has focus outside text
+fields. The native VS2022 test confirmed those keys and Undo work. An attempted
+Alt+A hint was disproved: this installed German VS routes Alt+A to View. Its
+failure capture and TRX (`e07347c1827c4a6aafb9877a2816d64c`) remain under the usual
+VisualStudioUI logs. Removed the incorrect Alt hints without changing keyboard
+handling. The corrected native scenario passed (`52b1cee3a5db4bd38d0c319d4b374f0f`)
+before the final selection-change guard. Earlier compile checks also caught an
+unsupported WPF cue property and the test's incorrect Alt enum name; both were
+removed/corrected before functional validation.
+
+`dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+--verbosity minimal --logger trx --results-directory artifacts/log/Debug/Milestone7/Iteration9/AllUnitTests`
+passed all 403 tests, no failures/skips, including the final menu selection-change
+guard. Extension/VSIX build emitted no warnings/errors.
+
+Final native validation used `eng/test-visualstudio.ps1 -Filter
+'FullyQualifiedName~PropertiesAndCompletion'` with the installed host paths and
+experimental suffixes. Both passed one scenario, with no failures/skips:
+VS2022 / AlarmlistExp (`2f4cde1f1ea84473a20d3719cae8db74`) and VS2026 /
+AlarmlistM7 (`9964c29666f94c1eb608df22fe935e9a`). The earlier VS2026 run
+(`7238e71e9bf84cdd91ff7fc88408ea98`) timed out because a restored floating
+preview covered the mouse target. Its screenshot confirms the obstruction. The
+test now hides that tool window only in its owned IDE before mouse input,
+following the existing resource-editor test pattern. It still performs actual
+Shift+F10/right-click menu actions, verifies fallback/empty assignments, edits
+and Undo/Redo, checks native A/D with Undo and accessible shortcut hints, and
+preserves saved source/output until the explicit final save/build assertion.
+
+Reviewed the final diff and whitespace; no unrelated or generated files are
+included. No iteration-9 blocker remains. Template/menu/folder icons are next.

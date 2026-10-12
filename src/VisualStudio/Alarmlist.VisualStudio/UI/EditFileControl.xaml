@@ -191,8 +191,12 @@
     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
     <DockPanel Margin="0,0,0,8">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-        <Button Content="_Add alarm" Command="{Binding AddCommand}" />
-        <Button Content="_Delete" Command="{Binding DeleteCommand}" />
+        <Button Content="_Add alarm" Command="{Binding AddCommand}"
+                ToolTip="Add an alarm. Shortcut: A while the designer has focus outside a text field."
+                AutomationProperties.HelpText="Add an alarm. Shortcut: A while the designer has focus outside a text field." />
+        <Button Content="_Delete" Command="{Binding DeleteCommand}"
+                ToolTip="Delete the selected alarm. Shortcut: D while the designer has focus outside a text field."
+                AutomationProperties.HelpText="Delete the selected alarm. Shortcut: D while the designer has focus outside a text field." />
       </StackPanel>
       <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
       <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter alarms" ToolTip="Filter alarms by name or identifier" Margin="0,0,10,0" />
