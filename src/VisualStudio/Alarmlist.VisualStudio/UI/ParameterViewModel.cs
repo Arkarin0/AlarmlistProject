@@ -98,6 +98,7 @@ namespace Alarmlist.VisualStudio.UI
         public string Detail { get; }
         public string Label => Name + " (" + Detail.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ') + ")";
         public bool IsLocalization { get; }
+        public string LocalizationKey { get; }
         public bool RequiresValidation { get; }
         public string Insertion { get; }
         public int ArgumentOffset { get; } = -1;
@@ -107,6 +108,7 @@ namespace Alarmlist.VisualStudio.UI
         public bool MatchesListSearch(string query) => _searchText?.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0;
         public PropertyCompletion(AnalysisTranslation translation, AnalysisLocalizationUse use, bool currentValues)
         {
+            LocalizationKey = translation.Key;
             Name = "loc:" + translation.Key;
             Insertion = "$(" + Name + ")";
             IsLocalization = true;
@@ -131,6 +133,7 @@ namespace Alarmlist.VisualStudio.UI
 
         public PropertyCompletion(string key, IReadOnlyList<string> arguments)
         {
+            LocalizationKey = key;
             Name = "loc:" + key + ", " + string.Join(", ", arguments.Select(name => name + "=\"\""));
             Insertion = "$(" + Name + ")";
             ArgumentOffset = Insertion.IndexOf("\"\"", StringComparison.Ordinal);

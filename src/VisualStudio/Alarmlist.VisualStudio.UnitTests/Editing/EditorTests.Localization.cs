@@ -39,14 +39,17 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             {
                 AnalyzeLocalization(session);
                 Assert.Equal(new[] { "keyword", "de", "de-DE", "en" }, session.View.PreviewCultures);
-                PropertyCompletion suggestion = Assert.Single(ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:Alarm."));
+                PropertyCompletion[] matches = ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:Alarm.");
+                Assert.Equal(new[] { "loc:Alarm.Inspect-now", "loc:alarm.Inspect-now" }, matches.Select(item => item.Name));
+                PropertyCompletion suggestion = matches[0];
                 Assert.Contains("Inspect 001", suggestion.Detail);
                 Assert.Contains("de-DE from de", suggestion.Detail);
                 Assert.Contains("Operator action", suggestion.Detail);
-                Assert.Single(ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:alarm."));
+                Assert.Equal(matches, ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:alarm."));
+                Assert.Equal(matches, ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:INSPECT"));
                 Assert.Empty(ExpressionTextBox.FindMatches(session.View.CompletionProperties, "LOC:"));
                 AnalyzeLocalization(session, "keyword");
-                Assert.Contains("$(loc:Alarm.Inspect-now)", Assert.Single(ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:Alarm.")).Detail);
+                Assert.Contains("$(loc:Alarm.Inspect-now)", ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:Alarm.")[0].Detail);
                 Assert.Equal(0, session.Buffer.Edits);
             }
         }
@@ -208,15 +211,15 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     box.BringIntoView();
                     Assert.True(box.Focus());
                     session.Analysis.Valid = false;
-                    box.Text = "Before $(loc:Alarm.Inspect-";
+                    box.Text = "Before $(loc:INSPECT-";
                     box.CaretIndex = box.Text.Length;
                     Assert.False(box.IsCompletionOpen);
                     session.Analysis.Valid = true;
                     Assert.True(box.HandleCompletionKey(Key.Space, ModifierKeys.Control));
-                    Assert.Equal(1, box.CompletionCount);
+                    Assert.Equal(2, box.CompletionCount);
                     session.Analysis.Valid = false;
                     RaiseExpressionKey(box, host, Key.Enter);
-                    Assert.Equal("Before $(loc:Alarm.Inspect-", box.Text);
+                    Assert.Equal("Before $(loc:INSPECT-", box.Text);
                     Assert.Equal(0, session.Buffer.Edits);
                     session.Analysis.Valid = true;
                     box.HandleCompletionKey(Key.Space, ModifierKeys.Control);

@@ -37,6 +37,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             File.WriteAllText(workspace.AlarmPath, Source);
             string resourcePath = Path.Combine(workspace.ProjectDirectory, "Translations.de.resx");
             WriteResource(resourcePath, "Inspect $(par1)");
+            XDocument translations = XDocument.Load(resourcePath);
+            translations.Root.Add(new XElement("data", new XAttribute("name", "Electrical.ContactorTerminal"),
+                new XElement("value", "Contactor terminal")));
+            translations.Save(resourcePath);
             string saved = File.ReadAllText(resourcePath);
             VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
             workspace.Build(ide, 1);
@@ -75,7 +79,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             name = Box(window, "Name");
             Assert.Equal("Inspect 001", name.Text);
             name.Focus();
-            ResourceEditorTests.ReplaceDraft(ide, name, "Before $(loc:Ins");
+            ResourceEditorTests.ReplaceDraft(ide, name, "Before $(loc:PEC");
             WaitForSuggestion(window, "Inspect $(par1)");
             Assert.Equal(saved, File.ReadAllText(resourcePath));
             Assert.Contains("Unsealed", ide.ReadText(resourcePath));
@@ -91,13 +95,24 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
             VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == Source, "completion Undo restores raw source");
 
+            ResourceEditorTests.ReplaceDraft(ide, name, "$(loc:conta");
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
+                .Any(item => item.Name.StartsWith("loc:Electrical.ContactorTerminal", StringComparison.Ordinal)), "middle-of-key localization search");
+            ResourceEditorTests.RequireFieldFocus(ide, name);
+            Keyboard.Type(VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => name.Text == "$(loc:Electrical.ContactorTerminal)", "substring completion preserves exact key spelling");
+            Assert.Equal(Source, ide.ReadText(workspace.AlarmPath));
+            ResourceEditorTests.RequireFieldFocus(ide, name);
+            Keyboard.Type(VirtualKeyShort.ESCAPE);
+            Box(window, "Filter alarms").Focus();
+
             EnvDTE.Document resource = ide.Automation.Documents.Item(resourcePath);
             resource.Save();
             Marshal.ReleaseComObject(resource);
             Box(window, "Filter alarms").Focus();
             VisualStudioSession.Wait(() => name.Text == "Unsealed 001", "resource save refreshes translation");
             name.Focus();
-            ResourceEditorTests.ReplaceDraft(ide, name, "$(loc:Ins");
+            ResourceEditorTests.ReplaceDraft(ide, name, "$(loc:pec");
             WaitForSuggestion(window, "Unsealed $(par1)");
             ResourceEditorTests.RequireFieldFocus(ide, name);
             Keyboard.Type(VirtualKeyShort.ESCAPE);

@@ -971,3 +971,93 @@ acceptance and were not performed in this run:
 The updated [interactive workflow](ACCEPTANCE.md#milestone-seven-editor-and-report-workflow)
 gives the remaining checks. These are explicit carried gates, not claimed passes
 or additional implementation iterations awaiting owner review.
+
+## Authorized follow-up (2026-10-13)
+
+The owner authorized autonomous implementation on `dev/milestone7`, with a
+focused commit and short summary after each successful iteration. Preserve
+unrelated changes, existing editing/keyboard semantics and the accepted inline
+procedure design. Check account allowance at iteration boundaries; at 15% or
+less remaining, finish the current iteration and pause for feedback. The initial
+reading is 80% remaining. No follow-up implementation was present at start.
+
+### Confirmed decisions and defaults
+
+- Localization completion searches any part of the key, case-insensitively,
+  while inserting the exact compiler-supplied token. Prefix matches rank first;
+  catalogue order breaks ties. Search only keys, not translated text or template
+  argument names. Other expression namespaces retain their existing matching.
+- Move parameter Row actions to row context menus, for both alarm and file
+  parameters because they share one control. Preserve text Cut/Copy/Paste/Select
+  all, keyboard context-menu access, command availability and draft/focus rules.
+  Keep Add and Remove visible. Explain actual alarm A/D access keys in tooltips
+  and accessible help; Ctrl+A remains Select all.
+- Use custom bell/list and language artwork for the two item templates, and
+  native VS symbols for menu commands. Use native icons for Properties,
+  Resources, Translations and Lookups project folders, matching names without
+  case sensitivity; ordinary folders retain ordinary icons. Preserve special
+  linked/excluded/missing folder semantics and theme/DPI support.
+- Investigate the reported ALM0001 delay in the VS Error List. Live duplicate
+  diagnostics must work before Build; the Build-only source filter is a possible
+  cause, not a confirmed diagnosis. Preserve separation from MSBuild errors.
+- A personal Tools > Options > Alarmlist preference selects Designer (default)
+  or XML navigation, including Alarmlist diagnostic links. Select the exact
+  source alarm/field/entry using source positions, including duplicate identities.
+  Use XML for non-ALMX or locations the designer cannot represent. Keep search
+  navigation, source validation, private drafts and undo semantics intact.
+- Extend the existing preview window with Follow active editor (existing default)
+  or an explicit project. Project > Preview alarms opens and selects that project;
+  project mode survives editor switches/closure. Reuse project analysis, all
+  three preview tabs, language settings, virtualization and `.almproj.user`
+  column preferences. Include shared unsaved ALMX buffers, never auto-apply
+  private designer drafts. Project mode describes the analyzed buffer state and
+  makes the exclusion of unapplied field edits clear. Unload invalidates pending
+  actions and releases subscriptions. No new compiler, output or file format.
+
+### Follow-up iterations and planned acceptance
+
+| Iteration | Deliverable / dependencies | Required validation and completion criteria |
+| --- | --- | --- |
+| 8 | Localization key substring search; independent. | Matching/ranking/case/template-key unit cases, stale input and keyboard insertion/Undo regressions, build and native saved-localization completion on both installed VS hosts. |
+| 9 | Parameter row menus and discoverable alarm access keys; independent. | WPF row targeting, text commands, keyboard menu, draft/focus/command tests; native parameter editing and access keys on both hosts. |
+| 10 | Template/menu symbols and known project-folder icons; follows row menu work. | VSIX/template icon content checks on both frameworks, icon mapping/theme tests, native Add New Item/menu/folder creation/rename/reload on both hosts. |
+| 11 | Live duplicate diagnostic investigation and regression; independent. | Reproduce duplicate creation before any build in designer and XML; assert live Error List appearance/removal, linked contexts and source filters on both hosts; fix discovered product faults and document actual cause/evidence. |
+| 12 | Configurable Designer/XML navigation; follows diagnostic coverage. | Mapping duplicate identities and field/procedure targets, settings persistence and stale/draft guards; native same/cross-file, preview and live/build diagnostic navigation on both hosts, with XML fallback. |
+| 13 | Independent whole-project preview in the existing window; follows navigation. | Context/selection/culture/layout lifetime unit cases, no-editor/multi-project/linked-file/update/unload native scenarios on both hosts, unchanged source/output and virtualized large tables. |
+| 14 | Follow-up integration acceptance and documentation; follows 8–13. | Full solution build/tests, complete opted-in functional IDE suites on VS2022/2026, targeted performance/lifecycle checks where changed, final diff and requirement audit. Retain the earlier explicit manual/release gates separately. |
+
+Implementation evidence is recorded below per iteration. A planned check is not
+a passing result; an essential failure prevents calling that iteration successful.
+
+### Iteration 8 — localization key search (complete)
+
+Completion now matches any case-insensitive substring of a localization key.
+Key-prefix choices rank first, with stable catalogue order inside each group;
+ordinary and named-argument template choices keep their exact insertion text.
+The search does not include argument names, translation values or comments.
+Other expression namespaces retain their existing prefix/case rules. Saved-input
+revalidation and asynchronous cancellation still run before display/insertion.
+The README and repository guidance document the new search contract.
+
+Validation evidence:
+
+- The initial focused run passed 35 tests and failed one older count assertion:
+  `Set` now also matches `Hmi.Reset`. Updated that expected count and retained
+  the keyboard assertion that selects the second, prefix-ranked template entry.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --verbosity minimal --logger trx --results-directory artifacts/log/Debug/Milestone7/Iteration8/AllUnitTests`
+  passed all 399 tests, no failures/skips. This built the extension and VSIX;
+  no build warnings/errors were reported. Nine additional cases cover matching,
+  stable ranking, exact-case insertion, template arguments and namespace scope.
+- Ran `eng/test-visualstudio.ps1` with `-Filter 'FullyQualifiedName~LanguageAndSavedCompletion'`
+  against VS2022 17.14.36930.0 / AlarmlistExp and VS2026 18.10.12224.181 /
+  AlarmlistM7. Both passed one native scenario, no failures/skips. The actual
+  keyboard tests search `PEC` inside Inspection and `conta` inside
+  Electrical.ContactorTerminal, preserving raw spelling, private draft
+  cancellation, saved RESX boundaries, one-edit commit/Undo and unchanged output.
+  TRX directories under `artifacts/log/Debug/VisualStudioUI/TestResults/`:
+  `8f2b9b4d78904d74b312ad32c42aca15` (2022) and
+  `49115e32103b417abd4ec841a9fc78d8` (2026).
+- Reviewed the focused diff and `git diff --check`; no whitespace errors.
+  No compiler or file-format change, unrelated change or generated output is
+  included. No iteration-8 blocker remains. Iteration 9 is next.

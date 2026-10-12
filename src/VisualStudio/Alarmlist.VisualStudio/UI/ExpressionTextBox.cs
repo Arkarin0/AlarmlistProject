@@ -217,8 +217,19 @@ namespace Alarmlist.VisualStudio.UI
         }
 
         internal static PropertyCompletion[] FindMatches(IEnumerable suggestions, string prefix)
-            => suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix,
+        {
+            if (prefix.StartsWith("loc:", StringComparison.Ordinal))
+            {
+                string query = prefix.Substring(4);
+                // Match the key, never translated text or template argument names.
+                // Stable ordering retains catalogue order within each match group.
+                return suggestions.OfType<PropertyCompletion>().Where(property => property.IsLocalization
+                    && property.LocalizationKey.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .OrderByDescending(property => property.LocalizationKey.StartsWith(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+            }
+            return suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix,
                 property.RequiresValidation ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)).ToArray();
+        }
 
         private void AnnounceSelection()
         {

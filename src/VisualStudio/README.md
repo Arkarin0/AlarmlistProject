@@ -166,9 +166,12 @@ layout changes, and moving to another designer field still commit it.
 The toolbar uses the SDK's [native combo command pattern](https://github.com/microsoft/VSSDK-Extensibility-Samples/tree/master/Combo_Box)
 and editor command routing, without a global reference to an editor or project.
 
-Type `$(loc:` or use Ctrl+Space in expression fields for case-sensitive key
-completion. Suggestions show saved translation text, parent-culture provenance
-and comments; used translations can show evaluated values outside drafts. All
+Type `$(loc:` or use Ctrl+Space in expression fields to search any part of a
+localization key, ignoring case: `$(loc:Conta` finds `Electrical.ContactorTerminal`.
+Keys beginning with the search text appear first. Insertion preserves the exact
+key spelling; compiler key lookup remains case-sensitive. Suggestions show saved
+translation text, parent-culture provenance and comments; used translations can
+show evaluated values outside drafts. All
 expression suggestions use `name (additional information)` labels, with values and
 origin details available without changing the inserted token. Enter
 or Tab inserts the full token into the draft; a subsequent Enter commits it.

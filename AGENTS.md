@@ -434,6 +434,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   actions, states or unfamiliar concepts. Keep essential guidance visible and
   provide equivalent accessible help for keyboard/screen-reader users. Help must
   preserve focus and drafts; see [milestone seven's tooltip design](src/VisualStudio/MILESTONE-7.md#contextual-tooltips-and-help-2026-10-10).
+- Localization completion searches key substrings without case sensitivity,
+  prioritizing key prefixes, and inserts exact SDK-provided spelling. Never
+  extend matching to translated text or template argument names, change compiler
+  key identity, or bypass saved-input validation; see milestone seven's follow-up.
 - Resolved previews use SDK effective fields and surviving procedure entries.
   The dockable Alarmlist Preview window follows the shell's DocumentFrame selection
   through a weak document context. Detach on hide/close and invalidate pending

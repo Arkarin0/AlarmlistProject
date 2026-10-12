@@ -84,7 +84,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     ExpressionTextBox box = ExpressionBox(control, "Name");
                     box.BringIntoView(); Assert.True(box.Focus());
                     box.Text = "$(loc:Set"; box.CaretIndex = box.Text.Length;
-                    Assert.Equal(2, box.CompletionCount);
+                    // Set and its template rank ahead of the substring match Hmi.Reset.
+                    Assert.Equal(3, box.CompletionCount);
                     RaiseExpressionKey(box, host, Key.Down);
                     RaiseExpressionKey(box, host, Key.Enter);
                     Assert.Equal("$(loc:Set, path=\"\", property=\"\", value=\"\")", box.Text);
