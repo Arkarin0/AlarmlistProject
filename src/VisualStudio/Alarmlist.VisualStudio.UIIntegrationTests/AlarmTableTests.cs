@@ -68,6 +68,16 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             filter.Text = "001";
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 1, "resolved-value filter");
             Assert.Equal("A — Inspect 001", PreviewRows(window)[0].Name);
+            filter.Focus();
+            foreach (int width in new[] { 440, 650, 900 })
+            {
+                preview.Width = width;
+                VisualStudioSession.Wait(() => filter.BoundingRectangle.Width >= 180, "usable preview filter at " + width);
+                Assert.Equal("001", filter.Text); Assert.True(filter.Properties.HasKeyboardFocus.ValueOrDefault);
+                Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            }
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "responsive-preview.png"));
+            preview.Width = 1250;
             filter.Text = "";
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 2, "cleared filter");
             PreviewRows(window).Single(row => row.Name.StartsWith("A —", StringComparison.Ordinal)).Patterns.SelectionItem.Pattern.Select();
@@ -143,8 +153,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             var methodBounds = PreviewHeaders(window).Single(header => header.Name == "Test method").BoundingRectangle;
             ide.RequireForeground();
             Mouse.DragHorizontally(new System.Drawing.Point(methodBounds.Right - 2, methodBounds.Top + methodBounds.Height / 2), 40);
-            VisualStudioSession.Wait(() => double.Parse(SavedLayout(userPath).Split(';').Single(item => item.StartsWith("TestMethod,", StringComparison.Ordinal)).Split(',')[2],
-                System.Globalization.CultureInfo.InvariantCulture) > 380, "mouse column resize persistence");
+            VisualStudioSession.Wait(() =>
+            {
+                // A CPS write can temporarily make the user file unavailable.
+                string entry = SavedLayout(userPath).Split(';').SingleOrDefault(item => item.StartsWith("TestMethod,", StringComparison.Ordinal));
+                return double.TryParse(entry?.Split(',').ElementAtOrDefault(2), System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double savedWidth) && savedWidth > 380;
+            }, "mouse column resize persistence");
             // Saving the user file can briefly show the analysis-status message,
             // moving the table. Wait for fresh results and stable screen geometry.
             var stable = System.Diagnostics.Stopwatch.StartNew();

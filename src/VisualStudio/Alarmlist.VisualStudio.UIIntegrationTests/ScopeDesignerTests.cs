@@ -49,6 +49,17 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A); Keyboard.Type("private scope draft");
             VisualStudioSession.Wait(() => code.Text == "private scope draft", "scope draft");
             Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            Assert.Contains("File parameters", file.Properties.HelpText.ValueOrDefault);
+            Mouse.MoveTo(file.GetClickablePoint());
+            AutomationElement help = null;
+            VisualStudioSession.Wait(() => (help = window.FindFirstDescendant(cf => cf.ByControlType(ControlType.ToolTip))) != null, "file-area help tooltip");
+            Assert.True(help.BoundingRectangle.Height > 30, "Long help should wrap instead of extending across the screen.");
+            Assert.True(code.Properties.HasKeyboardFocus.ValueOrDefault);
+            Assert.Equal("private scope draft", code.Text); Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            // UIA sees the popup before its native fade animation has finished.
+            // Let that animation settle so the retained image shows final contrast.
+            System.Threading.Thread.Sleep(300);
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "draft-safe-tooltip.png"));
             AutomationElement divider = Find(window, "Resize file and alarm areas");
             double top = divider.BoundingRectangle.Top;
             divider.Focus(); ide.RequireForeground(); Keyboard.Type(VirtualKeyShort.DOWN);

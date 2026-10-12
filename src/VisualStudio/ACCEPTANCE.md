@@ -17,11 +17,52 @@ resolved output, and retains package hashes, revision, build logs, and baseline
 source/output hashes under `artifacts/log/<Configuration>/VisualStudioAcceptance/`.
 The helper passing does not establish that any IDE checks below passed.
 
+## Milestone-seven editor and report workflow
+
+Use the matching milestone-seven VSIX and repeat on both supported IDE hosts.
+The automated suites and simulated WPF renders are recorded in
+[MILESTONE-7](MILESTONE-7.md#actual-iteration-record). The following interactive
+observations remain distinct from those results; do not infer speech, native
+high contrast or mixed-monitor DPI behavior from UIA/bitmap checks.
+
+1. In the File settings and Alarm settings areas, collapse/expand each header and
+   resize their divider with mouse and keyboard while a property has a private
+   draft. Both headers must remain reachable, scrolling stays independent, and
+   resizing/collapse must not commit the draft. Reopen to check personal layout.
+2. Select a referenced alarm. Verify labels, the right-aligned inheritance gutter
+   and editors. Focus alone must keep XML unchanged. Type an override, commit and
+   Undo; use Shift+F10/right-click **Use inherited value** and Undo again. Verify
+   the Abstract checkbox is readable and has a visible focus/checked state.
+3. Edit a local procedure, including a cleared entry. Hide/show cleared entries
+   independently in Instructions/Reset; local cleared text remains editable and
+   Clear boundaries remain visible. Add/move/remove with keyboard and mouse, then
+   Undo. Enter commits, Shift+Enter inserts a newline, and Escape dismisses a
+   suggestion popup before cancelling the draft.
+4. Type a reference query against a large catalogue. Verify filtering by literal
+   identity and name, filename disambiguation, arrows/Enter selection, F4 opening,
+   clearing and an unresolved literal. Arrow navigation must not replace typed
+   text. Expression completion uses `name (details)` but inserts only its token.
+5. Inspect the report: Test method preserves surviving Instructions/Reset order,
+   labels and multiline text. At narrow widths the filter stays usable. Sort,
+   filter, select/copy and navigate to source. Hide every column, reopen the chooser,
+   reset, reorder/resize by mouse and keyboard, then reopen the solution to confirm
+   `.almproj.user` restoration without changes to shared project/source/output.
+6. Hover representative help while editing. It must be readable, explain the
+   current state, and preserve keyboard focus/drafts. Verify equivalent control
+   names/help and popup selection/status with an actual screen reader; successful
+   automation-peer assertions alone do not establish spoken output.
+7. Repeat representative controls at 440/650/900-pixel pane widths in native
+   light, dark and Windows high-contrast modes, and at 100/150/200% monitor scale.
+   Move the IDE between monitors with different scale settings. Check clipped
+   labels, focused/disabled controls, selected/unselected suggestions, tooltip
+   placement and long report rows. Discard test edits and compare fixture hashes.
+
 ## Milestone-four property workflow
 
 The fixture also links `Shared/Properties.almx` into both projects. The original
-milestone-three scenarios and their historical results below remain unchanged.
-These new checks have **not been accepted interactively**.
+milestone-three scenarios remain applicable with the milestone-seven controls
+described below; historical results stay in their milestone records. These
+property checks have **not been accepted interactively**.
 
 1. Select `Property.Child`. North shows Name `North 001`, South shows `South 001`,
    and both show Code `001` and Description `Inspect 001 - Shared`. The base's
@@ -100,18 +141,21 @@ Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
 1. The Child's resolved Instructions are, in order, the selected project's
    `inspect` step, its `caution` warning, and `Shared local note`. Only the first
    two entries have chain adorners. Their source links go to that project's Base.
-2. Resolved Reset contains only `Shared reset only`. The procedure editor's
-   **Excluded by Clear** section explains both the inherited reset and
-   `Excluded local reset`. No Clear directive appears in compiled output.
-3. On Instructions, choose **Make local copy**. XML should contain a leading
-   Clear and exactly the three current effective entries. Reset is unchanged.
+2. Resolved Reset contains only `Shared reset only`. The procedure editor shows
+   the inherited reset and `Excluded local reset` inline with **Cleared** labels.
+   Its group eye toggle hides/shows these entries, and cleared local text remains
+   editable. No Clear directive appears in compiled output.
+3. On Instructions, open **Inheritance**, then choose **Make local copy**. XML
+   should contain a leading Clear and exactly the three current effective entries.
+   Reset is unchanged.
    Undo once restores the original section and inheritance. Redo/Undo should
    restore the same result without duplicate entries.
-4. Leave **Selected alarm** visible and choose **Override locally** on
-   inherited Name. Both previews clear during the uncommitted draft. The local
-   Name editor must stay in view and receive keyboard focus, with the caret after
-   the copied value. Escape restores inheritance without changing source.
-   Commit a different local Name, verify the unsaved preview, then Undo.
+4. Leave **Selected alarm** visible and focus inherited Name in the designer.
+   Focus alone must preserve source and the resolved preview. Type a different
+   Name: both previews clear during the uncommitted draft, and the editor keeps
+   focus. Escape restores inheritance without changing source. Type and commit
+   a local Name, verify the unsaved preview, then Undo. Repeat with the field's
+   **Use inherited value** context action and Undo.
 5. Edit a base Name in the XML editor without saving. Return to Child and verify
    the corresponding context updates. The other context keeps its own Base.
    Undo the edit; disk source and compiled output remain at their baselines.
@@ -121,8 +165,8 @@ Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
 1. Navigate the Preview window tabs with Tab/Shift+Tab. Text and source links must
    expose descriptive accessible names and origin help. Chain adorners are
    decorative: they must neither take focus nor intercept text selection.
-   Scalar action names must identify their field (for example, **Override Name
-   locally**); section copy/replacement actions must identify Instructions or Reset.
+   Scalar action names must identify their field (for example, **Use inherited
+   Name**); group action controls must identify Instructions or Reset.
 2. Select text in a resolved field using Shift+Arrow. Ctrl+C and paste into a
    temporary unsaved text document should preserve the selected text. Attempted
    typing in the preview must not change source. Do not save the scratch document.
@@ -187,7 +231,8 @@ and a free literal argument. Follow its walkthrough in the example README.
 Discard test edits and compare all files in `baseline-hashes.json` to the recorded
 SHA256 values. A preview or context change must never write compiled output.
 Record host version, deployed build, fixture path, scenarios, observed results,
-failures, and any checks not run in [MILESTONE-3](MILESTONE-3.md).
+failures, and any checks not run in the applicable milestone record, currently
+[MILESTONE-7](MILESTONE-7.md).
 
 Use `eng/test-visualstudio.ps1 -MeasureAnalysis` for running-IDE buffer-to-diagnostic
 latency and repeated designer close/process-memory samples. See the README for

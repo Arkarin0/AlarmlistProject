@@ -7,7 +7,7 @@
  Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
  AutomationProperties.Name="Alarmlist Preview" PreviewKeyDown="OnPreviewKeyDown">
  <UserControl.Resources><ResourceDictionary>
-  <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /></ResourceDictionary.MergedDictionaries>
+  <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /><ResourceDictionary Source="EditorHelpResources.xaml" /></ResourceDictionary.MergedDictionaries>
   <Style TargetType="TextBox">
    <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
    <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
@@ -117,13 +117,21 @@
          </ScrollViewer>
         </StackPanel>
        </Expander>
-       <DockPanel Margin="0,0,0,6">
-        <Button DockPanel.Dock="Right" Content="Copy selected rows" Click="OnCopyRows" Margin="6,0,0,0" Style="{StaticResource TableAction}" AutomationProperties.Name="Copy selected preview rows" />
-        <Button DockPanel.Dock="Right" Content="Go to source" Click="OnGoToSource" Margin="6,0,0,0" Style="{StaticResource TableAction}" AutomationProperties.Name="Go to selected alarm source" />
-        <TextBlock DockPanel.Dock="Right" Text="{Binding AlarmTableCount}" VerticalAlignment="Center" Margin="8,0,0,0" />
-        <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
-        <TextBox Text="{Binding AlarmTableFilter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter preview alarms" ToolTip="Filter resolved values, identities and source paths" />
-       </DockPanel>
+       <Grid Margin="0,0,0,6" SizeChanged="OnPreviewToolbarSizeChanged">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+        <DockPanel>
+         <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
+         <TextBox Text="{Binding AlarmTableFilter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter preview alarms" ToolTip="Filter resolved values, identities and source paths" />
+        </DockPanel>
+        <WrapPanel x:Name="PreviewTableActions" Grid.Column="1" Margin="8,0,0,0">
+         <TextBlock Text="{Binding AlarmTableCount}" VerticalAlignment="Center" Margin="0,0,8,0" />
+         <Button Content="Go to source" Click="OnGoToSource" Margin="0,0,6,0" Style="{StaticResource TableAction}" AutomationProperties.Name="Go to selected alarm source"
+                 ToolTip="Select a row from the current preview, then go to its source. Enter in the table also goes to source." ToolTipService.ShowOnDisabled="True" />
+         <Button Content="Copy selected rows" Click="OnCopyRows" Style="{StaticResource TableAction}" AutomationProperties.Name="Copy selected preview rows"
+                 ToolTip="Select rows from the current preview to copy the visible columns in display order. Ctrl+C in the table also copies them." ToolTipService.ShowOnDisabled="True" />
+        </WrapPanel>
+       </Grid>
        <ui:LiveStatusTextBlock Text="{Binding AlarmTableMessage}" TextWrapping="Wrap">
         <ui:LiveStatusTextBlock.Style><Style TargetType="ui:LiveStatusTextBlock"><Style.Triggers>
          <DataTrigger Binding="{Binding AlarmTableMessage}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>

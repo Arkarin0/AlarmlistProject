@@ -108,10 +108,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Theory]
-        [InlineData("Light", 900)]
-        [InlineData("Dark", 650)]
-        [InlineData("HighContrast", 440)]
-        public void DirectFieldFormAlignsEditorsAndAdornersAndThemesAbstractState(string palette, int width)
+        [InlineData("Light", 900, 1.0)]
+        [InlineData("Dark", 650, 1.5)]
+        [InlineData("HighContrast", 440, 2.0)]
+        public void DirectFieldFormAlignsEditorsAndAdornersAndThemesAbstractState(string palette, int width, double scale)
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
@@ -145,7 +145,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     abstractBox.IsEnabled = false;
                     Assert.Same(text, abstractBox.Foreground);
                     Assert.Same(background, abstractBox.Background);
-                    RenderPreview(control, palette + "-direct-fields", 1);
+                    RenderPreview(control, palette + "-direct-fields", scale);
                 }
             });
         }

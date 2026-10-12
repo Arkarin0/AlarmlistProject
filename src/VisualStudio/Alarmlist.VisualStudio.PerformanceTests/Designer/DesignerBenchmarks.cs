@@ -166,7 +166,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             }
         }
 
-        private sealed class ReadOnlyBuffer : IDocumentBuffer
+        internal sealed class ReadOnlyBuffer : IDocumentBuffer
         {
             public event EventHandler Changed { add { } remove { } }
             public DocumentSnapshot Current { get; }
@@ -175,7 +175,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
                 => throw new InvalidOperationException("A measurement must not commit or save source edits.");
         }
 
-        private sealed class CapturedDesignerAnalysis : IDesignerAnalysis
+        internal sealed class CapturedDesignerAnalysis : IDesignerAnalysis
         {
             public event EventHandler Changed;
             public string DocumentPath { get; }

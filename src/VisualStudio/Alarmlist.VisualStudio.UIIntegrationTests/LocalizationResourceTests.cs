@@ -166,8 +166,20 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => (selector = toolbar.FindFirstDescendant(cf => cf.ByControlType(ControlType.ComboBox))?.AsComboBox())?.IsEnabled == true, "preview language selector");
             selector.Expand();
             AutomationElement choice = null;
-            VisualStudioSession.Wait(() => (choice = selector.FindFirstDescendant(cf => cf.ByName(culture).And(cf.ByControlType(ControlType.ListItem)))) != null,
-                "preview language choice " + culture);
+            var refresh = Stopwatch.StartNew();
+            VisualStudioSession.Wait(() =>
+            {
+                choice = selector.FindFirstDescendant(cf => cf.ByName(culture).And(cf.ByControlType(ControlType.ListItem)));
+                if (choice != null) return true;
+                // The native shell list snapshots choices when opened. Resource
+                // capture can finish afterwards, so reopen during this bounded
+                // readiness wait to request the current catalogue.
+                if (refresh.ElapsedMilliseconds >= 500)
+                {
+                    selector.Collapse(); selector.Expand(); refresh.Restart();
+                }
+                return false;
+            }, "preview language choice " + culture);
             choice.Patterns.SelectionItem.Pattern.Select();
             selector.Collapse();
         }

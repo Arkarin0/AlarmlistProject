@@ -24,6 +24,17 @@ namespace Alarmlist.VisualStudio.UI
         }
         private EditFileControlViewModel View => DataContext as EditFileControlViewModel;
 
+        private void OnPreviewToolbarSizeChanged(object sender, SizeChangedEventArgs args)
+        {
+            // Reposition the existing controls so resizing preserves filter text
+            // and focus while leaving enough room to type in a narrow tool window.
+            bool narrow = args.NewSize.Width < 700;
+            Grid.SetRow(PreviewTableActions, narrow ? 1 : 0);
+            Grid.SetColumn(PreviewTableActions, narrow ? 0 : 1);
+            Grid.SetColumnSpan(PreviewTableActions, narrow ? 2 : 1);
+            PreviewTableActions.Margin = narrow ? new Thickness(0, 6, 0, 0) : new Thickness(8, 0, 0, 0);
+        }
+
         private void OnTableSorting(object sender, DataGridSortingEventArgs args)
         {
             args.Handled = true;

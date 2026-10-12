@@ -74,6 +74,19 @@ objects or the memory of a running Visual Studio. Existing collectibility regres
 tests remain in UnitTests. Old Stopwatch results remain historical evidence in
 MILESTONE-3.md; the new measurement method establishes a new baseline.
 
+`Area=Preview` covers the milestone-seven controls with 1,200 concrete alarms
+across twelve files and long, inherited/cleared procedure text. It measures report
+column resizing/layout, scrolling from the first to the last row, and opening the
+actual searchable reference popup with more than 1,000 choices. Compilation and
+setup remain outside the measured intervals; correctness checks require resolved
+long procedures, bounded realized report rows, candidate counts and no source
+commits. These isolated WPF measurements do not measure physical input or screen
+paint and have no machine-dependent timing threshold.
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Preview'
+```
+
 ## Live Visual Studio wrappers
 
 Functional IDE tests belong to the separate

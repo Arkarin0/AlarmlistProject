@@ -117,6 +117,8 @@ available even with all columns hidden. Preferences are shared across the projec
 ALMX previews and saved in `<project>.almproj.user`, independently of configuration.
 Unrelated user properties are preserved; save failures leave the session layout
 usable and show an error. Loose files use session preferences.
+In narrow preview windows, the count and row actions wrap below the filter so
+the filter remains usable; resizing keeps its text and keyboard focus.
 Copying revalidates saved resources/lookups and source snapshots first. Errors
 mark unavailable row values and disable compiled XML; drafts clear all previews.
 

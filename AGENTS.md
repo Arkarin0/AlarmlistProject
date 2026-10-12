@@ -517,6 +517,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   for 1,000 alarms. Keep its culture/parent-origin and named-argument correctness
   checks outside measured intervals, and pass the same captured resources into
   designer publication. Its completion measurement filters localization keys.
+- The isolated `Area=Preview` performance workload uses 1,200 alarms with long
+  effective procedures and more than 1,000 reference choices. Measure actual WPF
+  report resize/scroll layout and reference-popup creation with compilation and
+  correctness checks outside measured intervals. Retain row-virtualization and
+  no-source-commit checks; these measurements do not establish screen-paint latency.
 - The isolated `Area=Analyzers` bridge workload captures the sample analyzer and
   saved configuration for 1,000 alarms, validating warning counts and host isolation
   outside timing. Its paired range scenario uses a full positive Int64 glob range;

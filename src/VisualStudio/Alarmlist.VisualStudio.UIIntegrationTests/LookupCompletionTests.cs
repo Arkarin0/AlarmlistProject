@@ -55,7 +55,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.True(VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, lookupPath, lookup.Replace("060", "999")));
             ide.OpenDesigner(workspace.AlarmPath);
             window.SetForeground();
-            TextBox name = Box(window, "Name");
+            TextBox name = null;
+            VisualStudioSession.Wait(() => (name = Box(window, "Name"))?.IsEnabled == true, "reopened lookup designer field");
             name.Focus();
             ResourceEditorTests.ReplaceDraft(ide, name, "$(meta:Service.Vakuum#Ein#Def");
             VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))

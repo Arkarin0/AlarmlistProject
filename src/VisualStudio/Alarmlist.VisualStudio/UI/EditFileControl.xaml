@@ -6,7 +6,7 @@
   Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
   Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
   SizeChanged="OnSizeChanged" PreviewKeyDown="OnPreviewKeyDown" PreviewMouseDown="OnPreviewMouseDown" Loaded="OnLoaded" Unloaded="OnUnloaded">
-  <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /></ResourceDictionary.MergedDictionaries>
+  <UserControl.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /><ResourceDictionary Source="EditorHelpResources.xaml" /></ResourceDictionary.MergedDictionaries>
     <BooleanToVisibilityConverter x:Key="Visibility" />
     <Style x:Key="ScopeArrow" TargetType="TextBlock">
       <Setter Property="Text" Value="▸" /><Setter Property="Margin" Value="0,0,8,0" />

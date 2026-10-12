@@ -1,6 +1,8 @@
 # Milestone seven: ALMX editor user experience
 
-Status: implementation authorized on 2026-10-10; the owner accepted the latest
+Status: implementation and scoped automated acceptance completed on 2026-10-12
+on `dev/milestone7`. Manual accessibility/display and release gates remain visible
+in the closeout below. Implementation was authorized on 2026-10-10; the owner accepted the latest
 full-editor and Preview View designs and requested autonomous implementation,
 validation and a commit after each successful iteration. The owner selected
 improving the existing file editor's UI/UX as this milestone's purpose, then
@@ -15,9 +17,11 @@ finish the current focused task safely, record the checkpoint, pause the goal an
 wait for feedback. The initial reading was 66% remaining. Earlier discussion
 records below describe historical deferral, superseded by this authorization.
 
-Checkpoint (2026-10-11): implementation iterations through 6b are validated;
-iteration 7 has not started. Pausing at the requested usage boundary after the
-6b commit. This milestone is not yet fully accepted; remaining gates are below.
+Checkpoint (2026-10-11): implementation iterations through 6b were validated and
+committed; work paused at the requested usage boundary before iteration 7.
+Resumed on 2026-10-12 with renewed instruction and 99% account allowance remaining.
+Iteration 7's implementation/automated validation is complete; this does not close
+the separately carried interactive/release acceptance gates.
 
 ## Intended outcome and confirmed scope
 
@@ -30,8 +34,8 @@ Procedure editing remains the first priority; the inline procedure preview is
 accepted as a design direction. Property fields, reference selection, dark-theme
 legibility, file/alarm scope separation, IntelliSense suggestion formatting and
 the preview table's procedure rendering/column customization are also confirmed
-scope. Interaction
-details explicitly marked as proposals below are still under discussion. Interpret the
+scope. The proposals below retain the design discussion; the delegated decisions
+and actual iteration records state the final choices. Interpret the
 owner's "alms file editor" as the existing `.almx` editor, not a new file format.
 Contextual tooltips are confirmed scope wherever they help explain an action,
 state or unfamiliar concept across the editor and preview.
@@ -273,8 +277,9 @@ Recommended interaction and persistence details:
   `Persistence="UserFile"`; `Alarmlist.DesignTime.targets` imports
   `$(MSBuildProjectFullPath).user`; `.gitignore` excludes `*.user`.
   Microsoft's [DataSource.Persistence documentation](https://learn.microsoft.com/en-us/dotnet/api/microsoft.build.framework.xamltypes.datasource.persistence?view=msbuild-17)
-  confirms this persistence location. Exact property/schema names remain to be
-  chosen during implementation. No user settings file has been created here.
+  confirms this persistence location. Iteration 6b chose
+  `AlarmlistPreviewColumnLayout` in the existing ConfigurationGeneral rule and
+  verified CPS-managed user-file persistence in isolated IDE fixtures.
 - Keep the layout independent of ALMX source and compiler output. Validate saved
   values, tolerate unknown/new column identifiers and reset invalid layouts to
   usable defaults. Standalone documents without a project can use session defaults.
@@ -282,7 +287,7 @@ Recommended interaction and persistence details:
 - Preserve the existing filtering, sorting, source navigation, stale-input checks,
   preview lifetime and read-only behavior. Keep row virtualization enabled and
   measure long procedure cells with 1,000+ alarms; do not build an editor control
-  tree per procedure entry. Proposed copy behavior: visible columns in display
+  tree per procedure entry. Accepted copy behavior: visible columns in display
   order, with multiline procedure text correctly quoted for spreadsheet paste.
 
 Implementation validation must cover effective procedure rendering (including
@@ -345,7 +350,7 @@ iteration 7's acceptance checks.
   Review tab order, access keys, focus visibility and automation names with layout.
 - Retain the existing Roslyn-inspired open-text/derived-model separation documented
   in [milestone two's architecture references](MILESTONE-2.md#shared-file-handling-and-its-references).
-  This is a UI proposal, not a new compiler architecture or Roslyn dependency.
+  This UI redesign adds no compiler architecture or Roslyn dependency.
   Arcade build/package organization and supported frameworks remain unchanged.
 - Keep notifying collections, stable draft controls, weak document ownership and
   view disposal. Layout improvements must not reintroduce view retention or reset
@@ -799,3 +804,170 @@ full downstream/packaged-extension and functional IDE suites, final performance
 and lifetime checks, and remaining manual theme/DPI/accessibility gates remain
 pending. Earlier scoped passes do not replace that acceptance work. The unrelated
 `example/North/Alarms1.almx` edit remains preserved and excluded from commits.
+
+### Iteration 7: integrated UX acceptance (2026-10-12)
+
+Resumed at `bc33c11` on `dev/milestone7`. The worktree is now clean; the earlier
+unrelated example edit is no longer an outstanding change, and this iteration
+will not restore or otherwise alter it. The renewed goal authorizes the remaining
+acceptance work; the 12% remaining-allowance stopping instruction still applies.
+
+Run the full solution build and ordinary tests, then the opted-in functional IDE
+suite on each installed host. Review coverage of the new controls at narrow and
+ordinary widths, themed/scaled WPF rendering, keyboard help, draft preservation
+and disposal. Run targeted Release designer and live close/lifetime measurements
+separately from other builds/tests. Add focused regressions for any uncovered
+behavior and fix failures before committing this iteration. Record actual native
+theme/DPI/screen-reader evidence separately; simulated palettes and UIA assertions
+do not establish physical monitor movement or spoken-output acceptance.
+
+Initial evidence: `dotnet build AlarmlistProject.slnx --verbosity minimal` passed
+with zero errors and two existing CA1416 warnings from the shared net8.0 test helper
+(`Thread.SetApartmentState`). The built solution's ordinary test run passed 1,672
+cases; 44 functional IDE and 11 performance opt-in cases were intentionally skipped.
+This includes both frameworks for compiler/MSBuild/SDK/VSIX consumers. Build and
+TRX evidence is under `artifacts/log/Debug/Milestone7/Iteration7/`.
+
+The narrow high-contrast simulation exposed a collapsed preview filter: the count
+and action buttons consumed its width. The toolbar now moves those actions below
+the filter in narrow panes, retaining the same text/focus controls. Nine focused
+layout/automation checks passed, then all 390 VS unit cases passed. New coverage
+checks filter usability across resize, column-chooser bounds/help, draft stability
+and palette/scale rendering. These bitmap scales are not actual monitor DPI tests.
+
+Live scope inspection preserved the private draft while showing help but exposed
+an unwrapped tooltip extending across the screen. Shared editor/preview help now
+uses bounded wrapping and theme colors. Thirteen focused layout/help/lifetime
+checks passed after that change, including focus/draft preservation and released
+designer, preview and shared-setting subscriptions.
+The full VS2022 run also exposed a lookup-test readiness race immediately after
+returning from an XML lookup buffer. The field was visible in the later failure
+capture. Lookup/list scenarios now wait for the reopened editable field before
+typing; they retain real keyboard input and all saved-input/source assertions.
+The next full VS2022 run passed all 22 functional cases with zero skips:
+`artifacts/log/Debug/VisualStudioUI/TestResults/54d7e2d0d80548f58cfcbb24ed81f94c/`.
+It includes native tooltip wrapping, narrow preview filter/focus, keyboard editing,
+lookup/list saved-input behavior and column user-file round trips. Tooltip captures
+now allow the native fade animation to finish before visual contrast review;
+the functional focus/source assertions still run immediately.
+
+The first full VS2026 run found another test readiness issue: the native language
+dropdown was opened while the initial resource analysis was still pending and
+retained its keyword-only list. The source confirms that the shell queries a
+snapshot of choices on opening. The shared test helper now reopens the list
+periodically within the existing bounded wait for the requested culture. It still
+fails if that culture never becomes available; saved-catalogue and draft assertions
+are unchanged. All callers are included in the subsequent host validation.
+The full VS2026 run had 21 passes and that one failure (`21df3c048a7647a2b0d240b01cc1aeff`).
+The follow-up passed seven affected cases, including lookup completion, but the
+report test's width-save predicate threw when CPS temporarily held the user file.
+It now treats the unavailable intermediate value as not ready within the same
+bounded wait, retaining the expected saved width. That report case passed again
+(`fa195702ea46498888594f56b11fa2d6`); the seven other passes are in
+`034c546fac4548e092ce67bd162b2a4b`. These IDs are under
+`artifacts/log/Debug/VisualStudioUI/TestResults/`. Reviewed the settled native
+VS2026 dark tooltip: it wraps, remains readable and leaves the Code draft focused.
+All eight affected workflows then passed on VS2022, zero skipped, with the final
+helpers (`b4d7fa5b11df45608085b68e2dcabd42`). Across the full runs and focused
+rechecks, all 22 distinct functional scenarios passed on each installed host:
+VS2022 17.14.36930.0 / AlarmlistExp and VS2026 18.10.12224.181 / AlarmlistM7.
+The initial failed runs remain recorded; no failed case is treated as a pass.
+
+Added a separate Release `Area=Preview` benchmark for 1,200 long-procedure rows,
+report resize/scroll and the searchable reference popup. It reuses the established
+SDK-isolated fixture/harness; analysis and correctness checks stay outside measured
+intervals. The Release performance project builds without warnings/errors.
+
+Release isolated measurements passed both selected xUnit wrappers and all nine
+BenchmarkDotNet operations (Short: two warmups/five measurement iterations).
+Command: `eng/measure-visualstudio-analysis.ps1 -Job Short -Filter
+'Category=Performance&Host=Isolated&Area=Preview|Category=Performance&Host=Isolated&FullyQualifiedName~PropertyDesigner'`.
+Raw CSV/JSON, runtime/revision metadata and summaries:
+`artifacts/log/Release/AnalysisPerformance/85f2e0f3f98d481f9270dd342536e48c/`.
+
+| Workload/operation | Mean on this machine |
+| --- | --- |
+| 1,200 long-procedure rows: column resize/layout | 18.58 ms |
+| 1,200 rows: scroll first to last/layout | 16.77 ms |
+| More than 1,000 reference choices: popup/layout | 17.83 ms |
+| 1,000 property alarms: publication/layout | 39.86 ms |
+| Property designer: unchanged refresh/layout | 13.26 ms |
+| Property designer: context change/layout | 42.69 ms |
+| Property designer: private draft/layout | 17.77 ms |
+| Property designer: 100 completion/command queries | 0.147 / 0.099 ms |
+
+The report checks retained fewer than 40 realized rows, resolved long procedure
+content and source preservation. These are isolated WPF layout measurements,
+with compilation outside timing, not physical typing/paint or release thresholds.
+They establish a workload baseline, not a before/after improvement claim.
+
+Release live measurement wrappers passed on both IDEs, one case per host with
+zero skips. Each used `Host=VisualStudio&Area=LiveAnalysis&VSVersion=<host>`, the
+explicit installed host/profile, 1,000 additional alarms, two warmups and 20
+measured samples in each mode. Source/output preservation and owned-IDE cleanup
+passed; all post-close samples reported zero open documents. Wrapper reports:
+`artifacts/log/Release/LiveVisualStudioTests/e6f4c835514d4f3194794c757e94de74/`
+(2022), `ada0d4a6531c43d3beb21f738db21eaf/` (2026). Raw fixtures/CSVs are under
+`artifacts/log/Release/VisualStudioSmoke/d93344d8ad2f41c1b22be5ff7eca5411/`
+and `a6aafc889bb7427fa0bfc81d8b0441b3/`, respectively.
+
+| Live host | XML buffer diagnostic median | Reopened designer diagnostic median | First → last measured private memory |
+| --- | --- | --- | --- |
+| VS2022 | 458.6 ms | 452.5 ms | 1,012.1 → 1,087.6 MiB |
+| VS2026 | 451.3 ms | 455.8 ms | 1,026.6 → 1,166.5 MiB |
+
+These diagnostic times include debounce, COM and polling, and exclude opening
+the editor. Memory grew during these short whole-IDE samples; natural Gen2 counts
+increased from 3 to 4 on each host. No collection was forced, and this evidence
+does not establish a plateau or leak freedom. Automated WPF collectibility checks
+passed separately. Long-session attribution remains an interactive/profiler gate.
+
+Final verification after the product and harness fixes:
+
+- `dotnet build AlarmlistProject.slnx --verbosity minimal` passed with zero
+  warnings/errors; `final-solution-build.binlog` retains the final incremental
+  build. The initial full build's two shared-test-helper warnings remain recorded
+  above rather than being described as fixed.
+- `dotnet test AlarmlistProject.slnx --no-build --no-restore --verbosity minimal
+  --logger trx --results-directory artifacts/log/Debug/Milestone7/Iteration7/FinalTestResults`
+  passed 1,675 cases, zero failures. All 13 result files are retained. The 56
+  ordinary-run skips are the 44 opt-in functional IDE cases and 12 performance
+  wrappers; required IDE and targeted measurement runs are recorded separately.
+- This includes all 390 VS unit cases, both compiler/task/SDK frameworks, and 11
+  packaged VSIX/template consumer cases per framework. The SDK consumer suites
+  passed 53 cases on each framework.
+- Aggregating the latest result for each distinct functional scenario across the
+  full runs and focused rechecks gives 44 passes: 22 per installed host, with no
+  unresolved failed case. The native keyboard/mouse assertions were retained.
+- Reviewed actual dark IDE tooltip/report captures and representative light,
+  dark and high-contrast WPF renders, including 100/150/200% bitmap scales. Render
+  artifacts are in `artifacts/log/Debug/Milestone7/Iteration7/Rendering/`.
+- Reviewed the implementation/test/documentation diff and whitespace. The work
+  remains on `dev/milestone7`; no unrelated source or generated artifact is part
+  of this iteration.
+
+Iteration 7's scoped implementation and automated checks are successful. No
+essential automated check remains blocked. The final changes keep narrow preview
+filtering usable, wrap/theme help without changing drafts, and harden readiness
+in the live tests. No compiler, XML-format or keyboard-commit contract changed.
+The last account reading was 85% remaining, above the requested pause boundary.
+
+### Carried interactive and release gates
+
+Per iteration 7's criteria, the following checks remain distinct from automated
+acceptance and were not performed in this run:
+
+- Actual screen-reader speech, selection and live announcements. UIA names,
+  patterns/help and keyboard checks passed; they do not verify spoken output.
+- Native light/Windows high-contrast theme switching and physical 100/150/200%
+  or mixed-monitor DPI movement. Actual IDE captures use dark mode; the other
+  palettes/scales are WPF simulations. No user OS display settings were changed.
+- Human workflow/typing-to-paint assessment and long-session memory attribution.
+  The short live samples record memory growth and do not establish leak freedom.
+- Older minimum-supported VS2022/resource-editor acceptance, prior milestone
+  vendor XLIFF round trips, and SDK/VSIX publication gates remain governed by
+  their existing plans. Nothing was published as part of milestone seven.
+
+The updated [interactive workflow](ACCEPTANCE.md#milestone-seven-editor-and-report-workflow)
+gives the remaining checks. These are explicit carried gates, not claimed passes
+or additional implementation iterations awaiting owner review.
