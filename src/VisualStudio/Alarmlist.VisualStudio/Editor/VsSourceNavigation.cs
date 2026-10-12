@@ -14,12 +14,31 @@ namespace Alarmlist.VisualStudio.Editor
 {
     internal static class VsSourceNavigation
     {
+        internal static bool PreferDesigner(IServiceProvider services)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            Guid packageGuid = new Guid(AlarmlistPackage.PackageGuid);
+            var shell = (IVsShell)services.GetService(typeof(SVsShell));
+            if (shell == null) throw new InvalidOperationException("Visual Studio's settings service is not available.");
+            ErrorHandler.ThrowOnFailure(shell.LoadPackage(ref packageGuid, out IVsPackage package));
+            return (package as AlarmlistPackage)?.NavigationView != SourceNavigationView.XML;
+        }
         public static void Navigate(IServiceProvider services, IVsEditorAdaptersFactoryService adapters, AnalysisLocation location, string expectedText)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             IVsWindowFrame frame;
             IVsTextView view;
-            if (string.Equals(Path.GetExtension(location.FilePath), ".resx", StringComparison.OrdinalIgnoreCase)
+            bool almx = string.Equals(Path.GetExtension(location.FilePath), ".almx", StringComparison.OrdinalIgnoreCase);
+            bool designer = almx && PreferDesigner(services);
+            if (almx)
+            {
+                // Open the shared editor without ViewCode committing a private
+                // designer draft. Its explicit navigation route guards drafts.
+                frame = VsShellUtilities.OpenDocumentWithSpecificEditor(services, location.FilePath,
+                    new Guid(AlmxEditorFactory.EditorGuid), VSConstants.LOGVIEWID_Primary);
+                view = frame == null ? null : VsShellUtilities.GetTextView(frame);
+            }
+            else if (string.Equals(Path.GetExtension(location.FilePath), ".resx", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(Path.GetExtension(location.FilePath), ".almlookup", StringComparison.OrdinalIgnoreCase))
             {
                 // Resource Explorer also handles the Code logical view. Diagnostic
@@ -42,6 +61,16 @@ namespace Alarmlist.VisualStudio.Editor
             if (line < 0 || line >= snapshot.LineCount || column < 0 || column > snapshot.GetLineFromLineNumber(line).Length)
                 throw new InvalidOperationException("The source location is no longer available.");
             ErrorHandler.ThrowOnFailure(view.SetCaretPos(line, column));
+            if (almx)
+            {
+                ErrorHandler.ThrowOnFailure(frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocView, out object documentView));
+                if (documentView is AlmxEditorPane pane
+                    && pane.NavigateSource(snapshot.GetLineFromLineNumber(line).Start.Position + column, expectedText, designer))
+                {
+                    ErrorHandler.ThrowOnFailure(frame.Show());
+                    return;
+                }
+            }
             ErrorHandler.ThrowOnFailure(view.CenterLines(line, 1));
             ErrorHandler.ThrowOnFailure(frame.Show());
         }

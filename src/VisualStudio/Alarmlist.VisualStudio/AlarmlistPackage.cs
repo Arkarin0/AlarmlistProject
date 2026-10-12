@@ -16,6 +16,7 @@ namespace Alarmlist.VisualStudio
     [InstalledProductRegistration("Alarmlist", "Alarmlist project integration", "1.0")]
     [Guid(PackageGuid)]
     [ProvideMenuResource("Menus.ctmenu", 2)]
+    [ProvideOptionPage(typeof(NavigationOptions), "Alarmlist", "Navigation", 0, 0, true)]
     [ProvideToolWindow(typeof(AlarmlistPreviewWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 900, Height = 380)]
     [ProvideEditorExtension(typeof(AlmxEditorFactory), ".almx", 0x60, NameResourceID = 111)]
     [ProvideEditorLogicalView(typeof(AlmxEditorFactory), VSConstants.LOGVIEWID.Designer_string)]
@@ -24,6 +25,14 @@ namespace Alarmlist.VisualStudio
     public sealed class AlarmlistPackage : AsyncPackage
     {
         public const string PackageGuid = "2c4fa8f8-d641-4f5c-a7df-6cfc6bf30f34";
+        internal SourceNavigationView NavigationView
+        {
+            get
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                return ((NavigationOptions)GetDialogPage(typeof(NavigationOptions))).SourceView;
+            }
+        }
 
         protected override async Task InitializeAsync(CancellationToken cancellationToken, System.IProgress<ServiceProgressData> progress)
         {

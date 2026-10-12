@@ -420,6 +420,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   SDK catalogue/provenance, revalidates saved inputs before display and insertion,
   and discards late results after editing, focus or context changes. Navigate RESX
   diagnostics through the XML editor without saving pending resource edits.
+  ALMX source navigation follows the personal Tools > Options > Alarmlist choice,
+  defaulting to exact source-position selection in Designer. Keep Find's XML
+  behavior, unsupported-location XML fallback and unapplied destination drafts.
+  Navigation layout changes must not commit drafts in another editor view.
   Keep source presence/local drafts separate from inherited effective displays.
   Only the SDK's provenance determines inheritance; equal text is not evidence.
   Revalidate current project inputs before copying/picking/navigating, preserve
@@ -484,6 +488,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Clear obsolete live rows on pending analysis/configuration changes/unload; report input/SDK
   failures separately without inventing ALM codes. Revalidate all captured inputs
   and project lifetime before navigation. Never clear another table source's data.
+  Build rows have no captured source version; require a matching current diagnostic
+  and validated inputs before routing their ALMX source through this preference.
   Track asynchronous navigation through an owned task collection and join through
   a separate factory on disposal; do not fire-and-forget via ThreadHelper's factory.
 - Release the authoritative SDK package to NuGet.org before distributing its

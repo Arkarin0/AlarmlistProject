@@ -280,6 +280,16 @@ opens the actual defining field through multi-hop inheritance. Copy, picker, and
 navigation commands revalidate captured inputs before acting. Pending, incomplete,
 unavailable, and loose-file states retain local editing without stale inheritance.
 
+**Tools > Options > Alarmlist > Navigation > Open ALMX sources in** chooses
+**Designer** (default) or **XML** for Go to, preview and diagnostic links. This
+is a personal Visual Studio preference. Designer navigation selects the exact
+source alarm and field, parameter or procedure entry, even with duplicate names;
+it reveals collapsed groups, filtered alarms and hidden cleared entries as needed.
+Unsupported markup and resource/lookup locations use XML. Find still uses XML.
+Navigation refuses to replace or commit an unapplied destination draft. Build
+diagnostic links require a matching diagnostic in current analysis; stale results
+ask you to wait for analysis or rebuild instead of selecting an outdated position.
+
 Expand **Live project diagnostics** to see compiler IDs, messages, source links,
 and related locations for the chosen project context. These describe shared
 buffer text; commit or cancel control drafts before navigating. The Visual Studio

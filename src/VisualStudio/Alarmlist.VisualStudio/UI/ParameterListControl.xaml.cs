@@ -32,6 +32,17 @@ namespace Alarmlist.VisualStudio.UI
             };
         }
         private ParameterListViewModel ViewModel => DataContext as ParameterListViewModel;
+        internal bool NavigateTo(ParameterViewModel row)
+        {
+            Section.IsExpanded = true;
+            ParameterList.ScrollIntoView(row);
+            ParameterList.UpdateLayout();
+            TextBox editor = Children(ParameterList).OfType<TextBox>().FirstOrDefault(box =>
+                ReferenceEquals(box.DataContext, row) && AutomationProperties.GetName(box) == row.NameAutomationName);
+            if (editor == null) return false;
+            editor.BringIntoView(); editor.SelectAll(); editor.Focus();
+            return true;
+        }
         private void OnListSizeChanged(object sender, SizeChangedEventArgs args) => SizeColumns();
         private void OnListScrollChanged(object sender, ScrollChangedEventArgs args)
         {

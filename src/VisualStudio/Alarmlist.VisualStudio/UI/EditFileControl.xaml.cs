@@ -24,6 +24,30 @@ namespace Alarmlist.VisualStudio
             DataContext = viewModel;
         }
         private EditFileControlViewModel ViewModel => (EditFileControlViewModel)DataContext;
+        internal bool NavigateSource(int position, string expectedText)
+        {
+            object target = ViewModel.SelectSource(position, expectedText);
+            if (target == null) return false;
+            // Selection is synchronous: no delayed focus can steal later input.
+            UpdateLayout();
+            if (target is ParameterViewModel parameter)
+            {
+                ParameterListControl list = Children(this).OfType<ParameterListControl>().FirstOrDefault(control =>
+                    (control.DataContext as ParameterListViewModel)?.Rows.Contains(parameter) == true);
+                return list?.NavigateTo(parameter) == true;
+            }
+            FrameworkElement editor = Children(this).OfType<TextBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, target)
+                && item.IsEnabled && item.Visibility == Visibility.Visible)
+                ?? (FrameworkElement)Children(this).OfType<ComboBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, target));
+            if (editor == null) return false;
+            for (DependencyObject parent = editor; parent != null; parent = VisualTreeHelper.GetParent(parent))
+                if (parent is Expander expander) expander.IsExpanded = true;
+            UpdateLayout();
+            editor.BringIntoView();
+            if (editor is TextBox text) text.SelectAll();
+            editor.Focus();
+            return true;
+        }
         private void OnFieldLostFocus(object sender, KeyboardFocusChangedEventArgs args)
         {
             // Shell toolbars live outside this view. Leaving the designer keeps

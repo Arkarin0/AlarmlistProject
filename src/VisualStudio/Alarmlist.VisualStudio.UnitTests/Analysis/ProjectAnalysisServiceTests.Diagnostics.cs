@@ -213,6 +213,39 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        public async Task BuildNavigationRevalidatesInputsAndProjectLifetimeAsync(int change)
+        {
+            var files = new Inputs();
+            object buffer = new object();
+            files.Set("A", "text", 7, buffer);
+            var location = new AnalysisLocation("A", 2, 3, 2, 5, 7);
+            var service = Create(files, new Factory { Response = DiagnosticResponse(location: location) });
+            var registry = new ProjectAnalysisRegistry();
+            registry.Add(service);
+            try
+            {
+                service.UpdateProject(Project("Debug", "A"));
+                await AvailableAsync(service);
+                var target = new BuildDiagnosticTarget("A", "ALM0002", "Missing reference", 1, 2);
+                if (change == 1) files.Set("A", "changed before notification", 8, buffer);
+                if (change == 2) files.Set("A", "text", 7, new object());
+                if (change == 3) registry.Remove(service);
+                if (change == 4) files.BeforeCapture = count => registry.Remove(service);
+                AnalysisLocation navigated = null;
+                bool result = await target.TryNavigateAsync(registry, files, (item, text) =>
+                { navigated = item; Assert.Equal("text", text); }, CancellationToken.None);
+                Assert.Equal(change == 0, result);
+                Assert.Equal(change == 0 ? location : null, navigated);
+            }
+            finally { registry.Remove(service); await service.StopAsync(); }
+        }
+
+        [Theory]
         [InlineData(false, false)]
         [InlineData(true, false)]
         [InlineData(false, true)]

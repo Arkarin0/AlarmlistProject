@@ -156,7 +156,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         private static AutomationElement[] VisibleDuplicates(Window window) => window.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem))
             .Where(row => row.Name.Contains("ALM0001") && row.Name.Contains(Message)).ToArray();
 
-        private static void SelectErrorSource(VisualStudioSession ide, Window window, string source)
+        internal static void SelectErrorSource(VisualStudioSession ide, Window window, string source)
         {
             ComboBox filter = window.FindAllDescendants(cf => cf.ByControlType(ControlType.ComboBox))
                 .Select(element => element.AsComboBox()).Single(combo => combo.Name == "Generierte Probleme anzeigen"

@@ -61,6 +61,14 @@ high contrast or mixed-monitor DPI behavior from UIA/bitmap checks.
    Move the IDE between monitors with different scale settings. Check clipped
    labels, focused/disabled controls, selected/unselected suggestions, tooltip
    placement and long report rows. Discard test edits and compare fixture hashes.
+8. In **Tools > Options > Alarmlist > Navigation**, switch **Open ALMX sources in**
+   between Designer and XML, apply and restart to verify persistence. Test reference,
+   inherited field/procedure, preview and diagnostic links in both modes. Duplicate
+   names must select the source declaration at the reported position. Hidden alarms
+   and cleared entries must become visible when targeted. Leave a private draft in
+   the destination and verify navigation refuses to replace/commit it. Find and
+   unsupported markup/resource locations continue to use XML. Correct a saved Build
+   error without rebuilding: its stale row must not select an unrelated alarm.
 
 ## Milestone-four property workflow
 

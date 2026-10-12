@@ -97,6 +97,12 @@ namespace Alarmlist.VisualStudio.UI
             _settings.Write(nameof(Mode), mode.ToString());
             NotifyModes();
         }
+        // Navigation changes presentation only; another view may hold a draft.
+        internal void ShowForNavigation(EditorMode mode)
+        {
+            _mode = mode;
+            NotifyModes();
+        }
         private void NotifyModes()
         {
             Notify(nameof(Mode)); Notify(nameof(IsDesigner)); Notify(nameof(IsSplit)); Notify(nameof(IsXml));

@@ -77,6 +77,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Inspect 001", "original active-document preview");
             window.FindFirstDescendant(cf => cf.ByName("Go to source for resolved Name").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
             VisualStudioSession.Wait(() => string.Equals(ide.Automation.ActiveDocument?.FullName, basePath, StringComparison.OrdinalIgnoreCase), "inherited value source navigation");
+            bool designerNavigation = Convert.ToInt32(ide.Automation.Properties["Alarmlist", "Navigation"].Item("SourceView").Value) == 0;
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName(designerNavigation ? "Designer" : "XML").And(cf.ByControlType(ControlType.RadioButton)))
+                ?.Patterns.SelectionItem.Pattern.IsSelected == true && (!designerNavigation || Box(window, "FullyQualifiedName")?.Text == "Base"),
+                "preview navigation follows the personal source preference");
             Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllBytes(workspace.OutputPath));
             ide.Automation.Documents.CloseAll(vsSaveChanges.vsSaveChangesNo);

@@ -2,7 +2,7 @@
 
 Status: initial implementation and scoped automated acceptance completed on
 2026-10-12 on `dev/milestone7`. The [authorized follow-up](#authorized-follow-up-2026-10-13)
-is in progress: iterations 8–11 are complete; 12–14 remain. The current pause
+is in progress: iterations 8–12 are complete; 13–14 remain. The current pause
 boundary is 15% account allowance remaining, superseding the original run's 12%.
 Manual accessibility/display and release gates remain visible in the closeout
 below. Implementation was authorized on 2026-10-10; the owner accepted the latest
@@ -1239,3 +1239,83 @@ passed all 419 cases, with no failures or skips. Reviewed implementation, test,
 documentation and whitespace diffs. No essential iteration-11 blocker remains;
 the original owner's exact filter setting remains unknown. Account allowance is
 51% remaining, above the pause boundary. Configurable source navigation is next.
+
+### Iteration 12 — configurable source navigation (complete)
+
+Added the personal Alarmlist / Navigation options page using the native
+[DialogPage/ProvideOptionPage contract](https://learn.microsoft.com/en-us/visualstudio/extensibility/creating-an-options-page).
+Designer is the default; XML remains selectable. The existing navigation adapter
+now validates the shared text and routes ALMX locations through the editor pane.
+Find keeps its existing XML route. Navigation never commits a destination draft
+or another view's draft while changing modes, and does not rewrite the remembered
+manual layout choice. Unsupported or ambiguous source markup falls back to XML.
+
+A source-projection mapper identifies exact duplicate alarms, scalar fields,
+local parameters and procedure entries by source spans. Designer navigation
+reveals filters/collapsed groups/cleared rows and focuses the corresponding editor.
+Non-ALMX resource and lookup navigation retains the native XML editor route.
+Build rows contain no captured version; the Error List route therefore requires
+the same diagnostic at the same position in current validated project inputs
+before using its source. Stale/unavailable Build rows report status guidance.
+Live navigation retains its existing generation, input and lifetime validation.
+
+Focused navigation, draft, unsupported-markup and actual WPF-control tests passed
+40 cases with no skips in `Iteration12/NavigationUnitTests/`. An initial compile
+identified an unavailable ManagerIdentifier attribute from an outdated SDK XML
+example; the provider uses the pinned public ErrorTable DataSourceType and
+AnyDataSource attributes. A missing shell-service guard warning was also corrected.
+Both are resolved before native validation; native results remain pending.
+
+Initial VS2022 native source/preview navigation reached all behavioral assertions;
+the first source case failed its final saved-byte expectation because VS adds a
+terminal newline on explicit Save (`6167464ea29043fb94b8b7a9e686e6bb`). The fixture
+now starts with that newline. The corrected two-case run passed
+(`8e12bb7a94a44e0987080fbf8acc0d1a`), including an explicit XML-to-Designer Build-row
+transition and unchanged sources/output except the test's intentional save.
+Reviewed the duplicate-source capture: the second declaration is selected and
+its identity editor receives focus. VS2026 also passed the navigation/preview
+behavior, including procedure focus; its new restart assertion showed that DTE
+property assignment alone does not persist options (`b59c402365d645688aebbea545cab84d`).
+The persistence test now uses the actual Options page's OK action. Its synchronous
+DTE command entered a modal loop (`00a9e5b546864f6980db9c0d26b375d7`); stopped only
+the verified owned test IDE and changed the fixture to operate the modal UI while
+the command is pending, then join it. Persistence validation is still in progress.
+
+The final modal interaction targets the owned Options window separately from the
+disabled main window; the preceding main-window selectors timed out
+(`179f1db72aaa4ff797e1cff7d3ec1120`, `ecc656afc868475dbf346befd937a808`). UIA3 exposes
+the actual OK button in that separate window. VS2022 now passed the complete
+source-navigation, inherited-procedure and apply/restart/restore scenario
+(`ddeab631f8364ed1978aac0ca3bab475`). The new optional restart phase retains its own
+host/failure artifacts and runs under the existing shared test mutex. Reviewed
+the actual Options page and duplicate-alarm captures. Final stale-Build and
+unsupported-location native checks plus the complete unit suite remain pending.
+
+VS2026's final source-navigation case passed with no skips
+(`2546f4c4c5e640669a0d4699791365e7`), including stale Build refusal, the designer's
+diagnostic source link falling back for repeated fields, native Options apply,
+IDE restart and restoration of the prior preference. Reviewed its Options capture.
+The stale-row test first assumed the standalone native XML view had ALMX mode
+buttons (`47ef265f8bb3467db20bbbc12673ed22`); it now verifies unchanged text and no
+Designer transition. An Error List row retained across a view switch did not
+trigger the fallback transition (`0b404c13fda44c5bbd441b02a4c80bc8`); the fallback
+case now invokes the current designer diagnostic link after waiting for command
+availability. A packaged-compiler unit case independently confirms that the
+repeated ReferenceName diagnostic maps to an unsupported location. The preceding
+live/Build Error List click checks remain, including exact duplicate selection.
+
+Final VS2022 SourceNavigation and PreviewWindow checks passed both cases, with
+zero skips (`fdbbaf2e8f6045dd830872b9cd6ce307`). The final VS2026 source case above
+and its PreviewWindow case in `b59c402365d645688aebbea545cab84d` cover both hosts.
+Commands used `eng/test-visualstudio.ps1`, each installed host/profile, and the
+SourceNavigation/PreviewWindow filters. Extension/VSIX builds reported no errors
+or warnings in successful runs.
+
+`dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+--verbosity minimal --logger trx --results-directory artifacts/log/Debug/Milestone7/Iteration12/AllUnitTests`
+passed all 443 cases, with zero failures/skips. This includes Build navigation
+revalidation for changed text, buffer identity and project removal during capture.
+Reviewed implementation, tests, documentation and whitespace. No essential
+iteration-12 blocker remains; earlier manual display/accessibility and release
+gates remain separate. Account allowance is 36% remaining. Independent project
+preview is next.

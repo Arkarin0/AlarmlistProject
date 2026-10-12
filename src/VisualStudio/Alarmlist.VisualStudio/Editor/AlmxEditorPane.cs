@@ -43,6 +43,22 @@ namespace Alarmlist.VisualStudio.Editor
         private IVsUIShell _shell;
         public EditFileControlViewModel PreviewSource => _viewModel;
         public event EventHandler PreviewSourceChanged;
+        internal bool NavigateSource(int position, string expectedText, bool designer)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (_viewModel == null) return false;
+            if (_session.Model.Projection.Text != expectedText)
+                throw new InvalidOperationException("The source changed while opening. Wait for analysis and try again.");
+            if (_viewModel.HasPending)
+                throw new InvalidOperationException("Commit or cancel the destination editor's draft before navigating.");
+            if (designer)
+            {
+                _layout.ShowForNavigation(EditorMode.Designer);
+                if (_control.NavigateSource(position, expectedText)) return true;
+            }
+            _layout.ShowForNavigation(EditorMode.XML);
+            return false;
+        }
 
         public AlmxEditorPane(System.IServiceProvider site, OleServiceProvider oleSite,
             IVsEditorAdaptersFactoryService adapters, IVsTextLines lines, AlmxDocumentSessionFactory sessions,

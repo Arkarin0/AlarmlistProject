@@ -3,6 +3,7 @@
 using System;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Alarmlist.VisualStudio.Analysis;
@@ -11,6 +12,7 @@ using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell.TableControl;
+using Microsoft.VisualStudio.Shell.TableManager;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Threading;
 using Microsoft.VisualStudio.Utilities;
@@ -18,7 +20,8 @@ using Microsoft.VisualStudio.Utilities;
 namespace Alarmlist.VisualStudio.Diagnostics
 {
     [Export(typeof(ITableControlEventProcessorProvider))]
-    [DataSource(LiveDiagnosticTableSource.SourceIdentifier)]
+    [DataSourceType(StandardTableDataSources.ErrorTableDataSource)]
+    [DataSource(StandardTableDataSources.AnyDataSource)]
     [Name(nameof(LiveDiagnosticNavigation))]
     [Order(Before = Priority.Default)]
     internal sealed class LiveDiagnosticNavigation : ITableControlEventProcessorProvider, IDisposable
@@ -26,6 +29,7 @@ namespace Alarmlist.VisualStudio.Diagnostics
         private readonly IOpenAnalysisDocuments _documents;
         private readonly IServiceProvider _services;
         private readonly IVsEditorAdaptersFactoryService _adapters;
+        private readonly ProjectAnalysisRegistry _registry;
         private readonly object _gate = new object();
         private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
         private readonly JoinableTaskCollection _tasks;
@@ -35,9 +39,9 @@ namespace Alarmlist.VisualStudio.Diagnostics
 
         [ImportingConstructor]
         public LiveDiagnosticNavigation(IOpenAnalysisDocuments documents,
-            [Import(typeof(SVsServiceProvider))] IServiceProvider services, IVsEditorAdaptersFactoryService adapters)
+            [Import(typeof(SVsServiceProvider))] IServiceProvider services, IVsEditorAdaptersFactoryService adapters, ProjectAnalysisRegistry registry)
         {
-            _documents = documents; _services = services; _adapters = adapters;
+            _documents = documents; _services = services; _adapters = adapters; _registry = registry;
             JoinableTaskContext context = ThreadHelper.JoinableTaskContext;
             _tasks = context.CreateCollection();
             _operations = context.CreateFactory(_tasks);
@@ -46,15 +50,19 @@ namespace Alarmlist.VisualStudio.Diagnostics
 
         public ITableControlEventProcessor GetAssociatedEventProcessor(IWpfTableControl tableControl) => new Processor(this);
 
-        private async Task NavigateAsync(LiveDiagnosticTableEntry entry)
+        private async Task NavigateAsync(LiveDiagnosticTableEntry entry, BuildDiagnosticTarget build)
         {
             string message = null;
             try
             {
                 await _operations.SwitchToMainThreadAsync(_lifetime.Token);
                 using (var inputs = new ProjectAnalysisInputSource(_documents))
-                    if (!await entry.TryNavigateAsync(inputs, (location, text) => VsSourceNavigation.Navigate(_services, _adapters, location, text), _lifetime.Token))
-                        message = "This live diagnostic is no longer current or has no source location. Wait for analysis and try again.";
+                {
+                    Action<AnalysisLocation, string> navigate = (location, text) => VsSourceNavigation.Navigate(_services, _adapters, location, text);
+                    bool current = entry != null ? await entry.TryNavigateAsync(inputs, navigate, _lifetime.Token)
+                        : await build.TryNavigateAsync(_registry, inputs, navigate, _lifetime.Token);
+                    if (!current) message = "This diagnostic is no longer current or has no source location. Wait for analysis or rebuild and try again.";
+                }
             }
             catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { return; }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception)) { message = exception.Message; }
@@ -66,12 +74,12 @@ namespace Alarmlist.VisualStudio.Diagnostics
             }
         }
 
-        private void StartNavigation(LiveDiagnosticTableEntry entry)
+        private void StartNavigation(LiveDiagnosticTableEntry entry, BuildDiagnosticTarget build = null)
         {
             lock (_gate)
             {
                 if (_disposed) return;
-                _operations.RunAsync(() => NavigateAsync(entry)).Task.Forget();
+                _operations.RunAsync(() => NavigateAsync(entry, build)).Task.Forget();
             }
         }
 
@@ -90,11 +98,24 @@ namespace Alarmlist.VisualStudio.Diagnostics
             public Processor(LiveDiagnosticNavigation owner) { _owner = owner; }
             public override void PreprocessNavigate(ITableEntryHandle entry, TableEntryNavigateEventArgs args)
             {
-                if (!entry.TryGetValue(LiveDiagnosticTableSource.EntryKey, out object value) || !(value is LiveDiagnosticTableEntry diagnostic)) return;
-                // Handle even obsolete or location-free rows so the default handler
-                // cannot navigate using an unvalidated, cached line/column.
+                if (args.Handled) return;
+                if (entry.TryGetValue(LiveDiagnosticTableSource.EntryKey, out object value) && value is LiveDiagnosticTableEntry diagnostic)
+                {
+                    // Handle even obsolete rows; cached positions are unsafe.
+                    args.Handled = true;
+                    _owner.StartNavigation(diagnostic);
+                    return;
+                }
+                if (!entry.TryGetValue(StandardTableKeyNames.ErrorSource, out object source) || !Equals(source, ErrorSource.Build)
+                    || !entry.TryGetValue(StandardTableKeyNames.DocumentName, out string path)
+                    || !string.Equals(Path.GetExtension(path), ".almx", StringComparison.OrdinalIgnoreCase)
+                    || _owner._registry.GetContexts(path).Count == 0
+                    || !entry.TryGetValue(StandardTableKeyNames.ErrorCode, out string id)
+                    || !entry.TryGetValue(StandardTableKeyNames.Text, out string message)
+                    || !entry.TryGetValue(StandardTableKeyNames.Line, out int line)
+                    || !entry.TryGetValue(StandardTableKeyNames.Column, out int column)) return;
                 args.Handled = true;
-                _owner.StartNavigation(diagnostic);
+                _owner.StartNavigation(null, new BuildDiagnosticTarget(path, id, message, line, column));
             }
         }
     }
