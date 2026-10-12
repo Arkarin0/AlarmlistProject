@@ -149,7 +149,8 @@
       <ui:LiveStatusTextBlock Text="{Binding CultureGuidance}" TextWrapping="Wrap" />
       <ui:LiveStatusTextBlock Text="{Binding AnalysisMessage}" TextWrapping="Wrap" />
       <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
-      <Expander Header="{Binding DiagnosticsHeading}" Margin="0,4,0,0">
+      <Expander Header="{Binding DiagnosticsHeading}" Margin="0,4,0,0"
+                ToolTip="{Binding DiagnosticsHelp}" AutomationProperties.HelpText="{Binding DiagnosticsHelp}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="180">
           <StackPanel>
             <TextBlock Text="{Binding DiagnosticsGuidance}" TextWrapping="Wrap" Margin="0,4,0,6" />

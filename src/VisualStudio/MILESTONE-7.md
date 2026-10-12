@@ -2,7 +2,7 @@
 
 Status: initial implementation and scoped automated acceptance completed on
 2026-10-12 on `dev/milestone7`. The [authorized follow-up](#authorized-follow-up-2026-10-13)
-is in progress: iterations 8–10 are complete; 11–14 remain. The current pause
+is in progress: iterations 8–11 are complete; 12–14 remain. The current pause
 boundary is 15% account allowance remaining, superseding the original run's 12%.
 Manual accessibility/display and release gates remain visible in the closeout
 below. Implementation was authorized on 2026-10-10; the owner accepted the latest
@@ -1181,3 +1181,61 @@ Native high-contrast/physical DPI and screen-reader speech remain the earlier
 explicit manual gates; the new resource tests do not claim to replace them.
 Account allowance is 61% remaining. Iteration 11 (live ALM0001 investigation)
 is next.
+
+### Iteration 11 — live duplicate diagnostics (complete)
+
+The new native regression creates a project without calling Build, opens an
+unsaved duplicate `NewAlarm` in Diagnostics.almx, and verifies ALM0001 in the
+Error List. Both XML and committed designer changes publish the duplicate;
+correction and shared Undo remove it. Private field drafts remain private and
+saved source/output stay untouched throughout these pre-Build checks. A second
+project links the same source; both live project contexts publish the shared
+unsaved duplicate before any build.
+
+The native source-filter check reproduces the reported appearance delay:
+Build-only hides that live error, while IntelliSense or Build + IntelliSense
+shows it immediately. This verifies a mechanism for the reported symptom, not
+the owner's original filter setting (which was not inspected or modified).
+The source already correctly classifies live results as ErrorSource.Other,
+per the [VS API contract](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.shell.tablemanager.errorsource?view=visualstudiosdk-2022).
+No compiler/publication change or relabelling as Build is warranted by this
+evidence. Added concise filter guidance, a diagnostics-header tooltip and
+equivalent accessible help; documented the distinction in the README/AGENTS.
+
+The first native attempts exposed test issues, not a missing ALM0001: an optional
+UIA dump accessed an unsupported AutomationId property, a native filter item
+proxy did not support SelectionItem, and a DTE project-count readiness check did
+not match the two projects/analysis contexts visible in the IDE. The test uses
+optional property reads, actual filter clicks and the analysis-context selector
+for readiness. Retained failures: `0ddf874cc84c495dbcc5490466b666ef`,
+`7164a99d52a84730991e3e1012a91108`, `eca4bac576db48ae9a297367c7c8c82d`.
+Final full-scenario evidence follows when both host checks finish.
+
+The explicit Build phase also confirmed VS merges identical Build errors into a
+single row with `Plant, South` in its Project cell. The test now verifies both
+project names and preserved Build rows, rather than requiring two physical rows
+(`4b866cba1ba94a3a82017310e2127f9b` retains the earlier count failure). A subsequent
+run retained Build-only from that failed run and therefore hid the initial live
+error even through DTE ErrorItems (`3967f7a1b16447d8b475628b3a2b8ea7`). Its captured
+filter is `Nur erstellen`. The test explicitly selects both sources before its
+initial wait, then tests all three filter choices. This is additional evidence
+for persisted filtering, not a change to product publication.
+
+The first VS2026 run (`e9ca96f895de4e1892bdfca59c507df6`) found an empty source
+selector before the first diagnostic publication. The fixture now creates the
+unsaved duplicate before selecting the source, while still selecting both before
+waiting through DTE ErrorItems. No Build is introduced to initialize the test.
+Final native scenarios passed on VS2026 (`1ec2e4d571bd45958e3fd897613bc3c9`) and
+VS2022 (`8ac9bcf5d13f425891ce7c7f8eb071fb`), one case per host with zero skips.
+Both use `eng/test-visualstudio.ps1` and the DuplicateBeforeFirstBuild filter.
+Reviewed linked-live captures from both hosts: each shows the two current project
+contexts and the unsaved XML duplicate. The final scenario additionally proves
+that unsaved corrections clear live rows, preserve the saved failed-Build rows,
+and unload removes the solution's rows. Extension/VSIX builds succeeded.
+
+`dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+--verbosity minimal --logger trx --results-directory artifacts/log/Debug/Milestone7/Iteration11/UnitTests`
+passed all 419 cases, with no failures or skips. Reviewed implementation, test,
+documentation and whitespace diffs. No essential iteration-11 blocker remains;
+the original owner's exact filter setting remains unknown. Account allowance is
+51% remaining, above the pause boundary. Configurable source navigation is next.

@@ -12,9 +12,10 @@ namespace Alarmlist.VisualStudio.UI
     {
         public IReadOnlyList<DiagnosticViewModel> Diagnostics { get; private set; } = Array.Empty<DiagnosticViewModel>();
         public string DiagnosticsHeading => "Live project diagnostics (" + Diagnostics.Count + ")";
+        public string DiagnosticsHelp => "Live diagnostics update from shared buffer text without building. In the Error List, choose Build + IntelliSense or IntelliSense. Build-only hides live results.";
         public string DiagnosticsGuidance => HasPending ? "Diagnostics reflect shared buffer text. Commit or cancel drafts before navigating."
             : _analysis?.Current?.Status == ProjectAnalysisStatus.Available && DiagnosticDocumentMatches(_analysis.Current)
-                ? "Current project analysis. Build diagnostics remain in the Error List separately."
+                ? "Current project analysis. Choose Build + IntelliSense in the Error List to include live results. Build-only shows results from the last build."
             : "Waiting for current project analysis. Previous live compiler errors have been cleared.";
 
         private void RefreshDiagnostics(ProjectAnalysisState state)

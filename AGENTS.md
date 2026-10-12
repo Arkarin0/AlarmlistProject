@@ -477,8 +477,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   artwork into consumer projects. See milestone seven's follow-up scope.
 - Live diagnostics belong to `Alarmlist.LiveDiagnostics`, separate from Build
   diagnostics. Use immutable table snapshots, SDK IDs/messages/severities, and
-  zero-based Error List positions converted from compiler locations. Clear obsolete
-  live rows on pending analysis/configuration changes/unload; report input/SDK
+  non-Build ErrorSource.Other classification. The Error List's Build-only filter
+  intentionally hides them; explain the IntelliSense source filter rather than
+  relabelling live results as Build or changing the user's filters automatically.
+  Preserve zero-based Error List positions converted from compiler locations.
+  Clear obsolete live rows on pending analysis/configuration changes/unload; report input/SDK
   failures separately without inventing ALM codes. Revalidate all captured inputs
   and project lifetime before navigation. Never clear another table source's data.
   Track asynchronous navigation through an owned task collection and join through

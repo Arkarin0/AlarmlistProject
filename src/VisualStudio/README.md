@@ -285,6 +285,11 @@ and related locations for the chosen project context. These describe shared
 buffer text; commit or cancel control drafts before navigating. The Visual Studio
 Error List publishes the same current errors under **Alarmlist live analysis**
 (the IntelliSense/non-Build source). Use **Build + IntelliSense** to see both.
+**Build** alone hides live entries, so a duplicate such as ALM0001 can appear to
+arrive only after a build. With **IntelliSense** or **Build + IntelliSense**, it
+updates when an XML edit or committed designer edit reaches the shared buffer;
+no build or save is required. Uncommitted field drafts remain private. The
+diagnostics heading's tooltip and accessible help explain this source filter.
 Pending analysis clears obsolete live errors, and project unload removes its rows.
 Input/SDK failures appear separately as analysis-unavailable warnings without ALM
 codes. Neither live analysis nor its navigation saves files or writes compiled output;

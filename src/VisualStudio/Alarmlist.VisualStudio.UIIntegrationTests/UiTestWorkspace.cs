@@ -27,7 +27,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             File.WriteAllText(SolutionPath, "Microsoft Visual Studio Solution File, Format Version 12.00\r\n# Visual Studio Version 17\r\nGlobal\r\nEndGlobal\r\n");
         }
 
-        public void CreateProject(VisualStudioSession ide)
+        public void CreateProject(VisualStudioSession ide, bool build = true)
         {
             PrepareSdkFeed(DirectoryPath, Path.Combine(AppContext.BaseDirectory, "testassets"));
             Directory.CreateDirectory(ProjectDirectory);
@@ -38,7 +38,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.Solution.AddFromTemplate(projectTemplate, ProjectDirectory, "Plant", false);
             VisualStudioSession.Wait(() => ide.Automation.Solution.Projects.Count == 1, "project creation");
             ide.Automation.Solution.SaveAs(SolutionPath);
-            Build(ide, 1);
+            if (build) Build(ide, 1);
         }
 
         public void Build(VisualStudioSession ide, int alarmCount)
