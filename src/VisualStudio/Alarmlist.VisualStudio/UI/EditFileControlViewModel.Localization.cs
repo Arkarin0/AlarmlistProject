@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Alarmlist.VisualStudio.Analysis;
@@ -11,8 +10,6 @@ namespace Alarmlist.VisualStudio.UI
 {
     internal sealed partial class EditFileControlViewModel
     {
-        private static readonly IReadOnlyDictionary<string, string> s_cultureNames = CultureInfo.GetCultures(CultureTypes.AllCultures)
-            .Where(culture => culture.Name.Length != 0).ToDictionary(culture => culture.Name, culture => culture.Name, StringComparer.OrdinalIgnoreCase);
         private bool _cultureBusy;
         public IReadOnlyList<string> PreviewCultures { get; private set; } = BindingCollection.Create(new[] { "keyword" });
         public bool CanChangePreviewCulture => !_disposed && !_cultureBusy && _analysis?.Current?.Project != null
@@ -35,13 +32,7 @@ namespace Alarmlist.VisualStudio.UI
 
         private void RefreshLocalization(ProjectAnalysisState state)
         {
-            IEnumerable<string> cultures = (state?.Response?.Snapshot?.Resources.Select(resource => resource.Culture) ?? Enumerable.Empty<string>())
-                .Concat((state?.Project?.BuildCultures ?? "").Split(';'))
-                .Append(SelectedPreviewCulture).Where(value => !string.IsNullOrWhiteSpace(value));
-            string[] choices = new[] { "keyword" }.Concat(cultures.Select(value => value.Trim())
-                .Where(value => !string.Equals(value, "keyword", StringComparison.OrdinalIgnoreCase))
-                .Select(value => s_cultureNames.TryGetValue(value, out string normalized) ? normalized : value)
-                .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value, StringComparer.Ordinal)).ToArray();
+            string[] choices = PreviewContent.Cultures(state, SelectedPreviewCulture);
             if (!PreviewCultures.SequenceEqual(choices)) { PreviewCultures = BindingCollection.Create(choices); Notify(nameof(PreviewCultures)); }
             Notify(nameof(SelectedPreviewCulture)); Notify(nameof(CanChangePreviewCulture)); Notify(nameof(CultureGuidance));
         }

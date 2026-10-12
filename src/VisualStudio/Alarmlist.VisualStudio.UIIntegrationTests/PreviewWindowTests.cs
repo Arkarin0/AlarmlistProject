@@ -84,7 +84,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllBytes(workspace.OutputPath));
             ide.Automation.Documents.CloseAll(vsSaveChanges.vsSaveChangesNo);
-            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Open an ALMX document to preview its project.")) != null, "closed-document preview clears");
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Open an ALMX document or choose a project in Preview scope.")) != null, "closed-document preview clears");
             ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").Visible = false;
             ide.OpenDesigner(otherPath);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");

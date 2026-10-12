@@ -413,8 +413,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Preview culture changes persist shared AlarmlistCulture through CPS without
   changing build cultures or committing ALMX drafts. Global overrides disable the
   selector; write failures retain evaluated state. Use
-  the native Alarmlist toolbar's active-document command route for preview culture;
-  never retain an editor globally for toolbar state. Leaving the designer for shell
+  the native Alarmlist toolbar's active-document command route for editor culture;
+  an explicitly selected project preview routes culture to that project's CPS
+  writer and also provides a window selector when no editor is open. Never retain
+  an editor globally for toolbar state. Leaving the designer for shell
   controls preserves drafts; explicit commits and intra-designer focus changes still
   apply. Localization completion uses
   SDK catalogue/provenance, revalidates saved inputs before display and insertion,
@@ -443,19 +445,25 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   extend matching to translated text or template argument names, change compiler
   key identity, or bypass saved-input validation; see milestone seven's follow-up.
 - Resolved previews use SDK effective fields and surviving procedure entries.
-  The dockable Alarmlist Preview window follows the shell's DocumentFrame selection
-  through a weak document context. Detach on hide/close and invalidate pending
-  preview actions on document switches. Keep previews outside the designer; reuse
-  its captured analysis without creating another compiler or project subscription.
+  The dockable Alarmlist Preview window defaults to Follow active editor through
+  a weak DocumentFrame context, or explicitly selects a loaded project. Project >
+  Preview alarms pins that project without opening an editor; keep its identity
+  across editor switches/closure and window hide, never silently fall back after
+  unload. Detach on hide/close and invalidate pending actions on scope changes.
+  Keep previews outside the designer; reuse CPS-owned captured project analysis
+  without creating another compiler, project subscription or dummy editor.
   The alarm table excludes abstract templates and uses immutable notifying rows
   from that same snapshot. Row selection drives read-only details without editing
   the designer; filtering/sorting preserve literal values. Revalidate captured
   inputs and selection/context lifetime before copying or navigating, including
   ordinary text copies from the preview. Keep row virtualization enabled.
-  Materialize table rows only for the visible preview's document context, rather
+  Materialize table rows only for the visible preview's selected context, rather
   than duplicating a project-wide table in every open editor view.
-  Clear both previews during drafts or stale/unavailable analysis; project XML
-  requires whole-project success. Require context-aware contract 3 and preview
+  Follow-active previews clear during that editor's private drafts. Explicit
+  project previews include shared unsaved ALMX buffers and visibly explain that
+  unapplied designer field edits are excluded; never auto-apply those drafts.
+  Clear all scopes during stale/unavailable analysis; project XML requires
+  whole-project success. Require context-aware contract 3 and preview
   support, and copy XML as a string outside the required property map.
 - Designer lookup caches must validate current text/version before reuse and be
   keyed by immutable analysis state, captured input, and selected source. Keep

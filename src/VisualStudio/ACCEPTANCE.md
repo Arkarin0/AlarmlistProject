@@ -69,6 +69,15 @@ high contrast or mixed-monitor DPI behavior from UIA/bitmap checks.
    the destination and verify navigation refuses to replace/commit it. Find and
    unsupported markup/resource locations continue to use XML. Correct a saved Build
    error without rebuilding: its stale row must not select an unrelated alarm.
+9. Close all ALMX editors, then right-click an Alarmlist project and choose
+   **Preview alarms**. Verify the project table, selected-row details, XML and
+   language selector. Switch projects containing a linked ALMX file: membership,
+   translated values and column preferences must follow the explicit project.
+   Shared unsaved XML edits update the report, while private designer field drafts
+   stay unapplied and excluded. Closing or switching editors must keep project
+   scope. Unload/reload the selected project and hide/reopen the window; obsolete
+   results/actions must clear and the explicit project identity must remain.
+   Switch back to Follow active editor and verify its draft/close behavior.
 
 ## Milestone-four property workflow
 

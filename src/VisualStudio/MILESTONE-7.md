@@ -2,7 +2,7 @@
 
 Status: initial implementation and scoped automated acceptance completed on
 2026-10-12 on `dev/milestone7`. The [authorized follow-up](#authorized-follow-up-2026-10-13)
-is in progress: iterations 8–12 are complete; 13–14 remain. The current pause
+is in progress: iterations 8–13 are complete; 14 remains. The current pause
 boundary is 15% account allowance remaining, superseding the original run's 12%.
 Manual accessibility/display and release gates remain visible in the closeout
 below. Implementation was authorized on 2026-10-10; the owner accepted the latest
@@ -1319,3 +1319,93 @@ Reviewed implementation, tests, documentation and whitespace. No essential
 iteration-12 blocker remains; earlier manual display/accessibility and release
 gates remain separate. Account allowance is 36% remaining. Independent project
 preview is next.
+
+### Iteration 13 — independent project preview (complete)
+
+The existing window now offers Follow active editor or an explicit project path.
+Project scope owns detached presentation state and an adapter to the existing
+CPS analysis registry; no editor, buffer, compiler or second project analysis is
+created. It shares the renderer, resolved-field/procedure presentation, clipboard
+formatting, culture choices and project-user column store with editor previews.
+The window adds a language selector so culture remains available without an
+editor. Scope is session-local; hiding releases the adapter/model and retains only
+the project path. Unloaded projects show a clear empty state without selecting
+another project. Shared unsaved ALMX text is included; visible guidance explicitly
+excludes unapplied designer drafts.
+
+The Solution Explorer command uses the native
+[project context menu](https://learn.microsoft.com/en-us/visualstudio/extensibility/internals/ide-defined-commands-for-extending-project-systems?view=visualstudio)
+and an Alarmlist capability UI context. It validates the selected root against the
+loaded registry and releases native selection pointers. As with editor navigation,
+copy and source actions revalidate inputs and refuse late completion after scope,
+row, filter, column, analysis or lifetime changes.
+
+The first build succeeded with two duplicated UI-thread analyzer warnings in the
+scope callback; adding the explicit main-thread guard resolved them. Focused
+preview/unit checks passed 63 cases, zero failures/skips, using
+`dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+--filter 'FullyQualifiedName~ProjectPreview|FullyQualifiedName~Preview|FullyQualifiedName~AlarmTable'
+--verbosity minimal --logger trx --results-directory artifacts/log/Debug/Milestone7/Iteration13/PreviewUnitTests`.
+This includes a 1,202-row actual-BAML virtualization and detached-object lifetime
+case, private-draft exclusion, project selection/publication and late-action guards.
+Native multi-project/linked-buffer and full-unit validation remain in progress.
+
+The first VS2022 run passed the existing PreviewWindow scenario, but its new
+ProjectPreview test searched for the native project menu inside the main window
+(`40d3647de8fb4807b9eba774f9860a9d`). Read-only UI Automation inspection confirmed
+Preview alarms in a separate popup belonging to the owned IDE. The fixture now
+targets that owned popup and dismisses an open menu on failure. The failed runner
+was blocked in DTE failure reporting while that menu remained open; stopped only
+the verified owned test IDE (PID/start-time/executable checked). No passing claim
+is made for that project scenario. Also corrected a test button-name mismatch
+before reaching it. The rerun is in progress.
+
+The next native attempt successfully opened project scope; its retained UIA tree
+showed two analyzed alarms, but the restored 170-pixel dock height left the table
+below the viewport (`79efee7d76a24b39bf23a05d748b3ed2`). Reviewed its screenshot and
+updated the fixture to size the preview before asserting realized virtualized rows,
+as the existing alarm-table fixture does. This preserves virtualization rather
+than asserting all rows exist offscreen.
+
+The following run reached shared unsaved updates and editor switching, but asserted
+rows during the legitimate pending-analysis interval (`e75b3df38a804ba1ba8e7f0e8b77b75c`).
+It now waits for current results. The next run exposed a product accessibility
+issue: scope option peers reported PreviewScope's type name despite visible
+project labels (`f92ca8120dc44300bca50782645de766`). Added explicit accessible option
+names and an actual-BAML regression. The project context command also uses the
+native PreviewTab image moniker. Project selection now retains a lightweight
+source identity across pending analysis without retaining the obsolete snapshot.
+The registry adapter filters contexts that become unavailable during enumeration.
+
+The complete project-preview scenario passed on VS2022
+(`4cf2e77f27884558a4ec4bf7052b341c`, one case) and VS2026
+(`ffecb2a794fc445ba6bbe40024aecf5d`, project and existing preview cases), with
+zero skips. Reviewed both native dark-mode captures. These checks exercise the
+project menu with no editor, shared unsaved linked sources, private-draft
+exclusion, editor switching/closure, project-specific language and column settings,
+hide/show, project unload/reload and return to Follow active editor.
+
+The subsequent full unit run passed 456 cases but failed the strengthened
+dropdown lifetime case, so it was not an acceptance pass. The owned-test-host
+heap report under `Iteration13/HeapProbe/` traced the retained model through a
+ComboBox PopupRoot's inherited DataContext. Waiting for popup animation and
+clearing the Popup's context did not release the disconnected root. The selector
+now clears the root's unnecessary context when its child loads into its separate
+presentation source; item containers retain their own contexts. This uses public
+WPF APIs and no dispatcher polling or reflection. The regression opens both scope
+and language dropdowns, detaches the window, and requires the model, adapter, row
+and captured analysis state to collect while retaining the reusable control.
+The focused lifetime check passed with the loaded-root approach; final full-unit
+and native checks of that fix are in progress. Earlier failed attempts are retained
+under `Iteration13/ProjectPreviewLifetime*`, `PopupRootCheck` and `ProjectPreviewPopupRoot`.
+
+Final validation of the loaded-child fix passed all 457 extension unit cases,
+zero failures/skips, in `Iteration13/FinalUnitTests/` using the full unit command
+above. Final native ProjectPreview and PreviewWindow checks passed two cases per
+host, zero failures/skips: VS2022 `5058d0b0e6fa47969a3992b766d6f578` and VS2026
+`444de146bad5408a8d4d4b601156fec9`. Commands used `eng/test-visualstudio.ps1`, the
+installed host/profile and matching ProjectPreview/PreviewWindow filters.
+Extension/VSIX builds reported no warnings or errors. Reviewed the final native
+capture, implementation, tests, documentation and whitespace. No essential
+iteration-13 blocker remains. Account allowance is 21% remaining; iteration 14's
+integrated acceptance is next. The earlier manual/release gates remain separate.

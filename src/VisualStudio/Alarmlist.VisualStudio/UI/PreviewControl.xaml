@@ -71,7 +71,7 @@
   </Style>
  </ResourceDictionary></UserControl.Resources>
  <Grid Margin="8">
-  <TextBlock Text="Open an ALMX document to preview its project." TextWrapping="Wrap">
+  <TextBlock Text="Open an ALMX document or choose a project in Preview scope." TextWrapping="Wrap">
    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" />
     <Style.Triggers><DataTrigger Binding="{Binding}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
    </Style></TextBlock.Style>
@@ -85,6 +85,7 @@
      <TextBlock DockPanel.Dock="Right" Text="{Binding SelectedPreviewCulture, StringFormat=Preview language: {0}}" Margin="12,0,0,0" />
      <TextBlock Text="{Binding PreviewContext}" TextTrimming="CharacterEllipsis" ToolTip="{Binding PreviewContext}" />
     </DockPanel>
+    <TextBlock Text="{Binding BufferGuidance}" TextWrapping="Wrap" Margin="0,3,0,0" />
     <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
    </StackPanel>
    <TabControl x:Name="PreviewTabs" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=UserControl}}"

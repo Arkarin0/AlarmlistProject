@@ -73,5 +73,10 @@ namespace Alarmlist.VisualStudio.Analysis
             lock (_gate)
                 return _projects.Where(project => project.Current.Project?.Inputs.Contains(documentPath, System.StringComparer.OrdinalIgnoreCase) == true).ToArray();
         }
+
+        public IReadOnlyList<ProjectAnalysisService> GetProjects()
+        {
+            lock (_gate) return _projects.Where(project => project.Current.Project != null).ToArray();
+        }
     }
 }

@@ -22,7 +22,8 @@ namespace Alarmlist.VisualStudio.UI
             AlarmTable.AddHandler(System.Windows.Controls.Primitives.Thumb.DragCompletedEvent,
                 new System.Windows.Controls.Primitives.DragCompletedEventHandler(OnColumnResizeCompleted), handledEventsToo: true);
         }
-        private EditFileControlViewModel View => DataContext as EditFileControlViewModel;
+        private IPreviewView View => DataContext as IPreviewView;
+        internal void ShowAlarmTable() => PreviewTabs.SelectedIndex = 0;
 
         private void OnPreviewToolbarSizeChanged(object sender, SizeChangedEventArgs args)
         {

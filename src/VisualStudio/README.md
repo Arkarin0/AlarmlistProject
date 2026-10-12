@@ -94,13 +94,21 @@ and the [North/South sample walkthrough](../../example/README.md#try-reusable-in
 
 Open **View > Other Windows > Alarmlist Preview** for the dockable preview window.
 Its **Alarm table**, **Selected alarm** and **Compiled XML** tabs replace the
-designer's embedded preview sections. The window follows the active ALMX document, selected alarm,
-linked-project context and native Preview language toolbar. Moving focus into
-the window preserves unfinished designer edits; preview clears until they are
-committed or cancelled. Compiled XML requires a successful whole-project analysis
-and never writes build output. Source buttons revalidate the captured inputs.
-Closing the document or switching to another document clears its preview; reopening
-the window follows the current document. Visual Studio manages docking and layout.
+designer's embedded preview sections. **Scope** defaults to **Follow active editor**,
+following its selected alarm and linked-project context. Choose a project to keep
+the preview independent of editors, or right-click a loaded Alarmlist project in
+Solution Explorer and choose **Preview alarms**. No editor or Build is required.
+Explicit project scope survives editor switches/closure and window hide; unloading
+that project clears its results and retains the selected identity until reload or
+another choice. The window's language selector works without an editor and uses
+the same CPS preview setting as the native Alarmlist toolbar.
+
+Both scopes include shared unsaved ALMX text. Follow-active mode clears during
+that editor's unapplied field drafts; explicit project mode continues to show the
+analyzed buffers and visibly explains that private drafts are excluded. Moving
+focus into the window never applies those drafts. Compiled XML requires a
+successful whole-project analysis and never writes build output. Source and copy
+actions revalidate inputs and the selected scope. Visual Studio manages docking.
 The alarm table includes every concrete alarm in the selected project context.
 Cells wrap and rows grow to fit their contents. **Test method** combines effective
 Instructions and Reset alarm sections with bullet steps and Hint/Warning/Note
@@ -120,7 +128,8 @@ usable and show an error. Loose files use session preferences.
 In narrow preview windows, the count and row actions wrap below the filter so
 the filter remains usable; resizing keeps its text and keyboard focus.
 Copying revalidates saved resources/lookups and source snapshots first. Errors
-mark unavailable row values and disable compiled XML; drafts clear all previews.
+mark unavailable row values and disable compiled XML. See the scope-specific draft
+behavior above.
 
 The bridge accepts analysis contract 3 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
@@ -305,17 +314,18 @@ Input/SDK failures appear separately as analysis-unavailable warnings without AL
 codes. Neither live analysis nor its navigation saves files or writes compiled output;
 existing Build diagnostics remain owned by MSBuild.
 
-Expand **Resolved alarm preview** to inspect the selected alarm's identity,
+Use the preview window's **Selected alarm** tab to inspect the selected alarm's identity,
 effective scalar values, and surviving Instructions/Reset entries in execution
 order. Chain adorners mark inherited values; **Go to source** follows each value's
 SDK origin after revalidating the inputs. Missing values and empty sections are
 labelled. A valid alarm remains inspectable when another alarm has errors.
 
-Expand **Compiled project XML preview** to select or copy the whole project's
+Use the **Compiled XML** tab to select or copy the whole project's
 resolved XML. The SDK generates it in memory using the normal build serializer,
 including unsaved XML buffers. No source or output file is written. All project
-errors block this XML preview, and pending/stale analysis or local drafts clear
-both previews. Each panel identifies the project/configuration. Older SDKs that
+errors block this XML preview; pending/stale analysis clears both previews, as do
+private drafts in Follow active editor mode. Each panel identifies the
+project/configuration. Older SDKs that
 support analysis but lack XML preview show update guidance while keeping the
 resolved-alarm preview available.
 

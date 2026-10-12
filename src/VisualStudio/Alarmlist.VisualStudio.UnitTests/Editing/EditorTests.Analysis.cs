@@ -347,8 +347,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             }
         }
 
-        private sealed class DesignerAnalysis : IDesignerAnalysis
+        private sealed class DesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings
         {
+            public Func<ProjectUserSetting> PreviewLayout { get; set; }
+            public ProjectUserSetting GetPreviewLayout() => PreviewLayout?.Invoke();
             public event EventHandler Changed;
             public int Subscribers => Changed?.GetInvocationList().Length ?? 0;
             public string DocumentPath { get; set; }

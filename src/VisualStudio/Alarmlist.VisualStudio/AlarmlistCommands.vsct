@@ -2,6 +2,7 @@
 <CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable">
   <Extern href="stdidcmd.h" />
   <Extern href="vsshlids.h" />
+  <Include href="KnownImageIds.vsct" />
   <Commands package="guidAlarmlistPackage">
     <Menus>
       <Menu guid="guidPreviewCommands" id="PreviewToolbar" type="Toolbar">
@@ -10,11 +11,27 @@
       </Menu>
     </Menus>
     <Groups>
+      <Group guid="guidPreviewCommands" id="ProjectPreviewGroup" priority="0x0800">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_PROJNODE" />
+      </Group>
       <Group guid="guidPreviewCommands" id="PreviewGroup" priority="0x0100">
         <Parent guid="guidPreviewCommands" id="PreviewToolbar" />
       </Group>
     </Groups>
     <Buttons>
+      <Button guid="guidPreviewCommands" id="PreviewProject" priority="0x0100" type="Button">
+        <Parent guid="guidPreviewCommands" id="ProjectPreviewGroup" />
+        <Icon guid="ImageCatalogGuid" id="PreviewTab" />
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <CommandFlag>DefaultInvisible</CommandFlag>
+        <CommandFlag>DynamicVisibility</CommandFlag>
+        <Strings>
+          <ButtonText>Preview alarms</ButtonText>
+          <CanonicalName>Alarmlist.PreviewProject</CanonicalName>
+          <LocCanonicalName>Alarmlist.PreviewProject</LocCanonicalName>
+          <ToolTipText>Preview all alarms in this project without opening an editor</ToolTipText>
+        </Strings>
+      </Button>
       <Button guid="guidPreviewCommands" id="ShowPreview" priority="0x0600" type="Button">
         <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
         <Strings>
@@ -41,17 +58,21 @@
     </Combos>
   </Commands>
   <VisibilityConstraints>
+    <VisibilityItem guid="guidPreviewCommands" id="PreviewProject" context="guidAlarmlistSelected" />
     <VisibilityItem guid="guidPreviewCommands" id="PreviewToolbar" context="guidAlmxEditor" />
   </VisibilityConstraints>
   <Symbols>
     <GuidSymbol name="guidAlarmlistPackage" value="{2c4fa8f8-d641-4f5c-a7df-6cfc6bf30f34}" />
     <GuidSymbol name="guidAlmxEditor" value="{6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f}" />
+    <GuidSymbol name="guidAlarmlistSelected" value="{fa2ec571-5a83-48fc-9800-1c1bc23049d4}" />
     <GuidSymbol name="guidPreviewCommands" value="{c37b75da-f827-4d1a-837f-7f766368d478}">
       <IDSymbol name="PreviewToolbar" value="0x1000" />
       <IDSymbol name="PreviewGroup" value="0x1050" />
       <IDSymbol name="PreviewLanguage" value="0x0100" />
       <IDSymbol name="PreviewLanguages" value="0x0101" />
       <IDSymbol name="ShowPreview" value="0x0200" />
+      <IDSymbol name="PreviewProject" value="0x0201" />
+      <IDSymbol name="ProjectPreviewGroup" value="0x1051" />
     </GuidSymbol>
   </Symbols>
 </CommandTable>
