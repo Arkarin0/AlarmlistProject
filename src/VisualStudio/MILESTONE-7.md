@@ -2,7 +2,7 @@
 
 Status: initial implementation and scoped automated acceptance completed on
 2026-10-12 on `dev/milestone7`. The [authorized follow-up](#authorized-follow-up-2026-10-13)
-is in progress: iterations 8–9 are complete; 10–14 remain. The current pause
+is in progress: iterations 8–10 are complete; 11–14 remain. The current pause
 boundary is 15% account allowance remaining, superseding the original run's 12%.
 Manual accessibility/display and release gates remain visible in the closeout
 below. Implementation was authorized on 2026-10-10; the owner accepted the latest
@@ -1106,3 +1106,78 @@ preserves saved source/output until the explicit final save/build assertion.
 
 Reviewed the final diff and whitespace; no unrelated or generated files are
 included. No iteration-9 blocker remains. Template/menu/folder icons are next.
+
+### Iteration 10 — template, menu and folder symbols (complete)
+
+The two item templates now have custom bell/list and language artwork, with
+editable WPF vector sources under `eng/assets/VisualStudio/`. The repository
+renderer creates transparent ICO frames at 16/20/24/32/48/64/256 pixels; these
+are template assets and never ProjectItems. Existing template packaging is
+reused. No new runtime dependency is shipped in the VSIX.
+
+Scalar, procedure-inheritance and parameter context menus use native VS image
+monikers, 16 logical-pixel CrispImage controls and the native context-menu style.
+Each icon is a separate decorative instance and tracks the native menu-icon
+background color resource for theming. Screenshot review caught the default WPF light gutter in dark mode;
+the native style replaces that gutter without changing command/keyboard logic.
+This follows the SDK's [image-service guidance](https://learn.microsoft.com/en-us/visualstudio/extensibility/image-service-and-catalog)
+and its public ContextMenuStyleKey contract.
+
+An Alarmlist-scoped CPS tree-properties provider maps case-insensitive folder
+names to PropertiesFolderClosed/Open, LocalResources, TranslationView and
+LookupList. It leaves ordinary names and linked, excluded, hidden, virtual or
+missing nodes to CPS. Only Icon/ExpandedIcon change; no special-folder flags,
+item membership, compiler or SDK semantics change. The implementation uses the
+pinned CPS SDK's public customizable-property contracts. The two newer linked
+flags use public string lookup because CommonExtended is internal in 17.9.
+
+Validation evidence:
+
+- Focused icon/theme tests passed 16 cases; existing menu editing smoke checks
+  passed two cases. Full VS unit suite passed 419 cases, zero failures/skips,
+  after the native menu-style change. Results are under
+  `artifacts/log/Debug/Milestone7/Iteration10/AllUnitTests/`.
+- Packaged VSIX/template consumer suites passed 12 cases on each framework,
+  zero failures/skips, under `Iteration10/PackageTests/`. They verify ICO
+  membership, seven RGBA frames and absence from instantiated ProjectItems,
+  alongside the existing no-bundled-host-assembly and consumer build checks.
+- Early compile checks caught inaccessible CPS enum constants and an ambiguous
+  test Window type; corrected before functional validation.
+- VS2022 folder creation/rename/reload and actual Add New Item capture passed
+  (`070d0652a0bf4a70b61d0540117e94b3`). The earlier run
+  (`aef8a9a8ef5746129a3471801cc9552e`) passed menu editing but failed the new
+  test's cancellation: it mistook the main window containing the modal for the
+  modal itself. Corrected the test to target NewItemDialog, invoke its Cancel
+  button and wait for its removal/build readiness. The native screenshots
+  confirmed the actual template/folder icons; failure evidence is retained.
+
+VS2026 initially opens a compact filename dialog; the new test now follows its
+Show all templates link before inspecting the two template entries. The first
+VS2026 run retained that timeout (`7c57400c7f6c4495a7eab8ae60a5d4d9`) while its
+menu editing scenario passed. The corrected folder/template scenario passed
+(`7a9023002fe24ef08ab1c9a45a5ce04b`), with no failures/skips. Reviewed actual
+Add New Item and recognized/renamed/reloaded folder captures on both IDEs.
+
+Native menu-style review then exposed a distinction absent from the isolated
+WPF test: VS paints its menu template independently of ContextMenu.Background.
+Binding images to that property left dark glyphs on a dark menu. The final icon
+factory uses `EnvironmentColors.CommandBarMenuIconBackgroundColorKey` directly,
+and the theme test changes that resource through light/dark/high-contrast-like
+colors. Focused final tests passed all 18 cases in `Iteration10/NativeThemeTests/`.
+VS2022 final native PropertiesAndCompletion passed one case, zero skips, in
+`b2927989d59e407b9c82bb5344a293ab`; its reviewed capture shows readable icons.
+
+VS2026 final native PropertiesAndCompletion also passed one case, zero skips,
+in `5f1ff1b773e64328a7d0aa48ac19c68e`. Reviewed its final capture as well:
+native icons are readable on the dark menu, and command/keyboard/Undo assertions
+remain intact. Native commands used `eng/test-visualstudio.ps1` with the installed
+host paths, AlarmlistExp (2022) / AlarmlistM7 (2026), and filters for
+TemplateAndFolderIcons or PropertiesAndCompletion. Extension/VSIX builds
+reported no warnings/errors in the successful checks.
+
+Reviewed implementation, tests, artwork, packaging and whitespace; only this
+iteration's files are included. No essential iteration-10 check remains blocked.
+Native high-contrast/physical DPI and screen-reader speech remain the earlier
+explicit manual gates; the new resource tests do not claim to replace them.
+Account allowance is 61% remaining. Iteration 11 (live ALM0001 investigation)
+is next.

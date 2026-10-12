@@ -5,6 +5,7 @@
     <Description>Saved alarm translations for one culture. Use a culture suffix, for example Translations.en.resx or Translations.de.resx.</Description>
     <ProjectType>Alarmlist</ProjectType>
     <DefaultName>Translations.en.resx</DefaultName>
+    <Icon>Translations.ico</Icon>
     <SortOrder>110</SortOrder>
   </TemplateData>
   <TemplateContent>

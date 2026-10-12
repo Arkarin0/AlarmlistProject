@@ -2,6 +2,8 @@
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
+  xmlns:shell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
+  xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
   xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
   Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
   Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
@@ -240,16 +242,16 @@
                       <DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
                     </Style.Triggers></Style></ui:ExpressionTextBox.Style>
                     <ui:ExpressionTextBox.ContextMenu>
-                      <ContextMenu>
-                        <MenuItem Header="Cut" Command="ApplicationCommands.Cut" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                        <MenuItem Header="Copy" Command="ApplicationCommands.Copy" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                        <MenuItem Header="Paste" Command="ApplicationCommands.Paste" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
-                        <MenuItem Header="Select all" Command="ApplicationCommands.SelectAll" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                      <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
+                        <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Cut}}" Header="Cut" Command="ApplicationCommands.Cut" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Copy}}" Header="Copy" Command="ApplicationCommands.Copy" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Paste}}" Header="Paste" Command="ApplicationCommands.Paste" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                        <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.SelectAll}}" Header="Select all" Command="ApplicationCommands.SelectAll" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                         <Separator />
-                        <MenuItem Header="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}"
+                        <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Inheritance}}" Header="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}"
                                   ToolTip="Remove this local field. The reference supplies its value again; Undo restores the local value."
                                   AutomationProperties.Name="{Binding Name, StringFormat=Use inherited {0}}" />
-                        <MenuItem Header="Go to source" Command="{Binding GoToSourceCommand}" Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}"
+                        <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.GoToDefinition}}" Header="Go to source" Command="{Binding GoToSourceCommand}" Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}"
                                   ToolTip="Open the source that supplies this inherited value." AutomationProperties.Name="{Binding Name, StringFormat=Go to source for {0}}" />
                       </ContextMenu>
                     </ui:ExpressionTextBox.ContextMenu>
@@ -291,10 +293,10 @@
                                 ToolTip="Actions for this entire procedure group. Inherited entries remain read-only."
                                 AutomationProperties.Name="{Binding Name, StringFormat=Inheritance actions for {0}}">
                           <Button.ContextMenu>
-                            <ContextMenu>
-                              <MenuItem Header="Use local entries only" Command="{Binding UseLocalEntriesCommand}"
+                            <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
+                              <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Inheritance}}" Header="Use local entries only" Command="{Binding UseLocalEntriesCommand}"
                                         ToolTip="Insert Clear before local entries to exclude inherited entries. Undo restores the previous source." />
-                              <MenuItem Header="Make local copy" Command="{Binding MakeLocalCopyCommand}" ToolTipService.ShowOnDisabled="True"
+                              <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Copy}}" Header="Make local copy" Command="{Binding MakeLocalCopyCommand}" ToolTipService.ShowOnDisabled="True"
                                         ToolTip="Copy the effective sequence, preserving raw expressions. Future reference changes stop flowing into this group. Commit or cancel drafts first." />
                             </ContextMenu>
                           </Button.ContextMenu>

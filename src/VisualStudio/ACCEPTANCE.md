@@ -33,6 +33,11 @@ high contrast or mixed-monitor DPI behavior from UIA/bitmap checks.
    and editors. Focus alone must keep XML unchanged. Type an override, commit and
    Undo; use Shift+F10/right-click **Use inherited value** and Undo again. Verify
    the Abstract checkbox is readable and has a visible focus/checked state.
+   Check native command symbols in scalar/procedure/parameter context menus,
+   including disabled commands and the current fallback check mark. Inspect the
+   Alarm List and Translations icons in Add New Item. Create Properties,
+   Resources, Translations, Lookups and an ordinary folder; rename/reload them
+   and check native folder symbols without losing special-state indicators.
 3. Edit a local procedure, including a cleared entry. Hide/show cleared entries
    independently in Instructions/Reset; local cleared text remains editable and
    Clear boundaries remain visible. Add/move/remove with keyboard and mouse, then

@@ -465,9 +465,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   draft controls stable during semantic refreshes.
 - Designer BAML tests use the pinned shell assembly as a PackageDownload test
   asset; table tests use matching Shell.Framework and Interop assets, and document
-  observer tests use the matching Text.Data, CoreUtility and Editor assets. This preserves
+  observer tests use the matching Text.Data, CoreUtility and Editor assets. Menu
+  icon tests also use matching Imaging and ImageCatalog assets. This preserves
   the CPS test host's MSBuild dependency family. Keep those versions aligned with
   the extension's VS SDK; do not bundle these host assemblies in the VSIX.
+- Use VS image monikers for editor commands and recognized project folders.
+  Folder appearance must preserve CPS linked/excluded/missing state indicators
+  and must not change item membership or special-folder behavior. Custom item
+  template icons have editable vector sources under `eng/assets/VisualStudio/`;
+  regenerate them with `eng/render-template-icons.ps1`, and never copy template
+  artwork into consumer projects. See milestone seven's follow-up scope.
 - Live diagnostics belong to `Alarmlist.LiveDiagnostics`, separate from Build
   diagnostics. Use immutable table snapshots, SDK IDs/messages/severities, and
   zero-based Error List positions converted from compiler locations. Clear obsolete

@@ -387,6 +387,18 @@ Visual Studio. Search for **Alarmlist Project** in New Project; **Alarm List** i
 available in Add New Item. Existing SDK projects can be opened directly or added
 to a solution. Projects do not need `TargetFramework`.
 
+Add New Item uses distinct bell/list and language icons for Alarm List and
+Translations (RESX). The template artwork is maintained as vector drawings in
+`eng/assets/VisualStudio/`; `powershell.exe -NoProfile -Sta -File
+eng/render-template-icons.ps1` regenerates the checked-in transparent ICO frames
+(16–256 pixels). These icons belong to the templates, not generated projects.
+Editor context menus use the VS image service for themed command symbols.
+
+Included project folders named Properties, Resources, Translations or Lookups
+use native VS symbols, regardless of name casing. Other names retain their
+normal folder icon. Linked, excluded, virtual and missing folders retain CPS's
+state indicators; this is a display convention and changes no item membership.
+
 Templates pin the SDK version obtained from the SDK packaging project at build
 time. The VSIX does not install an SDK resolver, modify NuGet settings, or bundle
 a private compiler. When developing an unpublished package with the same version,

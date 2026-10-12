@@ -78,6 +78,53 @@ namespace Alarmlist.VisualStudio.IntegrationTests
         }
 
         [Fact]
+        public void ItemTemplatesContainTransparentMultiResolutionIconsOnlyAsTemplateAssets()
+        {
+            using (var package = OpenPackage())
+            {
+                var templates = package.Entries.Where(entry => entry.FullName.StartsWith("ItemTemplates/", StringComparison.Ordinal)
+                    && entry.FullName.EndsWith(".vstemplate", StringComparison.Ordinal)).ToArray();
+                Assert.Equal(2, templates.Length);
+                foreach (var entry in templates)
+                {
+                    var template = XDocument.Parse(Read(entry));
+                    string icon = template.Descendants(s_templateNamespace + "Icon").Single().Value;
+                    Assert.DoesNotContain(template.Descendants(s_templateNamespace + "ProjectItem"), item => item.Value == icon);
+                    string directory = entry.FullName.Substring(0, entry.FullName.LastIndexOf('/') + 1);
+                    using (var stream = package.GetEntry(directory + icon).Open())
+                    using (var content = new MemoryStream())
+                    {
+                        stream.CopyTo(content);
+                        content.Position = 0;
+                        using (var reader = new BinaryReader(content))
+                        {
+                            Assert.Equal(0, reader.ReadUInt16());
+                            Assert.Equal(1, reader.ReadUInt16());
+                            int[] sizes = { 16, 20, 24, 32, 48, 64, 256 };
+                            Assert.Equal(sizes.Length, reader.ReadUInt16());
+                            foreach (int size in sizes)
+                            {
+                                Assert.Equal(size % 256, reader.ReadByte());
+                                Assert.Equal(size % 256, reader.ReadByte());
+                                Assert.Equal(0, reader.ReadUInt16());
+                                Assert.Equal(1, reader.ReadUInt16());
+                                Assert.Equal(32, reader.ReadUInt16());
+                                uint length = reader.ReadUInt32(), offset = reader.ReadUInt32();
+                                long next = content.Position;
+                                Assert.InRange((long)offset + length, 1, content.Length);
+                                content.Position = offset;
+                                Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, reader.ReadBytes(8));
+                                content.Position = offset + 25;
+                                Assert.Equal(6, reader.ReadByte()); // RGBA PNG, retains transparency.
+                                content.Position = next;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        [Fact]
         public void ProjectTemplatePinsTheAuthoritativeSdkPackage()
         {
             using (var vsix = OpenPackage())
