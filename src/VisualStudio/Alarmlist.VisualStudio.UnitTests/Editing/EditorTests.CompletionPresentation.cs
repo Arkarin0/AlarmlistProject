@@ -79,7 +79,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
-                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Step>Local</Step></Instructions>")))
+                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Step>Local</Step></Group>")))
                 using (var host = ExpressionHost())
                 {
                     session.Analyze(ProcedureBase);

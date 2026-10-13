@@ -7,13 +7,13 @@
     <Category>Fire</Category>
     <Description>Smoke was detected in the production hall.</Description>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Step>Inspect the affected detector and surrounding area.</Step>
         <Warning>Follow the site evacuation procedure before entering the area.</Warning>
-      </Instructions>
-      <Reset>
+      </Group>
+      <Group Name='Reset'>
         <Step>Clear the detector state after the alarm cause has been resolved.</Step>
-      </Reset>
+      </Group>
     </TestProcedure>
   </Alarm>
 </Alarmlist>

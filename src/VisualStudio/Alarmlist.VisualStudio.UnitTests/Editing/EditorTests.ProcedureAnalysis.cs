@@ -23,8 +23,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         private static readonly string ProcedureBase = WithProcedure(BaseAlarm,
-            "<Instructions><Step>Open</Step><Hint>Check</Hint><Warning>Voltage</Warning><Note>Record</Note></Instructions>"
-            + "<Reset><Step>Reset panel</Step></Reset>");
+            "<Group Name='Instructions'><Step>Open</Step><Hint>Check</Hint><Warning>Voltage</Warning><Note>Record</Note></Group>"
+            + "<Group Name='Reset'><Step>Reset panel</Step></Group>");
 
         private static string WithProcedure(string alarm, string sections)
             => alarm.Replace("</Alarm>", "<TestProcedure>" + sections + "</TestProcedure></Alarm>");
@@ -33,7 +33,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public async Task ProcedureRowsUseCompilerOriginsAcrossMultipleReferencesAsync()
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm.Replace(">Base<", ">Middle<"),
-                "<Instructions><Step>Open</Step></Instructions>")))
+                "<Group Name='Instructions'><Step>Open</Step></Group>")))
             {
                 session.Analyze(ProcedureBase.Replace("</Alarmlist>",
                     "<Alarm><FullyQualifiedName>Middle</FullyQualifiedName><ReferenceName>Base</ReferenceName></Alarm></Alarmlist>"));
@@ -56,7 +56,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public void MultipleClearsExplainInheritedAndEarlierLocalExclusions()
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm,
-                "<Instructions><Step>Earlier local</Step><Clear/><Warning>Also excluded</Warning><Clear/><Note>Survivor</Note></Instructions>")))
+                "<Group Name='Instructions'><Step>Earlier local</Step><Clear/><Warning>Also excluded</Warning><Clear/><Note>Survivor</Note></Group>")))
             {
                 session.Analyze(ProcedureBase);
                 ProcedureSectionViewModel section = session.View.ProcedureSections[0];
@@ -80,7 +80,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [InlineData(1, "Reset")]
         public async Task MakeLocalCopyPreservesEffectiveSequenceAndFreezesOnlyChosenSectionAsync(int index, string name)
         {
-            string child = WithProcedure(ChildAlarm, "<" + name + "><Note>Local</Note></" + name + ">");
+            string child = WithProcedure(ChildAlarm, "<Group Name='" + name + "'><Note>Local</Note></Group>");
             using (var session = new SemanticSession(child))
             {
                 session.Analyze(ProcedureBase);
@@ -110,7 +110,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public async Task CopyAfterClearIncludesEachSurvivorOnceAndNoExcludedRowsAsync()
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm,
-                "<Instructions><Step>Before</Step><Clear/><Note>After</Note></Instructions>")))
+                "<Group Name='Instructions'><Step>Before</Step><Clear/><Note>After</Note></Group>")))
             {
                 session.Analyze(ProcedureBase);
                 ProcedureSectionViewModel section = session.View.ProcedureSections[0];
@@ -126,11 +126,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Theory]
         [InlineData("")]
         [InlineData("<TestProcedure/>")]
-        [InlineData("<TestProcedure><Instructions/></TestProcedure>")]
+        [InlineData("<TestProcedure><Group Name='Instructions'/></TestProcedure>")]
         public async Task CopyEmptySequenceCreatesOnlyLeadingClearAsync(string procedure)
         {
             using (var session = new SemanticSession(ChildAlarm.Replace("</Alarm>", procedure + "</Alarm>")))
             {
+                session.Analyze(WithProcedure(BaseAlarm, "<Group Name='Instructions'/>"));
                 ProcedureSectionViewModel section = session.View.ProcedureSections[0];
                 section.MakeLocalCopyCommand.Execute(null);
                 await session.View.PendingAnalysisAction;
@@ -148,7 +149,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             {
                 ProcedureSectionViewModel section = view.ProcedureSections[0];
                 section.UseLocalEntriesCommand.Execute(null);
-                Assert.Equal(ProcedureSource.Replace("<Instructions>", "<Instructions>\n<Clear/>"), buffer.Current.Text);
+                Assert.Equal(ProcedureSource.Replace("<Group Name='Instructions'>", "<Group Name='Instructions'>\n<Clear/>"), buffer.Current.Text);
                 Assert.Equal(new[] { "Clear", "Step", "Clear", "Warning" }, section.Items.Select(item => item.Kind));
                 Assert.Equal(1, buffer.Edits);
                 section.UseLocalEntriesCommand.Execute(null);
@@ -168,7 +169,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [InlineData("<Clear>unexpected text</Clear>")]
         public async Task UnsafeSectionCopyLeavesTheExactSourceIntactAsync(string contents)
         {
-            string child = WithProcedure(ChildAlarm, "<Instructions>" + contents + "</Instructions>");
+            string child = WithProcedure(ChildAlarm, "<Group Name='Instructions'>" + contents + "</Group>");
             using (var session = new SemanticSession(child))
             {
                 session.Analyze(ProcedureBase);
@@ -186,7 +187,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Theory]
-        [InlineData("<TestProcedure><Instructions/><Instructions/></TestProcedure>")]
+        [InlineData("<TestProcedure><Group Name='Instructions'/><Group Name='Instructions'/></TestProcedure>")]
         [InlineData("<TestProcedure/><TestProcedure/>")]
         public void SectionTransformationsRejectDuplicateContainers(string procedure)
         {
@@ -199,15 +200,15 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public void CopyPreservesContainerAttributesNamespacesOtherSectionAndLineEndings()
         {
             const string source = "<a:Alarmlist xmlns:a='urn:alarms'>\r\n  <a:Alarm><a:TestProcedure keep='yes'>"
-                + "<a:Instructions keep='also'><a:Step>Old</a:Step></a:Instructions>"
-                + "<!-- outside --><a:Reset><a:Note id='stay'>Reset</a:Note></a:Reset></a:TestProcedure></a:Alarm>\r\n</a:Alarmlist>";
+                + "<a:Group Name='Instructions' keep='also'><a:Step>Old</a:Step></a:Group>"
+                + "<!-- outside --><a:Group Name='Reset'><a:Note id='stay'>Reset</a:Note></a:Group></a:TestProcedure></a:Alarm>\r\n</a:Alarmlist>";
             AlmxProjection projection = _editing.Parse(source);
             SourceEdit edit = _editing.MakeProcedureLocalCopy(projection, projection.Alarms[0], "Instructions",
                 new[] { new ProcedureValueChange("Instructions", 0, "Warning", "<&> 😀\r\nNext") });
             string result = edit.Apply(source);
             Assert.StartsWith(source.Substring(0, edit.Start), result);
             Assert.EndsWith(source.Substring(edit.Start + edit.Length), result);
-            Assert.Contains("<a:Instructions keep='also'>", result);
+            Assert.Contains("<a:Group Name='Instructions' keep='also'>", result);
             Assert.Contains("<a:Clear/>", result);
             Assert.Contains("<a:Warning>&lt;&amp;&gt; 😀&#xD;\nNext</a:Warning>", result);
             Assert.Equal("<&> 😀\r\nNext", _editing.Parse(result).Alarms[0].GetProcedureSection("Instructions").Items[1].Text);
@@ -237,7 +238,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [InlineData(true)]
         public async Task ChangesDuringCopyValidationPreventLateWritesAsync(bool changeDraft)
         {
-            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Note>Local</Note></Instructions>")))
+            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Note>Local</Note></Group>")))
             {
                 session.Analyze(ProcedureBase);
                 var validation = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -257,7 +258,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Fact]
         public void ProcedureDraftsSurviveAnalysisWhileUnaffectedSectionsRefresh()
         {
-            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Note>Local</Note></Instructions>")))
+            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Note>Local</Note></Group>")))
             {
                 session.Analyze(ProcedureBase);
                 ProcedureSectionViewModel section = session.View.ProcedureSections[0];
@@ -319,7 +320,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 session.Analyze(ProcedureBase);
                 Assert.False(section.MakeLocalCopyCommand.CanExecute(null));
                 Assert.Empty(section.EffectiveItems);
-                Assert.True(section.UseLocalEntriesCommand.CanExecute(null));
+                Assert.False(section.UseLocalEntriesCommand.CanExecute(null));
+                Assert.Empty(session.View.ProcedureSections);
             }
         }
 
@@ -328,7 +330,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
-                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Clear/><Note>Local</Note></Instructions>")))
+                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Clear/><Note>Local</Note></Group>")))
                 using (var host = new HwndSource(new HwndSourceParameters("ALMX procedure binding test")
                 { Width = 950, Height = 850, WindowStyle = unchecked((int)0x80000000) }))
                 {
@@ -361,8 +363,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public void ClearedVisibilityPreservesLocalDraftsBoundariesAndIndependentSections()
         {
             string source = WithProcedure(ChildAlarm,
-                "<Instructions><Step>Earlier local</Step><Clear/><Warning>Also excluded</Warning><Clear/><Note>Survivor</Note></Instructions>"
-                + "<Reset><Clear/><Step>Reset locally</Step></Reset>");
+                "<Group Name='Instructions'><Step>Earlier local</Step><Clear/><Warning>Also excluded</Warning><Clear/><Note>Survivor</Note></Group>"
+                + "<Group Name='Reset'><Clear/><Step>Reset locally</Step></Group>");
             using (var session = new SemanticSession(source))
             {
                 session.Analyze(ProcedureBase);
@@ -396,12 +398,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Fact]
         public void InlineInheritedOrderIncludesAncestorExclusionsWithoutDuplicatingLocalRows()
         {
-            string ancestors = "<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName><TestProcedure><Instructions>"
-                + "<Step>B0</Step><Clear/><Step>B1</Step></Instructions></TestProcedure></Alarm>"
-                + "<Alarm><FullyQualifiedName>Middle</FullyQualifiedName><ReferenceName>Base</ReferenceName><TestProcedure><Instructions>"
-                + "<Step>M0</Step><Clear/><Note>M1</Note></Instructions></TestProcedure></Alarm></Alarmlist>";
+            string ancestors = "<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName><TestProcedure><Group Name='Instructions'>"
+                + "<Step>B0</Step><Clear/><Step>B1</Step></Group></TestProcedure></Alarm>"
+                + "<Alarm><FullyQualifiedName>Middle</FullyQualifiedName><ReferenceName>Base</ReferenceName><TestProcedure><Group Name='Instructions'>"
+                + "<Step>M0</Step><Clear/><Note>M1</Note></Group></TestProcedure></Alarm></Alarmlist>";
             using (var session = new SemanticSession(WithProcedure(ChildAlarm.Replace(">Base<", ">Middle<"),
-                "<Instructions><Step>C0</Step></Instructions>")))
+                "<Group Name='Instructions'><Step>C0</Step></Group>")))
             {
                 session.Analyze(ancestors);
                 ProcedureSectionViewModel section = session.View.ProcedureSections[0];
@@ -420,7 +422,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
-                string source = WithProcedure(ChildAlarm, "<Instructions><Step>Earlier</Step><Clear/><Step>After</Step></Instructions>");
+                string source = WithProcedure(ChildAlarm, "<Group Name='Instructions'><Step>Earlier</Step><Clear/><Step>After</Step></Group>");
                 using (var session = new SemanticSession(source))
                 using (var host = ExpressionHost())
                 {

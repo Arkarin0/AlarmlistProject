@@ -26,7 +26,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Fact]
         public async Task ProjectPreviewUsesWholeProjectWithoutEditorSelectionAndKeepsPrivateDraftsOutAsync()
         {
-            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Step>Check</Step></Instructions>")))
+            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Step>Check</Step></Group>")))
             {
                 var analysis = ProjectAnalysis(session);
                 using (var view = new ProjectPreviewViewModel(analysis))

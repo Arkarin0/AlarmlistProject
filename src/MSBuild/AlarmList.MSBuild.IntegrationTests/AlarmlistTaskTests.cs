@@ -48,10 +48,10 @@ namespace Alarmlist.MSBuild.IntegrationTests
 
             Assert.Equal("Fire", referencedAlarm.Element("Category")?.Value);
             Assert.Contains(
-                referencedAlarm.Element("TestProcedure")?.Element("Instructions")?.Elements("TestProcedureItem") ?? Enumerable.Empty<XElement>(),
+                referencedAlarm.Element("TestProcedure")?.Elements("Group").Single(group => (string)group.Attribute("Name") == "Instructions")?.Elements("TestProcedureItem") ?? Enumerable.Empty<XElement>(),
                 item => item.Value == "Inspect the affected detector and surrounding area.");
             Assert.Contains(
-                referencedAlarm.Element("TestProcedure")?.Element("Instructions")?.Elements("TestProcedureItem") ?? Enumerable.Empty<XElement>(),
+                referencedAlarm.Element("TestProcedure")?.Elements("Group").Single(group => (string)group.Attribute("Name") == "Instructions")?.Elements("TestProcedureItem") ?? Enumerable.Empty<XElement>(),
                 item => item.Value == "Confirm the panel zone and detector address.");
         }
 

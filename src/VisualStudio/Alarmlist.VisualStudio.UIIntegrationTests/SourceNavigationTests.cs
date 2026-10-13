@@ -52,7 +52,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             string targetPath = Path.Combine(workspace.ProjectDirectory, "Target.almx");
             const string child = "<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName></Alarm></Alarmlist>";
             const string target = "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><Name>Source alarm</Name>"
-                + "<TestProcedure><Instructions><Step>Base step</Step></Instructions></TestProcedure></Alarm></Alarmlist>";
+                + "<TestProcedure><Group Name='Instructions'><Step>Base step</Step></Group></TestProcedure></Alarm></Alarmlist>";
             ide.Automation.Solution.Close(false);
             File.WriteAllText(workspace.AlarmPath, child);
             File.WriteAllText(targetPath, target);

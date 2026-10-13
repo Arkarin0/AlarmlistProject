@@ -144,12 +144,12 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                     else if (!localization) text.Append("    <Name>Base alarm ").Append(index).Append("</Name><Category>Fire</Category><Description>Inspect equipment &amp; record result.</Description>\r\n");
                     if (localization) text.Append("<Name>$(loc:Alarm.Name").Append(index).Append(")</Name><Description>$(loc:Instruction.Inspect, item=\"")
                         .Append(index).Append("\")</Description>");
-                    text.Append(properties ? "<Code>$(p0)-$(AlarmlistConfiguration)-" : "    <Code>C").Append(index).Append("</Code>\r\n    <TestProcedure><Instructions>");
+                    text.Append(properties ? "<Code>$(p0)-$(AlarmlistConfiguration)-" : "    <Code>C").Append(index).Append("</Code>\r\n    <TestProcedure><Group Name='Instructions'>");
                     if (index % 4 == 3) text.Append("<Clear/>");
                     if (localization) text.Append("<Step>$(loc:Instruction.Inspect, item=\"").Append(index).Append("\")</Step>");
                     else text.Append(properties ? "<Step>Inspect $(AlarmlistAlarmCode) " : "<Step>Inspect ").Append(index).Append("</Step>");
-                    text.Append("<Note>Record</Note></Instructions>");
-                    if (index % 4 == 0) text.Append("<Reset><Hint>Reset panel</Hint></Reset>");
+                    text.Append("<Note>Record</Note></Group>");
+                    if (index % 4 == 0) text.Append("<Group Name='Reset'><Hint>Reset panel</Hint></Group>");
                     text.Append("</TestProcedure>\r\n  </Alarm>\r\n");
                 }
                 text.Append("</Alarmlist>");

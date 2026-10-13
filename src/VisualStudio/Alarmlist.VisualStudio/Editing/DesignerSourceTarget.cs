@@ -46,7 +46,7 @@ namespace Alarmlist.VisualStudio.Editing
                 return target;
             }
             if (name != "TestProcedure") return null;
-            foreach (string sectionName in new[] { "Instructions", "Reset" })
+            foreach (string sectionName in alarm.ProcedureNames)
             {
                 ProcedureSectionSource section = alarm.GetProcedureSection(sectionName);
                 if (section.Error != null || section.Source == null || !Contains(section.Source, position)) continue;

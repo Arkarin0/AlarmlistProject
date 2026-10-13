@@ -28,8 +28,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             workspace.CreateProject(ide);
             ide.Automation.Solution.Close(false);
             const string source = "<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><ReferenceName>Base</ReferenceName><Code>001</Code>"
-                + "<TestProcedure><Instructions><Step>Removed local</Step><Clear/><Step>Set key switch to inspection.&#10;Open the safety door.</Step>"
-                + "<Hint>Be careful.</Hint><Warning>Keep clear.</Warning><Note>Record $(AlarmlistAlarmCode).</Note></Instructions></TestProcedure></Alarm></Alarmlist>";
+                + "<TestProcedure><Group Name='Instructions'><Step>Removed local</Step><Clear/><Step>Set key switch to inspection.&#10;Open the safety door.</Step>"
+                + "<Hint>Be careful.</Hint><Warning>Keep clear.</Warning><Note>Record $(AlarmlistAlarmCode).</Note></Group></TestProcedure></Alarm></Alarmlist>";
             string otherPath = Path.Combine(workspace.ProjectDirectory, "Other.almx");
             string projectPath = Directory.GetFiles(workspace.ProjectDirectory, "*.almproj").Single();
             string userPath = projectPath + ".user";
@@ -39,7 +39,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             File.WriteAllText(workspace.AlarmPath, source);
             File.WriteAllText(Path.Combine(workspace.ProjectDirectory, "Base.almx"),
                 "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><Name>$(loc:Inspection)</Name>"
-                + "<TestProcedure><Instructions><Step>Removed inherited</Step></Instructions><Reset><Step>Close door.</Step><Step>Press reset.</Step></Reset></TestProcedure></Alarm></Alarmlist>");
+                + "<TestProcedure><Group Name='Instructions'><Step>Removed inherited</Step></Group><Group Name='Reset'><Step>Close door.</Step><Step>Press reset.</Step></Group></TestProcedure></Alarm></Alarmlist>");
             File.WriteAllText(otherPath, "<Alarmlist><Alarm><FullyQualifiedName>B</FullyQualifiedName><Name>Other alarm</Name><Code>002</Code></Alarm></Alarmlist>");
             WriteResource(Path.Combine(workspace.ProjectDirectory, "Labels.en.resx"), "Inspect $(AlarmlistAlarmCode)");
             VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
@@ -90,7 +90,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.StartsWith("Name\tCode\tCategory\tDescription\tTest method\tIdentity\tSource\r\nOther alarm", copied);
             Assert.Contains("\r\nInspect 001\t001\t", copied);
             Assert.Contains("Instructions:\r\n• Set key switch to inspection.\nOpen the safety door.\r\nHint: Be careful.", copied);
-            Assert.Contains("Reset alarm:\r\n• Close door.\r\n• Press reset.", copied);
+            Assert.Contains("Reset:\r\n• Close door.\r\n• Press reset.", copied);
             Assert.DoesNotContain("Removed", copied);
             Assert.True(PreviewRows(window).Single(row => row.Name.StartsWith("A —", StringComparison.Ordinal)).BoundingRectangle.Height
                 > PreviewRows(window).Single(row => row.Name.StartsWith("B —", StringComparison.Ordinal)).BoundingRectangle.Height + 50);

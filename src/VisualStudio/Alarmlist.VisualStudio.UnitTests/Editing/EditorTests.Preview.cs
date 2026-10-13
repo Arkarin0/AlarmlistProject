@@ -21,7 +21,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public async Task ResolvedPreviewShowsCompleteValuesOriginsAndSurvivingExecutionOrderAsync()
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm,
-                "<Instructions><Note>Discarded</Note><Clear/><Warning>Local</Warning></Instructions>")))
+                "<Group Name='Instructions'><Note>Discarded</Note><Clear/><Warning>Local</Warning></Group>")))
             {
                 session.Analyze(ProcedureBase.Replace("</Code>", "</Code><Category>Fire</Category><Description>Inspect</Description>"));
                 Assert.Equal(new[] { "FullyQualifiedName", "Name", "Code", "Category", "Description" }, session.View.ResolvedFields.Select(field => field.Name));
@@ -89,7 +89,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [InlineData(true)]
         public void ScalarAndProcedureDraftsClearBothPreviewsAndCancelRestoresThem(bool procedure)
         {
-            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Step>Local</Step></Instructions>")))
+            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Step>Local</Step></Group>")))
             {
                 string xml = session.View.CompiledXml;
                 if (procedure) session.View.ProcedureSections[0].Items[0].Text = "Draft";

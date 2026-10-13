@@ -41,7 +41,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
               <Alarm abstract="true">
                 <FullyQualifiedName>Template</FullyQualifiedName><Name>Alarm $(par1)</Name>
                 <Properties><Property Name="par1" Value="ignored" /></Properties>
-                <TestProcedure><Instructions><Step>Check $(par1) $$(literal)</Step></Instructions></TestProcedure>
+                <TestProcedure><Group Name='Instructions'><Step>Check $(par1) $$(literal)</Step></Group></TestProcedure>
               </Alarm>
             </Alarmlist>
             """;

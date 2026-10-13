@@ -18,7 +18,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
-                const string xml = "<Alarmlist><Alarm><TestProcedure><Instructions><Step>First</Step><Step>Second</Step></Instructions></TestProcedure></Alarm></Alarmlist>";
+                const string xml = "<Alarmlist><Alarm><TestProcedure><Group Name='Instructions'><Step>First</Step><Step>Second</Step></Group></TestProcedure></Alarm></Alarmlist>";
                 var buffer = new TestBuffer(xml);
                 using (var model = new AlmxDocumentModel(buffer, _editing))
                 using (var view = new EditFileControlViewModel(model, new AlarmViewModelFactory()))
@@ -64,7 +64,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
-                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Clear/><Step>Move before Clear</Step></Instructions>")))
+                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Clear/><Step>Move before Clear</Step></Group>")))
                 using (var host = ExpressionHost())
                 {
                     session.Analyze(ProcedureBase);
@@ -96,7 +96,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
-                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Step/></Instructions>")))
+                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Step/></Group>")))
                 using (var host = ExpressionHost())
                 {
                     session.Analyze(ProcedureBase);
@@ -120,7 +120,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
-                var buffer = new TestBuffer("<Alarmlist><Alarm/></Alarmlist>");
+                var buffer = new TestBuffer("<Alarmlist><Alarm><TestProcedure><Group Name='Instructions'/><Group Name='Reset'/></TestProcedure></Alarm></Alarmlist>");
                 using (var model = new AlmxDocumentModel(buffer, _editing))
                 using (var view = new EditFileControlViewModel(model, new AlarmViewModelFactory()))
                 using (var host = ExpressionHost())

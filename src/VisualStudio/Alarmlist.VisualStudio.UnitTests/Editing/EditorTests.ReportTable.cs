@@ -17,13 +17,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Fact]
         public async Task ReportTestMethodUsesEvaluatedSurvivingEntriesAndMultilineClipboardAsync()
         {
-            string child = WithProcedure(ChildAlarm, "<Instructions><Step>Discarded local</Step><Clear/>"
-                + "<Step>Check $(AlarmlistAlarmCode)&#10;Second line</Step><Hint>Careful &quot;now&quot;</Hint><Warning>Voltage</Warning><Note>Record</Note></Instructions>");
+            string child = WithProcedure(ChildAlarm, "<Group Name='Instructions'><Step>Discarded local</Step><Clear/>"
+                + "<Step>Check $(AlarmlistAlarmCode)&#10;Second line</Step><Hint>Careful &quot;now&quot;</Hint><Warning>Voltage</Warning><Note>Record</Note></Group>");
             using (var session = new SemanticSession(child, previewTable: true))
             {
                 session.Analyze(ProcedureBase.Replace("<Alarm>", "<Alarm abstract='true'>"));
                 AlarmPreviewRow row = Assert.Single(session.View.AlarmTableRows);
-                const string expected = "Instructions:\r\n• Check Same\nSecond line\r\nHint: Careful \"now\"\r\nWarning: Voltage\r\nNote: Record\r\n\r\nReset alarm:\r\n• Reset panel";
+                const string expected = "Instructions:\r\n• Check Same\nSecond line\r\nHint: Careful \"now\"\r\nWarning: Voltage\r\nNote: Record\r\n\r\nReset:\r\n• Reset panel";
                 Assert.Equal(expected, row.TestMethod);
                 Assert.DoesNotContain("Discarded", row.TestMethod); Assert.DoesNotContain("Open", row.TestMethod);
                 session.View.AlarmTableFilter = "RESET PANEL"; Assert.Single(session.View.AlarmTableRows);
@@ -34,7 +34,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 Assert.Contains("\t\"" + expected.Replace("\"", "\"\"") + "\"\tChild\t", copied);
                 Assert.Equal(child, session.Buffer.Current.Text); Assert.Equal(0, session.Buffer.Edits);
                 session.View.AlarmTableFilter = ""; session.Analyze(BaseAlarm);
-                Assert.DoesNotContain("Reset alarm:", Assert.Single(session.View.AlarmTableRows.Where(item => item.Identity == "Child")).TestMethod);
+                Assert.DoesNotContain("Reset:", Assert.Single(session.View.AlarmTableRows.Where(item => item.Identity == "Child")).TestMethod);
             }
         }
 
@@ -46,8 +46,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 string longText = string.Join(" ", Enumerable.Repeat("Inspect the safety door and reset the alarm.", 10));
                 string source = "<Alarmlist>" + string.Concat(Enumerable.Range(0, 1200).Select(index => "<Alarm><FullyQualifiedName>A" + index.ToString("D4")
                     + "</FullyQualifiedName><Name>Alarm " + index.ToString("D4") + "</Name><Description>" + longText
-                    + "</Description><TestProcedure><Instructions><Step>Inspect door</Step><Hint>Use caution</Hint></Instructions>"
-                    + "<Reset><Step>Close door</Step><Step>Press reset</Step></Reset></TestProcedure></Alarm>")) + "</Alarmlist>";
+                    + "</Description><TestProcedure><Group Name='Instructions'><Step>Inspect door</Step><Hint>Use caution</Hint></Group>"
+                    + "<Group Name='Reset'><Step>Close door</Step><Step>Press reset</Step></Group></TestProcedure></Alarm>")) + "</Alarmlist>";
                 using (var session = new SemanticSession(source, previewTable: true))
                 using (var host = ExpressionHost())
                 {

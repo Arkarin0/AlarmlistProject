@@ -18,8 +18,8 @@ namespace Alarmlist.Core.UnitTests.Analysis
             {
                 new AlmxTextSnapshot("<Alarmlist><Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName>"
                     + "<Properties><Property Name='p' Value='base'/></Properties><Code>$(p)</Code>"
-                    + "<Description>Inspect $(AlarmlistAlarmCode)</Description><TestProcedure><Instructions>"
-                    + "<Step>Inspect $(AlarmlistAlarmCode) $$(p)</Step></Instructions></TestProcedure></Alarm></Alarmlist>", "Base.almx", 1),
+                    + "<Description>Inspect $(AlarmlistAlarmCode)</Description><TestProcedure><Group Name='Instructions'>"
+                    + "<Step>Inspect $(AlarmlistAlarmCode) $$(p)</Step></Group></TestProcedure></Alarm></Alarmlist>", "Base.almx", 1),
                 new AlmxTextSnapshot("<Alarmlist><Properties><Property Name='p' Value='001'/></Properties>"
                     + "<Alarm><FullyQualifiedName>B</FullyQualifiedName><ReferenceName>A</ReferenceName></Alarm></Alarmlist>", "Child.almx", 2)
             };
@@ -45,7 +45,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
             Assert.False(parameter.IsLocallyDeclared);
             Assert.False(parameter.HasLocalValue);
             Assert.Equal("001", parameter.EffectiveValue);
-            AnalyzedProcedureEntry step = Assert.Single(child.Instructions.EffectiveEntries);
+            AnalyzedProcedureEntry step = Assert.Single(child.ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries);
             Assert.Equal("Inspect $(AlarmlistAlarmCode) $$(p)", step.RawText);
             Assert.Equal("Inspect 001 $(p)", step.Text);
             Assert.True(step.IsValueAvailable);
@@ -86,7 +86,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
         {
             AnalysisResult result = new AlarmCompiler().AnalyzeSnapshots(new[] { new AlmxTextSnapshot(
                 "<Alarmlist><Alarm><Name>$(AlarmlistAlarmName)</Name><Code>OK</Code>"
-                + "<TestProcedure><Instructions><Step>$(AlarmlistAlarmName)</Step></Instructions></TestProcedure></Alarm></Alarmlist>", "Input.almx", 4) }, true);
+                + "<TestProcedure><Group Name='Instructions'><Step>$(AlarmlistAlarmName)</Step></Group></TestProcedure></Alarm></Alarmlist>", "Input.almx", 4) }, true);
             AnalyzedAlarm alarm = Assert.Single(result.Alarms);
             Assert.True(alarm.IsResolved);
             Assert.False(alarm.HasEvaluatedValues);
@@ -95,8 +95,8 @@ namespace Alarmlist.Core.UnitTests.Analysis
             Assert.False(name.IsValueAvailable);
             Assert.Null(name.EffectiveValue);
             Assert.Equal("OK", alarm.Fields.Single(field => field.Name == "Code").EffectiveValue);
-            Assert.Null(Assert.Single(alarm.Instructions.EffectiveEntries).Text);
-            Assert.Equal("$(AlarmlistAlarmName)", Assert.Single(alarm.Instructions.LocalEntries).RawText);
+            Assert.Null(Assert.Single(alarm.ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries).Text);
+            Assert.Equal("$(AlarmlistAlarmName)", Assert.Single(alarm.ProcedureSections.Single(group => group.Name == "Instructions").LocalEntries).RawText);
             Assert.Null(result.CompiledXml);
             Assert.Equal("ALM0010", Assert.Single(result.Diagnostics).Id);
         }

@@ -55,7 +55,7 @@ namespace Alarmlist.Core.UnitTests.Configuration
             var context = new CompilationContext(properties: new[] { new PropertyDefinition("code", "001") }).WithAnalyzers(new[] { analyzer });
             var inputs = new[]
             {
-                Source("Base", "<Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><Code>$(code)</Code><TestProcedure><Instructions><Step>Inspect</Step></Instructions></TestProcedure></Alarm>"),
+                Source("Base", "<Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><Code>$(code)</Code><TestProcedure><Group Name='Instructions'><Step>Inspect</Step></Group></TestProcedure></Alarm>"),
                 Source("Child", "<Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName></Alarm>")
             };
             var compiler = new AlarmCompiler();
@@ -63,7 +63,7 @@ namespace Alarmlist.Core.UnitTests.Configuration
             AnalyzedAlarm child = retained.Alarms[1];
             Assert.Equal("001", child.Fields.Single(field => field.Name == "Code").EffectiveValue);
             Assert.Equal("$(code)", child.Fields.Single(field => field.Name == "Code").EffectiveExpression);
-            Assert.Equal(new[] { "Instructions", "Reset" }, child.ProcedureSections.Select(section => section.Name));
+            Assert.Equal(new[] { "Instructions" }, child.ProcedureSections.Select(section => section.Name));
             Assert.Equal("Base", Assert.Single(child.ProcedureSections[0].EffectiveEntries).Origin.Alarm.FullyQualifiedName);
             Assert.Equal(3, child.Origin.Location.SourceVersion);
             Assert.Throws<NotSupportedException>(() => ((IList<AnalyzedAlarm>)retained.Alarms).Clear());
@@ -132,9 +132,9 @@ namespace Alarmlist.Core.UnitTests.Configuration
         }
 
         [Theory]
-        [InlineData("ALM9999", 1)]
-        [InlineData("TEST001", 2)]
-        [InlineData("bad.id", 1)]
+        [InlineData("ALM9999", 2)]
+        [InlineData("TEST001", 1)]
+        [InlineData("bad.id", 2)]
         public void InvalidAnalyzerContractsBecomeMandatoryFailures(string id, int version)
         {
             var analyzer = new DelegateAnalyzer((context, token) => Array.Empty<Diagnostic>(),
@@ -158,7 +158,7 @@ namespace Alarmlist.Core.UnitTests.Configuration
         {
             private readonly Func<AlarmAnalyzerContext, CancellationToken, IEnumerable<Diagnostic>> _analyze;
             internal DelegateAnalyzer(Func<AlarmAnalyzerContext, CancellationToken, IEnumerable<Diagnostic>> analyze,
-                DiagnosticDescriptor rule = null, int version = 1)
+                DiagnosticDescriptor rule = null, int version = 2)
             { _analyze = analyze; SupportedDiagnostics = Array.AsReadOnly(new[] { rule ?? s_rule }); ContractVersion = version; }
             public int ContractVersion { get; }
             public IReadOnlyList<DiagnosticDescriptor> SupportedDiagnostics { get; }

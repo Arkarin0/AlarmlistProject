@@ -8,14 +8,14 @@
     <!-- This is local even though its text equals the code in both bases. -->
     <Code>P-001</Code>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Note>$(loc:Shared.LogPressure)</Note>
-      </Instructions>
-      <Reset>
+      </Group>
+      <Group Name='Reset'>
         <Step>This local step is excluded by the following Clear.</Step>
         <Clear />
         <Step>$(loc:Shared.Reset)</Step>
-      </Reset>
+      </Group>
     </TestProcedure>
   </Alarm>
 </Alarmlist>

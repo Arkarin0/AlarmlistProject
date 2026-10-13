@@ -39,11 +39,16 @@ namespace Alarmlist.VisualStudio.Editing
         public PropertyScopeSource Properties => new PropertyScopeSource(Source);
         public bool IsAbstract => new[] { "true", "1" }.Contains(((string)Source.Element.Attribute("abstract"))?.Trim());
 
+        public IEnumerable<string> ProcedureNames => Source.Children.Where(element => element.Element.Name.LocalName == "TestProcedure")
+            .SelectMany(element => element.Children).Where(element => element.Element.Name.LocalName == "Group")
+            .Select(element => (string)element.Element.Attribute("Name")).Where(name => !string.IsNullOrEmpty(name)).Distinct(StringComparer.OrdinalIgnoreCase);
+
         public ProcedureSectionSource GetProcedureSection(string name)
         {
-            if (name != "Instructions" && name != "Reset") throw new ArgumentException("Unknown procedure section.", nameof(name));
+            if (string.IsNullOrEmpty(name)) throw new ArgumentException("A group identity is required.", nameof(name));
             XmlSourceElement[] procedures = Source.Children.Where(element => element.Element.Name.LocalName == "TestProcedure").ToArray();
-            XmlSourceElement[] sections = procedures.SelectMany(element => element.Children).Where(element => element.Element.Name.LocalName == name).ToArray();
+            XmlSourceElement[] sections = procedures.SelectMany(element => element.Children).Where(element => element.Element.Name.LocalName == "Group"
+                && string.Equals((string)element.Element.Attribute("Name"), name, StringComparison.OrdinalIgnoreCase)).ToArray();
             string error = procedures.Length > 1 || sections.Length > 1
                 ? "Repeated TestProcedure or section elements must be edited in XML." : null;
             return new ProcedureSectionSource(name, procedures.FirstOrDefault(), sections.FirstOrDefault(), error);

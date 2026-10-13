@@ -33,14 +33,14 @@ public sealed class VerifyPackagedAnalysis : Task
         string basePath = Path.Combine(ProjectDirectory, "UnsavedBase.almx");
         string childPath = Path.Combine(ProjectDirectory, "UnsavedChild.almx");
         const string baseText = "<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName><Name>Inherited</Name>"
-            + "<TestProcedure><Instructions><Step>Base step</Step></Instructions></TestProcedure></Alarm></Alarmlist>";
+            + "<TestProcedure><Group Name='Instructions'><Step>Base step</Step></Group></TestProcedure></Alarm></Alarmlist>";
         const string childText = "<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><Name/>"
-            + "<TestProcedure><Instructions><Note>Local step</Note></Instructions></TestProcedure></Alarm></Alarmlist>";
+            + "<TestProcedure><Group Name='Instructions'><Note>Local step</Note></Group></TestProcedure></Alarm></Alarmlist>";
         Array snapshots = Array.CreateInstance(snapshotType, 2);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 3, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 4, "Unexpected analysis contract version.");
         Require((bool)Value(result, "Success"), "Valid unsaved inputs did not resolve.");
         Require(Value(result, "CompiledXml") == null, "Default analysis unexpectedly generated XML.");
         MethodInfo preview = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType, typeof(bool) });
@@ -56,16 +56,16 @@ public sealed class VerifyPackagedAnalysis : Task
         object valueLocation = Value(name, "ValueLocation");
         Require((string)Value(valueLocation, "FilePath") == basePath && (int)Value(valueLocation, "SourceVersion") == 17,
             "The inherited field lost its defining source snapshot.");
-        object[] entries = Items(Value(child, "Instructions"), "EffectiveEntries");
+        object[] entries = Items(Items(child, "ProcedureSections").Single(group => (string)Value(group, "Name") == "Instructions"), "EffectiveEntries");
         Require(entries.Length == 2 && (bool)Value(entries[0], "IsInherited") && !(bool)Value(entries[1], "IsInherited"),
             "Inherited and local procedure origins were not preserved.");
 
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText.Replace("<Note>Local step</Note>", "<Clear/>"), childPath, 24), 1);
         object cleared = Items(analyze.Invoke(compiler, new object[] { snapshots }), "Alarms")[1];
-        object section = Value(cleared, "Instructions");
+        object section = Items(cleared, "ProcedureSections").Single(group => (string)Value(group, "Name") == "Instructions");
         Require(Items(section, "EffectiveEntries").Length == 0 && Items(section, "ExcludedEntries").Length == 1,
             "Clear did not exclude the inherited sequence.");
-        Require(Items(Value(child, "Instructions"), "EffectiveEntries").Length == 2, "A later analysis mutated an earlier result.");
+        Require(Items(Items(child, "ProcedureSections").Single(group => (string)Value(group, "Name") == "Instructions"), "EffectiveEntries").Length == 2, "A later analysis mutated an earlier result.");
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText.Replace(">Base<", ">Missing<"), childPath, 25), 1);
         object failed = preview.Invoke(compiler, new object[] { snapshots, true });
         Require(!(bool)Value(failed, "Success") && Value(failed, "CompiledXml") == null, "Failed compilation exposed project XML.");

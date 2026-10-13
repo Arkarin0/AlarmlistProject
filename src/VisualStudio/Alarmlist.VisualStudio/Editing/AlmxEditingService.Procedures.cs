@@ -51,14 +51,15 @@ namespace Alarmlist.VisualStudio.Editing
 
             string newline = Newline(projection.Text);
             string indent = Indent(projection.Text, parent.Start);
-            string sectionTag = QualifiedName(parent, section.Name);
+            string sectionTag = QualifiedName(parent, "Group");
+            string groupStart = "<" + sectionTag + " Name=\"" + Escape(section.Name) + "\">";
             if (section.Procedure != null)
-                return InsertChild(projection.Text, parent, "<" + sectionTag + ">" + newline
+                return InsertChild(projection.Text, parent, groupStart + newline
                     + indent + "    " + content + newline + indent + "  </" + sectionTag + ">");
 
             string procedureTag = QualifiedName(parent, "TestProcedure");
             return InsertChild(projection.Text, parent, "<" + procedureTag + ">" + newline
-                + indent + "    <" + sectionTag + ">" + newline + indent + "      " + content + newline
+                + indent + "    " + groupStart + newline + indent + "      " + content + newline
                 + indent + "    </" + sectionTag + ">" + newline + indent + "  </" + procedureTag + ">");
         }
 
@@ -83,7 +84,8 @@ namespace Alarmlist.VisualStudio.Editing
             ProcedureSectionSource section = RequireSection(projection, alarm, sectionName);
             if (section.Source != null && (section.Source.Element.Nodes().Any(node =>
                     !(node is XElement) && (!(node is XText text) || !string.IsNullOrWhiteSpace(text.Value)))
-                || section.Source.Children.Count != section.Items.Count
+                || section.Source.Children.Count(child => child.Element.Name.LocalName == "Title") > 1
+                || section.Source.Children.Count(child => child.Element.Name.LocalName != "Title") != section.Items.Count
                 || section.Items.Any(item => !item.CanEdit || item.Source.Element.HasAttributes)))
                 throw new InvalidOperationException("This section contains comments, attributes, or unsupported content that a local copy would replace. Edit it in XML to preserve that content.");
 
@@ -99,6 +101,11 @@ namespace Alarmlist.VisualStudio.Editing
                     throw new ArgumentException("A local copy requires the surviving entries of this section.", nameof(entries));
                 string tag = QualifiedName(parent, entry.Kind);
                 rows.Add("<" + tag + ">" + Escape(entry.Text ?? string.Empty) + "</" + tag + ">");
+            }
+            if (section.Source != null)
+            {
+                XmlSourceElement title = section.Source.Children.FirstOrDefault(child => child.Element.Name.LocalName == "Title");
+                if (title != null) rows.Insert(0, projection.Text.Substring(title.Start, title.End - title.Start));
             }
             string content = string.Join(newline + indent, rows);
             if (section.Source == null) return InsertProcedureSection(projection, alarm, section, content);

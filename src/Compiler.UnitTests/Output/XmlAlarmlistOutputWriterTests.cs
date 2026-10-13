@@ -13,13 +13,13 @@ namespace Alarmlist.Output.Tests
         public void InMemoryOutputMatchesFileOutputIncludingEncodingEscapingAndAllKinds()
         {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xml");
-            var procedure = new TestProcedure(new[]
+            var procedure = new TestProcedure(new[] { new ProcedureGroup("Instructions", null, new[]
             {
                 new TestProcedureItem(TestProcedureItemKind.Instruction, "Inspect <&> 😀"),
                 new TestProcedureItem(TestProcedureItemKind.Hint, "Ü\r\nNext"),
                 new TestProcedureItem(TestProcedureItemKind.Warning, ""),
                 new TestProcedureItem(TestProcedureItemKind.Note, "Last")
-            }, Array.Empty<TestProcedureItem>());
+            }), new ProcedureGroup("Reset", null, Array.Empty<TestProcedureItem>()) });
             var alarms = new AlarmList { new Alarm("A", null, "", "<&>", "Ü", procedure) };
             var writer = new XmlAlarmlistOutputWriter();
             try
@@ -38,9 +38,9 @@ namespace Alarmlist.Output.Tests
         public void WriteUsesCompiledXmlFormat()
         {
             var outputFilePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "alarmlist.xml");
-            var testProcedure = new TestProcedure(
-                instructions: new[] { new TestProcedureItem(TestProcedureItemKind.Instruction, "Inspect detector.") },
-                reset: Array.Empty<TestProcedureItem>());
+            var testProcedure = new TestProcedure(new[] { new ProcedureGroup("Instructions", null,
+                new[] { new TestProcedureItem(TestProcedureItemKind.Instruction, "Inspect detector.") }),
+                new ProcedureGroup("Reset", null, Array.Empty<TestProcedureItem>()) });
             var alarmList = new AlarmList
             {
                 new Alarm("Sample.Plant.Fire.SmokeDetected", "Fire", "F-001", "Smoke detected in production hall.", "Smoke detector", testProcedure)
@@ -57,7 +57,7 @@ namespace Alarmlist.Output.Tests
             Assert.Equal("F-001", alarm?.Element("Code")?.Value);
             Assert.Equal("Fire", alarm?.Element("Category")?.Value);
             Assert.Equal("Smoke detected in production hall.", alarm?.Element("Description")?.Value);
-            Assert.Equal("Inspect detector.", alarm?.Element("TestProcedure")?.Element("Instructions")?.Element("TestProcedureItem")?.Value);
+            Assert.Equal("Inspect detector.", alarm?.Element("TestProcedure")?.Element("Group")?.Element("TestProcedureItem")?.Value);
         }
     }
 }

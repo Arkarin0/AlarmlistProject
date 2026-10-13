@@ -60,13 +60,13 @@ namespace Alarmlist.Core.UnitTests.Text
         {
             const string text = "<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName>"
                 + "<Name>Original</Name><ReferenceName>Base</ReferenceName>"
-                + "<TestProcedure><Instructions><Step>Test</Step></Instructions></TestProcedure>"
+                + "<TestProcedure><Group Name='Instructions'><Step>Test</Step></Group></TestProcedure>"
                 + "</Alarm></Alarmlist>";
             var snapshot = new AlmxTextSnapshot(text, "A.almx", 1);
             AlarmSyntaxNode first = Assert.Single(snapshot.Parse().Alarms);
             first.Name = "Changed";
             first.ReferenceName = "Other";
-            first.TestProcedure.Instructions.Clear();
+            first.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries.Clear();
 
             AlarmSyntaxNode second = Assert.Single(snapshot.Parse().Alarms);
 
@@ -74,7 +74,7 @@ namespace Alarmlist.Core.UnitTests.Text
             Assert.Equal("Original", second.Name);
             Assert.Equal("Base", second.ReferenceName);
             Assert.Null(second.Reference);
-            Assert.Single(second.TestProcedure.Instructions);
+            Assert.Single(second.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries);
             Assert.Equal(text, snapshot.Text);
         }
 
@@ -84,12 +84,12 @@ namespace Alarmlist.Core.UnitTests.Text
             string path = Path.GetTempFileName();
             const string baseText = "<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName>"
                 + "<Name>Überdruck</Name><Code>B</Code><TestProcedure>"
-                + "<Instructions><Step>Inherited</Step></Instructions>"
-                + "<Reset><Step>Reset</Step></Reset></TestProcedure></Alarm></Alarmlist>";
+                + "<Group Name='Instructions'><Step>Inherited</Step></Group>"
+                + "<Group Name='Reset'><Step>Reset</Step></Group></TestProcedure></Alarm></Alarmlist>";
             const string childText = "<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName>"
                 + "<ReferenceName>Base</ReferenceName><Name/><Code>Local</Code><TestProcedure>"
-                + "<Instructions><Note>Excluded</Note><Clear/><Warning>Check</Warning></Instructions>"
-                + "<Reset><Hint>Local reset</Hint></Reset></TestProcedure></Alarm></Alarmlist>";
+                + "<Group Name='Instructions'><Note>Excluded</Note><Clear/><Warning>Check</Warning></Group>"
+                + "<Group Name='Reset'><Hint>Local reset</Hint></Group></TestProcedure></Alarm></Alarmlist>";
             try
             {
                 const string savedText = "<Alarmlist/>";
@@ -104,9 +104,9 @@ namespace Alarmlist.Core.UnitTests.Text
                 Alarm child = result.AlarmList.Single(alarm => alarm.FullyQualifiedName == "Child");
                 Assert.Equal("Überdruck", child.Name);
                 Assert.Equal("Local", child.Code);
-                Assert.Equal("Check", Assert.Single(child.TestProcedure.Instructions).Text);
-                Assert.Equal(TestProcedureItemKind.Warning, child.TestProcedure.Instructions[0].Kind);
-                Assert.Equal(new[] { "Reset", "Local reset" }, child.TestProcedure.Reset.Select(item => item.Text));
+                Assert.Equal("Check", Assert.Single(child.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries).Text);
+                Assert.Equal(TestProcedureItemKind.Warning, child.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries[0].Kind);
+                Assert.Equal(new[] { "Reset", "Local reset" }, child.TestProcedure.Groups.Single(group => group.Name == "Reset").Entries.Select(item => item.Text));
                 Assert.Equal(savedText, File.ReadAllText(path));
                 Assert.False(File.Exists(childSnapshot.FilePath));
 
@@ -120,7 +120,7 @@ namespace Alarmlist.Core.UnitTests.Text
                 Alarm saved = Assert.Single(compiler.CompileFiles(new[] { path }).AlarmList);
                 Assert.Equal(result.AlarmList[0].Name, saved.Name);
                 Assert.Equal(result.AlarmList[0].Code, saved.Code);
-                Assert.Equal(result.AlarmList[0].TestProcedure.Instructions, saved.TestProcedure.Instructions);
+                Assert.Equal(result.AlarmList[0].TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries, saved.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries);
             }
             finally
             {

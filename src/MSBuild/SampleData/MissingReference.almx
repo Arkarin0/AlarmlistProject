@@ -8,10 +8,10 @@
     <Category>Reference</Category>
     <Description>This alarm intentionally references a missing alarm for integration tests.</Description>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Step>This file should never compile successfully.</Step>
-      </Instructions>
-      <Reset />
+      </Group>
+      <Group Name='Reset' />
     </TestProcedure>
   </Alarm>
 </Alarmlist>

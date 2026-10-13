@@ -29,7 +29,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             workspace.CreateProject(ide);
             ide.Automation.Solution.Close(false);
             const string source = "<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Name>$(loc:Inspection)</Name><Code>001</Code>"
-                + "<TestProcedure><Instructions><Step>Inspect door.</Step></Instructions></TestProcedure></Alarm></Alarmlist>";
+                + "<TestProcedure><Group Name='Instructions'><Step>Inspect door.</Step></Group></TestProcedure></Alarm></Alarmlist>";
             const string other = "<Alarmlist><Alarm><FullyQualifiedName>B</FullyQualifiedName><Name>Other alarm</Name></Alarm></Alarmlist>";
             string otherPath = Path.Combine(workspace.ProjectDirectory, "Other.almx");
             string plant = Path.Combine(workspace.ProjectDirectory, "Plant.almproj");

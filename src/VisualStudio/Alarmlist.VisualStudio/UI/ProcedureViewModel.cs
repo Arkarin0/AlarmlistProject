@@ -27,7 +27,8 @@ namespace Alarmlist.VisualStudio.UI
         private string _error;
         private bool _showCleared = true;
         private int _clearedCount;
-        public string Name { get; }
+        public string Name { get; private set; }
+        public string Title { get; private set; }
         public string Error => _error;
         public string NewKind { get; set; } = "Step";
         public string[] Kinds => ProcedureItemSource.Kinds;
@@ -62,9 +63,24 @@ namespace Alarmlist.VisualStudio.UI
         public ProcedureSectionViewModel(string name, Action changed, Action<string, int, ProcedureAction, string> edit)
         {
             Name = name;
+            Title = name;
             _changed = changed;
             _edit = edit;
             AddCommand = new DelegateCommand(() => _edit(Name, -1, ProcedureAction.Add, NewKind), () => _error == null);
+        }
+
+        internal void SetIdentitySpelling(string name)
+        {
+            if (Name == name) return;
+            Name = name;
+            Notify(nameof(Name));
+        }
+
+        internal void Deactivate()
+        {
+            _error = "This group is no longer available in the selected alarm.";
+            SetAnalysis(null, entry => null, false);
+            AddCommand.Refresh();
         }
 
         public void Load(AlarmSource alarm)
@@ -91,6 +107,8 @@ namespace Alarmlist.VisualStudio.UI
 
         public void SetAnalysis(AnalysisSection section, Func<AnalysisEntry, DelegateCommand> navigation, bool valuesCurrent = true)
         {
+            Title = valuesCurrent && section?.Title.IsValueAvailable == true ? section.Title.EffectiveValue : section?.Title.EffectiveExpression ?? Name;
+            Notify(nameof(Title));
             if (_error != null) section = null;
             HasAnalysis = section != null && !Items.Any(item => item.HasChanges);
             // Text-only drafts do not change compiler-owned ordering/exclusions.

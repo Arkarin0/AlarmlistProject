@@ -192,16 +192,16 @@ namespace Alarmlist.Core.UnitTests.Lookups
             var source = new AlmxTextSnapshot("""
                 <Alarmlist>
                   <Alarm abstract="true"><FullyQualifiedName>Base</FullyQualifiedName>
-                    <TestProcedure><Instructions><Step>$(path:Missing)</Step></Instructions></TestProcedure>
+                    <TestProcedure><Group Name='Instructions'><Step>$(path:Missing)</Step></Group></TestProcedure>
                   </Alarm>
                   <Alarm><ReferenceName>Base</ReferenceName>
-                    <TestProcedure><Instructions><Clear/><Step>done</Step></Instructions></TestProcedure>
+                    <TestProcedure><Group Name='Instructions'><Clear/><Step>done</Step></Group></TestProcedure>
                   </Alarm>
                 </Alarmlist>
                 """, "abstract.almx", 1);
             var result = new AlarmCompiler().CompileSnapshots(new[] { source }, Context());
             Assert.True(result.Success);
-            Assert.Equal("done", Assert.Single(Assert.Single(result.AlarmList).TestProcedure.Instructions).Text);
+            Assert.Equal("done", Assert.Single(Assert.Single(result.AlarmList).TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries).Text);
         }
 
         [Fact]

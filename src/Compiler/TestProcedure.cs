@@ -4,21 +4,29 @@ using System.Linq;
 
 namespace Alarmlist.Compiler
 {
+    public sealed class ProcedureGroup
+    {
+        public string Name { get; }
+        public string Title { get; }
+        public IReadOnlyList<TestProcedureItem> Entries { get; }
+
+        public ProcedureGroup(string name, string title, IEnumerable<TestProcedureItem> entries)
+        {
+            Name = name;
+            Title = string.IsNullOrEmpty(title) ? name : title;
+            Entries = Array.AsReadOnly((entries ?? Enumerable.Empty<TestProcedureItem>()).ToArray());
+        }
+    }
+
     public sealed class TestProcedure
     {
-        public TestProcedure()
-            : this(Array.Empty<TestProcedureItem>(), Array.Empty<TestProcedureItem>())
+        public TestProcedure() : this(Array.Empty<ProcedureGroup>()) { }
+
+        public TestProcedure(IEnumerable<ProcedureGroup> groups)
         {
+            Groups = Array.AsReadOnly((groups ?? Enumerable.Empty<ProcedureGroup>()).ToArray());
         }
 
-        public TestProcedure(IEnumerable<TestProcedureItem> instructions, IEnumerable<TestProcedureItem> reset)
-        {
-            Instructions = (instructions ?? Enumerable.Empty<TestProcedureItem>()).ToArray();
-            Reset = (reset ?? Enumerable.Empty<TestProcedureItem>()).ToArray();
-        }
-
-        public IReadOnlyList<TestProcedureItem> Instructions { get; }
-
-        public IReadOnlyList<TestProcedureItem> Reset { get; }
+        public IReadOnlyList<ProcedureGroup> Groups { get; }
     }
 }

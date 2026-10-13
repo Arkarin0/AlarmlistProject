@@ -35,7 +35,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
               <Properties><Property Name="par1" /></Properties>
               <Alarm>
                 <FullyQualifiedName>Localized</FullyQualifiedName><Name>$(loc:Inspection)</Name>
-                <TestProcedure><Instructions><Step>$(loc:Inspection)</Step></Instructions></TestProcedure>
+                <TestProcedure><Group Name='Instructions'><Step>$(loc:Inspection)</Step></Group></TestProcedure>
               </Alarm>
             </Alarmlist>
             """;

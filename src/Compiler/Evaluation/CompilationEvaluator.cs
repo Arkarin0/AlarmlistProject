@@ -52,7 +52,16 @@ namespace Alarmlist.Evaluation
                 foreach (string field in Fields)
                     fields.Add(field, Parse(alarm, alarm.GetLocalFieldValue(field), alarm.GetFieldLocation(field)));
                 _fields.Add(alarm, fields);
-                foreach (TestProcedureStepSyntax step in alarm.TestProcedure.Instructions.Concat(alarm.TestProcedure.Reset).OfType<TestProcedureStepSyntax>())
+                var groupNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (ProcedureGroupSyntax group in alarm.TestProcedure.Groups)
+                {
+                    if (!ProcedureGroupSyntax.IsValidName(group.Name))
+                        Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidProcedureGroup, group.Name).WithLocation(group.Location));
+                    else if (!groupNames.Add(group.Name))
+                        Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.DuplicateProcedureGroup, group.Name).WithLocation(group.Location));
+                    if (group.Title != null) Parse(alarm, group.Title, group.TitleLocation);
+                }
+                foreach (TestProcedureStepSyntax step in alarm.TestProcedure.Groups.SelectMany(group => group.Entries).OfType<TestProcedureStepSyntax>())
                     _steps[step] = Parse(alarm, step.Text, step.Location);
             }
 
@@ -128,7 +137,8 @@ namespace Alarmlist.Evaluation
             internal Dictionary<TestProcedureStepSyntax, string> Steps { get; } = new Dictionary<TestProcedureStepSyntax, string>();
             internal List<LocalizationEvaluation> LocalizationUses { get; } = new List<LocalizationEvaluation>();
             internal List<LookupEvaluation> LookupUses { get; } = new List<LookupEvaluation>();
-            internal bool IsAvailable => _failed.Count == 0 && Steps.Values.All(value => value != null);
+            internal Dictionary<string, string> Titles { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            internal bool IsAvailable => _failed.Count == 0 && Steps.Values.All(value => value != null) && Titles.Values.All(value => value != null);
 
             internal AlarmEvaluation(CompilationEvaluator owner, AlarmSyntaxNode alarm)
             {
@@ -143,7 +153,13 @@ namespace Alarmlist.Evaluation
             {
                 foreach (string field in Fields) TryGetField(field, out _);
                 TestProcedureSyntax procedure = _alarm.ResolvedTestProcedures;
-                foreach (TestProcedureStepSyntax step in procedure.Instructions.Concat(procedure.Reset).OfType<TestProcedureStepSyntax>())
+                foreach (ProcedureGroupSyntax group in procedure.Groups)
+                {
+                    if (!ProcedureGroupSyntax.IsValidName(group.Name)) continue;
+                    string title = group.Title == null ? group.Name : EvaluateExpression(PropertyExpression.Parse(group.Title), group.TitleLocation);
+                    Titles[group.Name] = title == string.Empty ? group.Name : title;
+                }
+                foreach (TestProcedureStepSyntax step in procedure.Groups.SelectMany(group => group.Entries).OfType<TestProcedureStepSyntax>())
                     Steps[step] = EvaluateExpression(_owner._steps[step], step.Location);
             }
 
@@ -331,7 +347,8 @@ namespace Alarmlist.Evaluation
             {
                 TestProcedureSyntax procedure = _alarm.ResolvedTestProcedures;
                 return new Alarm(_alarm.FullyQualifiedName, _fields["Category"], _fields["Code"], _fields["Description"], _fields["Name"],
-                    new TestProcedure(Convert(procedure.Instructions), Convert(procedure.Reset)));
+                    new TestProcedure(procedure.Groups.Where(group => ProcedureGroupSyntax.IsValidName(group.Name)).Select(group =>
+                        new ProcedureGroup(group.Name, Titles[group.Name], Convert(group.Entries)))));
             }
 
             private IEnumerable<TestProcedureItem> Convert(IEnumerable<ITestProcedureItem> entries)

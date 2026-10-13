@@ -11,7 +11,7 @@ namespace Alarmlist.Analysis
     /// <summary>A detached, read-only result for one complete set of source snapshots.</summary>
     public sealed class AnalysisResult
     {
-        public const int CurrentContractVersion = 3;
+        public const int CurrentContractVersion = 4;
         public int ContractVersion => CurrentContractVersion;
         public IReadOnlyList<AnalyzedSource> Sources { get; }
         public IReadOnlyList<AnalyzedAlarm> Alarms { get; }

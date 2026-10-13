@@ -21,8 +21,7 @@ namespace Alarmlist.Analysis
         private static readonly string[] s_fields = { "Name", "Code", "Category", "Description" };
         private readonly Dictionary<AlarmSyntaxNode, AlarmOrigin> _alarms = new Dictionary<AlarmSyntaxNode, AlarmOrigin>();
         private readonly Dictionary<ITestProcedureItem, ProcedureEntryOrigin> _entries = new Dictionary<ITestProcedureItem, ProcedureEntryOrigin>();
-        private readonly Dictionary<AlarmSyntaxNode, SectionResolution> _instructions = new Dictionary<AlarmSyntaxNode, SectionResolution>();
-        private readonly Dictionary<AlarmSyntaxNode, SectionResolution> _reset = new Dictionary<AlarmSyntaxNode, SectionResolution>();
+        private readonly Dictionary<string, Dictionary<AlarmSyntaxNode, SectionResolution>> _sections = new Dictionary<string, Dictionary<AlarmSyntaxNode, SectionResolution>>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _ambiguousNames;
         private readonly CompilationContext _context;
         private readonly CompilationEvaluator _evaluation;
@@ -42,8 +41,7 @@ namespace Alarmlist.Analysis
             {
                 var origin = new AlarmOrigin(index++, alarm.FullyQualifiedName, alarm.Location);
                 _alarms.Add(alarm, origin);
-                AddEntryOrigins(alarm.TestProcedure.Instructions, origin, "Instructions");
-                AddEntryOrigins(alarm.TestProcedure.Reset, origin, "Reset");
+                foreach (ProcedureGroupSyntax group in alarm.TestProcedure.Groups) AddEntryOrigins(group.Entries, origin, group.Name);
             }
         }
 
@@ -128,7 +126,8 @@ namespace Alarmlist.Analysis
             });
 
             return new AnalyzedAlarm(_alarms[alarm], alarm.ReferenceName, resolved, chain, fields,
-                AnalyzeSection(alarm, "Instructions", resolved), AnalyzeSection(alarm, "Reset", resolved),
+                (resolved ? alarm.ResolvedTestProcedures : alarm.TestProcedure).Groups
+                    .Where(group => ProcedureGroupSyntax.IsValidName(group.Name)).Select(group => AnalyzeSection(alarm, group, resolved)),
                 alarm.IsAbstract, evaluation?.IsAvailable == true, AnalyzeProperties(alarm, alarm.SourceFile, resolved),
                 (evaluation?.LocalizationUses ?? Enumerable.Empty<LocalizationEvaluation>()).Select(use =>
                     new AnalyzedLocalizationUse(new AnalyzedTranslation(use.Key, _evaluation.Culture, use.Entry), use.Location, use.Value)),
@@ -183,24 +182,43 @@ namespace Alarmlist.Analysis
             return false;
         }
 
-        private AnalyzedProcedureSection AnalyzeSection(AlarmSyntaxNode alarm, string section, bool resolved)
+        private AnalyzedProcedureSection AnalyzeSection(AlarmSyntaxNode alarm, ProcedureGroupSyntax group, bool resolved)
         {
+            string section = group.Name;
+            ProcedureGroupSyntax localGroup = alarm.TestProcedure.GetGroup(section);
             ReferenceableCollection<ITestProcedureItem> local = GetSection(alarm, section);
+            AlarmSyntaxNode titleAlarm = alarm;
+            while (titleAlarm != null && titleAlarm.TestProcedure.GetGroup(section)?.Title == null)
+                titleAlarm = resolved ? titleAlarm.Reference : null;
+            ProcedureGroupSyntax titleGroup = titleAlarm?.TestProcedure.GetGroup(section);
+            AlarmSyntaxNode definingAlarm = alarm;
+            if (resolved)
+                for (AlarmSyntaxNode current = alarm.Reference; current != null; current = current.Reference)
+                    if (current.TestProcedure.GetGroup(section) != null) definingAlarm = current;
+            string titleValue = null;
+            bool titleAvailable = resolved && _evaluation.Alarms.TryGetValue(alarm, out CompilationEvaluator.AlarmEvaluation evaluation)
+                && evaluation.Titles.TryGetValue(section, out titleValue) && titleValue != null;
+            var title = new AnalyzedField("Title", localGroup?.Title, localGroup?.TitleLocation, titleValue,
+                titleAlarm == null ? null : _alarms[titleAlarm], titleGroup?.TitleLocation,
+                titleAlarm != null && titleAlarm != alarm, titleGroup?.Title, titleAvailable);
             if (!resolved)
                 return new AnalyzedProcedureSection(section, local.Select(item => CreateEntry(alarm, item)),
-                    Array.Empty<AnalyzedProcedureEntry>(), Array.Empty<AnalyzedProcedureEntry>());
+                    Array.Empty<AnalyzedProcedureEntry>(), Array.Empty<AnalyzedProcedureEntry>(), title,
+                    _alarms[definingAlarm], group.Location, localGroup != null);
 
             SectionResolution resolution = ResolveSection(alarm, section);
             Dictionary<ITestProcedureItem, ITestProcedureItem> excluded = resolution.Excluded.ToDictionary(pair => pair.Key, pair => pair.Value);
             return new AnalyzedProcedureSection(section,
                 local.Select(item => CreateEntry(alarm, item, excluded.TryGetValue(item, out ITestProcedureItem clear) ? clear : null)),
                 resolution.Effective.Select(item => CreateEntry(alarm, item, effective: true)),
-                resolution.Excluded.Select(pair => CreateEntry(alarm, pair.Key, pair.Value)));
+                resolution.Excluded.Select(pair => CreateEntry(alarm, pair.Key, pair.Value)), title,
+                _alarms[definingAlarm], group.Location, localGroup != null);
         }
 
         private SectionResolution ResolveSection(AlarmSyntaxNode alarm, string section)
         {
-            Dictionary<AlarmSyntaxNode, SectionResolution> cache = section == "Instructions" ? _instructions : _reset;
+            if (!_sections.TryGetValue(section, out Dictionary<AlarmSyntaxNode, SectionResolution> cache))
+                _sections.Add(section, cache = new Dictionary<AlarmSyntaxNode, SectionResolution>());
             if (cache.TryGetValue(alarm, out SectionResolution result)) return result;
 
             SectionResolution inherited = alarm.Reference == null ? null : ResolveSection(alarm.Reference, section);
@@ -229,7 +247,7 @@ namespace Alarmlist.Analysis
 
         private static ReferenceableCollection<ITestProcedureItem> GetSection(AlarmSyntaxNode alarm, string section)
         {
-            return section == "Instructions" ? alarm.TestProcedure.Instructions : alarm.TestProcedure.Reset;
+            return alarm.TestProcedure.GetGroup(section)?.Entries ?? new ReferenceableCollection<ITestProcedureItem>();
         }
 
         private sealed class SectionResolution

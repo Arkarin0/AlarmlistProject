@@ -27,17 +27,15 @@ namespace Alarmlist.VisualStudio.UI
             Alarm = alarm;
             GoToSourceCommand = navigation;
             Name = Value("Name"); Code = Value("Code"); Category = Value("Category"); Description = Value("Description");
-            TestMethod = !alarm.HasEvaluatedValues ? "(unavailable)" : string.Join("\r\n\r\n", new[]
-            {
-                ProcedureText("Instructions:", alarm.Instructions), ProcedureText("Reset alarm:", alarm.Reset)
-            }.Where(section => section.Length != 0));
+            TestMethod = !alarm.HasEvaluatedValues ? "(unavailable)" : string.Join("\r\n\r\n", alarm.ProcedureSections.Select(section =>
+                ProcedureText((section.Title.IsValueAvailable ? section.Title.EffectiveValue : "(unavailable)") + ":", section)));
         }
 
         private static string ProcedureText(string heading, AnalysisSection section)
         {
             // The compiler owns inheritance, ordering and Clear exclusions.
             var entries = section?.EffectiveEntries.Where(entry => !entry.IsClear && entry.ExcludedBy == null).ToArray();
-            return entries == null || entries.Length == 0 ? "" : heading + "\r\n" + string.Join("\r\n", entries.Select(entry =>
+            return entries == null ? "" : heading + "\r\n" + string.Join("\r\n", entries.Select(entry =>
                 (entry.Kind == AnalysisStepKind.Instruction ? "• " : entry.Kind + ": ") + (entry.IsValueAvailable ? entry.Text : "(unavailable)")));
         }
 

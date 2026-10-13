@@ -91,7 +91,7 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             if (string.IsNullOrWhiteSpace(evaluatedCompilerPath))
                 return new BridgeOpenResult(AnalysisAvailability.SdkUnavailable,
-                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 3.");
+                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 4.");
 
             AppDomain domain = null;
             try

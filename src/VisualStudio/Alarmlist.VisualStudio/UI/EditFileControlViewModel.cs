@@ -35,7 +35,7 @@ namespace Alarmlist.VisualStudio.UI
         public event EventHandler PendingChanged;
         public ObservableCollection<AlarmViewModel> Alarms { get; } = new ObservableCollection<AlarmViewModel>();
         public IReadOnlyList<AlarmFieldViewModel> Fields { get; }
-        public IReadOnlyList<ProcedureSectionViewModel> ProcedureSections { get; }
+        public ObservableCollection<ProcedureSectionViewModel> ProcedureSections { get; } = new ObservableCollection<ProcedureSectionViewModel>();
         public ProcedureFocusRequest ProcedureFocus { get; private set; }
         public DelegateCommand AddCommand { get; }
         public DelegateCommand DeleteCommand { get; }
@@ -67,8 +67,6 @@ namespace Alarmlist.VisualStudio.UI
             DesignerLayout = new DesignerLayoutViewModel(settings);
             PreviewColumns.Changed += OnPreviewColumnsChanged;
             Fields = BindingCollection.Create(AlarmSource.FieldNames.Select(name => new AlarmFieldViewModel(name, OnDraftChanged)));
-            ProcedureSections = BindingCollection.Create(new[] { "Instructions", "Reset" }
-                .Select(name => _factory.CreateProcedureSection(name, OnDraftChanged, EditProcedure)));
             AddCommand = new DelegateCommand(Add, () => IsValid);
             DeleteCommand = new DelegateCommand(Delete, () => CanEdit);
             _model.Changed += OnModelChanged;
@@ -145,8 +143,37 @@ namespace Alarmlist.VisualStudio.UI
             _baseline = _model.Projection;
             _original = _selected?.Source;
             foreach (AlarmFieldViewModel field in Fields) field.Load(_original);
+            RefreshProcedureSections();
             foreach (ProcedureSectionViewModel section in ProcedureSections) section.Load(_original);
             RefreshAnalysis();
+        }
+
+        private void RefreshProcedureSections()
+        {
+            if (HasPending) return;
+            string[] names = (CurrentAlarm()?.ProcedureSections.Select(section => section.Name) ?? Enumerable.Empty<string>())
+                .Concat(_original?.ProcedureNames ?? Enumerable.Empty<string>()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            for (int index = 0; index < names.Length; index++)
+            {
+                ProcedureSectionViewModel section = ProcedureSections.FirstOrDefault(item => string.Equals(item.Name, names[index], StringComparison.OrdinalIgnoreCase));
+                if (section == null)
+                {
+                    section = CreateProcedureSection(names[index]);
+                    section.Load(_original);
+                    ProcedureSections.Insert(index, section);
+                }
+                else
+                {
+                    section.SetIdentitySpelling(names[index]);
+                    if (ProcedureSections.IndexOf(section) != index) ProcedureSections.Move(ProcedureSections.IndexOf(section), index);
+                }
+            }
+            while (ProcedureSections.Count > names.Length)
+            {
+                ProcedureSectionViewModel removed = ProcedureSections[ProcedureSections.Count - 1];
+                ProcedureSections.RemoveAt(ProcedureSections.Count - 1);
+                removed.Deactivate();
+            }
         }
 
         private void EditProcedure(string section, int index, ProcedureAction action, string kind)
@@ -168,7 +195,7 @@ namespace Alarmlist.VisualStudio.UI
             }
             if (edited)
             {
-                ProcedureSectionViewModel group = ProcedureSections.Single(item => item.Name == section);
+                ProcedureSectionViewModel group = ProcedureSections.Single(item => string.Equals(item.Name, section, StringComparison.OrdinalIgnoreCase));
                 int target = action == ProcedureAction.Add ? group.Items.Count - 1
                     : action == ProcedureAction.MoveUp ? index - 1 : action == ProcedureAction.MoveDown ? index + 1
                     : Math.Min(index, group.Items.Count - 1);

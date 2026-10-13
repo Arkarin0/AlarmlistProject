@@ -36,14 +36,12 @@ namespace Alarmlist.Text.Tests
         private static XElement GetExpectedTestProcedureNode(TestProcedureSyntax testProcedure)
         {
             return new XElement(AlmxFile.WellKnownNodeNames.TestProcedure,
-                GetExpectedTestProcedureSectionNode(AlmxFile.WellKnownNodeNames.TestProcedureInstructions, testProcedure.Instructions),
-                GetExpectedTestProcedureSectionNode(AlmxFile.WellKnownNodeNames.TestProcedureReset, testProcedure.Reset)
-            );
+                testProcedure.Groups.Select(group => GetExpectedTestProcedureSectionNode(group.Name, group.Entries)));
         }
 
         private static XElement GetExpectedTestProcedureSectionNode(string sectionName, IEnumerable<ITestProcedureItem> items)
         {
-            return new XElement(sectionName,
+            return new XElement("Group", new XAttribute("Name", sectionName),
                 from item in items
                 select GetExpectedTestProcedureItemNode(item)
             );
@@ -134,11 +132,11 @@ namespace Alarmlist.Text.Tests
         public void WriteAlarmSyntaxNodeWritesTestProcedureStepsTest()
         {
             var alarm = TestHelper.CreateAlarmSyntaxNode("1");
-            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Open cabinet."));
-            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Voltage present."));
-            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Hint, "Expected value is 24V."));
-            alarm.TestProcedure.Reset.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Note, "Alarm clears after reset."));
-            alarm.TestProcedure.Reset.Add(new Clear());
+            alarm.TestProcedure.GetOrAddGroup("Instructions").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Open cabinet."));
+            alarm.TestProcedure.GetOrAddGroup("Instructions").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Voltage present."));
+            alarm.TestProcedure.GetOrAddGroup("Instructions").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Hint, "Expected value is 24V."));
+            alarm.TestProcedure.GetOrAddGroup("Reset").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Note, "Alarm clears after reset."));
+            alarm.TestProcedure.GetOrAddGroup("Reset").Entries.Add(new Clear());
             var result = false;
 
             var actual = TestHelper.ExportToXMLString((writer) => result = AlmxFile.WriteAlarmSyntaxNode(alarm, writer));
@@ -152,11 +150,11 @@ namespace Alarmlist.Text.Tests
         public void ReadAlarmSyntaxNodeReadsTestProcedureStepsTest()
         {
             var alarm = TestHelper.CreateAlarmSyntaxNode("1");
-            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Open cabinet."));
-            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Voltage present."));
-            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Hint, "Expected value is 24V."));
-            alarm.TestProcedure.Reset.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Note, "Alarm clears after reset."));
-            alarm.TestProcedure.Reset.Add(new Clear());
+            alarm.TestProcedure.GetOrAddGroup("Instructions").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Open cabinet."));
+            alarm.TestProcedure.GetOrAddGroup("Instructions").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Voltage present."));
+            alarm.TestProcedure.GetOrAddGroup("Instructions").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Hint, "Expected value is 24V."));
+            alarm.TestProcedure.GetOrAddGroup("Reset").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Note, "Alarm clears after reset."));
+            alarm.TestProcedure.GetOrAddGroup("Reset").Entries.Add(new Clear());
             var input = GetExpectedXMLStringForAlarmSyntaxNode(alarm);
             AlarmSyntaxNode actual = null;
             var result = false;
@@ -167,13 +165,13 @@ namespace Alarmlist.Text.Tests
             }
 
             Assert.True(result);
-            Assert.Equal(3, actual.TestProcedure.Instructions.Count);
-            Assert.Equal(2, actual.TestProcedure.Reset.Count);
-            AssertStep(TestProcedureStepKind.Instruction, "Open cabinet.", actual.TestProcedure.Instructions[0]);
-            AssertStep(TestProcedureStepKind.Warning, "Voltage present.", actual.TestProcedure.Instructions[1]);
-            AssertStep(TestProcedureStepKind.Hint, "Expected value is 24V.", actual.TestProcedure.Instructions[2]);
-            AssertStep(TestProcedureStepKind.Note, "Alarm clears after reset.", actual.TestProcedure.Reset[0]);
-            Assert.IsType<Clear>(actual.TestProcedure.Reset[1]);
+            Assert.Equal(3, actual.TestProcedure.GetOrAddGroup("Instructions").Entries.Count);
+            Assert.Equal(2, actual.TestProcedure.GetOrAddGroup("Reset").Entries.Count);
+            AssertStep(TestProcedureStepKind.Instruction, "Open cabinet.", actual.TestProcedure.GetOrAddGroup("Instructions").Entries[0]);
+            AssertStep(TestProcedureStepKind.Warning, "Voltage present.", actual.TestProcedure.GetOrAddGroup("Instructions").Entries[1]);
+            AssertStep(TestProcedureStepKind.Hint, "Expected value is 24V.", actual.TestProcedure.GetOrAddGroup("Instructions").Entries[2]);
+            AssertStep(TestProcedureStepKind.Note, "Alarm clears after reset.", actual.TestProcedure.GetOrAddGroup("Reset").Entries[0]);
+            Assert.IsType<Clear>(actual.TestProcedure.GetOrAddGroup("Reset").Entries[1]);
         }
 
         private static void AssertStep(TestProcedureStepKind expectedKind, string expectedText, ITestProcedureItem actual)

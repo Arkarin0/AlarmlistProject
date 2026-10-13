@@ -8,13 +8,13 @@
     <Category>$(loc:Pump.Category)</Category>
     <Description>$(loc:Pump.Description)</Description>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Step>$(loc:Pump.Inspect)</Step>
         <Warning>$(loc:Pump.Isolate)</Warning>
-      </Instructions>
-      <Reset>
+      </Group>
+      <Group Name='Reset'>
         <Step>$(loc:Pump.Acknowledge)</Step>
-      </Reset>
+      </Group>
     </TestProcedure>
   </Alarm>
 </Alarmlist>

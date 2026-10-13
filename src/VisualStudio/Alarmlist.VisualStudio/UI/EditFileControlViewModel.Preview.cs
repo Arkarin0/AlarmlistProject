@@ -33,7 +33,7 @@ namespace Alarmlist.VisualStudio.UI
 
         public ResolvedSectionViewModel(AnalysisSection section, Func<AnalysisEntry, DelegateCommand> navigation)
         {
-            Name = section.Name;
+            Name = section.Title.IsValueAvailable ? section.Title.EffectiveValue : "(unavailable)";
             Items = BindingCollection.Create(section.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry))));
         }
     }

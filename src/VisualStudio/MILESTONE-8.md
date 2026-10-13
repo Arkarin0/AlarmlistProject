@@ -1,7 +1,7 @@
 # Milestone eight: custom procedure groups
 
-Status: implementation authorized on 2026-10-13. Iteration 1 records the accepted
-contract; subsequent iterations are not yet implemented or validated.
+Status: implementation authorized on 2026-10-13. Iterations 1 and 2 are complete;
+group authoring, configured creation and integrated acceptance remain.
 
 ## Outcome and confirmed contract
 
@@ -108,3 +108,54 @@ many groups/long procedures without machine-dependent thresholds.
 Recorded the approved plan and linked it from repository instructions and backlog.
 The starting working tree was clean. Reviewed documentation paths, scope and
 contract consistency. Tests were not run (documentation only).
+
+Committed as `983cb98`.
+
+### Iteration 2 — coordinated transition
+
+Implemented ordered syntax/resolved groups, source and output XML, consuming-alarm
+title evaluation, title/group/entry provenance, mandatory ALM0026/ALM0027 identity
+diagnostics, analysis contract 4 and analyzer contract 2. Migrated active fixtures,
+examples, templates, package verification and native scenarios. Designer sections
+now follow compiler groups and source declarations; previews include empty headings.
+New-alarm creation/templates explicitly contain Instructions and Reset until
+iteration 4 supplies captured configuration. No implicit compiler groups remain.
+
+Tests exposed stale detached section presentation and canonical spelling changes
+after analysis publication. Removed sections now clear their data/commands, and
+retained sections adopt compiler identity spelling without replacing draft controls.
+Source copies preserve titles and reject repeated titles. Migration also updated
+old test assumptions about implicit groups and analyzer contract numbers.
+
+Validation (all paths below are under `artifacts/log/Debug/Milestone8/Iteration2/`):
+
+- Compiler tests: 492 net8.0 and 490 net472 passes, zero failures/skips (`Compiler`).
+  Includes custom order, case-insensitive identities, inherited localized titles,
+  explicit empty, provenance, empty output groups and legacy rejection.
+- `dotnet test AlarmlistProject.slnx --no-restore --verbosity minimal --logger trx
+  --results-directory artifacts/log/Debug/Milestone8/Iteration2/Regression`:
+  task unit 68 and integration 4 per framework; SDK 53 and extension package 12
+  per framework; performance infrastructure 47 passes/12 opt-in skips. Ordinary
+  native cases are opt-in skips, not native acceptance. The extension unit run
+  failed two checks (canonical spelling and a report expectation), retained as
+  failed evidence. Compiler counts match above.
+- Subsequent full extension unit run (`FinalUnit`): 458 passed/one failed, zero
+  skips. The remaining expectation incorrectly required a removed Reset group.
+  Corrected that expectation; `FinalCorrections` passed all 13 selected cases,
+  including the report, custom groups, new-alarm defaults and explicit contract-3
+  rejection. Combined evidence covers all 460 current unit cases; no failed run
+  is relabelled as passing. Earlier investigations remain under Initial/Unit2.
+- Packaged custom-group build/failure-preservation test: one pass on each
+  framework (`GroupConsumer`), including NoWarn refusing to suppress ALM0026.
+- Native custom Verification-group editing/Clear/drafts/Undo and AlarmTable:
+  two passes per host, zero skips, using `eng/test-visualstudio.ps1` with
+  `Area=Procedures|FullyQualifiedName~AlarmTable2022` (VS2022/AlarmlistExp) and
+  corresponding 2026 filter (VS2026/AlarmlistM7). Native report IDs:
+  `456ba43a476444a59f7e0f947146addc`, `6a0395bb27b44300a85a6a6b8e9ea847`.
+- Compiler and VSIX builds succeeded. Solution builds retain the two previously
+  documented CA1416 shared-test-helper warnings. Reviewed diff and whitespace.
+
+The sandbox incorrectly reports Git diff/build as outside a work tree; those
+commands succeeded with the ordinary host execution permission. No unrelated
+changes were present. No essential iteration-2 blocker remains; final milestone
+acceptance will rerun the complete suites after authoring/defaults work.

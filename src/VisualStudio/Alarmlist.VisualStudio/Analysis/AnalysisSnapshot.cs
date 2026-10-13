@@ -143,12 +143,22 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisEntry> EffectiveEntries { get; }
         public IReadOnlyList<AnalysisEntry> ExcludedEntries { get; }
 
-        public AnalysisSection(string name, IReadOnlyList<AnalysisEntry> localEntries, IReadOnlyList<AnalysisEntry> effectiveEntries, IReadOnlyList<AnalysisEntry> excludedEntries)
+        public AnalysisField Title { get; }
+        public AnalysisAlarmOrigin DefiningAlarm { get; }
+        public AnalysisLocation Location { get; }
+        public bool IsLocallyDeclared { get; }
+
+        public AnalysisSection(string name, IReadOnlyList<AnalysisEntry> localEntries, IReadOnlyList<AnalysisEntry> effectiveEntries, IReadOnlyList<AnalysisEntry> excludedEntries,
+            AnalysisField title = null, AnalysisAlarmOrigin definingAlarm = null, AnalysisLocation location = null, bool isLocallyDeclared = false)
         {
             Name = name;
             LocalEntries = Array.AsReadOnly(localEntries.ToArray());
             EffectiveEntries = Array.AsReadOnly(effectiveEntries.ToArray());
             ExcludedEntries = Array.AsReadOnly(excludedEntries.ToArray());
+            Title = title ?? new AnalysisField("Title", false, null, null, name, null, null, false);
+            DefiningAlarm = definingAlarm;
+            Location = location;
+            IsLocallyDeclared = isLocallyDeclared;
         }
     }
 
@@ -165,10 +175,9 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisLookupUse> LookupUses { get; }
         public IReadOnlyList<AnalysisAlarmOrigin> ReferenceChain { get; }
         public IReadOnlyList<AnalysisField> Fields { get; }
-        public AnalysisSection Instructions { get; }
-        public AnalysisSection Reset { get; }
+        public IReadOnlyList<AnalysisSection> ProcedureSections { get; }
 
-        public AnalysisAlarm(AnalysisAlarmOrigin origin, string referenceName, bool isResolved, IReadOnlyList<AnalysisAlarmOrigin> referenceChain, IReadOnlyList<AnalysisField> fields, AnalysisSection instructions, AnalysisSection reset,
+        public AnalysisAlarm(AnalysisAlarmOrigin origin, string referenceName, bool isResolved, IReadOnlyList<AnalysisAlarmOrigin> referenceChain, IReadOnlyList<AnalysisField> fields, IReadOnlyList<AnalysisSection> procedureSections,
             bool isAbstract = false, bool hasEvaluatedValues = true, IReadOnlyList<AnalysisProperty> properties = null,
             IReadOnlyList<AnalysisLocalizationUse> localizationUses = null, IReadOnlyList<AnalysisLookupUse> lookupUses = null)
         {
@@ -182,8 +191,7 @@ namespace Alarmlist.VisualStudio.Analysis
             IsResolved = isResolved;
             ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
             Fields = Array.AsReadOnly(fields.ToArray());
-            Instructions = instructions;
-            Reset = reset;
+            ProcedureSections = Array.AsReadOnly(procedureSections.ToArray());
         }
     }
 

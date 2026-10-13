@@ -112,29 +112,32 @@ namespace Alarmlist.VisualStudio.UI
                     Navigate(state, alarm.Fields.Single(item => item.Name == field.Name).ValueLocation)),
                     () => CanUseAnalysis && field.IsInherited);
             }
-            foreach (ProcedureSectionViewModel section in ProcedureSections)
-            {
-                section.UseLocalEntriesCommand = new DelegateCommand(() =>
-                {
-                    if (_disposed || _analysisBusy || !CommitPending() || !CanEdit) return;
-                    _model.UseLocalProcedureEntries(_original, section.Name, out _error);
-                    Notify(nameof(Error));
-                }, () => !_disposed && !_analysisBusy && CanEdit && section.Error == null);
-                section.MakeLocalCopyCommand = new DelegateCommand(() => StartAnalysisAction((state, alarm) =>
-                {
-                    AnalysisSection source = GetSection(alarm, section.Name);
-                    if (!alarm.IsResolved || source == null) return;
-                    ProcedureValueChange[] entries = source.EffectiveEntries.Select((entry, index) =>
-                        new ProcedureValueChange(section.Name, index,
-                            entry.Kind == AnalysisStepKind.Instruction ? "Step" : entry.Kind.ToString(), entry.RawText)).ToArray();
-                    _model.MakeProcedureLocalCopy(_original, section.Name, entries, out _error);
-                    Notify(nameof(Error));
-                }), () => CanUseAnalysis && CurrentAlarm()?.IsResolved == true && section.HasAnalysis);
-            }
             if (_analysis != null) _analysis.Changed += OnAnalysisChanged;
         }
 
-        private static AnalysisSection GetSection(AnalysisAlarm alarm, string name) => name == "Instructions" ? alarm?.Instructions : alarm?.Reset;
+        private ProcedureSectionViewModel CreateProcedureSection(string name)
+        {
+            ProcedureSectionViewModel section = _factory.CreateProcedureSection(name, OnDraftChanged, EditProcedure);
+            section.UseLocalEntriesCommand = new DelegateCommand(() =>
+            {
+                if (_disposed || _analysisBusy || !ProcedureSections.Contains(section) || !CommitPending() || !CanEdit) return;
+                _model.UseLocalProcedureEntries(_original, section.Name, out _error);
+                Notify(nameof(Error));
+            }, () => !_disposed && !_analysisBusy && CanEdit && section.Error == null);
+            section.MakeLocalCopyCommand = new DelegateCommand(() => StartAnalysisAction((state, alarm) =>
+            {
+                AnalysisSection source = GetSection(alarm, section.Name);
+                if (!alarm.IsResolved || source == null) return;
+                ProcedureValueChange[] entries = source.EffectiveEntries.Select((entry, index) =>
+                    new ProcedureValueChange(section.Name, index,
+                        entry.Kind == AnalysisStepKind.Instruction ? "Step" : entry.Kind.ToString(), entry.RawText)).ToArray();
+                _model.MakeProcedureLocalCopy(_original, section.Name, entries, out _error);
+                Notify(nameof(Error));
+            }), () => ProcedureSections.Contains(section) && CanUseAnalysis && CurrentAlarm()?.IsResolved == true && section.HasAnalysis);
+            return section;
+        }
+
+        private static AnalysisSection GetSection(AnalysisAlarm alarm, string name) => alarm?.ProcedureSections.FirstOrDefault(section => string.Equals(section.Name, name, StringComparison.OrdinalIgnoreCase));
 
         private DelegateCommand ProcedureNavigation(string section, AnalysisEntry entry)
         {
@@ -219,6 +222,7 @@ namespace Alarmlist.VisualStudio.UI
                 RefreshLocalization(state);
                 RefreshDiagnostics(state);
                 AnalysisAlarm alarm = CurrentAlarm(state);
+                RefreshProcedureSections();
                 RefreshProperties(state, alarm);
                 RefreshPreview(state, alarm);
                 bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);

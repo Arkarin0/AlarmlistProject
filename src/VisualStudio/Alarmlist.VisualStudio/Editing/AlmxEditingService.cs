@@ -96,9 +96,13 @@ namespace Alarmlist.VisualStudio.Editing
             string alarmName = QualifiedName(projection.Root, "Alarm");
             string idName = QualifiedName(projection.Root, "FullyQualifiedName");
             string name = QualifiedName(projection.Root, "Name");
+            string procedure = QualifiedName(projection.Root, "TestProcedure");
+            string group = QualifiedName(projection.Root, "Group");
             return InsertChild(projection.Text, projection.Root, "<" + alarmName + ">" + newline
                 + fieldIndent + "<" + idName + ">" + identity + "</" + idName + ">" + newline
-                + fieldIndent + "<" + name + ">New alarm</" + name + ">" + newline + alarmIndent + "</" + alarmName + ">");
+                + fieldIndent + "<" + name + ">New alarm</" + name + ">" + newline
+                + fieldIndent + "<" + procedure + "><" + group + " Name=\"Instructions\"/><" + group + " Name=\"Reset\"/></" + procedure + ">"
+                + newline + alarmIndent + "</" + alarmName + ">");
         }
 
         public SourceEdit DeleteAlarm(AlmxProjection projection, AlarmSource alarm)

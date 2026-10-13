@@ -12,8 +12,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         private const string ProcedureSource = "<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Name>Alarm</Name>"
-            + "<TestProcedure keep='yes'><Instructions><Step id='1'>Open</Step><!-- keep --><Future/>"
-            + "<Clear/><Warning>Voltage</Warning></Instructions><Reset><Note>Reset panel</Note></Reset>"
+            + "<TestProcedure keep='yes'><Group Name='Instructions'><Step id='1'>Open</Step><!-- keep --><Future/>"
+            + "<Clear/><Warning>Voltage</Warning></Group><Group Name='Reset'><Note>Reset panel</Note></Group>"
             + "</TestProcedure></Alarm></Alarmlist>";
 
         [Fact]
@@ -27,7 +27,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Theory]
         [InlineData("<Alarm/>")]
         [InlineData("<Alarm><TestProcedure/></Alarm>")]
-        [InlineData("<Alarm><TestProcedure><Instructions/></TestProcedure></Alarm>")]
+        [InlineData("<Alarm><TestProcedure><Group Name='Instructions'/></TestProcedure></Alarm>")]
         public void AddingFirstProcedureEntryCreatesMissingContainers(string alarmXml)
         {
             string text = "<Alarmlist>\r\n  " + alarmXml + "\r\n</Alarmlist>";
@@ -44,13 +44,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public void AddingResetPreservesExistingInstructionsAndNamespace()
         {
             const string text = "<a:Alarmlist xmlns:a='urn:alarms'><a:Alarm><a:TestProcedure custom='keep'>"
-                + "<a:Instructions><a:Clear/><!-- keep --><a:Step>First</a:Step></a:Instructions>"
+                + "<a:Group Name='Instructions'><a:Clear/><!-- keep --><a:Step>First</a:Step></a:Group>"
                 + "</a:TestProcedure></a:Alarm></a:Alarmlist>";
             AlmxProjection before = _editing.Parse(text);
             SourceEdit edit = _editing.AddProcedureItem(before, before.Alarms[0], "Reset", "Note");
             string result = edit.Apply(text);
             Assert.Equal(text, result.Remove(edit.Start, edit.Text.Length));
-            Assert.Contains("<a:Reset>", result);
+            Assert.Contains("<a:Group Name=\"Reset\">", result);
             Assert.Contains("<a:Note/>", result);
             Assert.True(_editing.Parse(result).IsValid);
         }
@@ -69,8 +69,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Fact]
         public void ChangingProcedureKindRetainsPrefixAttributesAndClearSemantics()
         {
-            const string text = "<a:Alarmlist xmlns:a='urn:a'><a:Alarm><a:TestProcedure><a:Reset>"
-                + "<a:Step id='x'><![CDATA[Reset & test]]></a:Step></a:Reset></a:TestProcedure></a:Alarm></a:Alarmlist>";
+            const string text = "<a:Alarmlist xmlns:a='urn:a'><a:Alarm><a:TestProcedure><a:Group Name='Reset'>"
+                + "<a:Step id='x'><![CDATA[Reset & test]]></a:Step></a:Group></a:TestProcedure></a:Alarm></a:Alarmlist>";
             AlmxProjection before = _editing.Parse(text);
             string warning = _editing.SetProcedureItem(before, before.Alarms[0],
                 new ProcedureValueChange("Reset", 0, "Warning", "Reset & test")).Apply(text);
@@ -99,7 +99,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Theory]
-        [InlineData("<TestProcedure><Instructions/><Instructions/></TestProcedure>")]
+        [InlineData("<TestProcedure><Group Name='Instructions'/><Group Name='Instructions'/></TestProcedure>")]
         [InlineData("<TestProcedure/><TestProcedure/>")]
         public void AmbiguousProcedureSectionsRejectDesignerMutations(string procedure)
         {
@@ -114,7 +114,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [InlineData("<Clear>unexpected content</Clear>")]
         public void UnsafeProcedureContentRemainsAvailableOnlyForXmlEditing(string entry)
         {
-            AlmxProjection before = _editing.Parse("<Alarmlist><Alarm><TestProcedure><Reset>" + entry + "</Reset></TestProcedure></Alarm></Alarmlist>");
+            AlmxProjection before = _editing.Parse("<Alarmlist><Alarm><TestProcedure><Group Name='Reset'>" + entry + "</Group></TestProcedure></Alarm></Alarmlist>");
             Assert.False(before.Alarms[0].GetProcedureSection("Reset").Items[0].CanEdit);
             Assert.Throws<InvalidOperationException>(() => _editing.SetProcedureItem(before, before.Alarms[0], new ProcedureValueChange("Reset", 0, "Step", "overwrite")));
         }
@@ -199,7 +199,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Fact]
         public void ProcedureCommandsAddMoveAndDeleteThroughTheSharedModel()
         {
-            var buffer = new TestBuffer("<Alarmlist><Alarm/></Alarmlist>");
+            var buffer = new TestBuffer("<Alarmlist><Alarm><TestProcedure><Group Name='Instructions'/><Group Name='Reset'/></TestProcedure></Alarm></Alarmlist>");
             using (var model = new AlmxDocumentModel(buffer, _editing))
             using (var first = new EditFileControlViewModel(model, new AlarmViewModelFactory()))
             using (var second = new EditFileControlViewModel(model, new AlarmViewModelFactory()))

@@ -7,12 +7,12 @@
     <Category>Conditional</Category>
     <Description>This alarm is compiled only when IncludeConditionalAlarms is true.</Description>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Step>Confirm the conditional input is enabled.</Step>
-      </Instructions>
-      <Reset>
+      </Group>
+      <Group Name='Reset'>
         <Step>Disable the conditional input and acknowledge the alarm.</Step>
-      </Reset>
+      </Group>
     </TestProcedure>
   </Alarm>
 </Alarmlist>

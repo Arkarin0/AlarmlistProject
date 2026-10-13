@@ -19,8 +19,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             + "<Alarm><FullyQualifiedName>Same</FullyQualifiedName><Name>First</Name></Alarm>"
             + "<Alarm><FullyQualifiedName>Same</FullyQualifiedName><Name>Second</Name>"
             + "<Properties><Property Name='alarm' Value='2'/></Properties>"
-            + "<TestProcedure><Instructions><Step>discarded</Step><Clear/><Step>keep</Step></Instructions>"
-            + "<Reset><Hint>reset</Hint></Reset></TestProcedure><Unknown>unsupported</Unknown></Alarm></Alarmlist>";
+            + "<TestProcedure><Group Name='Instructions'><Step>discarded</Step><Clear/><Step>keep</Step></Group>"
+            + "<Group Name='Reset'><Hint>reset</Hint></Group></TestProcedure><Unknown>unsupported</Unknown></Alarm></Alarmlist>";
 
         [Theory]
         [InlineData("Second", "Name", null, -1, null)]
@@ -100,6 +100,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     host.RootVisual = control;
                     InheritanceAdornerTests.Pump();
                     foreach (Expander expander in VisualChildren(control).OfType<Expander>()) expander.IsExpanded = false;
+                    view.Selected = view.Alarms[1];
                     view.ProcedureSections[0].ShowCleared = false;
                     Assert.True(control.NavigateSource(NavigationSource.IndexOf(marker, StringComparison.Ordinal), NavigationSource));
                     Assert.Equal(0, buffer.Edits);

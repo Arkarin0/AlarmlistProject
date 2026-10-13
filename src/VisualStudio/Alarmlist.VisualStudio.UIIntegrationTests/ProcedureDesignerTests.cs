@@ -29,7 +29,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         private static void CheckClearedDraft(VisualStudioSession ide, UiTestWorkspace workspace)
         {
             workspace.CreateProject(ide);
-            const string source = "<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><TestProcedure><Instructions><Step>Earlier local</Step><Clear/><Note>Surviving local</Note></Instructions></TestProcedure></Alarm><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><TestProcedure><Instructions><Step>Inherited step</Step></Instructions></TestProcedure></Alarm></Alarmlist>";
+            const string source = "<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><TestProcedure><Group Name='Verification'><Step>Earlier local</Step><Clear/><Note>Surviving local</Note></Group></TestProcedure></Alarm><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><TestProcedure><Group Name='Verification'><Title>Verify $(AlarmlistAlarmFullyQualifiedName)</Title><Step>Inherited step</Step></Group></TestProcedure></Alarm></Alarmlist>";
             string disk = File.ReadAllText(workspace.AlarmPath);
             string output = File.ReadAllText(workspace.OutputPath);
             VisualStudioSession.Wait(() => VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, workspace.AlarmPath, source), "procedure fixture");
@@ -51,7 +51,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             window.SetForeground();
             designer.Patterns.SelectionItem.Pattern.Select();
             AutomationElement toggle = null;
-            VisualStudioSession.Wait(() => (toggle = window.FindFirstDescendant(cf => cf.ByName("Show cleared Instructions entries")))?.IsEnabled == true, "compiler cleared rows");
+            VisualStudioSession.Wait(() => (toggle = window.FindFirstDescendant(cf => cf.ByName("Show cleared Verification entries")))?.IsEnabled == true, "compiler cleared rows");
             TextBox editor = null;
             VisualStudioSession.Wait(() => (editor = window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
                 .Select(element => element.AsTextBox()).SingleOrDefault(element => element.Text == "Earlier local")) != null, "editable cleared local row");
@@ -86,7 +86,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             toggle.Focus();
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "cleared-procedures.png"));
 
-            AutomationElement add = window.FindFirstDescendant(cf => cf.ByName("Add Instructions entry"));
+            AutomationElement add = window.FindFirstDescendant(cf => cf.ByName("Add Verification entry"));
             Press(ide, add, VirtualKeyShort.SPACE);
             TextBox added = null;
             VisualStudioSession.Wait(() => (added = window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
@@ -125,7 +125,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
                 .Select(element => element.AsTextBox()).Any(element => element.Properties.HasKeyboardFocus.Value && element.Text == "Surviving local"), "remove focuses next entry");
             string beforeCopy = ide.ReadText(workspace.AlarmPath);
-            AutomationElement inheritance = window.FindFirstDescendant(cf => cf.ByName("Inheritance actions for Instructions"));
+            AutomationElement inheritance = window.FindFirstDescendant(cf => cf.ByName("Inheritance actions for Verification"));
             Press(ide, inheritance, VirtualKeyShort.SPACE);
             AutomationElement copy = null;
             VisualStudioSession.Wait(() => (copy = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
@@ -144,7 +144,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         }
 
         private static XElement[] Entries(VisualStudioSession ide, UiTestWorkspace workspace) => XDocument.Parse(ide.ReadText(workspace.AlarmPath))
-            .Root.Elements("Alarm").First().Element("TestProcedure").Element("Instructions").Elements().ToArray();
+            .Root.Elements("Alarm").First().Element("TestProcedure").Elements("Group").Single(group => (string)group.Attribute("Name") == "Verification").Elements().ToArray();
         private static void Press(VisualStudioSession ide, AutomationElement target, VirtualKeyShort key)
         {
             Assert.NotNull(target);

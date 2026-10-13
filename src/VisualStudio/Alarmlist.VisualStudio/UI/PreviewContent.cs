@@ -20,7 +20,7 @@ namespace Alarmlist.VisualStudio.UI
                     field.IsInherited, field.DefiningAlarm, field.ValueLocation, navigate(field.ValueLocation)))));
 
         public static IReadOnlyList<ResolvedSectionViewModel> Sections(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate)
-            => BindingCollection.Create(new[] { alarm.Instructions, alarm.Reset }.Select(section => new ResolvedSectionViewModel(section,
+            => BindingCollection.Create(alarm.ProcedureSections.Select(section => new ResolvedSectionViewModel(section,
                 entry => navigate(entry.Origin.Location))));
 
         public static string[] Cultures(ProjectAnalysisState state, string selected)

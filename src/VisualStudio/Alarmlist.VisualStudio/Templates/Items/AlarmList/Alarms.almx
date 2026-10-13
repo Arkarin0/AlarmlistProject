@@ -4,5 +4,9 @@
     <FullyQualifiedName>$safeitemname$.Example</FullyQualifiedName>
     <Name>Example alarm</Name>
     <Description>Replace this alarm with your own definition.</Description>
+    <TestProcedure>
+      <Group Name="Instructions"/>
+      <Group Name="Reset"/>
+    </TestProcedure>
   </Alarm>
 </Alarmlist>

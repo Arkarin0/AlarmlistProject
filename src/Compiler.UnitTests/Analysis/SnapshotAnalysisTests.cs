@@ -28,7 +28,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
             AnalysisResult result = new AlarmCompiler().AnalyzeSnapshots(inputs);
 
             Assert.True(result.Success);
-            Assert.Equal(3, result.ContractVersion);
+            Assert.Equal(4, result.ContractVersion);
             Assert.Equal(inputs.Select(input => input.FilePath), result.Sources.Select(source => source.FilePath));
             Assert.Equal(new[] { 1, 2, 3, 4 }, result.Sources.Select(source => source.Version));
             AnalyzedAlarm child = result.Alarms[2];
@@ -67,7 +67,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
             };
 
             AnalysisResult result = new AlarmCompiler().AnalyzeSnapshots(inputs);
-            AnalyzedProcedureSection instructions = result.Alarms[2].Instructions;
+            AnalyzedProcedureSection instructions = result.Alarms[2].ProcedureSections.Single(group => group.Name == "Instructions");
 
             Assert.Equal(3, instructions.EffectiveEntries.Count);
             Assert.Equal(new[] { 0, 1, 0 }, instructions.EffectiveEntries.Select(entry => entry.Origin.Index));
@@ -92,7 +92,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
 
             AnalysisResult result = new AlarmCompiler().AnalyzeSnapshots(inputs);
             AnalyzedAlarm child = result.Alarms[2];
-            AnalyzedProcedureSection instructions = child.Instructions;
+            AnalyzedProcedureSection instructions = child.ProcedureSections.Single(group => group.Name == "Instructions");
 
             AnalyzedProcedureEntry final = Assert.Single(instructions.EffectiveEntries);
             Assert.Equal("Final", final.Text);
@@ -113,8 +113,8 @@ namespace Alarmlist.Core.UnitTests.Analysis
             Assert.True(instructions.LocalEntries[1].IsClear);
             Assert.Null(instructions.LocalEntries[1].Text);
             Assert.Same(instructions.LocalEntries[1].Origin, instructions.LocalEntries[0].ExcludedBy);
-            Assert.Equal(new[] { "Base reset", "Middle reset", "Child reset" }, child.Reset.EffectiveEntries.Select(entry => entry.Text));
-            Assert.Empty(child.Reset.ExcludedEntries);
+            Assert.Equal(new[] { "Base reset", "Middle reset", "Child reset" }, child.ProcedureSections.Single(group => group.Name == "Reset").EffectiveEntries.Select(entry => entry.Text));
+            Assert.Empty(child.ProcedureSections.Single(group => group.Name == "Reset").ExcludedEntries);
             AssertMatchesCompilation(inputs, result);
         }
 
@@ -127,7 +127,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
                 Snapshot("Child", Procedure("<Clear/>"), "Child.almx", 1, "Base")
             };
             AnalysisResult result = new AlarmCompiler().AnalyzeSnapshots(inputs);
-            AnalyzedProcedureSection section = result.Alarms[1].Instructions;
+            AnalyzedProcedureSection section = result.Alarms[1].ProcedureSections.Single(group => group.Name == "Instructions");
 
             Assert.Empty(section.EffectiveEntries);
             Assert.True(Assert.Single(section.LocalEntries).IsClear);
@@ -179,9 +179,9 @@ namespace Alarmlist.Core.UnitTests.Analysis
                 Assert.Null(field.DefiningAlarm);
                 Assert.False(field.IsInherited);
             });
-            Assert.Equal("Local step", Assert.Single(child.Instructions.LocalEntries).Text);
-            Assert.Empty(child.Instructions.EffectiveEntries);
-            Assert.Empty(child.Instructions.ExcludedEntries);
+            Assert.Equal("Local step", Assert.Single(child.ProcedureSections.Single(group => group.Name == "Instructions").LocalEntries).Text);
+            Assert.Empty(child.ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries);
+            Assert.Empty(child.ProcedureSections.Single(group => group.Name == "Instructions").ExcludedEntries);
             Assert.True(result.Alarms[1].IsResolved);
             Assert.Equal("Independent", Field(result.Alarms[1], "Name").EffectiveValue);
         }
@@ -203,10 +203,10 @@ namespace Alarmlist.Core.UnitTests.Analysis
         public void ProcedureLocationsPreserveNamespacesVersionsAndSourceOrderWhileSkippingUnknownNodes()
         {
             const string text = "<a:Alarmlist xmlns:a='urn:alarms'>\r\n  <a:Alarm>\r\n    <a:TestProcedure>\r\n"
-                + "      <a:Instructions>\r\n        <a:Unknown><a:Step>Ignore</a:Step></a:Unknown>\r\n"
+                + "      <a:Group Name='Instructions'>\r\n        <a:Unknown><a:Step>Ignore</a:Step></a:Unknown>\r\n"
                 + "        <a:Step>Same</a:Step>\r\n        <a:Clear/>\r\n        <a:Note>Last</a:Note>\r\n"
-                + "      </a:Instructions>\r\n    </a:TestProcedure>\r\n  </a:Alarm>\r\n</a:Alarmlist>";
-            AnalyzedProcedureSection section = new AlarmCompiler().AnalyzeSnapshots(new[] { new AlmxTextSnapshot(text, "Namespaced.almx", 19) }).Alarms[0].Instructions;
+                + "      </a:Group>\r\n    </a:TestProcedure>\r\n  </a:Alarm>\r\n</a:Alarmlist>";
+            AnalyzedProcedureSection section = new AlarmCompiler().AnalyzeSnapshots(new[] { new AlmxTextSnapshot(text, "Namespaced.almx", 19) }).Alarms[0].ProcedureSections.Single(group => group.Name == "Instructions");
 
             Assert.Equal(3, section.LocalEntries.Count);
             Assert.Equal(new[] { 6, 7, 8 }, section.LocalEntries.Select(entry => entry.Origin.Location.LineNumber));
@@ -231,12 +231,12 @@ namespace Alarmlist.Core.UnitTests.Analysis
             AnalysisResult after = compiler.AnalyzeSnapshots(inputs);
 
             Assert.Equal("Before", Field(before.Alarms[0], "Name").EffectiveValue);
-            Assert.Equal("Before", Assert.Single(before.Alarms[0].Instructions.EffectiveEntries).Text);
+            Assert.Equal("Before", Assert.Single(before.Alarms[0].ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries).Text);
             Assert.Equal(1, before.Sources[0].Version);
             Assert.Equal("After", Field(after.Alarms[0], "Name").EffectiveValue);
             Assert.Throws<NotSupportedException>(() => ((IList<AnalyzedAlarm>)before.Alarms).Clear());
             Assert.Throws<NotSupportedException>(() => ((IList<AnalyzedField>)before.Alarms[0].Fields).RemoveAt(0));
-            Assert.Throws<NotSupportedException>(() => ((IList<AnalyzedProcedureEntry>)before.Alarms[0].Instructions.EffectiveEntries).Clear());
+            Assert.Throws<NotSupportedException>(() => ((IList<AnalyzedProcedureEntry>)before.Alarms[0].ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries).Clear());
             Assert.Throws<NotSupportedException>(() => ((IList<AnalyzedSource>)before.Sources).Clear());
         }
 
@@ -256,7 +256,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
 
         private static string Procedure(string instructions, string reset = "")
         {
-            return "<TestProcedure><Instructions>" + instructions + "</Instructions><Reset>" + reset + "</Reset></TestProcedure>";
+            return "<TestProcedure><Group Name='Instructions'>" + instructions + "</Group><Group Name='Reset'>" + reset + "</Group></TestProcedure>";
         }
 
         private static AnalyzedField Field(AnalyzedAlarm alarm, string name) => alarm.Fields.Single(field => field.Name == name);
@@ -269,10 +269,13 @@ namespace Alarmlist.Core.UnitTests.Analysis
             {
                 Alarm compiled = compilation.AlarmList[i];
                 Assert.Equal(new[] { compiled.Name, compiled.Code, compiled.Category, compiled.Description }, analysis.Alarms[i].Fields.Select(field => field.EffectiveValue));
-                Assert.Equal(compiled.TestProcedure.Instructions.Select(entry => entry.Text), analysis.Alarms[i].Instructions.EffectiveEntries.Select(entry => entry.Text));
-                Assert.Equal(compiled.TestProcedure.Instructions.Select(entry => entry.Kind.ToString()), analysis.Alarms[i].Instructions.EffectiveEntries.Select(entry => entry.Kind.ToString()));
-                Assert.Equal(compiled.TestProcedure.Reset.Select(entry => entry.Text), analysis.Alarms[i].Reset.EffectiveEntries.Select(entry => entry.Text));
-                Assert.Equal(compiled.TestProcedure.Reset.Select(entry => entry.Kind.ToString()), analysis.Alarms[i].Reset.EffectiveEntries.Select(entry => entry.Kind.ToString()));
+                Assert.Equal(compiled.TestProcedure.Groups.Select(group => group.Name), analysis.Alarms[i].ProcedureSections.Select(group => group.Name));
+                foreach (var group in compiled.TestProcedure.Groups)
+                {
+                    var section = analysis.Alarms[i].ProcedureSections.Single(item => item.Name == group.Name);
+                    Assert.Equal(group.Entries.Select(entry => entry.Text), section.EffectiveEntries.Select(entry => entry.Text));
+                    Assert.Equal(group.Entries.Select(entry => entry.Kind.ToString()), section.EffectiveEntries.Select(entry => entry.Kind.ToString()));
+                }
             }
         }
     }
