@@ -561,6 +561,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   report materialization/header layout from captured analysis, without an editor
   document adapter. Retain row-virtualization and no-source-commit checks; these
   measurements do not establish screen-paint latency.
+- The isolated `Area=Procedures` workload extends designer and preview scenarios
+  to fourteen ordered groups per alarm with inherited expression titles. Preserve
+  group/title correctness, source-state and virtualization checks outside timing.
+  See milestone eight for the implementation and acceptance record.
 - The isolated `Area=Analyzers` bridge workload captures the sample analyzer and
   saved configuration for 1,000 alarms, validating warning counts and host isolation
   outside timing. Its paired range scenario uses a full positive Int64 glob range;
@@ -595,6 +599,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   require an unlocked desktop and cover project/editor lifecycle as separate xUnit
   cases; package-consumer coverage remains in IntegrationTests. The PowerShell
   smoke entry point only launches xUnit; keep functional assertions in C#.
+- Run WPF editor unit tests, native IDE functional tests and isolated WPF
+  measurements sequentially. They share desktop focus even when their project
+  files and experimental profiles are isolated; overlapping runs can close menus
+  or redirect keyboard input and invalidate interaction evidence.
 - `eng/capture-visualstudio-heap.ps1` captures managed object counts, root paths
   and thread stacks from an explicitly selected test process using the optional
   ClrMD tool. Preserve PID/start-time identity checks and new report paths. Keep

@@ -98,5 +98,42 @@ namespace Alarmlist.Core.UnitTests.Analysis
             Assert.Throws<XmlException>(() => new AlarmCompiler().CompileSnapshots(new[] {
                 Source("<Alarm><TestProcedure><" + element + "/></TestProcedure></Alarm>") }));
         }
+
+        [Fact]
+        public void TitleLookupValuesRemainLiteralAndMissingLookupsDoNotFallBackToIdentity()
+        {
+            var lookup = new LookupTextSnapshot("<Lookup xmlns='urn:alarmlist:lookup:1'><List Key='Headings'>"
+                + "<Entry Key='Verify' Value='Literal $(missing)'/></List></Lookup>", "Titles.almlookup", 3);
+            var context = new CompilationContext(null, new[] { lookup }, "en");
+            var source = Source("<Alarm><TestProcedure><Group Name='Verify'><Title>$(list:Headings#Verify)</Title></Group></TestProcedure></Alarm>");
+            var result = new AlarmCompiler().AnalyzeSnapshots(new[] { source }, context, true);
+            Assert.True(result.Success);
+            Assert.Equal("Literal $(missing)", result.Alarms[0].ProcedureSections[0].Title.EffectiveValue);
+            Assert.Single(result.Alarms[0].LookupUses);
+            var missing = new AlarmCompiler().AnalyzeSnapshots(new[] { source }, new CompilationContext(resources: null, culture: "en"), true);
+            Assert.False(missing.Success);
+            Assert.False(missing.Alarms[0].ProcedureSections[0].Title.IsValueAvailable);
+            Assert.Null(missing.Alarms[0].ProcedureSections[0].Title.EffectiveValue);
+            Assert.Null(missing.CompiledXml);
+        }
+
+        [Fact]
+        public void MultilevelGroupsRetainFirstOrderAndNearestTitleAcrossFiles()
+        {
+            var result = new AlarmCompiler().AnalyzeSnapshots(new[]
+            {
+                Source("<Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><TestProcedure><Group Name='First'><Title>Base</Title><Step>old</Step></Group><Group Name='Second'/></TestProcedure></Alarm>", "Base.almx"),
+                Source("<Alarm abstract='true'><FullyQualifiedName>Middle</FullyQualifiedName><ReferenceName>Base</ReferenceName><TestProcedure><Group Name='FIRST'><Title>Middle $(AlarmlistAlarmCode)</Title><Clear/></Group><Group Name='Third'/></TestProcedure></Alarm>", "Middle.almx"),
+                Source("<Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Middle</ReferenceName><Code>42</Code><TestProcedure><Group Name='first'><Note>local</Note></Group><Group Name='Last'/></TestProcedure></Alarm>")
+            }, true);
+            Assert.True(result.Success);
+            var groups = result.Alarms[2].ProcedureSections;
+            Assert.Equal(new[] { "First", "Second", "Third", "Last" }, groups.Select(group => group.Name));
+            Assert.Equal("Middle 42", groups[0].Title.EffectiveValue);
+            Assert.Equal("Middle.almx", groups[0].Title.ValueLocation.FilePath);
+            Assert.Equal("Base", groups[0].DefiningAlarm.FullyQualifiedName);
+            Assert.Equal("local", Assert.Single(groups[0].EffectiveEntries).Text);
+            Assert.Equal("Middle", Assert.Single(groups[0].ExcludedEntries).ExcludedBy.Alarm.FullyQualifiedName);
+        }
     }
 }

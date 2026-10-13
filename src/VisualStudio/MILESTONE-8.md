@@ -1,7 +1,8 @@
 # Milestone eight: custom procedure groups
 
-Status: implementation authorized on 2026-10-13. Iterations 1 through 4 are complete;
-integrated acceptance remains.
+Status: all five authorized implementation iterations are complete (2026-10-13).
+Scoped automated acceptance is verified; the separate manual/vendor/release gates
+listed below remain outside this milestone's implementation acceptance.
 
 ## Outcome and confirmed contract
 
@@ -113,6 +114,8 @@ Committed as `983cb98`.
 
 ### Iteration 2 — coordinated transition
 
+Committed as `f0a110f`.
+
 Implemented ordered syntax/resolved groups, source and output XML, consuming-alarm
 title evaluation, title/group/entry provenance, mandatory ALM0026/ALM0027 identity
 diagnostics, analysis contract 4 and analyzer contract 2. Migrated active fixtures,
@@ -162,6 +165,8 @@ acceptance will rerun the complete suites after authoring/defaults work.
 
 ### Iteration 3 — group authoring
 
+Committed as `f092f85`.
+
 Added group creation, expression-capable title editing, inherited-title removal
 and navigation, local declaration removal, and local-only reordering. Group actions
 keep focus on the affected title (or the new-ID field when no group remains).
@@ -190,6 +195,8 @@ Validation:
   iteration-3 blocker remains. Manual display/accessibility gates remain separate.
 
 ### Iteration 4 — captured creation defaults
+
+Committed as `7590088`.
 
 Added immutable compiler-owned creation settings to each analyzed source and the
 contract-4 bridge. The designer inserts the ordered raw defaults in one Undo
@@ -220,3 +227,104 @@ Validation:
   `artifacts/log/Debug/Milestone8/`. Native commands use
   `eng/test-visualstudio.ps1 -Filter 'Area=Procedures'` and the selected host/profile.
 - Reviewed diff, links, guards and whitespace. No essential iteration-4 blocker.
+
+### Iteration 5 — integrated acceptance
+
+Added explicit multilevel title/group provenance, literal title lookup/error,
+inherited-group removal and title-navigation regressions. Added isolated workloads
+with fourteen groups per alarm (1,000-alarm designer and 1,200-alarm long-procedure
+preview), including title-draft layout, compiler-owned headings and virtualization
+checks outside measured intervals.
+
+Full native acceptance found an Add-alarm timing issue after Undo: creation could
+arrive while fresh analysis was pending. Creation now waits for that publication,
+then validates saved inputs and the original source/selection/context. Later edits,
+drafts and disposal cancel the wait; event subscriptions are released. Added
+regressions for successful publication, intervening drafts and disposal.
+
+Validation evidence:
+
+- `dotnet test AlarmlistProject.slnx --no-restore --verbosity minimal --logger trx
+  --results-directory artifacts/log/Debug/Milestone8/Iteration5/Regression` passed:
+  compiler 502 net8.0/500 net472, task unit 68 and integration 4 per framework,
+  SDK 54 and VS package 12 per framework, editor 477, performance infrastructure
+  47. The 52 native cases and 12 opt-in performance cases skipped in this ordinary
+  run are not acceptance evidence for those gates.
+- Additional compiler group regressions: 10 passed on each framework
+  (`GroupRegressionsFinal`); the first lookup fixture incorrectly expected real
+  values in keyword mode and was corrected to request a real culture.
+- Final editor suite after the timing fix: 481 passed, zero failures/skips
+  (`SequentialUnit`). Eleven focused creation cases and inherited-removal/navigation
+  also passed. An overlapping native/WPF run failed one context-menu check (480
+  passes/one failure); the complete sequential rerun passed. Documented sequential
+  desktop testing in AGENTS; no failed report is relabelled as passing.
+- Full VS2022 native run: 25 passes/one Add-shortcut timing failure, zero skips
+  (`ee3f1aaf64164a79b3f8056cef3d9fff`). After repair, both affected property/shortcut
+  and procedure/default scenarios passed (`3a2a48c1009f4f308ae742fc063b7abd`). This
+  combined evidence covers all 26 native scenarios; the initial failure is retained.
+- Final `dotnet build AlarmlistProject.slnx --no-restore --verbosity minimal`
+  succeeded with zero warnings/errors. The earlier regression rebuild retained
+  the known shared-test-helper CA1416 warnings.
+- Full VS2026 native run: all 26 passed, zero failures/skips
+  (`d401c7c0d5f840bcb73cc698e53ecc1b`). Native suites used
+  `eng/test-visualstudio.ps1` with the installed 2022/AlarmlistExp and
+  2026/AlarmlistM7 hosts; the repaired 2022 filter was
+  `Area=Procedures|FullyQualifiedName~PropertiesAndCompletion`.
+- Isolated Release/x64 Short measurements: six designer and four preview methods
+  passed correctness/measurement validation with two warmups and five measured
+  samples, using `eng/measure-visualstudio-analysis.ps1 -Job Short -Filter
+  'Category=Performance&Host=Isolated&Area=Procedures'`. The first preview fixture
+  incorrectly assumed the last sorted row was the final source alarm; changed
+  its correctness check to select by identity and reran using
+  `Category=Performance&Host=Isolated&FullyQualifiedName~GroupPreview`.
+  Designer results are under
+  `artifacts/log/Release/AnalysisPerformance/9a31355743b545748e18516e2cf7115d/`;
+  corrected preview results are under
+  `artifacts/log/Release/AnalysisPerformance/469ea8d673234c1e9bd49584225cd0b4/`.
+  Retained raw CSV/JSON, reports and TRX; the initial preview failure remains
+  recorded and has no usable timing samples.
+
+Representative means on the measured Windows 11/i7-11700K/.NET Framework 4.8.1
+host (net472 target), without machine-dependent acceptance thresholds:
+
+| Workload | Mean elapsed |
+| --- | ---: |
+| 1,000 alarms, fourteen groups: publish/layout | 156.53 ms |
+| Unchanged refresh/layout | 56.57 ms |
+| Context change/layout | 153.73 ms |
+| 100 completion queries / 100 command queries | 0.094 / 0.096 ms |
+| Title draft/layout | 91.92 ms |
+| 1,200 long-procedure rows: resize/layout | 78.91 ms |
+| Scroll/layout | 45.31 ms |
+| Reference popup/layout | 17.41 ms |
+| Project report open/layout | 535.16 ms |
+
+These isolated timings exclude compilation from UI measurement intervals and do
+not establish keystroke/screen-paint latency or leak freedom. The project-report
+operation allocated 260.55 MB in this deliberately large long-procedure workload;
+this is per-operation allocation, not measured retained memory. Raw distributions
+and allocation data are preserved in the reports. Virtualization and no-source-write
+assertions passed.
+
+Final requirement audit:
+
+- Dynamic source/resolved/analysis/bridge groups, case-insensitive identity and
+  stable order: compiler group tests, packaged contract consumer and full suites.
+- Consuming-alarm title expressions, empty/inherited behavior, literal lookup
+  substitutions, errors and provenance: compiler title/group regressions.
+- Add/title/remove/local ordering, source preservation, Undo, focus, navigation,
+  drafts and lifecycle: editor suite plus both native hosts; pending creation is
+  explicitly guarded and its subscriptions are tested on disposal.
+- Destination-scoped saved configuration, invalid/empty/missing defaults, linked
+  sources and subsequent changes: compiler, bridge/editor and native creation tests.
+- Preview headings/empty groups, cultures, report columns/preferences and row
+  virtualization: unit/native preview scenarios and isolated group measurements.
+- Active source/examples/templates/tests and API consumers migrated; audit found
+  no legacy Instructions/Reset source elements or stale contract-1/3 references
+  in active production assets. Historical plans/reference templates remain history.
+- Reviewed the final diff, paths/links and whitespace. No essential implementation
+  or scoped automated acceptance blocker remains.
+
+Earlier manual display/accessibility, vendor interoperability and release/publication
+gates remain outside this scope. This work does not publish an SDK or VSIX, certify
+vendor XLIFF interoperability, or replace those historical manual acceptance gates.

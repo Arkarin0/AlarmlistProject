@@ -102,5 +102,41 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 }
             }
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task CreationWaitsForPendingPublicationAndRejectsInterveningDraftAsync(bool interrupt)
+        {
+            using (var session = new SemanticSession())
+            {
+                ProjectAnalysisState ready = session.Analysis.Current;
+                int subscriptions = session.Analysis.Subscribers;
+                session.Analysis.Set(new ProjectAnalysisState(ready.Generation, ready.Project, ProjectAnalysisStatus.Pending, "Source changed"));
+                session.View.AddCommand.Execute(null);
+                Assert.False(session.View.PendingAnalysisAction.IsCompleted);
+                if (interrupt) session.Field("Name").EditValue = "new draft";
+                else session.Analysis.Set(ready);
+                await session.View.PendingAnalysisAction;
+                Assert.Equal(interrupt ? 0 : 1, session.Buffer.Edits);
+                Assert.Equal(subscriptions, session.Analysis.Subscribers);
+                if (interrupt) Assert.Contains("changed", session.View.Error);
+            }
+        }
+
+        [Fact]
+        public async Task DisposingPendingCreationReleasesAnalysisSubscriptionsAsync()
+        {
+            using (var session = new SemanticSession())
+            {
+                ProjectAnalysisState ready = session.Analysis.Current;
+                session.Analysis.Set(new ProjectAnalysisState(ready.Generation, ready.Project, ProjectAnalysisStatus.Pending, "Source changed"));
+                session.View.AddCommand.Execute(null);
+                session.View.Dispose();
+                await session.View.PendingAnalysisAction;
+                Assert.Equal(0, session.Buffer.Edits);
+                Assert.Equal(0, session.Analysis.Subscribers);
+            }
+        }
     }
 }

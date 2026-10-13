@@ -21,7 +21,7 @@ Warning, Note and Clear; a group may have an optional expression-capable Title:
 </TestProcedure>
 ```
 
-Group identities use letters, digits, underscores, dots and hyphens, starting
+Group identities use ASCII letters, digits, underscores, dots and hyphens, starting
 with a letter or underscore. They compare ordinally ignoring case. A referenced
 alarm supplies group order and spelling; matching local groups append entries
 with the existing Clear behavior. New local groups follow inherited groups.

@@ -17,20 +17,31 @@ namespace Alarmlist.VisualStudio.UI
             AlmxProjection baseline = _model.Projection;
             int draftVersion = _draftVersion;
             AlarmSource selected = _original;
-            AnalysisSource source = state?.Status == ProjectAnalysisStatus.Available ? state.Response?.Snapshot?.Sources.FirstOrDefault(item =>
-                string.Equals(item.FilePath, _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase) && item.Version == _model.Version) : null;
-            CapturedAnalysisInput input = state?.Inputs.FirstOrDefault(item => string.Equals(item.Input.FilePath, _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase));
-            if (source?.ProcedureCreation == null || input?.Input.Text != baseline.Text || input.Input.Version != _model.Version)
-            {
-                _error = "Wait for current project analysis before adding an alarm; creation uses the destination file's saved EditorConfig settings.";
-                Notify(nameof(Error));
-                return;
-            }
+            AnalysisProject project = state?.Project;
             _analysisBusy = true;
             AddCommand.Refresh();
             RefreshAnalysis();
             try
             {
+                // A just-committed edit or Undo starts analysis before the Add click.
+                // Wait for that publication without retaining an obsolete default list.
+                if (state?.Status == ProjectAnalysisStatus.Pending)
+                    state = await WaitForCreationAnalysisAsync();
+                if (_disposed) return;
+                if (!ReferenceEquals(project, state?.Project) || !ReferenceEquals(baseline, _model.Projection)
+                    || !ReferenceEquals(selected, _original) || draftVersion != _draftVersion)
+                {
+                    _error = "The source, draft or project context changed. Add the alarm again.";
+                    return;
+                }
+                AnalysisSource source = state?.Status == ProjectAnalysisStatus.Available ? state.Response?.Snapshot?.Sources.FirstOrDefault(item =>
+                    string.Equals(item.FilePath, _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase) && item.Version == _model.Version) : null;
+                CapturedAnalysisInput input = state?.Inputs.FirstOrDefault(item => string.Equals(item.Input.FilePath, _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase));
+                if (source?.ProcedureCreation == null || input?.Input.Text != baseline.Text || input.Input.Version != _model.Version)
+                {
+                    _error = "Wait for current project analysis before adding an alarm; creation uses the destination file's saved EditorConfig settings.";
+                    return;
+                }
                 if (!await _analysis.IsCurrentAsync(state, _analysisLifetime.Token) || _disposed
                     || !ReferenceEquals(state, _analysis.Current) || !ReferenceEquals(baseline, _model.Projection)
                     || !ReferenceEquals(selected, _original) || draftVersion != _draftVersion)
@@ -48,6 +59,34 @@ namespace Alarmlist.VisualStudio.UI
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception))
             { if (!_disposed) _error = exception.Message; }
             finally { _analysisBusy = false; AddCommand.Refresh(); RefreshAnalysis(); Notify(nameof(Error)); }
+        }
+
+        private async Task<ProjectAnalysisState> WaitForCreationAnalysisAsync()
+        {
+            var completion = new TaskCompletionSource<ProjectAnalysisState>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler changed = (sender, args) =>
+            {
+                ProjectAnalysisState current = _analysis.Current;
+                if (current?.Status != ProjectAnalysisStatus.Pending) completion.TrySetResult(current);
+            };
+            EventHandler interrupted = (sender, args) => completion.TrySetResult(null);
+            _analysis.Changed += changed;
+            _model.Changed += interrupted;
+            PendingChanged += interrupted;
+            try
+            {
+                using (_analysisLifetime.Token.Register(() => completion.TrySetCanceled()))
+                {
+                    changed(null, EventArgs.Empty);
+                    return await completion.Task;
+                }
+            }
+            finally
+            {
+                _analysis.Changed -= changed;
+                _model.Changed -= interrupted;
+                PendingChanged -= interrupted;
+            }
         }
     }
 }

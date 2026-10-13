@@ -148,6 +148,31 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
+        public void RemovingLocalOverrideRevealsInheritedGroupAndUndoRestoresItsTitle()
+        {
+            using (var session = new SemanticSession(WithProcedure(ChildAlarm,
+                "<Group Name='Verify'><Title>Local</Title><Clear/><Note>local entry</Note></Group>")))
+            {
+                string ancestor = WithProcedure(BaseAlarm, "<Group Name='Verify'><Title>Inherited</Title><Step>base entry</Step></Group>");
+                session.Analyze(ancestor);
+                string before = session.Buffer.Current.Text;
+                var section = session.View.ProcedureSections.Single();
+                Assert.Same(section.TitleField, session.View.SelectSource(before.IndexOf("Local", StringComparison.Ordinal), before));
+                section.RemoveGroupCommand.Execute(null);
+                Assert.Empty(session.Model.Projection.Alarms[0].ProcedureNames);
+                session.Analyze(ancestor);
+                section = session.View.ProcedureSections.Single();
+                Assert.Equal("Inherited", section.Title);
+                Assert.False(section.RemoveGroupCommand.CanExecute(null));
+                Assert.Empty(section.Items);
+                Assert.Single(section.InheritedItems);
+                session.Buffer.Undo();
+                Assert.Equal(before, session.Buffer.Current.Text);
+                Assert.Equal("Local", session.View.ProcedureSections.Single().TitleField.EditValue);
+            }
+        }
+
+        [Fact]
         public void CompilerGroupsDriveInheritedTitlesEmptyHeadingsAndClearIsolation()
         {
             string child = WithProcedure(ChildAlarm,

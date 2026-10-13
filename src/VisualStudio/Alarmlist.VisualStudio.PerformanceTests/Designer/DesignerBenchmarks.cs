@@ -35,7 +35,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         private bool _queryResult;
         private PropertyCompletion[] _completionResult;
 
-        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties", "1000-100-localization")]
+        [Params("1000-1000", "1000-100", "10000-100", "1000-100-properties", "1000-100-localization", "1000-100-groups")]
         public string Scenario { get; set; }
 
         [GlobalSetup]
@@ -68,6 +68,9 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             _analysis.Set(_nextState);
             Pump();
             _code = _view.Fields.Single(field => field.Name == "Code");
+            if (_fixture.HasGroups && (_view.ProcedureSections.Count != 14
+                || _view.ProcedureSections.Last().Title != "Check 11 C" + (_fixture.AlarmCount - 1)))
+                throw new InvalidOperationException("The designer must display all fourteen groups and evaluated titles.");
         }
 
         // Fresh detached results avoid measuring a cached no-op as new publication.
@@ -122,7 +125,12 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         }
 
         [Benchmark, STAThread]
-        public void DraftAndLayout() { _code.Value = "Benchmark draft"; Pump(); }
+        public void DraftAndLayout()
+        {
+            if (_fixture.HasGroups) _view.ProcedureSections.Last().TitleField.EditValue = "Benchmark title draft";
+            else _code.Value = "Benchmark draft";
+            Pump();
+        }
 
         [IterationCleanup(Target = nameof(DraftAndLayout))]
         public void ValidateDraft()

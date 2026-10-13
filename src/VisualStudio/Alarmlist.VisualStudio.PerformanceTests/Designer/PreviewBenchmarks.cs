@@ -33,7 +33,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         private DesignerBenchmarks.CapturedDesignerAnalysis _projectAnalysis;
         private ProjectPreviewViewModel _projectView;
 
-        [Params("1200-100")]
+        [Params("1200-100", "1200-100-groups")]
         public string Scenario { get; set; }
 
         [GlobalSetup]
@@ -74,6 +74,8 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             _method = _view.PreviewColumns.Columns.Single(column => column.Id == "TestMethod");
             if (_table.Items.Count != 1200 || !_view.AlarmTableRows.Last().TestMethod.Contains(note))
                 throw new InvalidOperationException("The report workload must contain 1,200 resolved rows and long effective procedures.");
+            if (_fixture.HasGroups && !_view.AlarmTableRows.Single(row => row.Identity == "A1199").TestMethod.Contains("Check 11 C1199:"))
+                throw new InvalidOperationException("The report must include the evaluated heading of the last inherited group.");
         }
 
         [IterationSetup(Targets = new[] { nameof(ReportResizeAndLayout), nameof(ReportScrollAndLayout) })]

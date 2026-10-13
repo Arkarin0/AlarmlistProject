@@ -89,6 +89,19 @@ paint and have no machine-dependent timing threshold.
 powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Preview'
 ```
 
+`Area=Procedures` adds the milestone-eight workloads: 1,000 alarms for designer
+publication/context/draft/completion/command measurements, and 1,200 alarms for
+preview resize/scroll, reference popup and project-report opening. Every alarm
+resolves fourteen ordered groups with inherited expression titles. The preview
+fixture also expands notes into long procedures. Correct group count, inherited
+title evaluation, source preservation and row virtualization are validated outside
+the measured intervals. These are isolated WPF timings, not native keystroke or
+screen-paint latency; retain raw results and avoid machine-dependent thresholds.
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Procedures'
+```
+
 ## Live Visual Studio wrappers
 
 Functional IDE tests belong to the separate
