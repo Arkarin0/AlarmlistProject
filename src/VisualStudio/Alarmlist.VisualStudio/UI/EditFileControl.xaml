@@ -273,6 +273,12 @@
           <Expander Header="Test procedure" IsExpanded="True" Margin="0,6,8,0"
                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
             <StackPanel Margin="0,8,0,0">
+              <WrapPanel Margin="0,0,0,8">
+                <TextBox x:Name="NewGroupIdEditor" Text="{Binding NewGroupName, UpdateSourceTrigger=PropertyChanged}" MinWidth="150" Margin="0,0,6,0"
+                         AutomationProperties.Name="New procedure group ID" ToolTip="Stable group identity. Titles can be translated; IDs remain unchanged." />
+                <Button Content="+ Add group" Command="{Binding AddGroupCommand}" Click="OnProcedureAction"
+                        AutomationProperties.Name="Add procedure group" ToolTip="Add a new group after inherited groups. Wait for current analysis before adding." />
+              </WrapPanel>
               <ItemsControl ItemsSource="{Binding ProcedureSections}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
@@ -304,6 +310,32 @@
                         </Button>
                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
                       </DockPanel>
+                      <WrapPanel Margin="0,4,0,4">
+                        <TextBlock Text="{Binding Name, StringFormat=ID: {0}}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                        <Button Content="↑" Command="{Binding MoveGroupUpCommand}" Click="OnProcedureAction" AutomationProperties.Name="Move procedure group up" ToolTip="Move this locally introduced group up. Inherited group order is fixed." />
+                        <Button Content="↓" Command="{Binding MoveGroupDownCommand}" Click="OnProcedureAction" AutomationProperties.Name="Move procedure group down" ToolTip="Move this locally introduced group down. Inherited group order is fixed." />
+                        <Button Content="Remove local group" Command="{Binding RemoveGroupCommand}" Click="OnProcedureAction" AutomationProperties.Name="Remove local procedure group" ToolTip="Remove the local declaration and its entries. An inherited group becomes visible again. Undo restores the source." />
+                      </WrapPanel>
+                      <ui:ExpressionTextBox DataContext="{Binding TitleField}" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
+                          ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" MinHeight="26" Margin="0,0,0,6"
+                          IsEnabled="{Binding DataContext.CanEditTitle, RelativeSource={RelativeSource AncestorType=StackPanel}}"
+                          Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}"
+                          IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus" AutomationProperties.Name="Procedure group title"
+                          ToolTip="Edit the display title, including expressions. Empty uses the ID. Use the context menu to remove a local title."
+                          AutomationProperties.HelpText="{Binding EditHelp}">
+                        <ui:ExpressionTextBox.ContextMenu>
+                          <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
+                            <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Inheritance}}" Header="Use inherited title" Command="{Binding UseInheritedCommand}" ToolTip="Remove the local Title element. Use the inherited title, or the ID when none exists." />
+                            <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.GoToSourceCode}}" Header="Go to title source" Command="{Binding GoToSourceCommand}" />
+                            <Separator/>
+                            <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Copy}}" Header="Copy" Command="ApplicationCommands.Copy" />
+                            <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Paste}}" Header="Paste" Command="ApplicationCommands.Paste" />
+                          </ContextMenu>
+                        </ui:ExpressionTextBox.ContextMenu>
+                      </ui:ExpressionTextBox>
                       <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
                       <TextBlock Text="{Binding AnalysisGuidance}" TextWrapping="Wrap" Margin="0,0,0,5">
                         <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>

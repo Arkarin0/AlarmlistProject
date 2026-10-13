@@ -42,10 +42,15 @@ namespace Alarmlist.VisualStudio.Documents
         public bool SetValues(AlmxProjection baseline, AlarmSource original, IReadOnlyDictionary<string, string> values,
             IReadOnlyList<ProcedureValueChange> procedures, IReadOnlyList<PropertyValueChange> alarmProperties,
             IReadOnlyList<PropertyValueChange> fileProperties, out string error)
+            => SetValues(baseline, original, values, procedures, alarmProperties, fileProperties, new Dictionary<string, string>(), out error);
+
+        public bool SetValues(AlmxProjection baseline, AlarmSource original, IReadOnlyDictionary<string, string> values,
+            IReadOnlyList<ProcedureValueChange> procedures, IReadOnlyList<PropertyValueChange> alarmProperties,
+            IReadOnlyList<PropertyValueChange> fileProperties, IReadOnlyDictionary<string, string> titles, out string error)
         {
             return Apply(() =>
             {
-                bool editsAlarm = values.Count != 0 || procedures.Count != 0 || alarmProperties.Count != 0;
+                bool editsAlarm = values.Count != 0 || procedures.Count != 0 || alarmProperties.Count != 0 || titles.Count != 0;
                 AlarmSource current = !editsAlarm || original == null ? null : FindCurrent(baseline, original);
                 if (current == null && editsAlarm)
                     throw new InvalidOperationException("Select an alarm to edit its values.");
@@ -54,7 +59,7 @@ namespace Alarmlist.VisualStudio.Documents
                 foreach (string field in values.Keys)
                     if (current.GetValue(field) != original.GetValue(field) || current.HasField(field) != original.HasField(field))
                         throw new InvalidOperationException("This field changed in another view. Press Escape to reload its current value.");
-                foreach (string section in procedures.Select(change => change.Section).Distinct())
+                foreach (string section in procedures.Select(change => change.Section).Concat(titles.Keys).Distinct(StringComparer.OrdinalIgnoreCase))
                     CheckProcedureBaseline(baseline, original, current, section);
                 int index = Projection.Alarms.ToList().IndexOf(current);
                 AlmxProjection updated = Projection;
@@ -67,6 +72,12 @@ namespace Alarmlist.VisualStudio.Documents
                 foreach (ProcedureValueChange change in procedures)
                 {
                     SourceEdit edit = _editing.SetProcedureItem(updated, updated.Alarms[index], change);
+                    updated = _editing.Parse(edit.Apply(updated.Text));
+                    if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
+                }
+                foreach (KeyValuePair<string, string> title in titles)
+                {
+                    SourceEdit edit = _editing.SetProcedureTitle(updated, updated.Alarms[index], title.Key, title.Value);
                     updated = _editing.Parse(edit.Apply(updated.Text));
                     if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
                 }
@@ -113,6 +124,13 @@ namespace Alarmlist.VisualStudio.Documents
 
         public bool SetProperty(AlmxProjection baseline, AlarmSource original, PropertyValueChange change, bool fileProperties, out string error)
             => SetValues(baseline, original, new Dictionary<string, string>(), Array.Empty<ProcedureValueChange>(), new[] { change }, fileProperties, out error);
+
+        public bool AddProcedureGroup(AlarmSource alarm, string name, out string error)
+            => Apply(() => _editing.AddProcedureGroup(Projection, alarm, name), "Add procedure group", out error);
+        public bool RemoveProcedureGroup(AlarmSource alarm, string name, out string error)
+            => Apply(() => _editing.RemoveProcedureGroup(Projection, alarm, name), "Remove local procedure group", out error);
+        public bool MoveProcedureGroup(AlarmSource alarm, string name, string otherName, out string error)
+            => Apply(() => _editing.MoveProcedureGroup(Projection, alarm, name, otherName), "Move procedure group", out error);
 
         public bool AddProcedureItem(AlarmSource alarm, string section, string kind, out string error)
             => Apply(() => _editing.AddProcedureItem(Projection, alarm, section, kind), "Add procedure entry", out error);

@@ -55,7 +55,7 @@ namespace Alarmlist.VisualStudio.UI
             }
         }
         public bool HasChanges => _hasEditDraft || IsPresent != _originalPresent || (IsPresent && Value != _originalValue);
-        public bool IsScalar => Name == "Name" || Name == "Code" || Name == "Category" || Name == "Description";
+        public bool IsScalar => Name == "Name" || Name == "Code" || Name == "Category" || Name == "Description" || Name == "Title";
         public bool IsReference => Name == "ReferenceName";
         public bool IsInherited => !HasChanges && _analysis?.IsInherited == true;
         public bool ShowLocalEditor => !IsInherited;
@@ -74,11 +74,12 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand UseInheritedCommand { get; internal set; }
         public DelegateCommand GoToSourceCommand { get; internal set; }
         public AlarmFieldViewModel(string name, Action changed) { Name = name; _changed = changed; }
-        public void Load(AlarmSource source)
+        public void Load(AlarmSource source) => Load(source?.GetValue(Name), source?.HasField(Name) ?? false);
+        internal void Load(string value, bool present)
         {
             _hasEditDraft = false;
-            _value = source?.GetValue(Name) ?? string.Empty;
-            _isPresent = source?.HasField(Name) ?? false;
+            _value = value ?? string.Empty;
+            _isPresent = present;
             _originalValue = _value;
             _originalPresent = _isPresent;
             Notify(nameof(Value));

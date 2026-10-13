@@ -50,6 +50,12 @@ namespace Alarmlist.VisualStudio.Editing
             {
                 ProcedureSectionSource section = alarm.GetProcedureSection(sectionName);
                 if (section.Error != null || section.Source == null || !Contains(section.Source, position)) continue;
+                if (section.TitleSource != null && Contains(section.TitleSource, position) && section.CanEditTitle)
+                {
+                    target.Section = sectionName;
+                    target.Field = "Title";
+                    return target;
+                }
                 for (int index = 0; index < section.Items.Count; index++)
                 {
                     ProcedureItemSource item = section.Items[index];

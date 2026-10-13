@@ -74,6 +74,13 @@ namespace Alarmlist.VisualStudio.Editing
                 .Select(element => new ProcedureItemSource(element)).ToArray();
         }
 
+        internal XmlSourceElement TitleSource => Source?.Children.FirstOrDefault(child => child.Element.Name.LocalName == "Title");
+        public string Title => TitleSource?.Element.Value;
+        public bool CanEditTitle => Error == null && (Source == null || Source.Children.Count(child => child.Element.Name.LocalName == "Title") <= 1)
+            && (TitleSource == null || !TitleSource.Element.Nodes().Any(node => !(node is XText)));
+        public static bool IsValidName(string name) => !string.IsNullOrEmpty(name)
+            && System.Text.RegularExpressions.Regex.IsMatch(name, @"\A[A-Za-z_][A-Za-z0-9_.-]*\z");
+
         public string GetText(AlmxProjection projection) => Source == null ? null
             : projection.Text.Substring(Source.Start, Source.End - Source.Start);
     }

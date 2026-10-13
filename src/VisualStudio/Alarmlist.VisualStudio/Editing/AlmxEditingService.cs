@@ -16,6 +16,10 @@ namespace Alarmlist.VisualStudio.Editing
         AlmxProjection Parse(string text);
         SourceEdit SetField(AlmxProjection projection, AlarmSource alarm, string name, string value);
         SourceEdit AddAlarm(AlmxProjection projection);
+        SourceEdit AddProcedureGroup(AlmxProjection projection, AlarmSource alarm, string name);
+        SourceEdit SetProcedureTitle(AlmxProjection projection, AlarmSource alarm, string name, string value);
+        SourceEdit RemoveProcedureGroup(AlmxProjection projection, AlarmSource alarm, string name);
+        SourceEdit MoveProcedureGroup(AlmxProjection projection, AlarmSource alarm, string name, string otherName);
         SourceEdit DeleteAlarm(AlmxProjection projection, AlarmSource alarm);
         SourceEdit SetAbstract(AlmxProjection projection, AlarmSource alarm, bool value);
         SourceEdit SetProperty(AlmxProjection projection, AlarmSource alarm, PropertyValueChange change);

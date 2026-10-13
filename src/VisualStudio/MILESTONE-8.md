@@ -1,7 +1,7 @@
 # Milestone eight: custom procedure groups
 
-Status: implementation authorized on 2026-10-13. Iterations 1 and 2 are complete;
-group authoring, configured creation and integrated acceptance remain.
+Status: implementation authorized on 2026-10-13. Iterations 1 through 3 are complete;
+configured creation and integrated acceptance remain.
 
 ## Outcome and confirmed contract
 
@@ -159,3 +159,32 @@ The sandbox incorrectly reports Git diff/build as outside a work tree; those
 commands succeeded with the ordinary host execution permission. No unrelated
 changes were present. No essential iteration-2 blocker remains; final milestone
 acceptance will rerun the complete suites after authoring/defaults work.
+
+### Iteration 3 — group authoring
+
+Added group creation, expression-capable title editing, inherited-title removal
+and navigation, local declaration removal, and local-only reordering. Group actions
+keep focus on the affected title (or the new-ID field when no group remains).
+Title and entry drafts share one source-preserving Undo transaction. Stale group
+creation is rejected after draft/context changes. Removal refuses unsupported XML,
+comments and attributes; title edits preserve existing attributes. Updated usage
+documentation and accessibility expectations.
+
+Validation:
+
+- VSIX build succeeded. Focused editor tests passed 38 cases.
+- Full editor unit suite: 470 passed, zero failures/skips, using `dotnet test
+  src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --no-restore --verbosity minimal --logger trx --results-directory
+  artifacts/log/Debug/Milestone8/Iteration3/FinalUnit`.
+- `eng/test-visualstudio.ps1 -Filter 'Area=Procedures'` passed one scenario on
+  each installed host (VS2022/AlarmlistExp and VS2026/AlarmlistM7), zero skips.
+  It covers existing Clear/draft/entry operations plus Add group, private title
+  drafts, expression title commit, local reorder/focus, removal and Undo, preserving
+  saved source and output. Reports: `4751bfef7fb84c3f8707d0e4ec9aaf0b` and
+  `544a4af039cc4940a9ac7e0ea3bf4f55`.
+- Initial full units failed two old accessibility expectations; initial native
+  test checked all groups for absence of the second group's draft. Corrected those
+  test expectations and reran successfully; failed reports remain retained.
+- Reviewed diff, source guards, documentation and whitespace. No essential
+  iteration-3 blocker remains. Manual display/accessibility gates remain separate.

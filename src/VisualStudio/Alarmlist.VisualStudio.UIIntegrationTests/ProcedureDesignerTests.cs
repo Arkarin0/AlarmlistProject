@@ -139,9 +139,49 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.RequireForeground();
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
             VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == beforeCopy, "section copy Undo restores source exactly");
+            CheckGroupAuthoring(ide, workspace, window);
             Assert.Equal(disk, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllText(workspace.OutputPath));
         }
+
+        private static void CheckGroupAuthoring(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
+        {
+            string original = ide.ReadText(workspace.AlarmPath);
+            foreach (string name in new[] { "Startup", "Shutdown" })
+            {
+                TextBox id = window.FindFirstDescendant(cf => cf.ByName("New procedure group ID")).AsTextBox();
+                id.Focus();
+                VisualStudioSession.Wait(() => id.Properties.HasKeyboardFocus.Value, "group ID focus");
+                ide.RequireForeground();
+                Keyboard.Type(name);
+                AutomationElement add = null;
+                VisualStudioSession.Wait(() => (add = window.FindFirstDescendant(cf => cf.ByName("Add procedure group")))?.IsEnabled == true, "group creation enabled");
+                Press(ide, add, VirtualKeyShort.SPACE);
+                TextBox title = null;
+                VisualStudioSession.Wait(() => (title = window.FindAllDescendants(cf => cf.ByName("Procedure group title").And(cf.ByControlType(ControlType.Edit)))
+                    .Select(element => element.AsTextBox()).SingleOrDefault(element => element.Properties.HasKeyboardFocus.Value)) != null, "new group title focus");
+                ide.RequireForeground();
+                Keyboard.Type("Check $(AlarmlistAlarmFullyQualifiedName)");
+                Assert.Null(Groups(ide, workspace).Last().Element("Title"));
+                Press(ide, title, VirtualKeyShort.RETURN);
+                VisualStudioSession.Wait(() => Groups(ide, workspace).Last().Element("Title")?.Value == "Check $(AlarmlistAlarmFullyQualifiedName)", "group title commit");
+            }
+            AutomationElement up = null;
+            VisualStudioSession.Wait(() => (up = window.FindAllDescendants(cf => cf.ByName("Move procedure group up")).LastOrDefault())?.IsEnabled == true, "local group movement enabled");
+            Press(ide, up, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => Groups(ide, workspace).Select(group => (string)group.Attribute("Name")).SequenceEqual(new[] { "Verification", "Shutdown", "Startup" }), "local group order");
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByName("Procedure group title").And(cf.ByControlType(ControlType.Edit)))[1].Properties.HasKeyboardFocus.Value, "move retains group focus");
+            Press(ide, window.FindAllDescendants(cf => cf.ByName("Remove local procedure group"))[1], VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => Groups(ide, workspace).Length == 2, "remove local group");
+            ide.RequireForeground();
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => Groups(ide, workspace).Length == 3, "group removal Undo");
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "procedure-groups.png"));
+            Assert.Contains("Group Name='Verification'", original);
+        }
+
+        private static XElement[] Groups(VisualStudioSession ide, UiTestWorkspace workspace) => XDocument.Parse(ide.ReadText(workspace.AlarmPath))
+            .Root.Elements("Alarm").First().Element("TestProcedure").Elements("Group").ToArray();
 
         private static XElement[] Entries(VisualStudioSession ide, UiTestWorkspace workspace) => XDocument.Parse(ide.ReadText(workspace.AlarmPath))
             .Root.Elements("Alarm").First().Element("TestProcedure").Elements("Group").Single(group => (string)group.Attribute("Name") == "Verification").Elements().ToArray();

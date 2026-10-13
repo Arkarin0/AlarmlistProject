@@ -72,6 +72,7 @@ namespace Alarmlist.VisualStudio.UI
             _model.Changed += OnModelChanged;
             InitializeProperties();
             InitializeAnalysis(analysis);
+            InitializeGroups();
             Refresh();
         }
 
@@ -79,7 +80,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             if (_refreshing) return;
             _pending = Fields.Any(field => field.HasChanges)
-                || ProcedureSections.Any(section => section.Items.Any(item => item.HasChanges)) || AllParameters.Any(row => row.HasChanges);
+                || ProcedureSections.Any(section => section.TitleField.HasChanges || section.Items.Any(item => item.HasChanges)) || AllParameters.Any(row => row.HasChanges);
             PendingChanged?.Invoke(this, EventArgs.Empty);
             Notify(nameof(HasPending));
             _draftVersion++;
@@ -97,7 +98,8 @@ namespace Alarmlist.VisualStudio.UI
                 ProcedureValueChange[] procedures = ProcedureSections.SelectMany(section => section.Items
                     .Where(item => item.HasChanges)
                     .Select(item => new ProcedureValueChange(section.Name, item.Index, item.Kind, item.Text))).ToArray();
-                if (!_model.SetValues(_baseline, _original, values, procedures, ParameterChanges(AlarmParameters), ParameterChanges(FileParameters), out string error))
+                if (!_model.SetValues(_baseline, _original, values, procedures, ParameterChanges(AlarmParameters), ParameterChanges(FileParameters),
+                    ProcedureSections.Where(section => section.TitleField.HasChanges).ToDictionary(section => section.Name, section => section.TitleField.IsPresent ? section.TitleField.Value : null), out string error))
                 {
                     _error = error;
                     Notify(nameof(Error));

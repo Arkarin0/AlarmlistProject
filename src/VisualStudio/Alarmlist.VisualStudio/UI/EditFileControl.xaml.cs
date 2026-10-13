@@ -102,7 +102,9 @@ namespace Alarmlist.VisualStudio
                 if (routedEvent == Keyboard.PreviewKeyDownEvent || routedEvent == Mouse.PreviewMouseDownEvent) newerInput = true;
             };
             InputManager.Current.PreProcessInput += observeInput;
-            try { await Dispatcher.Yield(DispatcherPriority.Background); }
+#pragma warning disable VSTHRD003 // This click starts the guarded command before the dispatcher continuation.
+            try { await Dispatcher.Yield(DispatcherPriority.Background); await view.PendingAnalysisAction; }
+#pragma warning restore VSTHRD003
             finally { InputManager.Current.PreProcessInput -= observeInput; }
             ProcedureFocusRequest request = view.ProcedureFocus;
             if (newerInput || version != _inputVersion || !IsLoaded || !ReferenceEquals(view, ViewModel)
@@ -113,6 +115,14 @@ namespace Alarmlist.VisualStudio
                 // input anywhere in the shell still cancels this focus request.
                 || (button.IsLoaded && Keyboard.FocusedElement != null && !IsKeyboardFocusWithin)) return;
 
+            if (request.Index == -2)
+            {
+                FrameworkElement groupTarget = request.Section == null ? NewGroupIdEditor : Children(this).OfType<ExpressionTextBox>()
+                    .FirstOrDefault(editor => ReferenceEquals(editor.DataContext, request.Section.TitleField));
+                groupTarget?.BringIntoView();
+                groupTarget?.Focus();
+                return;
+            }
             ProcedureItemViewModel row = request.Index < 0 ? null : request.Section.Items.ElementAtOrDefault(request.Index);
             FrameworkElement target = row == null ? Children(this).OfType<Button>().FirstOrDefault(item =>
                 ReferenceEquals(item.DataContext, request.Section) && ReferenceEquals(item.Command, request.Section.AddCommand))

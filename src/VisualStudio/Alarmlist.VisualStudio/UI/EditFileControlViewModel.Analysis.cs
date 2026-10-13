@@ -134,6 +134,7 @@ namespace Alarmlist.VisualStudio.UI
                 _model.MakeProcedureLocalCopy(_original, section.Name, entries, out _error);
                 Notify(nameof(Error));
             }), () => ProcedureSections.Contains(section) && CanUseAnalysis && CurrentAlarm()?.IsResolved == true && section.HasAnalysis);
+            InitializeGroupCommands(section);
             return section;
         }
 
@@ -223,6 +224,7 @@ namespace Alarmlist.VisualStudio.UI
                 RefreshDiagnostics(state);
                 AnalysisAlarm alarm = CurrentAlarm(state);
                 RefreshProcedureSections();
+                AddGroupCommand?.Refresh();
                 RefreshProperties(state, alarm);
                 RefreshPreview(state, alarm);
                 bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);

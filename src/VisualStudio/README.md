@@ -111,7 +111,7 @@ successful whole-project analysis and never writes build output. Source and copy
 actions revalidate inputs and the selected scope. Visual Studio manages docking.
 The alarm table includes every concrete alarm in the selected project context.
 Cells wrap and rows grow to fit their contents. **Test method** combines effective
-Instructions and Reset alarm sections with bullet steps and Hint/Warning/Note
+ordered group titles and entries with bullet steps and Hint/Warning/Note
 labels; cleared entries and Clear directives are omitted. Multiline text retains
 its line breaks. Click column headings to sort; the filter searches resolved fields, procedures, identities
 and source paths. Select a row to inspect its details, or double-click/press Enter
@@ -315,7 +315,7 @@ codes. Neither live analysis nor its navigation saves files or writes compiled o
 existing Build diagnostics remain owned by MSBuild.
 
 Use the preview window's **Selected alarm** tab to inspect the selected alarm's identity,
-effective scalar values, and surviving Instructions/Reset entries in execution
+effective scalar values, and surviving procedure-group entries in execution
 order. Chain adorners mark inherited values; **Go to source** follows each value's
 SDK origin after revalidating the inputs. Missing values and empty sections are
 labelled. A valid alarm remains inspectable when another alarm has errors.
@@ -336,8 +336,15 @@ draft cancels that draft; subsequent undo uses the document history. A conflicti
 edit in another view is reported instead of overwriting it. Escape reloads the
 current value after a conflict.
 
-Expand **Test procedure** below the alarm fields to edit the local **Instructions**
-and **Reset** sections. Choose Step, Hint, Warning, Note, or Clear and select
+Expand **Test procedure** below the alarm fields to edit ordered named groups.
+Enter a stable group ID and select **Add group**; IDs compare ignoring case.
+Edit the title with the same expression editor and completion as alarm fields.
+An absent title inherits; an explicit empty title displays the group ID. The
+title context menu can remove a local title or navigate to its source.
+Move controls reorder newly introduced local groups; inherited order stays fixed.
+**Remove local group** removes its local declaration and reveals any inherited
+group. Unsupported content requires XML editing. These actions support Undo.
+Choose Step, Hint, Warning, Note, or Clear and select
 **Add entry**. Each entry has a kind selector, multiline text, move up/down, and
 Remove controls. Add focuses the new entry; moving keeps its text selection, and
 removing focuses the next entry (or the previous entry/group Add button).
@@ -346,7 +353,7 @@ section, including inherited entries. Their order therefore matters.
 
 Procedure drafts use the same Enter/focus-loss, Escape, Save, and Undo behavior
 as alarm fields. Changes in another view to the same section cause a conflict;
-independent Instructions and Reset edits can be combined. Duplicate procedure
+independent group edits can be combined. Duplicate procedure
 containers/sections and entries containing nested markup or comments must be
 edited in XML. Unknown entries and surrounding source remain intact.
 
@@ -365,8 +372,8 @@ pending drafts private; tooltips explain each action and disabled copy state.
 **Use local entries only** inserts a leading Clear while preserving existing
 entries and directives. **Make local copy** replaces that section with a leading
 Clear and its current effective sequence, each entry once. It captures a snapshot:
-future reference changes stop flowing into that section, while the other section
-continues independently. Commit or cancel drafts before copying. Copies require
+future reference entry changes stop flowing into that group; other groups
+continue independently. Commit or cancel drafts before copying. Copies require
 current resolved analysis and refuse to discard unsupported source content. Each
 section action is one document undo transaction; Undo restores its original source.
 

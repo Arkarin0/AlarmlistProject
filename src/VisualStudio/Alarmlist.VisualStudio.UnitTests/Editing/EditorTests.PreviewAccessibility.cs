@@ -91,7 +91,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Equal(new[]
                     {
                         "Use inherited Name", "Go to source for Name", "Use inherited Code", "Go to source for Code",
-                        "Use inherited Category", "Go to source for Category", "Use inherited Description", "Go to source for Description"
+                        "Use inherited Category", "Go to source for Category", "Use inherited Description", "Go to source for Description",
+                        "Use inherited title", "Go to title source", "Use inherited title", "Go to title source"
                     }, scalarActions);
                     string[] sectionActions = buttons.Where(button => button.DataContext is ProcedureSectionViewModel
                         && button.ContextMenu != null)

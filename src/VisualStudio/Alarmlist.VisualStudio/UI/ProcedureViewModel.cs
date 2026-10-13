@@ -29,6 +29,11 @@ namespace Alarmlist.VisualStudio.UI
         private int _clearedCount;
         public string Name { get; private set; }
         public string Title { get; private set; }
+        public AlarmFieldViewModel TitleField { get; }
+        public bool CanEditTitle { get; private set; }
+        public DelegateCommand RemoveGroupCommand { get; internal set; }
+        public DelegateCommand MoveGroupUpCommand { get; internal set; }
+        public DelegateCommand MoveGroupDownCommand { get; internal set; }
         public string Error => _error;
         public string NewKind { get; set; } = "Step";
         public string[] Kinds => ProcedureItemSource.Kinds;
@@ -64,6 +69,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             Name = name;
             Title = name;
+            TitleField = new AlarmFieldViewModel("Title", changed);
             _changed = changed;
             _edit = edit;
             AddCommand = new DelegateCommand(() => _edit(Name, -1, ProcedureAction.Add, NewKind), () => _error == null);
@@ -87,6 +93,9 @@ namespace Alarmlist.VisualStudio.UI
         {
             ProcedureSectionSource section = alarm?.GetProcedureSection(Name);
             _error = section?.Error;
+            CanEditTitle = section?.CanEditTitle ?? false;
+            TitleField.Load(section?.Title, section?.TitleSource != null);
+            Notify(nameof(CanEditTitle));
             // Keep controls alive during a text commit so a focus change does not
             // remove the button that is about to receive the user's click.
             int count = section?.Items.Count ?? 0;
@@ -108,6 +117,7 @@ namespace Alarmlist.VisualStudio.UI
         public void SetAnalysis(AnalysisSection section, Func<AnalysisEntry, DelegateCommand> navigation, bool valuesCurrent = true)
         {
             Title = valuesCurrent && section?.Title.IsValueAvailable == true ? section.Title.EffectiveValue : section?.Title.EffectiveExpression ?? Name;
+            TitleField.SetAnalysis(section?.Title, valuesCurrent);
             Notify(nameof(Title));
             if (_error != null) section = null;
             HasAnalysis = section != null && !Items.Any(item => item.HasChanges);
@@ -134,6 +144,7 @@ namespace Alarmlist.VisualStudio.UI
             Notify(nameof(InheritedSequence)); Notify(nameof(ClearedToggleText)); Notify(nameof(ClearedHelp));
             Notify(nameof(HasAnalysis)); Notify(nameof(HasExcluded)); Notify(nameof(AnalysisGuidance));
             UseLocalEntriesCommand?.Refresh(); MakeLocalCopyCommand?.Refresh();
+            RemoveGroupCommand?.Refresh(); MoveGroupUpCommand?.Refresh(); MoveGroupDownCommand?.Refresh();
         }
     }
 

@@ -32,7 +32,8 @@ namespace Alarmlist.VisualStudio.UI
             }
             if (target.Section != null)
             {
-                ProcedureSectionViewModel section = ProcedureSections.Single(item => item.Name == target.Section);
+                ProcedureSectionViewModel section = ProcedureSections.Single(item => string.Equals(item.Name, target.Section, StringComparison.OrdinalIgnoreCase));
+                if (target.Field == "Title") return section.TitleField;
                 section.ShowCleared = true;
                 return section.Items[target.Entry];
             }
