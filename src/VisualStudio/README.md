@@ -336,6 +336,11 @@ draft cancels that draft; subsequent undo uses the document history. A conflicti
 edit in another view is reported instead of overwriting it. Escape reloads the
 current value after a conflict.
 
+**Add alarm** uses captured saved EditorConfig defaults for the destination file.
+Missing settings create Instructions and Reset; an explicit empty group list
+creates no groups. Invalid settings block creation, and configuration changes
+never rewrite existing alarms. See the [creation settings](../SDK/Alarmlist.SDK/README.md#procedure-groups-and-format-transition).
+
 Expand **Test procedure** below the alarm fields to edit ordered named groups.
 Enter a stable group ID and select **Add group**; IDs compare ignoring case.
 Edit the title with the same expression editor and completion as alarm fields.

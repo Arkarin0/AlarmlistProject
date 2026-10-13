@@ -1,7 +1,7 @@
 # Milestone eight: custom procedure groups
 
-Status: implementation authorized on 2026-10-13. Iterations 1 through 3 are complete;
-configured creation and integrated acceptance remain.
+Status: implementation authorized on 2026-10-13. Iterations 1 through 4 are complete;
+integrated acceptance remains.
 
 ## Outcome and confirmed contract
 
@@ -188,3 +188,35 @@ Validation:
   test expectations and reran successfully; failed reports remain retained.
 - Reviewed diff, source guards, documentation and whitespace. No essential
   iteration-3 blocker remains. Manual display/accessibility gates remain separate.
+
+### Iteration 4 — captured creation defaults
+
+Added immutable compiler-owned creation settings to each analyzed source and the
+contract-4 bridge. The designer inserts the ordered raw defaults in one Undo
+transaction after revalidating captured inputs, selection, source and private draft.
+Missing/unset, explicit empty, invalid/duplicate identities, raw/empty/absent titles
+and linked physical paths have distinct behavior. Invalid defaults block creation
+without changing build validity. Configuration changes affect subsequent additions
+only. Static templates retain explicit baseline groups; no source rewrite or
+template migration hook runs. Updated public settings documentation and AGENTS.
+
+Validation:
+
+- Compiler creation tests: 10 passed on each of net472/net8.0, zero skips/failures
+  (`Iteration4/Compiler`). Existing CA1416 test-helper warning remains.
+- Full editor suite: 476 passed, zero failures/skips (`Iteration4/Unit`). Four
+  subsequent focused cases passed for empty-document creation and linked physical
+  defaults across consumer contexts (`Iteration4/Linked`). Focused creation/source
+  serialization run also passed 10 cases (`Iteration4/Focused`).
+- Restored SDK analysis consumer: one pass per framework (`Iteration4/Package`),
+  verifying detached defaults without a compiler project reference.
+- Native `Area=Procedures` scenario passed on VS2022/AlarmlistExp and
+  VS2026/AlarmlistM7, one each, zero skips. Includes saved configuration changing
+  between additions, retention of earlier groups, raw title insertion and no saved
+  ALMX/output edits. Reports `404b22ab697e4ee98b30cf36227f29b8` and
+  `a166905dd70c4f2a94a918a4467efe38`.
+- Commands use the existing `dotnet test` project entry points with `--no-restore
+  --verbosity minimal --logger trx`; result root is
+  `artifacts/log/Debug/Milestone8/`. Native commands use
+  `eng/test-visualstudio.ps1 -Filter 'Area=Procedures'` and the selected host/profile.
+- Reviewed diff, links, guards and whitespace. No essential iteration-4 blocker.

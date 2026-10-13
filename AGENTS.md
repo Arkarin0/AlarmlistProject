@@ -70,6 +70,10 @@ Read the selected plan's current status and remaining gates before resuming it.
 procedure-group transition, including analysis contract 4 and analyzer contract 2.
 Groups use case-insensitive stable identities and expression-capable titles;
 Instructions/Reset are creation defaults, not implicit compiler sections.
+Resolve creation-only EditorConfig settings for the destination physical source in
+the compiler and expose detached `ProcedureCreation` data. Revalidate captured
+inputs before adding an alarm; invalid defaults block creation without invalidating
+existing alarms. Saved settings never rewrite existing or duplicated content.
 Historical milestone records remain evidence of their original versions.
 [FUTURE-FEATURES.md](FUTURE-FEATURES.md) holds ideas and design history; it does not
 authorize implementation or supersede the confirmed scope in a milestone plan.

@@ -38,6 +38,28 @@ extension; external analyzers must be rebuilt for analyzer contract 2. No migrat
 tool or compatibility aliases are supplied. See the
 [milestone-eight contract](../../VisualStudio/MILESTONE-8.md).
 
+The designer's **Add alarm** command resolves creation defaults from saved
+EditorConfig files for the destination ALMX file's physical path, including linked
+files. For example:
+
+```ini
+[*.almx]
+alarmlist_procedure.default_groups = Instructions, Reset, Verification
+alarmlist_procedure.group.instructions.title = $(loc:InstructionsTitle)
+alarmlist_procedure.group.verification.title = Verification
+```
+
+Missing or `unset` lists create Instructions and Reset; an explicit empty list
+creates no groups. IDs are trimmed, ordered and unique ignoring case. Invalid
+lists block creation with an actionable message. Title keys ignore case; missing
+or `unset` omits Title, while an empty value writes an explicit empty Title.
+Titles are inserted as raw text with XML escaping, not evaluated during creation.
+Saved configuration changes affect subsequent creation only. Existing or copied
+alarms keep their groups, and builds do not inject defaults. Static file/project
+templates contain explicit Instructions/Reset declarations. Detached analysis
+exposes the resolved settings and any creation error on each source's
+`ProcedureCreation` property; the compiler never discovers configuration files.
+
 For published releases, enable nuget.org in your NuGet sources, then create
 `Plant.almproj`. A project-specific `NuGet.Config` is not necessary when that
 source is already enabled. Unpublished development packages require a local

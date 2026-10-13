@@ -329,14 +329,14 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 if (previewTable) View.SetPreviewTableActive(true);
             }
             public AlarmFieldViewModel Field(string name) => View.Fields.Single(field => field.Name == name);
-            public void Analyze(string source = BaseAlarm)
+            public void Analyze(string source = BaseAlarm, AnalysisContext context = null)
             {
                 var inputs = new[] { new AnalysisInput(source, Path.Combine(_directory, "Base.almx"), 1),
                     new AnalysisInput(Buffer.Current.Text, Analysis.DocumentPath, Buffer.Current.Version) };
                 var project = new AnalysisProject(Path.Combine(_directory, "Plant.almproj"), "Debug", null, inputs.Select(input => input.FilePath));
                 Analysis.Projects = new[] { project };
                 Analysis.Set(new ProjectAnalysisState((Analysis.Current?.Generation ?? 0) + 1, project, ProjectAnalysisStatus.Available, null,
-                    _bridge.Analyze(inputs), inputs.Select(input => new CapturedAnalysisInput(input)).ToArray()));
+                    _bridge.Analyze(inputs, context: context), inputs.Select(input => new CapturedAnalysisInput(input)).ToArray()));
             }
             public void Dispose()
             {

@@ -17,12 +17,14 @@ namespace Alarmlist.VisualStudio.Analysis
         public string FilePath { get; }
         public int Version { get; }
         public IReadOnlyList<AnalysisProperty> Properties { get; }
+        public AnalysisProcedureCreation ProcedureCreation { get; }
 
-        public AnalysisSource(string filePath, int version, IReadOnlyList<AnalysisProperty> properties = null)
+        public AnalysisSource(string filePath, int version, IReadOnlyList<AnalysisProperty> properties = null, AnalysisProcedureCreation procedureCreation = null)
         {
             FilePath = filePath;
             Version = version;
             Properties = Array.AsReadOnly((properties ?? Array.Empty<AnalysisProperty>()).ToArray());
+            ProcedureCreation = procedureCreation;
         }
     }
 

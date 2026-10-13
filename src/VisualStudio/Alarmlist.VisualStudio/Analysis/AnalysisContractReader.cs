@@ -33,6 +33,8 @@ namespace Alarmlist.VisualStudio.Analysis
             Add<AnalysisListMetadata>(assembly, "Alarmlist.Analysis.AnalyzedListMetadata");
             Add<AnalysisArgumentBinding>(assembly, "Alarmlist.Analysis.AnalyzedArgumentBinding");
             Add<AnalysisSource>(assembly, "Alarmlist.Analysis.AnalyzedSource");
+            Add<AnalysisProcedureCreation>(assembly, "Alarmlist.Configuration.ProcedureCreationSettings");
+            Add<AnalysisGroupDefault>(assembly, "Alarmlist.Configuration.ProcedureGroupDefault");
             Add<AnalysisAlarm>(assembly, "Alarmlist.Analysis.AnalyzedAlarm");
             Add<AnalysisAlarmOrigin>(assembly, "Alarmlist.Analysis.AlarmOrigin");
             Add<AnalysisField>(assembly, "Alarmlist.Analysis.AnalyzedField");
@@ -81,7 +83,8 @@ namespace Alarmlist.VisualStudio.Analysis
             if (result == null || Value<int>(result, "ContractVersion") != 4)
                 throw new NotSupportedException("The SDK returned an unsupported analysis contract.");
             return new AnalysisSnapshot(4, Value<bool>(result, "Success"), List(result, "Sources", source =>
-                new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"), List(source, "Properties", Property))),
+                new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"), List(source, "Properties", Property),
+                    ProcedureCreation(Value<object>(source, "ProcedureCreation")))),
                 List(result, "Alarms", Alarm), List(result, "Diagnostics", diagnostic => new AnalysisDiagnostic(
                     Value<string>(diagnostic, "Id"), EnumValue<AnalysisSeverity>(diagnostic, "Severity"), Value<string>(diagnostic, "Message"),
                     Location(Value<object>(diagnostic, "Location")), List(diagnostic, "RelatedLocations", Location))),
@@ -98,6 +101,9 @@ namespace Alarmlist.VisualStudio.Analysis
                     Value<string>(binding, "ArgumentName"), Value<string>(binding, "ListKey"), Location(Value<object>(binding, "Location")),
                     Value<bool>(binding, "IsAvailable"))));
         }
+
+        private static AnalysisProcedureCreation ProcedureCreation(object settings) => new AnalysisProcedureCreation(
+            List(settings, "Groups", group => new AnalysisGroupDefault(Value<string>(group, "Name"), Value<string>(group, "Title"))), Value<string>(settings, "Error"));
 
         private static AnalysisAlarm Alarm(object alarm)
         {

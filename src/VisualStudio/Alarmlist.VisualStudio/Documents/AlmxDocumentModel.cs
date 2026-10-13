@@ -110,7 +110,8 @@ namespace Alarmlist.VisualStudio.Documents
                 throw new InvalidOperationException("These parameters changed in another view. Press Escape to reload them.");
         }
 
-        public bool AddAlarm(out string error) => Apply(() => _editing.AddAlarm(Projection), "Add alarm", out error);
+        public bool AddAlarm(IReadOnlyList<KeyValuePair<string, string>> groups, out string error)
+            => Apply(() => _editing.AddAlarm(Projection, groups), "Add alarm", out error);
         public bool DeleteAlarm(AlarmSource alarm, out string error) => Apply(() => _editing.DeleteAlarm(Projection, alarm), "Delete alarm", out error);
 
         public bool SetAbstract(AlmxProjection baseline, AlarmSource original, bool value, out string error)

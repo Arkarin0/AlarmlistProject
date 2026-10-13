@@ -61,7 +61,7 @@ namespace Alarmlist.Analysis
                 if (compilation.Success) xml = new XmlAlarmlistOutputWriter().WriteToString(compilation.AlarmList);
             }
             IEnumerable<AnalyzedSource> sources = snapshots.Select((snapshot, index) => new AnalyzedSource(snapshot,
-                analyzer.AnalyzeProperties(null, binding.SyntaxTree.Files[index], true, snapshot.FilePath)));
+                analyzer.AnalyzeProperties(null, binding.SyntaxTree.Files[index], true, snapshot.FilePath), context.DiagnosticOptions.Configuration));
             ResourceCatalogue catalogue = analyzer._evaluation.Resources;
             return new AnalysisResult(sources, analyzer.GetAnalyzedAlarms(binding), diagnostics,
                 analyzer._evaluation.Culture, context.Resources.Select(resource => new AnalyzedResource(resource)),

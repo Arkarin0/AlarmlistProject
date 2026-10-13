@@ -29,6 +29,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         private static void CheckClearedDraft(VisualStudioSession ide, UiTestWorkspace workspace)
         {
             workspace.CreateProject(ide);
+            File.WriteAllText(Path.Combine(workspace.ProjectDirectory, ".editorconfig"),
+                "root=true\n[*.almx]\nalarmlist_procedure.default_groups=Configured\nalarmlist_procedure.group.configured.title=Check $(AlarmlistAlarmFullyQualifiedName)");
             const string source = "<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><TestProcedure><Group Name='Verification'><Step>Earlier local</Step><Clear/><Note>Surviving local</Note></Group></TestProcedure></Alarm><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><TestProcedure><Group Name='Verification'><Title>Verify $(AlarmlistAlarmFullyQualifiedName)</Title><Step>Inherited step</Step></Group></TestProcedure></Alarm></Alarmlist>";
             string disk = File.ReadAllText(workspace.AlarmPath);
             string output = File.ReadAllText(workspace.OutputPath);
@@ -140,6 +142,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
             VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == beforeCopy, "section copy Undo restores source exactly");
             CheckGroupAuthoring(ide, workspace, window);
+            CheckCreationDefaults(ide, workspace, window);
             Assert.Equal(disk, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllText(workspace.OutputPath));
         }
@@ -182,6 +185,36 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         private static XElement[] Groups(VisualStudioSession ide, UiTestWorkspace workspace) => XDocument.Parse(ide.ReadText(workspace.AlarmPath))
             .Root.Elements("Alarm").First().Element("TestProcedure").Elements("Group").ToArray();
+
+        private static void CheckCreationDefaults(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
+        {
+            string original = ide.ReadText(workspace.AlarmPath);
+            int count = XDocument.Parse(original).Root.Elements("Alarm").Count();
+            AddAndWait("Configured");
+            var created = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Last();
+            Assert.Equal("Check $(AlarmlistAlarmFullyQualifiedName)", created.Element("TestProcedure").Element("Group").Element("Title").Value);
+            File.WriteAllText(Path.Combine(workspace.ProjectDirectory, ".editorconfig"),
+                "root=true\n[*.almx]\nalarmlist_procedure.default_groups=NextDefault");
+            AddAndWait("NextDefault");
+            var alarms = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").ToArray();
+            Assert.Equal("Configured", (string)alarms[alarms.Length - 2].Element("TestProcedure").Element("Group").Attribute("Name"));
+            Assert.True(XNode.DeepEquals(XDocument.Parse(original).Root.Elements("Alarm").First(), alarms[0]));
+
+            void AddAndWait(string name)
+            {
+                VisualStudioSession.Wait(() =>
+                {
+                    var current = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").ToArray();
+                    if (current.Length > count) return true;
+                    AutomationElement add = window.FindFirstDescendant(cf => cf.ByName("Add alarm").And(cf.ByControlType(ControlType.Button)));
+                    if (add?.IsEnabled == true) Press(ide, add, VirtualKeyShort.SPACE);
+                    return false;
+                }, "alarm creation with captured saved defaults");
+                count++;
+                var group = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Last().Element("TestProcedure").Elements("Group").Single();
+                Assert.Equal(name, (string)group.Attribute("Name"));
+            }
+        }
 
         private static XElement[] Entries(VisualStudioSession ide, UiTestWorkspace workspace) => XDocument.Parse(ide.ReadText(workspace.AlarmPath))
             .Root.Elements("Alarm").First().Element("TestProcedure").Elements("Group").Single(group => (string)group.Attribute("Name") == "Verification").Elements().ToArray();

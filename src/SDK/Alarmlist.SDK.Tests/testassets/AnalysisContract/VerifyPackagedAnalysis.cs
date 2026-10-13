@@ -42,6 +42,9 @@ public sealed class VerifyPackagedAnalysis : Task
         object result = analyze.Invoke(compiler, new object[] { snapshots });
         Require((int)Value(result, "ContractVersion") == 4, "Unexpected analysis contract version.");
         Require((bool)Value(result, "Success"), "Valid unsaved inputs did not resolve.");
+        object creation = Value(Items(result, "Sources")[1], "ProcedureCreation");
+        Require(Value(creation, "Error") == null && Items(creation, "Groups").Select(group => (string)Value(group, "Name"))
+            .SequenceEqual(new[] { "Instructions", "Reset" }), "Detached creation defaults were not provided by the packaged compiler.");
         Require(Value(result, "CompiledXml") == null, "Default analysis unexpectedly generated XML.");
         MethodInfo preview = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType, typeof(bool) });
         Require(preview != null, "The packaged compiler has no in-memory preview API.");
@@ -133,7 +136,7 @@ public sealed class VerifyPackagedAnalysis : Task
         Require((int)Value(Value(listEntry, "Location"), "SourceVersion") == 51, "List provenance was lost.");
         Require((bool)Value(Items(lists, "ArgumentBindings").Single(), "IsAvailable"), "Completion binding was lost.");
         Require(((string)Value(lists, "CompiledXml")).Contains("<Name>=EC-120W1</Name>"), "List preview was incorrect.");
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 3 passed: origins, Clear, immutable results, unsaved inputs, and compiled XML preview.");
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 4 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, and compiled XML preview.");
         return true;
     }
 

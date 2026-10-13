@@ -67,7 +67,7 @@ namespace Alarmlist.VisualStudio.UI
             DesignerLayout = new DesignerLayoutViewModel(settings);
             PreviewColumns.Changed += OnPreviewColumnsChanged;
             Fields = BindingCollection.Create(AlarmSource.FieldNames.Select(name => new AlarmFieldViewModel(name, OnDraftChanged)));
-            AddCommand = new DelegateCommand(Add, () => IsValid);
+            AddCommand = new DelegateCommand(Add, () => !_disposed && !_analysisBusy && IsValid);
             DeleteCommand = new DelegateCommand(Delete, () => CanEdit);
             _model.Changed += OnModelChanged;
             InitializeProperties();
@@ -128,10 +128,8 @@ namespace Alarmlist.VisualStudio.UI
 
         private void Add()
         {
-            if (!CommitPending()) return;
-            if (!_model.AddAlarm(out _error)) { Notify(nameof(Error)); return; }
-            Filter = string.Empty;
-            Selected = Alarms.LastOrDefault();
+            if (!CommitPending() || _analysisBusy || _disposed) return;
+            PendingAnalysisAction = AddAlarmAsync();
         }
         private void Delete()
         {

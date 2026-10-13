@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Alarmlist.Diagnostics;
+using Alarmlist.Configuration;
 using Alarmlist.Text;
 
 namespace Alarmlist.Analysis
@@ -54,12 +55,14 @@ namespace Alarmlist.Analysis
         public string FilePath { get; }
         public int Version { get; }
         public IReadOnlyList<AnalyzedProperty> Properties { get; }
+        public ProcedureCreationSettings ProcedureCreation { get; }
 
-        internal AnalyzedSource(AlmxTextSnapshot source, IEnumerable<AnalyzedProperty> properties)
+        internal AnalyzedSource(AlmxTextSnapshot source, IEnumerable<AnalyzedProperty> properties, AnalyzerConfiguration configuration)
         {
             FilePath = source.FilePath;
             Version = source.Version;
             Properties = Array.AsReadOnly(properties.ToArray());
+            ProcedureCreation = ProcedureCreationSettings.Resolve(configuration, source.FilePath);
         }
     }
 
