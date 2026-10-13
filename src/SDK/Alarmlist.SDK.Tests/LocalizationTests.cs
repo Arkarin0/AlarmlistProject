@@ -144,7 +144,10 @@ namespace Alarmlist.MSBuild.SDK.Tests
         {
             var app = CreateLocalizedApp();
             File.WriteAllText(Path.Combine(app.WorkingDirectory, "Labels.de.resx"), "<invalid>");
-            app.Build(_output, "/p:DesignTimeBuild=true");
+            // Test the design-time Build itself. Restore now legitimately creates
+            // NuGet assets under obj, independently of alarm compilation.
+            BuildResult result = app.Run(_output, "/t:Build", "/p:DesignTimeBuild=true");
+            Assert.True(result.ExitCode == 0, result.Output);
             Assert.False(Directory.Exists(Path.Combine(app.WorkingDirectory, "bin")));
             Assert.False(Directory.Exists(Path.Combine(app.WorkingDirectory, "obj")));
         }

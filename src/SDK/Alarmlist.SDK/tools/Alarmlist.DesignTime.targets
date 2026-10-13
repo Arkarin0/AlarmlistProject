@@ -9,6 +9,9 @@
     <ProjectCapability Include="OpenProjectFile" />
     <ProjectCapability Include="HandlesOwnReload" />
     <ProjectCapability Include="ProjectConfigurationsDeclaredAsItems" />
+    <ProjectCapability Include="ProjectReferences" />
+    <ProjectCapability Include="ReferenceManagerProjects" />
+    <ProjectCapability Include="PackageReferences" />
   </ItemGroup>
   <ItemGroup Label="ProjectConfigurations" Condition="'@(ProjectConfiguration)' == ''">
     <ProjectConfiguration Include="Debug|AnyCPU" Configuration="Debug" Platform="AnyCPU" />
@@ -23,6 +26,8 @@
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/AlarmlistResource.xaml" Context="File;BrowseObject" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/AlarmlistLookup.xaml" Context="File;BrowseObject" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/AlarmlistAnalyzer.xaml" Context="File;BrowseObject" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/ProjectReference.xaml" Context="Project;BrowseObject" />
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/PackageReference.xaml" Context="Project;ProjectSubscriptionService;BrowseObject" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/None.xaml" Context="File;BrowseObject" />
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/Folder.xaml" Context="File;BrowseObject" />
   </ItemGroup>

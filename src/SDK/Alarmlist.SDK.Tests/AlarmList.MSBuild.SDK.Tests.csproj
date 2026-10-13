@@ -4,6 +4,10 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);testassets/**</DefaultItemExcludes>
   </PropertyGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- These package tests use their own fixture rather than the compiler's shared helpers. -->
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />

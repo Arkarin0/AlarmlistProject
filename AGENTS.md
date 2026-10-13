@@ -66,6 +66,12 @@ Existing plans and iteration records:
 | [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX: procedures, property fields, IntelliSense, searchable references, file/alarm scope separation and preview-table rendering/column preferences; accepted direction and open interaction details. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+[Milestone 9](src/VisualStudio/MILESTONE-9.md) authorizes reusable alarm libraries,
+ProjectReference/NuGet and native reference management; its
+[design contract](src/VisualStudio/MILESTONE-9-DESIGN.md) governs dependency scopes,
+resource overrides, saved-project analysis and the coordinated analysis-5/analyzer-3
+transition. Native integration on both supported IDE hosts is an essential first
+iteration gate. These are planned contracts until implementation evidence is recorded.
 [Milestone 8](src/VisualStudio/MILESTONE-8.md) defines the authorized custom
 procedure-group transition, including analysis contract 4 and analyzer contract 2.
 Groups use case-insensitive stable identities and expression-capable titles;
@@ -603,6 +609,9 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   measurements sequentially. They share desktop focus even when their project
   files and experimental profiles are isolated; overlapping runs can close menus
   or redirect keyboard input and invalidate interaction evidence.
+- Run SDK XLIFF apply tests separately from native IDE tests. Their resource-editor
+  guard inspects running IDEs; concurrent test-IDE startup/shutdown can make that
+  check fail closed and invalidate an otherwise isolated package-consumer run.
 - `eng/capture-visualstudio-heap.ps1` captures managed object counts, root paths
   and thread stacks from an explicitly selected test process using the optional
   ClrMD tool. Preserve PID/start-time identity checks and new report paths. Keep

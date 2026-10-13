@@ -27,6 +27,8 @@ namespace Alarmlist.VisualStudio.UnitTests
         [InlineData("AlarmlistResource")]
         [InlineData("AlarmlistLookup")]
         [InlineData("AlarmlistAnalyzer")]
+        [InlineData("ProjectReference")]
+        [InlineData("PackageReference")]
         [InlineData("None")]
         [InlineData("Folder")]
         public void PropertyRulesCanBeLoadedByMSBuild(string name)

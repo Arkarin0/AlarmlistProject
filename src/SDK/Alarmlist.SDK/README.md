@@ -163,6 +163,16 @@ Each build recompiles the selected inputs so changes to conditional items and
 removed files are reflected. Compiler diagnostics fail the build. Clean removes
 the configured and tracked compiled outputs and preserves unrelated files.
 
+Restore uses the installed MSBuild toolset's NuGet targets and supports
+`PackageReference` dependency restore. Consumer projects still need no
+`TargetFramework`: data packages use the `native,Version=v0.0` restore identity by
+default. Restore writes NuGet assets under `MSBuildProjectExtensionsPath` without
+compiling alarms. Visual Studio's Project > Add Reference and Manage NuGet Packages
+commands can edit project/package references; save the project to persist edits.
+This is the milestone-nine reference/restore foundation. Alarm library artifact
+consumption, referenced-project builds and Pack remain planned in
+[milestone nine](../../VisualStudio/MILESTONE-9.md).
+
 Reference errors ALM0001-ALM0004 include the source file and declaration line/column
 when read from ALMX files. Missing, self, and circular references point to the
 `ReferenceName` element; duplicate names point to `FullyQualifiedName`. A failed

@@ -79,8 +79,6 @@
                        Configuration="$(Configuration)" Platform="$(Platform)" />
   </Target>
   <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
-  <!-- ALMX projects have no managed package references. The SDK is resolved at evaluation time. -->
-  <Target Name="Restore" />
   <Target Name="GetTargetPath" Returns="@(CompiledAlarmlistFiles)">
     <ItemGroup><CompiledAlarmlistFiles Remove="@(CompiledAlarmlistFiles)" /></ItemGroup>
     <AlarmlistGetOutputsTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Cultures="$(AlarmlistCultures)">
