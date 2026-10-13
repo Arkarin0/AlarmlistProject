@@ -364,6 +364,11 @@ and source navigation behave. Validate command-line builds as well as the IDE.
 
 ## Custom procedure groups
 
+Accepted on 2026-10-13 for [milestone eight](src/VisualStudio/MILESTONE-8.md).
+That plan governs the named Group XML transition, case-insensitive identities,
+expression-capable titles, inheritance, dynamic designer/preview and EditorConfig
+creation defaults. The proposal below is retained as design history.
+
 Proposed on 2026-10-09; no milestone assigned.
 
 Replace the hardcoded `Instructions` and `Reset` procedure groups with support for

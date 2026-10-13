@@ -1,0 +1,110 @@
+# Milestone eight: custom procedure groups
+
+Status: implementation authorized on 2026-10-13. Iteration 1 records the accepted
+contract; subsequent iterations are not yet implemented or validated.
+
+## Outcome and confirmed contract
+
+Replace fixed Instructions/Reset sections with ordered named groups across the
+compiler, SDK, designer and previews. Make a clean format/API transition; migrate
+active repository examples, templates and tests together. No legacy adapters or
+automatic migration tool are included.
+
+- Source: `<TestProcedure><Group Name="Instructions"><Title>$(loc:InstructionsTitle)</Title><Step>Text</Step></Group></TestProcedure>`.
+  Title is optional; existing entry kinds and Clear retain their semantics.
+- Output: Group/Name/Title with evaluated titles and existing compiled
+  TestProcedureItem entries. Empty groups remain represented.
+- IDs match `[A-Za-z_][A-Za-z0-9_.-]*`, compare ordinally ignoring case, and
+  preserve authored spelling. Duplicate local IDs are errors.
+- Match inherited groups by identity, retain base order/spelling, append new local
+  groups in declaration order, and merge entries with existing Clear semantics.
+- Absent titles inherit, then fall back to the ID. Explicit empty titles stop
+  inheritance and display the ID. Expression errors do not trigger fallback.
+- Titles support the same expressions as procedure text in the consuming alarm,
+  including inherited titles, keyword culture, literal substitution, provenance
+  and deferred abstract-template evaluation.
+- Removing a local declaration reveals any inherited group. Clear empties entries,
+  not the heading. No whole-group exclusion or identity renaming.
+- Reject legacy Instructions/Reset source elements explicitly; retain unrelated
+  unknown-element skipping and DTD prohibition.
+- Replace fixed properties with ordered collections in syntax, resolved models,
+  analysis and detached host DTOs. Include raw/effective titles, availability,
+  origins and local/effective/excluded entries. Advance analysis contract 3 to 4
+  and analyzer contract 1 to 2 together with adapters and sample analyzer.
+- Dynamic designer groups retain existing entry editing, draft/focus, adorners,
+  Clear visibility, completion and source-preserving Undo behavior. Add group,
+  edit title, remove local declaration, and move newly introduced local groups.
+  Inherited group positions stay fixed. Protect unsupported source content.
+- Preview uses one procedures column with ordered group headings and entries,
+  including empty headings. Preserve column preferences and virtualization.
+
+Creation settings (destination physical file, captured EditorConfig):
+
+```ini
+[*.almx]
+alarmlist_procedure.default_groups = Instructions, Reset, Verification
+alarmlist_procedure.group.instructions.title = $(loc:InstructionsTitle)
+alarmlist_procedure.group.verification.title = Verification
+```
+
+Missing/unset list defaults to Instructions and Reset; an explicit empty list
+creates no groups. Trim list entries, reject invalid/duplicate IDs, and block
+creation with actionable feedback for invalid settings. Missing titles omit Title;
+explicit empty writes an empty Title. Revalidate context/configuration before
+insertion. Configuration changes never rewrite alarms; duplication preserves groups.
+
+## Architecture, migration and exclusions
+
+Keep resolution and configuration interpretation compiler-owned, with immutable
+detached results across the SDK AppDomain boundary. Preserve net472/net8.0 and
+SDK packaging/runtime selection. Follow the existing compiler layers and the
+[Roslyn compiler reference](https://github.com/dotnet/roslyn/tree/main/src/Compilers)
+reviewed during planning; no new generator or build infrastructure is required.
+
+Migration replaces `<Instructions>…</Instructions>` with
+`<Group Name="Instructions">…</Group>` and likewise for Reset. Replace fixed
+public properties with group collection access and rebuild external analyzers
+against contract 2. SDK and VSIX must be updated together for analysis contract 4.
+Old contracts fail explicitly rather than silently dropping groups.
+
+Libraries, project references, Shared Projects, syntax generation, broader XML
+IntelliSense and publication are excluded. Earlier manual accessibility/display,
+vendor and release gates remain separate under their existing milestone plans.
+
+## Numbered iterations and planned acceptance
+
+Each iteration depends on the preceding one. Keep compiler/SDK/extension usable
+together at boundaries; review and commit each successful iteration before the
+next, recording changes, commands, results and limitations separately below.
+
+1. **Record contract:** this plan, AGENTS link and backlog update. Review links,
+   paths and consistency; no build required.
+2. **Coordinated transition:** dynamic parsing/binding/evaluation/output,
+   analysis/analyzer contracts, bridge, source projection, existing entry editing
+   and previews; migrate active fixtures/templates/examples. Require compiler,
+   task, SDK and extension unit/package suites and focused native editor/preview
+   checks on both hosts.
+3. **Group authoring:** add/title/remove/reorder, completion and Undo. Cover source
+   preservation, inherited behavior, focus/private drafts, accessibility metadata
+   and native keyboard workflows on VS2022 and VS2026.
+4. **Creation defaults:** compiler-owned detached settings, destination-scoped
+   creation and stale-context guards. Cover linked consumers, malformed/empty/
+   missing lists and subsequent saved configuration changes.
+5. **Integrated acceptance:** solution build/tests, full native suites on both
+   installed VS hosts, isolated procedure/preview measurements, migration and
+   requirement audit. Keep manual/vendor/release gates explicitly separate.
+
+Regression coverage includes duplicate IDs ignoring case, cross-file/multilevel
+inheritance, ordering, title overrides/fallback, Clear provenance, empty groups,
+localization/lookup errors, abstract templates, legacy rejection, preserved outputs
+on failure, arbitrary group counts, cultures during drafts, stale analysis, linked
+contexts, navigation, reload, Undo/Redo and lifetime collection. Measurements use
+many groups/long procedures without machine-dependent thresholds.
+
+## Actual iteration record
+
+### Iteration 1 — contract documentation
+
+Recorded the approved plan and linked it from repository instructions and backlog.
+The starting working tree was clean. Reviewed documentation paths, scope and
+contract consistency. Tests were not run (documentation only).

@@ -66,6 +66,11 @@ Existing plans and iteration records:
 | [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX: procedures, property fields, IntelliSense, searchable references, file/alarm scope separation and preview-table rendering/column preferences; accepted direction and open interaction details. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+[Milestone 8](src/VisualStudio/MILESTONE-8.md) defines the authorized custom
+procedure-group transition, including analysis contract 4 and analyzer contract 2.
+Its contract supersedes fixed Instructions/Reset and earlier contract-version
+guidance as the coordinated transition is implemented; completed historical
+milestone records remain evidence of their original versions.
 [FUTURE-FEATURES.md](FUTURE-FEATURES.md) holds ideas and design history; it does not
 authorize implementation or supersede the confirmed scope in a milestone plan.
 
