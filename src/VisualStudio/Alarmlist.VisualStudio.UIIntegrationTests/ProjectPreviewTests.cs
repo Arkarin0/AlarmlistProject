@@ -57,7 +57,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             projectNode.AsTreeItem().Select(); projectNode.Focus();
             VisualStudioSession.Wait(() => ide.Automation.Commands.Item("{c37b75da-f827-4d1a-837f-7f766368d478}", 0x0201).IsAvailable, "project preview command without an editor");
             ide.RequireForeground(); Assert.True(projectNode.Properties.HasKeyboardFocus.Value);
-            Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
+            Assert.False(projectNode.BoundingRectangle.IsEmpty);
+            projectNode.RightClick();
             AutomationElement menu = null;
             try
             {

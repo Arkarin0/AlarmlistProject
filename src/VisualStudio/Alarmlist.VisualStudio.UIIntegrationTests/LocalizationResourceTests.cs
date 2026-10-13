@@ -83,13 +83,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => (contexts = window.FindFirstDescendant(cf => cf.ByName("Analysis project context"))?.AsComboBox())?.Items.Length == 2, "linked localization contexts");
             SelectContext(contexts, "Plant.almproj");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Inspect 001", "saved parent-language preview");
-            SelectCulture(window, "keyword");
+            SelectCulture(ide, window, "keyword");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)"
                 && XDocument.Load(projectPath).Descendants("AlarmlistCulture").Single().Value == "keyword", "persisted keyword preview");
             Assert.Equal("keyword;de-DE", XDocument.Load(projectPath).Descendants("AlarmlistCultures").Single().Value);
             Assert.All(XDocument.Load(projectPath).Descendants("AlarmlistCulture"), property =>
             { Assert.Null(property.Attribute("Condition")); Assert.Null(property.Parent.Attribute("Condition")); });
-            SelectCulture(window, "de-DE");
+            SelectCulture(ide, window, "de-DE");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Inspect 001", "selected parent-language preview");
             TextBox name = Box(window, "Name");
             name.Focus();
@@ -141,7 +141,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(previousOutput, File.ReadAllBytes(translatedOutput));
             WriteResource(resourcePath, "Recovered $(par1)");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Recovered 002" && !VisualStudioAutomation.HasErrorDescription(ide.Automation, missing), "translation recovery");
-            SelectCulture(window, "keyword");
+            SelectCulture(ide, window, "keyword");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "South uses its own preview language");
             SelectContext(contexts, "Plant.almproj");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Recovered 001", "independent linked project state");
@@ -157,14 +157,16 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "South preview language persists after reload");
         }
 
-        private static void SelectCulture(Window window, string culture)
+        private static void SelectCulture(VisualStudioSession ide, Window window, string culture)
         {
             AutomationElement toolbar = null;
             VisualStudioSession.Wait(() => (toolbar = window.FindFirstDescendant(cf => cf.ByName("Alarmlist").And(cf.ByControlType(ControlType.ToolBar)))) != null,
                 "native Alarmlist toolbar outside the designer");
             ComboBox selector = null;
             VisualStudioSession.Wait(() => (selector = toolbar.FindFirstDescendant(cf => cf.ByControlType(ControlType.ComboBox))?.AsComboBox())?.IsEnabled == true, "preview language selector");
-            selector.Expand();
+            // Use native mouse opening; ExpandCollapse produced empty shell
+            // popups in these VS2022 scenarios.
+            selector.Collapse(); ide.RequireForeground(); selector.Click();
             AutomationElement choice = null;
             var refresh = Stopwatch.StartNew();
             VisualStudioSession.Wait(() =>
@@ -176,7 +178,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 // readiness wait to request the current catalogue.
                 if (refresh.ElapsedMilliseconds >= 500)
                 {
-                    selector.Collapse(); selector.Expand(); refresh.Restart();
+                    selector.Collapse(); ide.RequireForeground(); selector.Click(); refresh.Restart();
                 }
                 return false;
             }, "preview language choice " + culture);

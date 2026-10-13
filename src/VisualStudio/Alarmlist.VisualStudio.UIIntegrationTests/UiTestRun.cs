@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Alarmlist.VisualStudio.Testing;
+using FlaUI.Core.AutomationElements;
 using FlaUI.UIA3;
 using Xunit;
 using Xunit.Abstractions;
@@ -100,8 +101,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             try
             {
                 using var automation = new UIA3Automation();
-                using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
-                var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(5));
+                // A visible floating tooltip can be returned as MainWindow by
+                // process discovery. Capture the actual shell frame instead.
+                var window = automation.FromHandle(new IntPtr(ide.Automation.MainWindow.HWnd)).AsWindow();
                 if (window == null) return;
                 window.CaptureToFile(Path.Combine(directory, "failure.png"));
                 File.WriteAllLines(Path.Combine(directory, "automation.txt"), window.FindAllDescendants()

@@ -32,7 +32,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
 
         [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Preview")]
         [InlineData("1200-100")]
-        public void Preview(string scenario) => Run(typeof(PreviewBenchmarks), scenario, 3);
+        public void Preview(string scenario) => Run(typeof(PreviewBenchmarks), scenario, 4);
 
         [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Properties")]
         [InlineData("1000-100-properties")]

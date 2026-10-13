@@ -28,6 +28,10 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
         private DataGrid _table;
         private ReferenceComboBox _reference;
         private PreviewColumn _method;
+        private PreviewWindowControl _previewWindow;
+        private ProjectAnalysisState _state;
+        private DesignerBenchmarks.CapturedDesignerAnalysis _projectAnalysis;
+        private ProjectPreviewViewModel _projectView;
 
         [Params("1200-100")]
         public string Scenario { get; set; }
@@ -51,16 +55,19 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             _view.SetPreviewTableActive(true);
             AnalysisResponse response = _fixture.Bridge.Analyze(inputs, context: _fixture.Context);
             _fixture.Validate(response);
-            analysis.Set(new ProjectAnalysisState(1, project, ProjectAnalysisStatus.Available, null, response,
-                inputs.Select(input => new CapturedAnalysisInput(input)).ToArray()));
+            _state = new ProjectAnalysisState(1, project, ProjectAnalysisStatus.Available, null, response,
+                inputs.Select(input => new CapturedAnalysisInput(input)).ToArray());
+            analysis.Set(_state);
             _host = new HwndSource(new HwndSourceParameters("ALMX preview performance")
                 { Width = 1250, Height = 900, WindowStyle = unchecked((int)0x80000000) });
             var root = new Grid { Width = 1200, Height = 850 };
             root.ColumnDefinitions.Add(new ColumnDefinition()); root.ColumnDefinitions.Add(new ColumnDefinition());
             var editor = new EditFileControl(_view); root.Children.Add(editor);
-            var preview = new PreviewControl { DataContext = _view };
+            _previewWindow = new PreviewWindowControl();
+            PreviewControl preview = _previewWindow.PreviewView;
+            preview.DataContext = _view;
             ((TabControl)preview.FindName("PreviewTabs")).SelectedIndex = 0;
-            Grid.SetColumn(preview, 1); root.Children.Add(preview);
+            Grid.SetColumn(_previewWindow, 1); root.Children.Add(_previewWindow);
             _host.RootVisual = root; Pump();
             _table = (DataGrid)preview.FindName("AlarmTable");
             _reference = Descendants(editor).OfType<ReferenceComboBox>().Single(box => (box.DataContext as AlarmFieldViewModel)?.Name == "ReferenceName");
@@ -107,10 +114,40 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
             _reference.CloseChoices();
         }
 
+        [IterationSetup(Target = nameof(ProjectReportOpenAndLayout))]
+        public void PrepareProjectReport()
+        {
+            _previewWindow.PreviewView.DataContext = null; _previewWindow.DataContext = null;
+            _projectView?.Dispose(); _projectView = null;
+            _projectAnalysis = new DesignerBenchmarks.CapturedDesignerAnalysis(null, _state.Project);
+            _projectAnalysis.Set(_state); Pump();
+        }
+
+        [Benchmark, STAThread]
+        public void ProjectReportOpenAndLayout()
+        {
+            _projectView = new ProjectPreviewViewModel(_projectAnalysis);
+            _projectView.SelectProject(_state.Project.ProjectPath);
+            _previewWindow.DataContext = _projectView;
+            _previewWindow.PreviewView.DataContext = _projectView;
+            Pump();
+        }
+
+        [IterationCleanup(Target = nameof(ProjectReportOpenAndLayout))]
+        public void ValidateProjectReport()
+        {
+            int realized = Descendants(_table).OfType<DataGridRow>().Count();
+            if (_projectView.AlarmTableRows.Count != 1200 || _table.Items.Count != 1200
+                || realized == 0 || realized >= 40 || _view.HasPending || _projectView.CompiledXml == null)
+                throw new InvalidOperationException("Opening project preview must display a complete virtualized report without editing source.");
+        }
+
         [GlobalCleanup]
         public void Cleanup()
         {
             _reference?.CloseChoices();
+            if (_previewWindow != null) { _previewWindow.DataContext = null; _previewWindow.PreviewView.DataContext = null; }
+            _projectView?.Dispose(); _projectAnalysis?.Dispose();
             if (_host != null) _host.RootVisual = null;
             _view?.Dispose(); _model?.Dispose(); _host?.Dispose(); _fixture?.Dispose();
             Dispatcher.CurrentDispatcher.InvokeShutdown();

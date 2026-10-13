@@ -49,7 +49,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => (designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)))) != null, "designer mode");
             designer.Patterns.SelectionItem.Pattern.Select();
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == expression, "keyword preserves full template call");
-            SelectCulture(window, "en");
+            SelectCulture(ide, window, "en");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "In Service -> Vacuum, set ON to 060.", "lookup template preview");
 
             Assert.True(VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, lookupPath, lookup.Replace("060", "999")));

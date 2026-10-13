@@ -56,10 +56,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             preview.IsFloating = true;
             preview.Width = 1250;
             preview.Height = 550;
+            preview.Left = window.BoundingRectangle.Left + 10;
+            preview.Top = window.BoundingRectangle.Bottom - 590;
             SelectPreviewTab(window, "Alarm table preview");
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 2, "concrete alarm rows");
             Assert.Contains(PreviewRows(window), row => row.Name.Contains("$(loc:Inspection)"));
-            SelectCulture(window, "en");
+            SelectCulture(ide, window, "en");
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "A — Inspect 001"), "translated table values");
             AutomationElement table = PreviewTable(window);
             table.FindFirstDescendant(cf => cf.ByName("Name").And(cf.ByControlType(ControlType.HeaderItem))).Patterns.Invoke.Pattern.Invoke();

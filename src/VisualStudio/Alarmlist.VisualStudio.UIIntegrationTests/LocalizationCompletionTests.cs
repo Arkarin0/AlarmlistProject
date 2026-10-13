@@ -54,12 +54,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => (designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)))) != null, "designer mode");
             designer.Patterns.SelectionItem.Pattern.Select();
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "default keyword preview");
-            SelectCulture(window, "de-DE");
+            SelectCulture(ide, window, "de-DE");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Inspect 001", "language selection");
             TextBox name = Box(window, "Name");
             name.Focus();
             ResourceEditorTests.ReplaceDraft(ide, name, "private alarm draft");
-            SelectCulture(window, "keyword");
+            SelectCulture(ide, window, "keyword");
             VisualStudioSession.Wait(() => XDocument.Load(projectPath).Descendants("AlarmlistCulture").Single().Value == "keyword", "language stored while ALMX draft is active");
             Assert.Equal("private alarm draft", name.Text);
             Assert.Equal(Source, ide.ReadText(workspace.AlarmPath));
@@ -67,7 +67,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ResourceEditorTests.RequireFieldFocus(ide, name);
             Keyboard.Type(VirtualKeyShort.ESCAPE);
             Box(window, "Filter alarms").Focus();
-            SelectCulture(window, "de-DE");
+            SelectCulture(ide, window, "de-DE");
             VisualStudioSession.Wait(() => name.Text == "Inspect 001", "cancel alarm draft");
 
             // An XML resource buffer stays dirty when another document is focused.
@@ -121,7 +121,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Box(window, "Filter alarms").Focus();
             Assert.Equal(Source, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllBytes(workspace.OutputPath));
-            SelectCulture(window, "keyword");
+            SelectCulture(ide, window, "keyword");
             VisualStudioSession.Wait(() => name.Text == "$(loc:Inspection)" && window.FindAllDescendants(cf => cf.ByControlType(ControlType.Text))
                 .Any(item => item.Name.StartsWith("Values from ", StringComparison.Ordinal)), "keyword retains full expression after analysis");
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "preview-language-selector.png"));

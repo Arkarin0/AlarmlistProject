@@ -47,7 +47,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal("View.AlarmlistPreview", previewCommand.Name);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "$(loc:Inspection)", "dockable keyword preview");
-            SelectCulture(window, "en");
+            SelectCulture(ide, window, "en");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Inspect 001", "tool window follows preview culture");
             ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").IsFloating = false;
             VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Alarmlist Preview").And(cf.ByControlType(ControlType.Window))) == null, "preview docking animation");

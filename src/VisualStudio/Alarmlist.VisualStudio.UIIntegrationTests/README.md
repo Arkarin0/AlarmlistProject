@@ -15,10 +15,13 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Scenario | Observable checks | Area trait |
 | --- | --- | --- |
 | Templates and file lifecycle | Installed project/item templates, build, folder/item creation, rename, solution reload, delete and updated output | `ProjectItems` |
+| Template and folder symbols | Actual Add New Item artwork, native known-folder icons, ordinary/renamed folders and reload | `ProjectItems` |
 | Shared editor | Custom factory/native XML view, New Window/New Tab, shared document data, edit/undo/redo/Save All, XML-first opening and XML survival after designer closure | `SharedEditor` |
 | Designer Save As | Local and linked destinations and back, two views sharing RDT/buffer identity, subsequent saves and preservation of previous files | `SaveAs` |
 | XML Save As | The same Save As contract starting with the XML editor | `SaveAs` |
 | Live diagnostics | Publication before Build, exact navigation position, unload/reload, XML-only unsaved correction, disk/output preservation, discard and deletion | `LiveDiagnostics` |
+| Duplicate before first Build | Unsaved XML/designer ALM0001 publication and correction, shared linked contexts, native source filters and preserved Build rows | `LiveDiagnostics` |
+| Source navigation | Exact duplicate and inherited-procedure selection, Designer/XML preference, native Options persistence/restart, draft/stale guards and unsupported-location fallback | `Navigation` |
 | Configured external analyzer | Live warning/navigation, saved severity and option refresh, promoted build failure preserves output, and source DLL remains unlocked | `Analyzers` |
 | Build failure/Clean/Rebuild | Error List, failure preserves output, updated live errors preserve Build errors, Clean removes output, Rebuild restores it | `Build` |
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
@@ -35,6 +38,7 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Lookup and template completion | Saved metadata choices while lookup XML is dirty, named argument slots, expression insertion/Undo, keyword and translated preview, saved catalogue regeneration, unchanged source/output bytes | `Lookups` |
 | Named list completion | Contextual argument choices, saved list inputs, translated descriptions and literal identifiers | `Lists` |
 | Preview window | Docking, active-document/culture changes, private drafts, source navigation, closing and reopening | `Preview` |
+| Project preview | No-editor project menu/table/details/XML, explicit linked contexts, language and column preferences, shared unsaved buffers/private drafts, hide/show, unload/reload and return to Follow active editor | `Preview` |
 | Alarm table | Wrapped Test method/effective entries, usable filter/focus at narrow widths, sorting/filtering, validated copying/navigation, drafts, keyboard/mouse column controls, CPS user-file preservation and project-reopen layout restoration | `PreviewTable` |
 
 Project and document lifecycle checks retain the former smoke script's shell/API

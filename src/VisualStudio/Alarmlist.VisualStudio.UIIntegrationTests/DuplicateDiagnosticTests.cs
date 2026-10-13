@@ -39,8 +39,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => VisualStudioAutomation.FindItem(ide.Automation, null, "Diagnostics.almx", ""), "diagnostic input discovery before Build");
             ide.Automation.ExecuteCommand("View.ErrorList");
             using var automation = new UIA3Automation();
-            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
-            Window window = application.GetMainWindow(automation);
+            Window window = automation.FromHandle(new IntPtr(ide.Automation.MainWindow.HWnd)).AsWindow();
             window.SetForeground();
             string duplicate = Source.Replace("SecondAlarm", "NewAlarm");
             VisualStudioSession.Wait(() => VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, path, duplicate), "unsaved XML duplicate");
@@ -158,10 +157,18 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         internal static void SelectErrorSource(VisualStudioSession ide, Window window, string source)
         {
-            ComboBox filter = window.FindAllDescendants(cf => cf.ByControlType(ControlType.ComboBox))
-                .Select(element => element.AsComboBox()).Single(combo => combo.Name == "Generierte Probleme anzeigen"
-                    || combo.Name == "Show issues generated" || combo.Items.Any(item => item.Name.Contains("IntelliSense")));
-            filter.Expand();
+            // A preceding preview test can restore a floating window over the
+            // Error List. Normalize only this owned IDE before native menu input.
+            foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+            ComboBox filter = null;
+            VisualStudioSession.Wait(() => (filter = window.FindAllDescendants(cf => cf.ByControlType(ControlType.ComboBox))
+                .Select(element => element.AsComboBox()).SingleOrDefault(combo => combo.Name == "Generierte Probleme anzeigen"
+                    || combo.Name == "Show issues generated"))?.IsEnabled == true, "Error List source selector readiness");
+            filter.Collapse();
+            window.SetForeground();
+            ide.RequireForeground();
+            filter.Click();
             AutomationElement choice = null;
             VisualStudioSession.Wait(() =>
             {
@@ -172,8 +179,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                             || item.Name.IndexOf("erstellen", StringComparison.OrdinalIgnoreCase) >= 0 && !item.Name.Contains("+"));
                 return choice != null;
             }, "Error List source choice " + source);
-            ide.RequireForeground();
-            choice.Click();
+            // Native list peers can have empty bounds; clicking those can hit
+            // (0,0) and open the shell system menu. Use their selection pattern.
+            choice.Patterns.SelectionItem.Pattern.Select();
             filter.Collapse();
         }
     }

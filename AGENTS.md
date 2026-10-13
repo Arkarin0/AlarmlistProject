@@ -548,8 +548,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - The isolated `Area=Preview` performance workload uses 1,200 alarms with long
   effective procedures and more than 1,000 reference choices. Measure actual WPF
   report resize/scroll layout and reference-popup creation with compilation and
-  correctness checks outside measured intervals. Retain row-virtualization and
-  no-source-commit checks; these measurements do not establish screen-paint latency.
+  correctness checks outside measured intervals. Also measure independent project
+  report materialization/header layout from captured analysis, without an editor
+  document adapter. Retain row-virtualization and no-source-commit checks; these
+  measurements do not establish screen-paint latency.
 - The isolated `Area=Analyzers` bridge workload captures the sample analyzer and
   saved configuration for 1,000 alarms, validating warning counts and host isolation
   outside timing. Its paired range scenario uses a full positive Int64 glob range;
