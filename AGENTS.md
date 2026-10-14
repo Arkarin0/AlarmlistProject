@@ -94,7 +94,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | --- | --- |
 | `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, and detached snapshot/provenance results in `Analysis/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
-| `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-2 sample rule; also a package/UI test asset. |
+| `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-3 sample rule; also a package/UI test asset. |
 | `src/shared/Configuration/` | Saved EditorConfig discovery and analyzer/dependency byte capture shared by build and IDE hosts; no compiler file I/O. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
 | `src/MSBuild/AlarmList.MSBuild.UnitTests/` | Task unit tests and mocked build-engine behavior. |
@@ -241,7 +241,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - Milestone six adds captured `.editorconfig` inputs and diagnostic policy in
   `Configuration/` and `Diagnostics/`. Resolve options without compiler filesystem
   access. Preserve physical-source scoping, case-sensitive globs, root/unset,
-  literal inline punctuation and immutable captured results. ALM0001-ALM0027
+  literal inline punctuation and immutable captured results. ALM0001-ALM0028
   remain mandatory errors regardless of NoWarn or per-file severity. Determine
   success after configurable warning promotion and preserve previous outputs on
   failure. See `src/VisualStudio/MILESTONE-6.md` for scope and implementation status.
@@ -296,12 +296,12 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   in editor code. The SDK's `AnalysisContract` consumer asset verifies this API
   from the restored package without a compiler project reference.
 - The optional `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` overload
-  uses the same bound inputs and normal XML output writer. Contract 4 also accepts
+  uses the same bound inputs and normal XML output writer. Contract 5 also accepts
   captured CompilationContext. Preserve raw expressions separately from evaluated
   values, abstract state, availability, and declaration/assignment origins. The
-  unreleased contracts 1, 2 and 3 are no longer supported by the bridge. `CompiledXml` is unavailable
+  unreleased contracts 1, 2, 3 and 4 are no longer supported by the bridge. `CompiledXml` is unavailable
   on errors; in-memory previews must never save source or write build output.
-- Contract 4 localization results retain captured resource identities/versions,
+- Contract 5 localization results retain captured resource identities/versions,
   normalized selected culture, raw entries and ambiguity, compiler-owned parent
   lookup origins and per-alarm LocalizationUses. Lookup availability is distinct
   from evaluated-value availability. Keep these detached and immutable, with no
@@ -330,7 +330,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 ## MSBuild SDK contracts
 
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
-  saved dependency-byte capture, contract-2 detached inputs, cooperative cancellation,
+  saved dependency-byte capture, contract-3 detached inputs, cooperative cancellation,
   ALM0025 failure reporting, and diagnostic policy before output installation. The
   net472 loader must reject changed/conflicting images in an existing AppDomain;
   VS replaces the domain on payload changes, while desktop builds need a new process.
@@ -393,7 +393,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   ProjectFileFolderItems so persisted empty folders can reload in CPS.
 - The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
   SDK's net472 compiler independently of the build task runtime. The extension's
-  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-4 data
+  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-5 data
   into host-owned results. Do not load compiler types in the VS host domain, add a
   compiler project reference, or substitute another SDK on failure. Call bridge
   operations off the UI thread; owners must dispose on SDK/configuration changes
@@ -419,7 +419,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Capture saved lookup bytes only, watch regeneration/deletion, and compare captured
   text/path/order/version before publication, completion or navigation. Lookup drafts
   and close notifications must not expose unsealed changes. The bridge requires the
-  lookup-capable contract-4 context and copies catalogue labels, metadata, placeholder
+  library-capable contract-5 context and copies catalogue labels, metadata, placeholder
   names and usage provenance into detached host DTOs. Never parse catalogues or RESX
   templates in the IDE. Template completion inserts explicit empty named arguments;
   lookup/member/metadata completion inserts compiler-supplied expressions, with no
@@ -478,7 +478,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   project previews include shared unsaved ALMX buffers and visibly explain that
   unapplied designer field edits are excluded; never auto-apply those drafts.
   Clear all scopes during stale/unavailable analysis; project XML requires
-  whole-project success. Require context-aware contract 4 and preview
+  whole-project success. Require context-aware contract 5 and preview
   support, and copy XML as a string outside the required property map.
 - Designer lookup caches must validate current text/version before reuse and be
   keyed by immutable analysis state, captured input, and selected source. Keep

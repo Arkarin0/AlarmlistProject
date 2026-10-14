@@ -1,6 +1,6 @@
 # Sample analyzer
 
-`CodePrefixAnalyzer` implements analyzer contract 2. SAMPLE001 warns when a concrete
+`CodePrefixAnalyzer` implements analyzer contract 3. SAMPLE001 warns when a concrete
 alarm's resolved `Code` does not start with `AL-`. Configure the prefix per source:
 
 ```ini

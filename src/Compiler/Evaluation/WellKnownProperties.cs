@@ -10,7 +10,7 @@ namespace Alarmlist.Evaluation
 {
     internal static class WellKnownProperties
     {
-        internal static Dictionary<string, string> Capture(CompilationContext context, AlarmSyntaxNode alarm, string filePath = null)
+        internal static Dictionary<string, string> Capture(CompilationContext context, AlarmSyntaxNode alarm, string filePath = null, AlarmSyntaxTree file = null)
         {
             var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -21,6 +21,17 @@ namespace Alarmlist.Evaluation
             };
             AddPath(values, "AlarmlistProject", context.ProjectPath);
             AddPath(values, "AlarmlistThisFile", filePath ?? alarm?.Location?.FilePath);
+            file = file ?? alarm?.SourceFile;
+            if (file?.Library != null)
+            {
+                string name = file.LibrarySourceName;
+                string filename = name.Substring(name.LastIndexOf('/') + 1);
+                values["AlarmlistThisFile"] = filename;
+                values["AlarmlistThisFileName"] = Path.GetFileNameWithoutExtension(filename);
+                values["AlarmlistThisFileExtension"] = Path.GetExtension(filename);
+                values["AlarmlistThisFileFullPath"] = null;
+                values["AlarmlistThisFileDirectory"] = null;
+            }
             return values;
         }
 

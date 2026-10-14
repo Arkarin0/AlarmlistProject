@@ -104,7 +104,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 AnalysisAvailability state = failure is NotSupportedException || failure is TypeLoadException || failure is MissingMemberException
                     ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.LoadFailed;
                 return new AnalysisResponse(state, "Cannot use analysis compiler " + compilerPath
-                    + ". Restore an SDK supporting analysis contract 4 with captured diagnostic configuration and external analyzers. " + failure.Message);
+                    + ". Restore an SDK supporting analysis contract 5 with captured diagnostic configuration and external analyzers. " + failure.Message);
             }
         }
 
@@ -139,6 +139,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     lookups.SetValue(Activator.CreateInstance(_lookupType, input.Text, input.FilePath, input.Version), i);
                 }
                 object capturedContext = Activator.CreateInstance(_contextType, resources, lookups, context.Culture, context.ProjectPath, context.Configuration, context.Platform, properties);
+                capturedContext = CaptureLibraries(capturedContext, context.Libraries);
                 var configurations = context.Configurations.Where(input => input.Text != null).ToArray();
                 Array configurationInputs = Array.CreateInstance(_editorConfigType, configurations.Length);
                 for (int i = 0; i < configurations.Length; i++)
@@ -173,6 +174,27 @@ namespace Alarmlist.VisualStudio.Analysis
                     : failure is NotSupportedException ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.AnalysisFailed;
                 return new AnalysisResponse(state, "SDK analysis is incomplete: " + failure.Message);
             }
+        }
+
+        private object CaptureLibraries(object context, AnalysisLibraryReferences references)
+        {
+            Assembly assembly = _contextType.Assembly;
+            Type identityType = assembly.GetType("Alarmlist.Libraries.LibraryIdentity", true);
+            Type snapshotType = assembly.GetType("Alarmlist.Libraries.LibraryTextSnapshot", true);
+            Type referenceType = assembly.GetType("Alarmlist.Libraries.LibraryReferenceSet", true);
+            Array roots = Array.CreateInstance(identityType, references.Roots.Count);
+            for (int index = 0; index < references.Roots.Count; index++)
+                roots.SetValue(Activator.CreateInstance(identityType, references.Roots[index].Id, references.Roots[index].Version), index);
+            Array artifacts = Array.CreateInstance(snapshotType, references.Artifacts.Count);
+            for (int index = 0; index < references.Artifacts.Count; index++)
+            {
+                AnalysisInput artifact = references.Artifacts[index];
+                artifacts.SetValue(Activator.CreateInstance(snapshotType, artifact.Text, artifact.FilePath, artifact.Version), index);
+            }
+            object captured = Activator.CreateInstance(referenceType, roots, artifacts);
+            MethodInfo method = _contextType.GetMethod("WithLibraries", new[] { referenceType });
+            if (method == null || method.ReturnType != _contextType) throw new NotSupportedException("The SDK has no compatible library input contract.");
+            return method.Invoke(context, new[] { captured });
         }
 
         private static Exception Unwrap(Exception exception)

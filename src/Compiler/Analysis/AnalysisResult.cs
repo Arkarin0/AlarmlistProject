@@ -12,9 +12,10 @@ namespace Alarmlist.Analysis
     /// <summary>A detached, read-only result for one complete set of source snapshots.</summary>
     public sealed class AnalysisResult
     {
-        public const int CurrentContractVersion = 4;
+        public const int CurrentContractVersion = 5;
         public int ContractVersion => CurrentContractVersion;
         public IReadOnlyList<AnalyzedSource> Sources { get; }
+        public IReadOnlyList<AnalyzedLibrary> Libraries { get; }
         public IReadOnlyList<AnalyzedAlarm> Alarms { get; }
         public IReadOnlyList<AnalysisDiagnostic> Diagnostics { get; }
         public string Culture { get; }
@@ -33,9 +34,10 @@ namespace Alarmlist.Analysis
             string culture, IEnumerable<AnalyzedResource> resources, IEnumerable<AnalyzedResourceEntry> entries,
             IEnumerable<AnalyzedTranslation> translations, IEnumerable<AnalyzedLookupFile> lookupFiles,
             IEnumerable<AnalyzedLookupPath> lookupPaths, IEnumerable<AnalyzedLookupList> lookupLists,
-            IEnumerable<AnalyzedArgumentBinding> argumentBindings, string compiledXml = null)
+            IEnumerable<AnalyzedArgumentBinding> argumentBindings, string compiledXml = null, IEnumerable<AnalyzedLibrary> libraries = null)
         {
             Sources = Array.AsReadOnly(sources.ToArray());
+            Libraries = Array.AsReadOnly((libraries ?? Enumerable.Empty<AnalyzedLibrary>()).ToArray());
             Alarms = Array.AsReadOnly(alarms.ToArray());
             Diagnostics = Array.AsReadOnly(diagnostics.Select(diagnostic => new AnalysisDiagnostic(diagnostic)).ToArray());
             Culture = culture;

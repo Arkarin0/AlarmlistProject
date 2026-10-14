@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Alarmlist.Diagnostics;
+using Alarmlist.Libraries;
 using Alarmlist.Text;
 
 namespace Alarmlist.Localization
@@ -49,6 +50,50 @@ namespace Alarmlist.Localization
             }
             Entries = entries.AsReadOnly();
             Diagnostics = diagnostics.AsReadOnly();
+        }
+
+        internal ResourceCatalogue(IEnumerable<ResxTextSnapshot> snapshots, LibraryGraph graph)
+        {
+            var diagnostics = new DiagnosticBag();
+            var entries = new List<ResourceEntry>();
+            var owners = new Dictionary<ResourceEntry, LibraryIdentity>();
+            foreach (LibraryArtifact library in graph.Artifacts)
+                AddOwner(new ResourceCatalogue(library.Resources.Select(snapshot => new ResxTextSnapshot(snapshot.Text,
+                    "library://" + library.Identity + "/" + snapshot.FilePath, 0, snapshot.Culture,
+                    snapshot.Origins))), library.Identity);
+            AddOwner(new ResourceCatalogue(snapshots), null);
+
+            foreach (var culture in entries.GroupBy(entry => entry.Culture, StringComparer.OrdinalIgnoreCase))
+            {
+                var values = new Dictionary<string, ResourceEntry>(StringComparer.Ordinal);
+                _cultures.Add(culture.Key, values);
+                foreach (var key in culture.GroupBy(entry => entry.Key, StringComparer.Ordinal))
+                {
+                    // Choose maximal owners before culture fallback. Same-owner duplicates
+                    // remain errors even when another owner overrides their identity.
+                    ResourceEntry[] candidates = key.Where(entry => !key.Any(other =>
+                        !Equals(owners[entry], owners[other]) && (owners[other] == null
+                            || (owners[entry] != null && graph.DependsOn(owners[other], owners[entry]))))).ToArray();
+                    values.Add(key.Key, candidates[0]);
+                    if (candidates.Select(entry => owners[entry]).Distinct().Count() <= 1) continue;
+                    diagnostics.Add(new Diagnostic(DiagnosticDescriptors.DuplicateResourceKey, key.Key, culture.Key)
+                        .WithLocation(candidates[0].Location, candidates.Skip(1).Select(entry => entry.Location)));
+                    foreach (ResourceEntry entry in candidates) _ambiguous.Add(entry);
+                }
+            }
+            Entries = entries.AsReadOnly();
+            Diagnostics = diagnostics.AsReadOnly();
+
+            void AddOwner(ResourceCatalogue catalogue, LibraryIdentity owner)
+            {
+                diagnostics.AddRange(catalogue.Diagnostics);
+                foreach (ResourceEntry entry in catalogue.Entries)
+                {
+                    entries.Add(entry);
+                    owners.Add(entry, owner);
+                    if (catalogue.IsAmbiguous(entry)) _ambiguous.Add(entry);
+                }
+            }
         }
 
         internal IReadOnlyList<ResourceEntry> Entries { get; }

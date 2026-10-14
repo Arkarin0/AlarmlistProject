@@ -40,7 +40,7 @@ public sealed class VerifyPackagedAnalysis : Task
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 4, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 5, "Unexpected analysis contract version.");
         Require((bool)Value(result, "Success"), "Valid unsaved inputs did not resolve.");
         object creation = Value(Items(result, "Sources")[1], "ProcedureCreation");
         Require(Value(creation, "Error") == null && Items(creation, "Groups").Select(group => (string)Value(group, "Name"))
@@ -136,7 +136,32 @@ public sealed class VerifyPackagedAnalysis : Task
         Require((int)Value(Value(listEntry, "Location"), "SourceVersion") == 51, "List provenance was lost.");
         Require((bool)Value(Items(lists, "ArgumentBindings").Single(), "IsAvailable"), "Completion binding was lost.");
         Require(((string)Value(lists, "CompiledXml")).Contains("<Name>=EC-120W1</Name>"), "List preview was incorrect.");
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 4 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, and compiled XML preview.");
+        Type identityType = assembly.GetType("Alarmlist.Libraries.LibraryIdentity", true);
+        Type librarySnapshotType = assembly.GetType("Alarmlist.Libraries.LibraryTextSnapshot", true);
+        Type referencesType = assembly.GetType("Alarmlist.Libraries.LibraryReferenceSet", true);
+        object identity = Activator.CreateInstance(identityType, "PackagedLibrary", "1.0.0");
+        Array librarySources = Array.CreateInstance(snapshotType, 1);
+        librarySources.SetValue(Activator.CreateInstance(snapshotType,
+            "<Alarmlist><Alarm><FullyQualifiedName>Imported</FullyQualifiedName><Name>$(p)</Name></Alarm></Alarmlist>", "Library.almx", 1), 0);
+        object emptyContext = contextType.GetProperty("Empty").GetValue(null, null);
+        object builtLibrary = compilerType.GetMethod("CreateLibrary").Invoke(compiler,
+            new object[] { identity, librarySources, emptyContext, System.Threading.CancellationToken.None, null });
+        Require((bool)Value(builtLibrary, "Success") && Items(builtLibrary, "DeferredDiagnostics").Length != 0,
+            "Packaged compiler did not preserve deferred library values.");
+        Array roots = Array.CreateInstance(identityType, 1);
+        roots.SetValue(identity, 0);
+        Array libraryInputs = Array.CreateInstance(librarySnapshotType, 1);
+        libraryInputs.SetValue(Activator.CreateInstance(librarySnapshotType, Value(builtLibrary, "ArtifactText"), "Captured.almlib", 2), 0);
+        object libraryContext = contextType.GetMethod("WithLibraries").Invoke(context,
+            new[] { Activator.CreateInstance(referencesType, roots, libraryInputs) });
+        object imported = contextual.Invoke(compiler, new object[] { Array.CreateInstance(snapshotType, 0), libraryContext, true });
+        Require((bool)Value(imported, "Success") && ((string)Value(imported, "CompiledXml")).Contains("<Name>001</Name>"),
+            "Packaged library consumption did not resolve consumer values.");
+        Require((string)Value(Value(Items(imported, "Libraries").Single(), "Identity"), "Id") == "PackagedLibrary",
+            "Library ownership was not detached into analysis.");
+        Require((string)Value(Value(Value(Items(imported, "Alarms").Single(), "Origin"), "Library"), "Id") == "PackagedLibrary",
+            "Imported alarm ownership was lost.");
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 5 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, and compiled XML preview.");
         return true;
     }
 

@@ -94,7 +94,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Contains("$(loc:Inspection)", keyword.CompiledXml);
                 }
                 AnalysisSnapshot snapshot = response.Snapshot;
-                Assert.Equal(4, snapshot.ContractVersion);
+                Assert.Equal(5, snapshot.ContractVersion);
                 Assert.Equal("de-DE", snapshot.Culture);
                 Assert.Equal("de", Assert.Single(snapshot.Resources).Culture);
                 Assert.Equal(31, snapshot.Resources[0].Version);
@@ -299,7 +299,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.DoesNotContain("<ReferenceName>", xml);
                     Assert.DoesNotContain("<Clear", xml);
                     Assert.True(snapshot.Success);
-                    Assert.Equal(4, snapshot.ContractVersion);
+                    Assert.Equal(5, snapshot.ContractVersion);
                     Assert.Equal(new[] { 4, 9 }, snapshot.Sources.Select(source => source.Version));
                     AnalysisAlarm child = snapshot.Alarms[1];
                     Assert.Equal("Base", Assert.Single(child.ReferenceChain).FullyQualifiedName);
@@ -450,6 +450,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(3)]
+        [InlineData(4)]
         public void IncompatibleSdkVersionsDoNotInterfereWithACompatibleProject(int contract)
         {
             using (var sdk = new SdkAsset())
@@ -459,7 +460,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 incompatible.ReplaceWithIncompatibleCompiler(contract);
                 BridgeOpenResult result = new SdkAnalysisBridgeFactory().Open(incompatible.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, result.Availability);
-                Assert.Contains("contract 4", result.Message);
+                Assert.Contains("contract 5", result.Message);
                 Assert.Contains(incompatible.CompilerPath, result.Message);
                 Assert.Null(result.Bridge);
                 Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
@@ -487,7 +488,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
-                Assert.Contains("contract 4", response.Message);
+                Assert.Contains("contract 5", response.Message);
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
             }
         }

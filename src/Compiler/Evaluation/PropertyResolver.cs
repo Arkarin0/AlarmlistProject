@@ -17,6 +17,8 @@ namespace Alarmlist.Evaluation
                 declarations.AddRange(current.Properties.Select(property => new PropertyDeclaration(property, "Alarm", current)));
             declarations.AddRange((file?.Properties ?? Enumerable.Empty<PropertyDefinition>()).Select(property => new PropertyDeclaration(property, "File", null)));
             declarations.AddRange(context.Properties.Select(property => new PropertyDeclaration(property, "Project", null)));
+            if (file?.Library != null)
+                declarations.AddRange(file.Library.Properties.Select(property => new PropertyDeclaration(property, "LibraryProject", null)));
             var result = new List<PropertyBinding>();
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (PropertyDeclaration declaration in declarations)

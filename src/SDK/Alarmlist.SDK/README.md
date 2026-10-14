@@ -33,10 +33,21 @@ This is a breaking transition: replace old Instructions/Reset elements with
 `<Group Name="Instructions">` / `<Group Name="Reset">`. Legacy elements are
 rejected. Compiled XML uses Group/Name/Title and TestProcedureItem children.
 The compiler's TestProcedure exposes Groups; detached alarm analysis exposes
-ProcedureSections with title provenance. Analysis contract 4 requires the matching
-extension; external analyzers must be rebuilt for analyzer contract 2. No migration
+ProcedureSections with title provenance. Analysis contract 5 requires the matching
+extension; external analyzers must be rebuilt for analyzer contract 3. No migration
 tool or compatibility aliases are supplied. See the
 [milestone-eight contract](../../VisualStudio/MILESTONE-8.md).
+
+Milestone nine advances the detached analysis contract to 5 and the analyzer
+contract to 3. Captured library inputs use `CompilationContext.WithLibraries`;
+`AlarmCompiler.CreateLibrary` produces validated in-memory artifacts. Library alarm
+origins expose ownership, and analysis includes dependency identities, portable
+definitions and original-to-generated source span maps. Hosts supply portable
+relative source/resource/lookup names when creating libraries, or provide the
+`portablePaths` mapping to keep physical captured paths for owning-project
+EditorConfig/analyzer validation while exporting portable names. SDK library Build,
+Pack and saved-project graph integration remain under implementation in
+[Milestone nine](../../VisualStudio/MILESTONE-9.md).
 
 The designer's **Add alarm** command resolves creation defaults from saved
 EditorConfig files for the destination ALMX file's physical path, including linked
@@ -454,7 +465,7 @@ The XSD and [complete format specification](../../VisualStudio/HMI-LOOKUPS.md)
 describe these rules. No built-in DeviceTag field, relationship validation, or
 multi-selection formatting is introduced.
 
-Analysis contract 4 adds read-only LookupLists and ArgumentBindings. Entries expose
+Analysis contract 5 adds read-only LookupLists and ArgumentBindings. Entries expose
 their literal Value, Expression, Location, ambiguity, optional DescriptionTranslation,
 and metadata; bindings expose TemplateKey, ArgumentName, ListKey and availability.
 Hosts use these detached compiler answers and revalidate saved inputs for completion.
@@ -612,7 +623,7 @@ It shares the compiler's resolution rules and never reads or writes snapshot pat
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and returns contract 4.
+The original overload keeps its analysis-only behavior and returns contract 5.
 `AnalyzeSnapshots(snapshots, context, includeCompiledXml)` captures the same
 CompilationContext as compilation. EffectiveExpression and procedure RawText retain
 source tokens; EffectiveValue and surviving procedure Text carry evaluated results.
@@ -620,7 +631,7 @@ Check IsValueAvailable and HasEvaluatedValues independently of IsResolved: an ab
 alarm or a field-dependency error can have a valid reference chain. IsAbstract marks
 templates. Alarm and source Properties contain visible custom and well-known values,
 local declaration/assignment presence, and separate declaration/value origins.
-Contract 4 adds selected `Culture`, captured `Resources` (path, version and input
+Contract 5 adds selected `Culture`, captured `Resources` (path, version and input
 culture), raw `ResourceEntries` with comments/locations/validity/ambiguity, and
 compiler-resolved `Translations` for catalogue keys. Requested and supplying
 cultures are separate. Translation `IsAvailable` means lookup succeeded, not that
@@ -633,7 +644,7 @@ ALMX usage location, evaluated Value and IsValueAvailable. Abstract or excluded
 content does not invent uses. A missing or invalid expression can retain lookup
 provenance while its evaluated value is unavailable. Results are detached and
 read-only; changing resource/culture inputs cannot mutate earlier results.
-The bridge requires contract 4 and copies this data into host-owned serializable
+The bridge requires contract 5 and copies this data into host-owned serializable
 objects. Resource filename inference is delegated to the SDK's
 `LocalizationCulture.InferResourceCulture`; explicit empty culture stays distinct.
 CPS saved-resource capture and designer localization follow in iterations six/seven.
@@ -656,7 +667,7 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 4 and a CPS
+The extension now has an isolated AppDomain bridge for contract 5 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear
