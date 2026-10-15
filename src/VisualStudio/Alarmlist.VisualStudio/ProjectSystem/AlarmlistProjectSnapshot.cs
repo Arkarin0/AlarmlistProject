@@ -29,7 +29,15 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             return new AnalysisProject(projectPath, configuration, project.GetPropertyValue(CompilerPathProperty), paths, context,
                 resources, project.GetPropertyValue("AlarmlistCultures"), project.GlobalProperties.ContainsKey("AlarmlistCulture"),
                 project.GetItems("AlarmlistLookup").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))),
-                project.GetItems("AlarmlistAnalyzer").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))));
+                project.GetItems("AlarmlistAnalyzer").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))),
+                project.GetItems("ProjectReference").Select(item => new AnalysisReferenceItem(
+                    Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude)),
+                    item.Metadata.ToDictionary(metadata => metadata.Name, metadata => metadata.EvaluatedValue))),
+                project.GetItems("PackageReference").Select(item => new AnalysisReferenceItem(item.EvaluatedInclude,
+                    item.Metadata.ToDictionary(metadata => metadata.Name, metadata => metadata.EvaluatedValue))),
+                project.GlobalProperties.ToDictionary(property => property.Key, property => property.Value),
+                project.GetPropertyValue("ProjectAssetsFile"), project.GetPropertyValue("TargetFrameworkMoniker"),
+                project.GetPropertyValue("CurrentSolutionConfigurationContents"));
         }
 
         private static string EmptyToNull(string value) => string.IsNullOrEmpty(value) ? null : value;

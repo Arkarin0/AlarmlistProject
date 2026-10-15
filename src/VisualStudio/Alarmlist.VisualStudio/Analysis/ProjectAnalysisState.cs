@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,10 +22,18 @@ namespace Alarmlist.VisualStudio.Analysis
         public string BuildCultures { get; }
         public bool IsPreviewCultureGlobal { get; }
         public IReadOnlyList<string> Analyzers { get; }
+        public IReadOnlyList<AnalysisReferenceItem> ProjectReferences { get; }
+        public IReadOnlyList<AnalysisReferenceItem> PackageReferences { get; }
+        public string AssetsFile { get; }
+        public string FrameworkMoniker { get; }
+        public string SolutionConfigurationContents { get; }
+        public IReadOnlyDictionary<string, string> EvaluationGlobalProperties { get; }
 
         public AnalysisProject(string projectPath, string configuration, string compilerPath, IEnumerable<string> inputs, AnalysisContext context = null,
             IEnumerable<AnalysisResourceItem> resources = null, string buildCultures = null, bool isPreviewCultureGlobal = false, IEnumerable<string> lookups = null,
-            IEnumerable<string> analyzers = null)
+            IEnumerable<string> analyzers = null, IEnumerable<AnalysisReferenceItem> projectReferences = null,
+            IEnumerable<AnalysisReferenceItem> packageReferences = null, IDictionary<string, string> evaluationGlobalProperties = null,
+            string assetsFile = null, string frameworkMoniker = null, string solutionConfigurationContents = null)
         {
             ProjectPath = projectPath;
             Configuration = configuration;
@@ -36,6 +45,13 @@ namespace Alarmlist.VisualStudio.Analysis
             BuildCultures = string.IsNullOrWhiteSpace(buildCultures) ? "keyword" : buildCultures;
             IsPreviewCultureGlobal = isPreviewCultureGlobal;
             Analyzers = Array.AsReadOnly((analyzers ?? Array.Empty<string>()).ToArray());
+            ProjectReferences = Array.AsReadOnly((projectReferences ?? Array.Empty<AnalysisReferenceItem>()).ToArray());
+            PackageReferences = Array.AsReadOnly((packageReferences ?? Array.Empty<AnalysisReferenceItem>()).ToArray());
+            AssetsFile = assetsFile;
+            FrameworkMoniker = frameworkMoniker;
+            SolutionConfigurationContents = solutionConfigurationContents;
+            EvaluationGlobalProperties = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(
+                evaluationGlobalProperties ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase));
         }
 
         public bool HasSameCompilerContext(AnalysisProject other)
@@ -67,11 +83,12 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisLookupInput> Lookups { get; }
         public IReadOnlyList<CapturedEditorConfig> Configurations { get; }
         public IReadOnlyList<CapturedAnalyzerReference> Analyzers { get; }
+        public CapturedProjectLibraries Libraries { get; }
 
         public ProjectAnalysisState(long generation, AnalysisProject project, ProjectAnalysisStatus status, string message,
             AnalysisResponse response = null, IReadOnlyList<CapturedAnalysisInput> inputs = null, IReadOnlyList<AnalysisResourceInput> resources = null,
             IReadOnlyList<AnalysisLookupInput> lookups = null, IReadOnlyList<CapturedEditorConfig> configurations = null,
-            IReadOnlyList<CapturedAnalyzerReference> analyzers = null)
+            IReadOnlyList<CapturedAnalyzerReference> analyzers = null, CapturedProjectLibraries libraries = null)
         {
             Generation = generation;
             Project = project;
@@ -83,6 +100,7 @@ namespace Alarmlist.VisualStudio.Analysis
             Lookups = Array.AsReadOnly((lookups ?? Array.Empty<AnalysisLookupInput>()).ToArray());
             Configurations = Array.AsReadOnly((configurations ?? Array.Empty<CapturedEditorConfig>()).ToArray());
             Analyzers = Array.AsReadOnly((analyzers ?? Array.Empty<CapturedAnalyzerReference>()).ToArray());
+            Libraries = libraries;
         }
     }
 
@@ -118,5 +136,10 @@ namespace Alarmlist.VisualStudio.Analysis
         Task<IReadOnlyList<AnalysisLookupInput>> CaptureLookupsAsync(IReadOnlyList<string> paths, CancellationToken token);
         Task<IReadOnlyList<CapturedEditorConfig>> CaptureConfigurationsAsync(IReadOnlyList<string> sourcePaths, CancellationToken token);
         Task<IReadOnlyList<CapturedAnalyzerReference>> CaptureAnalyzersAsync(IReadOnlyList<string> paths, CancellationToken token);
+    }
+
+    internal interface IProjectDependencyInputSource
+    {
+        void WatchDependencies(IReadOnlyList<string> paths, IReadOnlyList<AnalysisDiscoveryGlob> globs = null);
     }
 }

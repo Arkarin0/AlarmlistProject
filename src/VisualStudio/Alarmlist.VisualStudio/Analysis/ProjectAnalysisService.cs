@@ -23,6 +23,9 @@ namespace Alarmlist.VisualStudio.Analysis
         private ISdkAnalysisBridge _bridge;
         private AnalysisProject _bridgeProject;
         private IReadOnlyList<CapturedAnalyzerReference> _bridgeAnalyzers;
+        private AnalysisProject _dependencyWatchProject;
+        private readonly HashSet<string> _dependencyWatchPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private readonly List<AnalysisDiscoveryGlob> _dependencyWatchGlobs = new List<AnalysisDiscoveryGlob>();
         private bool _resetBridge;
         private bool _stopped;
         private long _generation;
@@ -116,6 +119,12 @@ namespace Alarmlist.VisualStudio.Analysis
                     }
                     if (reset || (project != null && !project.HasSameCompilerContext(_bridgeProject))) CloseBridge();
                     _inputs.Watch(project);
+                    if (!ReferenceEquals(project, _dependencyWatchProject))
+                    {
+                        _dependencyWatchProject = project;
+                        _dependencyWatchPaths.Clear();
+                        _dependencyWatchGlobs.Clear();
+                    }
                     if (project == null) return;
                     var analyzers = await _inputs.CaptureAnalyzersAsync(project.Analyzers, token).ConfigureAwait(false);
                     if (_bridgeAnalyzers != null && !AnalyzersMatch(analyzers, _bridgeAnalyzers)) CloseBridge();
@@ -138,8 +147,34 @@ namespace Alarmlist.VisualStudio.Analysis
                     var resources = await _inputs.CaptureResourcesAsync(project.Resources, token).ConfigureAwait(false);
                     var lookups = await _inputs.CaptureLookupsAsync(project.Lookups, token).ConfigureAwait(false);
                     var configurations = await _inputs.CaptureConfigurationsAsync(project.Inputs, token).ConfigureAwait(false);
+                    var dependencyPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var dependencyGlobs = new List<AnalysisDiscoveryGlob>();
+                    void ObserveDependencies(IEnumerable<string> paths)
+                    {
+                        foreach (string path in paths) dependencyPaths.Add(path);
+                        _dependencyWatchPaths.UnionWith(dependencyPaths);
+                        (_inputs as IProjectDependencyInputSource)?.WatchDependencies(_dependencyWatchPaths.ToArray(), _dependencyWatchGlobs);
+                    }
+                    void ObserveGlobs(IEnumerable<AnalysisDiscoveryGlob> globs)
+                    {
+                        dependencyGlobs.AddRange(globs);
+                        foreach (AnalysisDiscoveryGlob glob in globs)
+                            if (!_dependencyWatchGlobs.Any(existing => existing.Identity == glob.Identity)) _dependencyWatchGlobs.Add(glob);
+                        (_inputs as IProjectDependencyInputSource)?.WatchDependencies(_dependencyWatchPaths.ToArray(), _dependencyWatchGlobs);
+                    }
+                    CapturedProjectLibraries libraries = project.ProjectReferences.Count == 0 && project.PackageReferences.Count == 0
+                        ? null : CapturedProjectLibraries.Capture(project, _factory, token, ObserveDependencies, ObserveGlobs);
+                    // Keep previous watches until discovery succeeds: a deleted
+                    // mandatory import can stop evaluation before its path is observed.
+                    _dependencyWatchPaths.Clear();
+                    _dependencyWatchPaths.UnionWith(dependencyPaths);
+                    _dependencyWatchGlobs.Clear();
+                    _dependencyWatchGlobs.AddRange(dependencyGlobs);
+                    (_inputs as IProjectDependencyInputSource)?.WatchDependencies(dependencyPaths.ToArray(), dependencyGlobs);
                     token.ThrowIfCancellationRequested();
-                    AnalysisResponse response = _bridge.Analyze(captured.Select(input => input.Input), token, project.Context.WithSavedInputs(resources, lookups, configurations, analyzers));
+                    AnalysisContext context = project.Context.WithSavedInputs(resources, lookups, configurations, analyzers);
+                    if (libraries != null) context = context.WithLibraries(libraries.References);
+                    AnalysisResponse response = _bridge.Analyze(captured.Select(input => input.Input), token, context);
                     token.ThrowIfCancellationRequested();
                     var verified = await _inputs.CaptureAsync(project.Inputs, token).ConfigureAwait(false);
                     var verifiedResources = await _inputs.CaptureResourcesAsync(project.Resources, token).ConfigureAwait(false);
@@ -151,7 +186,8 @@ namespace Alarmlist.VisualStudio.Analysis
                         || resources.Count != verifiedResources.Count || resources.Where((input, index) => !input.Matches(verifiedResources[index])).Any()
                         || lookups.Count != verifiedLookups.Count || lookups.Where((input, index) => !input.Matches(verifiedLookups[index])).Any()
                         || configurations.Count != verifiedConfigurations.Count || configurations.Where((input, index) => !input.Matches(verifiedConfigurations[index])).Any()
-                        || !AnalyzersMatch(analyzers, verifiedAnalyzers))
+                        || !AnalyzersMatch(analyzers, verifiedAnalyzers)
+                        || (libraries != null && !libraries.IsCurrent(project, token)))
                     {
                         // Also catches a disk/buffer race whose change event has not
                         // arrived yet, including close/reopen with the same version.
@@ -162,7 +198,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     }
                     ProjectAnalysisStatus status = response.Availability == AnalysisAvailability.Available ? ProjectAnalysisStatus.Available
                         : response.Availability == AnalysisAvailability.InvalidInput ? ProjectAnalysisStatus.Incomplete : ProjectAnalysisStatus.Unavailable;
-                    Publish(generation, new ProjectAnalysisState(generation, project, status, response.Message, response, captured, resources, lookups, configurations, analyzers));
+                    Publish(generation, new ProjectAnalysisState(generation, project, status, response.Message, response, captured, resources, lookups, configurations, analyzers, libraries));
                 }, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -216,7 +252,13 @@ namespace Alarmlist.VisualStudio.Analysis
                     await _analysisGate.ExecuteAsync(() =>
                     {
                         try { CloseBridge(); }
-                        finally { _inputs.Dispose(); }
+                        finally
+                        {
+                            _dependencyWatchProject = null;
+                            _dependencyWatchPaths.Clear();
+                            _dependencyWatchGlobs.Clear();
+                            _inputs.Dispose();
+                        }
                         return Task.CompletedTask;
                     }).ConfigureAwait(false);
                 });

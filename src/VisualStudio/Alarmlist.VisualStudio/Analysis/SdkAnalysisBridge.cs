@@ -69,6 +69,14 @@ namespace Alarmlist.VisualStudio.Analysis
         AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken cancellationToken = default, AnalysisContext context = null);
     }
 
+    internal interface ISdkLibraryBridge : ISdkAnalysisBridge
+    {
+        PackageResolutionResponse ResolvePackages(string assetsText, string assetsPath, string frameworkMoniker,
+            string[] packageIds, string[] packageVersions, CancellationToken cancellationToken = default);
+        LibraryCreationResponse CreateLibrary(CapturedLibraryProject project, AnalysisLibraryReferences dependencies = null,
+            CancellationToken cancellationToken = default);
+    }
+
     [Export(typeof(ISdkAnalysisBridgeFactory))]
     internal sealed class SdkAnalysisBridgeFactory : ISdkAnalysisBridgeFactory
     {
@@ -76,7 +84,7 @@ namespace Alarmlist.VisualStudio.Analysis
     }
 
     /// <summary>Owned by one project/configuration. Call off the UI thread and dispose on SDK change or project unload.</summary>
-    internal sealed class SdkAnalysisBridge : ISdkAnalysisBridge
+    internal sealed class SdkAnalysisBridge : ISdkLibraryBridge
     {
         private readonly object _gate = new object();
         private AppDomain _domain;
@@ -150,6 +158,40 @@ namespace Alarmlist.VisualStudio.Analysis
                     response = new AnalysisResponse(AnalysisAvailability.AnalysisFailed, "SDK analysis failed: " + exception.Message);
                 }
                 // Cooperative cancellation crosses through a host-owned probe; never abort analyzer threads.
+                cancellationToken.ThrowIfCancellationRequested();
+                return response;
+            }
+        }
+
+        public PackageResolutionResponse ResolvePackages(string assetsText, string assetsPath, string frameworkMoniker,
+            string[] packageIds, string[] packageVersions, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_gate)
+            {
+                if (_domain == null) throw new ObjectDisposedException(nameof(SdkAnalysisBridge));
+                PackageResolutionResponse response;
+                try { response = WithHostAssemblyResolution(() => _worker.ResolvePackages(assetsText, assetsPath, frameworkMoniker,
+                    (string[])packageIds.Clone(), (string[])packageVersions.Clone())); }
+                catch (Exception exception) when (IsRecoverable(exception))
+                { response = new PackageResolutionResponse(AnalysisAvailability.AnalysisFailed, "SDK package resolution failed: " + exception.Message); }
+                cancellationToken.ThrowIfCancellationRequested();
+                return response;
+            }
+        }
+
+        public LibraryCreationResponse CreateLibrary(CapturedLibraryProject project, AnalysisLibraryReferences dependencies = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (project == null) throw new ArgumentNullException(nameof(project));
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_gate)
+            {
+                if (_domain == null) throw new ObjectDisposedException(nameof(SdkAnalysisBridge));
+                LibraryCreationResponse response;
+                try { response = WithHostAssemblyResolution(() => _worker.CreateLibrary(project, dependencies, new AnalysisCancellationProbe(cancellationToken))); }
+                catch (Exception exception) when (IsRecoverable(exception))
+                { response = new LibraryCreationResponse(AnalysisAvailability.AnalysisFailed, "SDK library creation failed: " + exception.Message); }
                 cancellationToken.ThrowIfCancellationRequested();
                 return response;
             }

@@ -42,6 +42,10 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<CapturedAnalyzerReference> Analyzers { get; }
         public AnalysisLibraryReferences Libraries { get; }
 
+        public AnalysisContext WithLibraries(AnalysisLibraryReferences libraries)
+            => new AnalysisContext(ProjectPath, Configuration, Platform, Properties, Resources, Culture, Lookups,
+                DiagnosticOptions, Configurations, Analyzers, libraries);
+
         public AnalysisContext WithSavedInputs(IEnumerable<AnalysisResourceInput> resources, IEnumerable<AnalysisLookupInput> lookups,
             IEnumerable<CapturedEditorConfig> configurations = null, IEnumerable<CapturedAnalyzerReference> analyzers = null)
             => new AnalysisContext(ProjectPath, Configuration, Platform, Properties, resources, Culture, lookups, DiagnosticOptions, configurations ?? Configurations, analyzers ?? Analyzers, Libraries);

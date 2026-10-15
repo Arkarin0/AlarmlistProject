@@ -59,8 +59,24 @@ Alarm-field properties read resolved values; custom parameter assignments remain
 literal. Explicit-empty assignments stop fallback, while unassigned parameters
 use outer scopes and cause errors only when used unresolved by a concrete alarm.
 Milestone three's remaining release checks stay open. Milestone five localization
-is implemented; see its [iteration results and remaining gates](MILESTONE-5.md). NuGet alarm libraries
-remain for a later milestone.
+is implemented; see its [iteration results and remaining gates](MILESTONE-5.md).
+
+[Milestone nine](MILESTONE-9.md) adds reusable alarm libraries through project and
+NuGet references. Consumer analysis reads saved referenced projects and their
+imports, ALMX, resources, lookups and configuration without running Build or
+writing library artifacts. This also works for unloaded projects and projects
+outside the solution. Save dependency changes to refresh consumers; unsaved
+dependency XML remains private, while the consumer's own open ALMX buffers still
+participate in its analysis. Solution configuration mappings select the referenced
+project configuration. Library analyzers and EditorConfig validate their owning
+library and do not become consumer policy.
+
+Package analysis uses the selected SDK and restored NuGet assets. Restore after
+changing package references. Missing or invalid dependencies clear stale results;
+saved-file recovery triggers analysis again. Inputs and package selections are
+revalidated before results are published or used for editor actions. Library-aware
+completion, origin labels and package definition navigation remain tracked in
+milestone-nine iteration six; see the plan for current acceptance evidence.
 
 [Milestone six](MILESTONE-6.md) adds saved EditorConfig settings, diagnostic severity,
 project warning controls and explicit `AlarmlistAnalyzer` DLLs. The SDK owns rule

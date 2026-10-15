@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–4 complete (2026-10-15); 5–8 planned.
+Status: iterations 1–5 complete (2026-10-15); 6–8 planned.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -882,3 +882,412 @@ evidence above. Documentation records Pack's required Build and package ownershi
 Native UI acceptance remains covered by iteration 1's foundation evidence and the
 later integrated scenarios; saved dependency analysis/designer behavior is still
 iterations 5–6. No release/publication is authorized or performed.
+
+### Iteration 5 — complete
+
+Initial inspection after iteration-4 commit `f93894f`: ProjectAnalysisService
+captures local buffers plus saved resource/lookup/configuration/analyzer inputs,
+then recaptures them before publication. AnalysisContext already transports captured
+library artifacts through the isolated contract-5 bridge, but CPS snapshots and
+input watchers do not yet discover dependencies. No saved dependency graph is
+currently connected to the live service.
+
+Implementation sequence within this iteration:
+
+1. Capture detached evaluated reference metadata and evaluate saved projects in
+   private MSBuild collections without executing targets or reusing CPS draft XML.
+2. Capture transitive saved project/package inputs, configuration/portable paths,
+   imports and membership watch roots. Preserve solution/configuration assignment
+   and reject missing, conflicting or cyclic graphs with recoverable state.
+3. Create project library artifacts in memory through the isolated SDK worker,
+   preserving deferred library validation and keeping compiler/NuGet implementation
+   assemblies outside the VS host domain. Capture restored package artifacts.
+4. Integrate dependency capture, immediate invalidation, cancellation, input
+   recapture and navigation validation into service/watcher lifecycle. Exercise
+   saved changes, drafts, unloaded projects, deletion/recovery and races.
+
+First implementation: AnalysisProject now retains ordered ProjectReference and
+PackageReference items with copied read-only evaluated metadata. Project reference
+paths are absolute; package IDs remain identifiers. SavedProjectEvaluation creates
+a fresh disposable ProjectCollection, reads saved project/import files, returns a
+detached AnalysisProject and import paths, and unloads the collection. It does not
+execute targets and does not consult open documents. This helper is not yet wired
+into service capture; it is a prerequisite, not completed dependency analysis.
+
+Validation on 2026-10-15:
+
+- SavedEvaluation: **3 net472 tests**, no failures/skips (`20_02_34`). Proves
+  private evaluation ignores unsaved changes in another loaded collection, preserves
+  reference metadata, executes no InitialTargets, writes no output, recaptures
+  changed imports/conditional glob membership/duplicates, rejects deleted imports,
+  recovers after recreation, and honors cancellation before evaluation.
+- SnapshotRegression: **22 net472 tests**, no failures/skips (`20_02_58`), covering
+  existing source/resource/lookup input capture. Tests use plain project fixtures;
+  SDK-resolver/native IDE behavior is not yet acceptance evidence for this helper.
+
+Transitive discovery, in-memory library production, watch/publication integration
+and remaining iteration-5 gates are pending. No iteration-5 commit yet.
+
+SavedProjectGraph now traverses evaluated ProjectReference items using an explicit
+stack, preserving encounter order and producing dependency-first saved evaluations.
+It deduplicates identical path/global-property contexts, keeps differing contexts
+separate, excludes ReferenceOutputAssembly=false edges, detects active-path cycles,
+and honors cancellation between evaluations. Snapshots copy evaluation global
+properties. Reference evaluation applies explicit SetConfiguration/SetPlatform and
+AdditionalProperties and removes SDK output-identity/framework properties plus
+GlobalPropertiesToRemove. All project collections are disposed after evaluation.
+This traversal is not yet the complete library graph: solution configuration mapping,
+OutputType/identity validation, restored packages and captured source bytes remain
+to be added before service integration. In particular, no claim of native saved
+dependency refresh follows from these helper tests.
+
+`SavedGraph` passed **6 net472 tests**, no failures/skips (`2026-10-15_20_05_01`),
+combining the first three evaluation tests with diamond ordering/deduplication,
+cycle rejection/recovery, distinct explicit configurations, output-property removal,
+excluded missing references and missing-file recovery. Fixture InitialTargets would
+fail if targets were executed; no build outputs are created. Iteration 5 remains
+in progress and uncommitted.
+
+SavedProjectEvaluation now captures OutputType, package identity, assets/framework
+selection and portable names for Compile/AlarmlistResource/AlarmlistLookup items.
+Portable names follow the build task's project-relative/Link projection. A new
+serializable CapturedLibraryProject reads only saved XML bytes, retains source
+order/duplicates, captures resources/lookups and the library's own diagnostic
+configuration/analyzer images, and copies the portable-name map. It rejects
+Application references and missing package identity before reading inputs. This
+data is intended for that library's isolated compiler; its configuration/analyzers
+must not be copied into the consumer context or serialized into exported artifacts.
+
+CapturedLibraryProject.Matches compares saved contents and context rather than
+timestamps alone, preparing for pre-publication graph recapture. Raw package
+versions are retained at this boundary; normalization must run in the isolated SDK
+side with NuGet's version rules before artifact creation. The current worker has
+shared input conversion and analyzer-loading logic embedded in AnalyzeCore; the
+next step is to reuse it for CreateLibrary rather than duplicate compiler behavior
+or load NuGet/compiler assemblies into the VS host.
+
+`SavedLibraryInputs` passed **12 net472 tests**, no failures/skips
+(`2026-10-15_20_07_23`): the six evaluation/graph tests plus saved input order,
+explicit-empty culture, portable Link names, immutable captured sources, unchanged-
+timestamp source/resource/lookup/EditorConfig changes, non-library rejection and
+missing-input failures. No build outputs were produced by capture. SDK artifact
+creation, package resolution, solution mapping and live graph integration remain
+pending; these tests do not establish end-to-end dependency analysis.
+
+The isolated bridge now exposes ISdkLibraryBridge.CreateLibrary. SdkAnalysisWorker
+shares captured snapshot/context conversion and analyzer-loader lifetime between
+Analyze and CreateLibrary, invokes the SDK's public five-argument CreateLibrary
+API, and returns a detached LibraryCreationResponse with normalized identity,
+artifact text, hard diagnostic messages and separate deferred diagnostic messages.
+NuGet.Versioning is resolved from the selected SDK beside the compiler only in
+the worker domain. Cancellation uses the existing cooperative host probe; no
+compiler objects, reflection objects or SDK exceptions cross the boundary. Failed
+creation returns no artifact. Structured library diagnostic locations remain a
+follow-up for dependency/editor diagnostics; current messages retain ID and text.
+
+`LibraryCreationBridge` passed **42 net472 bridge tests**, no failures/skips
+(`2026-10-15_20_10_09`), including existing configuration/analyzer/isolation coverage.
+The new test captures a library, corrupts the source on disk afterward, creates a
+valid in-memory artifact from the captured contents, verifies deferred consumer
+values and NuGet normalization, and consumes it successfully with a consumer
+property. Fresh capture of the corrupted source fails without an artifact. The
+returned artifact survives domain unload and contains no physical input directory;
+neither Alarmlist.Core nor NuGet.Versioning enters the host domain.
+`LibraryCreationCancellation` passed **1 net472 test** (`20_10_58`) after adding
+the service-facing interface and pre-cancelled-call coverage. No library file is
+written. The live service still does not invoke this operation; graph edges,
+solution mapping, package capture, watchers and publication revalidation remain.
+
+SavedProjectGraph now retains root edges and direct child evaluations as well as
+dependency-first order. CapturedProjectLibraries connects graph capture to saved
+input capture and ISdkLibraryBridge creation. Each library uses its own evaluated
+compiler path in a separately disposed bridge; no fallback SDK is substituted.
+Only its direct dependencies are roots in the creation context, with their complete
+artifact closure available. The consumer receives direct roots plus all generated
+artifacts. Shared project/configuration nodes are created once. Unavailable SDKs
+and failed library creation stop capture without returning a partial graph.
+
+`TransitiveLibraryCreation` passed **4 net472 tests**, no failures/skips
+(`2026-10-15_20_12_55`). The new real packaged-SDK scenario evaluates a saved diamond,
+creates Base/Left/Right artifacts in memory, consumes all three alarms with a
+consumer property, verifies the two direct roots and three distinct libraries,
+rejects a newly malformed saved dependency, then recaptures changed saved content
+after recovery. InitialTargets are never executed and no output files/directories
+are created. The other three tests retain graph order/configuration/cycle coverage.
+
+This coordinator remains unconnected to ProjectAnalysisService. It currently
+rejects PackageReference-containing graphs explicitly, pending isolated package
+capture, rather than silently omitting packages. Solution mappings, full captured
+graph equality, watcher membership/recovery and live publication remain required
+iteration-5 work. These helper tests do not claim native IDE completion.
+
+Extracted LibraryPackageResolver from the build task so build and isolated IDE
+capture share NuGet graph/version/path rules. Its API takes captured assets text,
+the assets identity, framework and requested ID/version arrays, and returns plain
+package identities/paths/direct flags without MSBuild task types. The task remains
+a thin file-capture/logging adapter. NuGet parser errors now retain their diagnostic
+detail instead of only the generic invalid-assets message.
+
+ISdkLibraryBridge.ResolvePackages invokes this API only in the SDK AppDomain and
+copies results into serializable host-owned DTOs. The initial isolation test failed:
+NuGet's parser swallowed a dependency load failure into an invalid lock-file result.
+After exposing its parser diagnostics, the cause was an older Unsafe assembly
+reference versus the SDK's selected Unsafe 6 image. A resolver scoped to package
+resolution in the worker unifies only System.Runtime.CompilerServices.Unsafe to
+the selected SDK image after version/culture/public-key checks. It is removed in
+finally; the host resolver and VS assembly bindings are unchanged.
+
+Validation on 2026-10-15:
+
+- SharedPackageResolver: full task suite **83 per framework**, no failures/skips
+  (`20_14_47`), before the additional parser-diagnostic detail.
+- IsolatedPackageResolver initially **1 passed / 1 failed** (`20_15_53`);
+  diagnostic repeats identified the assembly mismatch (`20_16_12`, `20_17_05`).
+- IsolatedPackageResolverFixed: **2 net472**, no failures/skips (`20_17_50`),
+  covering captured assets even when their path does not exist, normalized direct
+  package identity, rejected version mismatch/missing artifact, detached results
+  after domain unload, and absence of NuGet/AlarmList.MSBuild in the host. The
+  transitive saved-project artifact scenario also remains green.
+- ResolverPackageRegression: **3 per framework**, no failures/skips (`20_18_05`),
+  exercising real packaged SDK restore/Pack consumption, offline use, removal,
+  updates/conflicts and previous-output preservation after the shared resolver refactor.
+
+Package capture now joins CapturedProjectLibraries: CPS/saved evaluations retain
+ProjectAssetsFile and TargetFrameworkMoniker, each library resolves its own saved
+package assets through its selected SDK, and package artifacts propagate through
+project closures. Consumer package roots are resolved independently. Captures
+retain assets text/path and artifact text for subsequent input validation. Identical
+diamond inputs are collapsed; conflicting text is retained for compiler rejection.
+
+Validation: `dotnet test
+src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+--no-restore --filter 'FullyQualifiedName~PackageResolverUsesCapturedAssets|FullyQualifiedName~SavedDiamond'
+--verbosity minimal --logger trx --results-directory
+artifacts/log/Debug/Milestone9/Iteration5/PackageGraphCapture`: **2 net472 passed**,
+no failures/skips (`20_22_41`). The package scenario now creates a valid library
+artifact, consumes it through a saved intermediate project library, verifies final
+consumer XML, and rejects a malformed saved package artifact. An initial test
+compilation required the explicit null metadata constructor argument; rerun passed.
+`git diff --check -- src` passed (line-ending conversion warnings only).
+
+The live service now supplies captured library references to consumer analysis and
+retains the capture on ProjectAnalysisState. Before publication and before actions
+using ProjectAnalysisValidation, it re-evaluates the saved dependency graph and
+compares graph edges, reference metadata, global properties, captured library
+inputs, package assets text and artifact text. A mismatch schedules fresh analysis;
+capture failures suppress the prior result. This validation does not create library
+artifacts again or execute build targets.
+
+Known dependency paths are observed as graph capture progresses, including missing
+project paths, evaluated imports, sources, resources, lookups, analyzers, selected
+compilers, EditorConfig candidates, assets and resolved artifacts. The existing
+input-source watcher owns these subscriptions and disposes them with the project.
+Dependency disk events invalidate the service; dependency document notifications
+are excluded because only consumer inputs belong to the open-buffer observation
+set. EditorConfig directories retain nonrecursive filtered watching.
+
+Validation on 2026-10-15:
+
+- DependencyRevalidation: **48 net472 passed**, no failures/skips (`20_24_16`),
+  selection ProjectAnalysisServiceTests, PackageResolverUsesCapturedAssets,
+  SavedDiamond and ProjectAnalysisValidation.
+- LiveLibraryRevalidation: **1 passed** (`20_25_11`), real packaged SDK through
+  the service, saved dependency changed during verification, old result withheld,
+  fresh result published and consumer unsaved text preserved.
+- SavedDependencyWatching: **71 passed** (`20_26_27`), adding all
+  ProjectAnalysisInputTests and the live service case. The latter also saves a
+  dependency after publication and verifies automatic refresh without Build.
+- DependencyWatcherLifecycle: **24 passed** (`20_27_07`), final
+  ProjectAnalysisInputTests plus LiveServiceRevalidatesSavedLibraries selection;
+  includes dependency draft notifications ignored, saved deletion/recreation
+  observed and open-document subscription released on disposal.
+
+All runs used `dotnet test` on the VS unit-test project with `--no-restore`,
+`--verbosity minimal --logger trx`, their named `--filter` selections, and results
+under `artifacts/log/Debug/Milestone9/Iteration5/<run-name>`.
+Saved reference configuration now invokes MSBuild's public
+`AssignProjectConfiguration` metadata-only task with the same switches as
+`Alarmlist.ProjectReferences.targets`. CPS/saved snapshots retain
+CurrentSolutionConfigurationContents. Assignment precedes reference filtering and
+preserves assigned/unassigned ordering, solution configuration/platform overrides,
+disabled-reference defaults and explicit ReferenceOutputAssembly overrides. The
+adapter's build-engine method throws if any project execution is attempted; no
+new package dependency was needed (Tasks.Core is already supplied by the host SDK).
+Reference consulted: [MSBuild assignment implementation](https://github.com/dotnet/msbuild/blob/main/src/Tasks/AssignProjectConfiguration.cs).
+
+- SolutionConfiguration final focused run: **6 net472 passed**, no failures/skips
+  (`20_29_43`), including transitive solution mappings, disabled project exclusion,
+  explicit reference inclusion, saved diamond and live service behavior.
+  Initial compilation required the explicit ITaskItem2 metadata API; an initial
+  run had 4 passes/2 failures because the metadata dictionary's enumerable yields
+  generic entries. Copying through its Keys/GetMetadata API fixed both failures.
+- ConfigurationRegression: **127 net472 passed**, no failures/skips (`20_30_20`),
+  selecting ProjectAnalysisServiceTests, ProjectAnalysisInputTests, SavedProject,
+  CapturedLibraryProjectTests and SdkAnalysisBridgeTests. Same dotnet test command
+  options/results-root as above. `git diff --check -- src` passed with only
+  line-ending conversion warnings.
+
+Saved evaluation now detaches GetAllGlobs include/exclude/remove patterns for
+Compile, resources, lookups, analyzers and project references. Discovery watches
+use MSBuildGlob matching and fixed directories (including absent directories),
+then request a fresh MSBuild evaluation rather than adding members themselves.
+Declared import candidates from the project/import XML are expanded into watch
+hints even when an Exists condition currently excludes the import. Standard
+ancestor Directory.Build.props/targets, Directory.Packages.props and global.json
+candidates are also observed. Literal candidates use nonrecursive watches;
+recursive item globs retain recursive watching. Unrelated child directories do
+not invalidate a literal candidate. No Project/ProjectRootElement is retained in
+the detached patterns.
+
+- GlobDiscovery: **5 net472 passed**, no failures/skips (`20_33_07`), including a
+  newly added library source refreshing the real service, initially absent nested
+  directories, Exclude/Remove behavior and saved evaluation regression tests.
+- ImportDiscovery: **33 net472 passed**, no failures/skips (`20_34_30`), selecting
+  ProjectAnalysisInputTests, SavedProject and LiveServiceRevalidatesSavedLibraries.
+  The new conditional-import case creates an optional props file, observes its
+  event and verifies newly evaluated source membership.
+- DiscoveryFinal: **3 net472 passed**, no failures/skips (`20_35_03`), selecting
+  SavedGlobsDiscover, MissingConditionalImport and LiveServiceRevalidatesSavedLibraries
+  after narrowing literal-candidate directory invalidation. Commands use the same
+  dotnet test options/results-root as previous runs.
+
+Package resolution now exposes validated candidate artifact paths through an
+optional observer, before checking directory/file existence. The build entry
+point keeps its strict behavior. The isolated worker returns detached watch paths
+even when resolution fails, without returning partial library inputs; the host
+installs those watches before reporting incomplete analysis. This permits recovery
+from a missing artifact without requiring assets changes.
+
+- PackageRecovery: **1 net472 passed**, no failures/skips (`20_36_37`). The extended
+  PackageResolverUsesCapturedAssets test verifies missing-path observation, starts
+  the live service with the artifact missing, observes Incomplete, restores the
+  artifact and observes valid consumer XML while asserting unchanged assets text.
+  Host-domain isolation assertions still pass.
+- PackageRecoveryTaskRegression: full task suite **83 passed per framework**,
+  no failures/skips (net8.0 `20_36_46`, net472 `20_36_47`). Command:
+  `dotnet test src/MSBuild/AlarmList.MSBuild.UnitTests/AlarmList.MSBuild.UnitTests.csproj
+  --no-restore --verbosity minimal --logger trx --results-directory
+  artifacts/log/Debug/Milestone9/Iteration5/PackageRecoveryTaskRegression`.
+  Existing CA1416 warning in shared test infrastructure remains.
+
+Current-input validation now resolves each captured package selection again through
+its selected SDK before comparing assets, identities, direct roots, artifact paths
+and text. This detects changed fallback-folder precedence even if the previous
+artifact and assets text remain unchanged. Temporary worker domains are disposed;
+the additional resolution cost remains part of the performance acceptance work.
+
+- PackageSelectionValidation: **2 net472 passed**, no failures/skips (`20_38_47`),
+  selecting PackageResolverUsesCapturedAssets and LiveServiceRevalidatesSavedLibraries.
+  The package scenario captures from a fallback folder, creates an identical
+  artifact in the preferred folder, and verifies rejection of the old capture
+  without modifying assets or relying on a watcher event.
+
+Added native LibraryAnalysis scenarios for VS2022/2026: a referenced project stays
+outside the solution, its abstract definition supplies consumer preview values,
+saved changes refresh without Build, deletion suppresses stale rows and recreation
+recovers. Consumer XML/library output absence is asserted.
+
+- Native VS2022 `eng/test-visualstudio.ps1 -VisualStudioPath <VS2022>
+  -RootSuffix AlarmlistExp -Filter 'Area=LibraryAnalysis'`: **1 passed**, no
+  failures/skips (`20_40_34`). Fixture/cleanup evidence:
+  `VisualStudioUI/SavedLibraryAnalysis/2022/25e4803cfd0b4cf0a86bf9efe7b80cc8`;
+  TRX run `232d394cdb1a4172ac7c674be8332e8a`. This proves actual selected-SDK
+  saved evaluation in the native host, out-of-solution references, refresh and
+  deletion/recreation without Build.
+- Native VS2026 matching `Area=LibraryAnalysis` run: **1 passed**, no failures/skips
+  (`20_41_31`), TRX run `bb694d73cfda4aaf98a5d3e14ab66e1f`. Fixture and owned-IDE
+  cleanup are retained under `VisualStudioUI/SavedLibraryAnalysis/2026/`.
+
+The native scenario now loads the library for XML draft testing, forces a fresh
+consumer analysis with an unsaved marker alarm, verifies the dependency draft is
+absent, saves it and verifies the new inherited value. The first draft probe failed
+opening a miscellaneous XML file (`44e8c466f12e48958bfe017fa1ebe5ac`); the next failed
+an overly strict DTE project-count assertion (`45ba8f3602804830afb29e819d0f9333`).
+The test now validates the returned project's full path and waits for XML editor
+readiness. Native VS2022 draft run **1 passed**, no failures/skips (`20_45_51`),
+TRX `547caee628404192ba67f0f925ac03a5`.
+
+Extended the scenario to save/delete/recreate library inputs while its project
+is unloaded, then verify refresh after reload. A direct out-of-process IVsSolution4
+probe failed because UnloadProject requires the IDE UI thread (`20_46_38`, TRX
+`c7f64fd09efa49e6b869017f09d7cbe3`). Removed that helper; the test now selects the
+native project tree node and invokes Project.UnloadProject/Project.ReloadProject
+through DTE. That run passed saved updates/deletion/recreation while unloaded,
+but timed out after reload because selecting the library left preview without an
+active document context (UI automation dump, fixture
+`fc4e4ba13b0c4cd9b2ee859217cd592f`, TRX `1244594ece6246cab552740e51057729`).
+The test now reactivates the consumer designer before asserting reload refresh.
+One further run (`ff35392c28bb4cdd8aaf4b7b1f8ce760`) observed preview invalidation
+between two separate assertions after the marker appeared. The draft check now
+captures one row-name array and waits for both the marker and saved inherited
+value in that same observation.
+
+- Final expanded native VS2022 `Area=LibraryAnalysis`: **1 passed**, no failures/
+  skips (`20_50_02`), TRX `63d02433349b45a28beeb29b4ea94b18`. Covers consumer draft
+  precedence, dependency draft exclusion and Save, source refresh/deletion/
+  recreation while the library is unloaded, and refresh after reload.
+- Final expanded native VS2026 matching run: **1 passed**, no failures/skips
+  (`20_50_39`), TRX `fb734cf25dd04217ba6ee302ce6734b2`. Both final runs retain
+  fixture/cleanup evidence under `VisualStudioUI/SavedLibraryAnalysis/<host>/`.
+
+Import discovery now includes historical MSBuild-evaluated property values, so
+later reassignment cannot hide an earlier optional import path. Reserved
+MSBuildThisFile properties are resolved case-insensitively for the declaring
+import file. These are conservative watch hints only; actual import membership
+still comes from MSBuild. Hint expansion is cancellable and ignores invalid
+property-function expressions protected by a false import condition. The
+upstream evaluator's conditional-import handling was reviewed before this change.
+
+The service retains previous dependency watches until fresh discovery succeeds.
+This fixes recovery when deleting a mandatory import aborts evaluation before the
+import's watch can be recaptured. Identical discovery patterns are deduplicated
+across failed retries; stopping the service clears retained watch data. Updated
+the extension README with saved dependency/package behavior and remaining UI work.
+
+- ImportPropertyHistory: **7 net472 passed**, no failures/skips (`20_52_37`),
+  selecting SavedProjectEvaluationTests, MissingConditionalImport,
+  PackageResolverUsesCapturedAssets and LiveServiceRevalidatesSavedLibraries.
+- ImportRecovery: **51 net472 passed**, no failures/skips (`20_54_08`), selecting
+  SavedProjectEvaluationTests, ProjectAnalysisServiceTests and
+  LiveServiceRevalidatesSavedLibraries. The live scenario now deletes a required
+  import, observes Incomplete, restores it, and verifies automatic recovery.
+- EditorFullRegression: **509 net472 passed**, no failures/skips (`20_54_59`,
+  duration 1m28s), including the subsequent false-condition hint safeguard and stop
+  cleanup changes. Command: `dotnet test` on the VS unit-test project with
+  `--no-restore --verbosity minimal --logger trx --results-directory
+  artifacts/log/Debug/Milestone9/Iteration5/EditorFullRegression` (no filter).
+
+Final iteration-5 validation and review:
+
+- VSIXRegression: **12 net472 and 12 net8.0 passed**, no failures/skips
+  (`20_56_58`), running the complete VS integration-test project with `dotnet test
+  --no-restore --verbosity minimal --logger trx --results-directory
+  artifacts/log/Debug/Milestone9/Iteration5/VSIXRegression`.
+- Native `Area=LibraryAnalysis` reruns after the watch-retention/import-hint
+  changes: **1 passed on VS2022 and 1 on VS2026**, no failures/skips;
+  TRX runs `4ed313b5b37249ceb46cadff11b45045` (`20_58_12`) and
+  `4e475bfd5371476e902be2d4e2187d9f` (`20_58_42`).
+- SDKLibraryRegression: **16 net472 and 16 net8.0 passed**, no failures/skips
+  (`20_59_05`). Command: `dotnet test` on the SDK test project with `--no-restore
+  --filter "FullyQualifiedName~LibraryPackTests|FullyQualifiedName~LibraryProjectReferenceTests|FullyQualifiedName~LibraryExchangeTests"
+  --verbosity minimal --logger trx --results-directory
+  artifacts/log/Debug/Milestone9/Iteration5/SDKLibraryRegression`.
+
+Final review also identified the first-load missing mandatory import case, where
+no earlier successful capture supplies recovery watches. A private evaluation
+with IgnoreMissingImports now supplies watch hints on failure only. The strict
+evaluation error is rethrown; tolerant inputs never become compilation inputs or
+published results. It executes no targets and retains no MSBuild project objects.
+
+- InitialImportServiceRecovery: **8 net472 passed**, no failures/skips
+  (`21_02_51`), selecting SavedProjectEvaluationTests and
+  LiveServiceRevalidatesSavedLibraries. Covers strict rejection with detached
+  recovery hints and actual service recovery when an initially absent required
+  import is created, as well as the existing successful-capture/delete/recreate
+  sequence. This focused run covers the final recovery change made after the
+  full editor and native runs above.
+
+Iteration 5 is complete: saved dependency capture, invalidation, failure recovery,
+draft isolation, current-input checks and disposal have implementation evidence.
+Library-aware UI/navigation remains iteration 6; integrated performance and full
+milestone acceptance remain iteration 8. No milestone completion is claimed.

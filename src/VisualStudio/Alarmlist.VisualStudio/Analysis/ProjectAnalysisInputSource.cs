@@ -19,7 +19,7 @@ namespace Alarmlist.VisualStudio.Analysis
     }
 
     /// <summary>Watches only evaluated inputs and the selected compiler; never discovers project membership.</summary>
-    internal sealed class ProjectAnalysisInputSource : IProjectAnalysisInputSource
+    internal sealed class ProjectAnalysisInputSource : IProjectAnalysisInputSource, IProjectDependencyInputSource
     {
         private readonly IOpenAnalysisDocuments _documents;
         private readonly object _gate = new object();
@@ -27,6 +27,9 @@ namespace Alarmlist.VisualStudio.Analysis
         private readonly List<FileSystemWatcher> _watchers = new List<FileSystemWatcher>();
         private string[] _paths = Array.Empty<string>();
         private string[] _documentPaths = Array.Empty<string>();
+        private string[] _dependencyPaths = Array.Empty<string>();
+        private AnalysisDiscoveryGlob[] _dependencyGlobs = Array.Empty<AnalysisDiscoveryGlob>();
+        private AnalysisProject _watchedProject;
         private bool _disposed;
         private bool _restartWatchers;
         public event EventHandler<AnalysisFileChangedEventArgs> Changed;
@@ -39,15 +42,28 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public void Watch(AnalysisProject project)
         {
+            lock (_gate)
+            {
+                if (!ReferenceEquals(project, _watchedProject))
+                { _dependencyPaths = Array.Empty<string>(); _dependencyGlobs = Array.Empty<AnalysisDiscoveryGlob>(); }
+                _watchedProject = project;
+            }
             string[] inputPaths = project == null ? Array.Empty<string>() : project.Inputs
                 .Concat(project.Resources.Select(resource => resource.FilePath))
                 .Concat(project.Lookups)
                 .Concat(project.Analyzers)
+                .Concat(_dependencyPaths.Where(path => !string.Equals(Path.GetFileName(path), ".editorconfig", StringComparison.OrdinalIgnoreCase)))
                 .Concat(string.IsNullOrWhiteSpace(project.CompilerPath) ? Array.Empty<string>() : new[] { project.CompilerPath })
                 .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             string[] configurationPaths = project == null ? Array.Empty<string>()
-                : SavedEditorConfigCapture.Capture(project.Inputs, CancellationToken.None).Select(input => input.FilePath).ToArray();
-            string[] paths = inputPaths.Concat(configurationPaths).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                : SavedEditorConfigCapture.Capture(project.Inputs, CancellationToken.None).Select(input => input.FilePath)
+                    .Concat(_dependencyPaths.Where(path => string.Equals(Path.GetFileName(path), ".editorconfig", StringComparison.OrdinalIgnoreCase)))
+                    .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            // A synthetic child lets ExistingParent select the glob's fixed directory
+            // or its nearest existing ancestor while that directory is absent.
+            string[] discoveryPaths = _dependencyGlobs.SelectMany(glob => glob.Directories)
+                .Select(directory => Path.Combine(directory, ".alarmlist-discovery-watch")).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            string[] paths = inputPaths.Concat(configurationPaths).Concat(discoveryPaths).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             lock (_lifecycleGate)
             {
                 FileSystemWatcher[] previous;
@@ -67,14 +83,17 @@ namespace Alarmlist.VisualStudio.Analysis
                 var created = new List<FileSystemWatcher>();
                 try
                 {
-                    var directories = inputPaths.Select(path => (Directory: ExistingParent(path), Recursive: true))
-                        .Concat(configurationPaths.Select(path => (Directory: ExistingParent(path), Recursive: false))).Distinct();
+                    var directories = inputPaths.Select(path => (Directory: ExistingParent(path), Recursive: true, Filter: "*"))
+                        .Concat(configurationPaths.Select(path => (Directory: ExistingParent(path), Recursive: false, Filter: ".editorconfig")))
+                        .Concat(_dependencyGlobs.SelectMany(glob => glob.Directories.Select(directory =>
+                            (Directory: ExistingParent(Path.Combine(directory, ".alarmlist-discovery-watch")),
+                             Recursive: glob.Recursive || !Directory.Exists(directory), Filter: "*")))).Distinct();
                     foreach (var directory in directories)
                     {
                         var watcher = new FileSystemWatcher(directory.Directory)
                         {
                             IncludeSubdirectories = directory.Recursive,
-                            Filter = directory.Recursive ? "*" : ".editorconfig",
+                            Filter = directory.Filter,
                             NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size
                         };
                         created.Add(watcher);
@@ -99,6 +118,19 @@ namespace Alarmlist.VisualStudio.Analysis
                     throw;
                 }
             }
+        }
+
+        public void WatchDependencies(IReadOnlyList<string> paths, IReadOnlyList<AnalysisDiscoveryGlob> globs = null)
+        {
+            AnalysisProject project;
+            lock (_gate)
+            {
+                if (_disposed) return;
+                _dependencyPaths = paths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+                _dependencyGlobs = (globs ?? Array.Empty<AnalysisDiscoveryGlob>()).ToArray();
+                project = _watchedProject;
+            }
+            Watch(project);
         }
 
         private static string ExistingParent(string path)
@@ -205,8 +237,15 @@ namespace Alarmlist.VisualStudio.Analysis
             }
             foreach (string path in selected) Notify(path);
         }
-        private void OnDiskChanged(object sender, FileSystemEventArgs args) => Notify(args.FullPath);
-        private void OnDiskRenamed(object sender, RenamedEventArgs args) { Notify(args.OldFullPath); Notify(args.FullPath); }
+        private void OnDiskChanged(object sender, FileSystemEventArgs args) => NotifyDisk(args.FullPath);
+        private void OnDiskRenamed(object sender, RenamedEventArgs args) { NotifyDisk(args.OldFullPath); NotifyDisk(args.FullPath); }
+        private void NotifyDisk(string path)
+        {
+            AnalysisDiscoveryGlob[] globs;
+            lock (_gate) { if (_disposed) return; globs = _dependencyGlobs; }
+            if (globs.Any(glob => glob.Matches(path) || (Directory.Exists(path) && glob.IntersectsDirectory(path)))) Notify(null);
+            else Notify(path);
+        }
         private void OnWatcherError(object sender, ErrorEventArgs args)
         {
             lock (_gate) _restartWatchers = true;
@@ -227,7 +266,12 @@ namespace Alarmlist.VisualStudio.Analysis
                         && string.Equals(Path.GetExtension(path), ".dll", StringComparison.OrdinalIgnoreCase)
                         && string.Equals(Path.GetDirectoryName(path), Path.GetDirectoryName(changedPath), StringComparison.OrdinalIgnoreCase))).ToArray();
             }
-            foreach (string path in affected) Changed?.Invoke(this, new AnalysisFileChangedEventArgs(path));
+            foreach (string path in affected)
+            {
+                bool dependency;
+                lock (_gate) dependency = _dependencyPaths.Contains(path, StringComparer.OrdinalIgnoreCase);
+                Changed?.Invoke(this, new AnalysisFileChangedEventArgs(dependency ? null : path));
+            }
         }
 
         public void Dispose()
@@ -243,6 +287,9 @@ namespace Alarmlist.VisualStudio.Analysis
                     _watchers.Clear();
                     _paths = Array.Empty<string>();
                     _documentPaths = Array.Empty<string>();
+                    _dependencyPaths = Array.Empty<string>();
+                    _dependencyGlobs = Array.Empty<AnalysisDiscoveryGlob>();
+                    _watchedProject = null;
                 }
                 _documents.Changed -= OnDocumentChanged;
                 foreach (FileSystemWatcher watcher in previous) watcher.Dispose();

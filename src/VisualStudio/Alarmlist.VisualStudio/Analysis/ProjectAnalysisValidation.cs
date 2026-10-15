@@ -15,6 +15,7 @@ namespace Alarmlist.VisualStudio.Analysis
             var lookups = await Task.Run(() => source.CaptureLookupsAsync(state.Project.Lookups, token), token).ConfigureAwait(false);
             var configurations = await Task.Run(() => source.CaptureConfigurationsAsync(state.Project.Inputs, token), token).ConfigureAwait(false);
             var analyzers = await Task.Run(() => source.CaptureAnalyzersAsync(state.Project.Analyzers, token), token).ConfigureAwait(false);
+            if (state.Libraries != null && !await Task.Run(() => state.Libraries.IsCurrent(state.Project, token), token).ConfigureAwait(false)) return false;
             token.ThrowIfCancellationRequested();
             return captured.Count == state.Inputs.Count && captured.Select((input, index) => input.Matches(state.Inputs[index])).All(matches => matches)
                 && resources.Count == state.Resources.Count && resources.Select((input, index) => input.Matches(state.Resources[index])).All(matches => matches)

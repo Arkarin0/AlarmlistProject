@@ -71,7 +71,14 @@ ProjectReference/NuGet and native reference management; its
 [design contract](src/VisualStudio/MILESTONE-9-DESIGN.md) governs dependency scopes,
 resource overrides, saved-project analysis and the coordinated analysis-5/analyzer-3
 transition. Native integration on both supported IDE hosts is an essential first
-iteration gate. These are planned contracts until implementation evidence is recorded.
+iteration gate. Read the plan's implementation evidence and remaining gates before
+resuming. Consumer analysis captures saved dependency projects in private MSBuild
+collections without executing targets, including unloaded/out-of-solution projects.
+Dependency drafts remain private; consumer ALMX buffers retain precedence. Keep
+dependency discovery watches through failed recapture so missing imports and
+package artifacts can recover, and revalidate the graph and package selection
+before publication or editor actions. NuGet resolution stays in the selected SDK
+AppDomain; never load its implementation assemblies into the VS host.
 [Milestone 8](src/VisualStudio/MILESTONE-8.md) defines the authorized custom
 procedure-group transition, including analysis contract 4 and analyzer contract 2.
 Groups use case-insensitive stable identities and expression-capable titles;
