@@ -11,11 +11,26 @@ namespace Alarmlist.MSBuild
         [Required] public string OutputFileName { get; set; }
         public string Cultures { get; set; }
         public string OutputType { get; set; }
+        public string PackageId { get; set; }
+        public string PackageVersion { get; set; }
         [Output] public ITaskItem[] OutputFiles { get; private set; } = Array.Empty<ITaskItem>();
 
         public override bool Execute()
         {
-            try { OutputFiles = BuildOutputPlan.Create(OutputDirectory, OutputFileName, Cultures, OutputType); return true; }
+            OutputFiles = Array.Empty<ITaskItem>();
+            try
+            {
+                var outputs = BuildOutputPlan.Create(OutputDirectory, OutputFileName, Cultures, OutputType);
+                if (BuildOutputPlan.IsLibrary(OutputType) && !string.IsNullOrEmpty(PackageId))
+                {
+                    var identity = new Alarmlist.Libraries.LibraryIdentity(PackageId,
+                        NuGet.Versioning.NuGetVersion.Parse(PackageVersion).ToNormalizedString());
+                    outputs[0].SetMetadata("PackageId", identity.Id);
+                    outputs[0].SetMetadata("PackageVersion", identity.Version);
+                }
+                OutputFiles = outputs;
+                return true;
+            }
             catch (Exception exception) { BuildOutputPlan.LogFailure(Log, exception); return false; }
         }
     }

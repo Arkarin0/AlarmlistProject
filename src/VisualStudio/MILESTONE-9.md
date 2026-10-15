@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–3 complete (2026-10-15); 4–8 planned.
+Status: iterations 1–4 complete (2026-10-15); 5–8 planned.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -724,3 +724,161 @@ Application as a library. Baseline acceptance uses committed example copies as
 described above. No user edits were reverted or included in this iteration.
 NuGet artifact Restore/Pack/consumption, saved dependency analysis, native library
 editor workflows, templates/examples and performance remain iterations 4–8.
+
+Iteration 3 committed as `dea632e` (19 files); both unrelated North edits remain
+outside the commit.
+
+### Iteration 4 — complete
+
+Implementation sequence within this reviewable iteration:
+1. Resolve restored package artifacts from NuGet's selected dependency graph into
+   the same captured LibraryReferenceSet used for project references. Preserve
+   direct/transitive identity, normalized versions, restore failure diagnostics,
+   input protection and project/package equivalence. Do not glob arbitrary caches.
+2. Add Pack for library projects with the artifact under `alarmlist/` and explicit
+   package dependencies for project and package references. Validate that every
+   declared dependency can be represented before creating a package; do not bundle
+   dependencies, analyzers, EditorConfig or physical source paths.
+3. Validate isolated fresh feeds/caches, warm offline use, transitive mixed graphs,
+   package updates/removal/conflicts, failed-output preservation and equivalence to
+   project references. Update usage documentation and relevant instruction contracts.
+
+The native restore foundation from iteration 1 and project artifact closure from
+iteration 3 are prerequisites already implemented. NuGet artifact resolution and
+Pack are not yet implemented or validated; the full milestone remains active.
+
+Initial package-resolution implementation (2026-10-15): added the public
+NuGet.ProjectModel 7.9.0 dependency to the task project and package catalogue.
+The [published package](https://www.nuget.org/packages/NuGet.ProjectModel/7.9.0)
+supports net472/net8.0. Consulted NuGet's
+[LockFileFormat implementation](https://github.com/NuGet/NuGet.Client/blob/dev/src/NuGet.Core/NuGet.ProjectModel/LockFile/LockFileFormat.cs)
+instead of introducing a private JSON/restore resolver. Compiler dependencies and
+the VS host remain unchanged. The SDK's existing runtime dependency packaging must
+be verified with these new assemblies in subsequent package/desktop checks.
+
+AlarmlistResolvePackageLibrariesTask selects the restored framework graph,
+validates direct requested versions and restore errors, traverses only reachable
+packages, and locates one declared `alarmlist/*.almlib` per library package from
+the assets file's package folders/file list. It emits normalized identities and
+direct/transitive metadata for the existing capture pipeline. Non-library package
+aggregators can expose first-reachable libraries as roots. Missing files, malformed
+paths and ambiguous artifact lists fail without publishing partial references.
+No arbitrary package-cache search or compiler filesystem access was added.
+
+Restore initially failed under the sandbox with NU1301/DNS failure; retry outside
+the sandbox succeeded and the actual restored net472/net8.0 assemblies and assets
+entries were verified. Both task frameworks build successfully. The first four
+resolver tests failed while constructing fixtures because NuGet's default file
+collections are immutable; explicitly supplied mutable fixture lists fixed setup.
+Full task unit suite then passed **82 per framework**, no failures/skips,
+`Iteration4/PackageResolutionFixtures` (`2026-10-15_19_40_03` / `19_40_04`). Tests
+cover selected graph/normalized identities/root metadata, missing artifact,
+changed requested version and escaping package paths. The existing CA1416 test
+helper warning remains.
+
+SDK targets now resolve package libraries for Build and reference-closure discovery,
+including mixed project/package graphs. Package-only consumers are accepted and
+Clean protects resolved package artifacts and the assets file. Library production
+and no-build output discovery normalize NuGet versions consistently (`1.0` becomes
+`1.0.0`); reference closures retain those output identities.
+
+Validation on 2026-10-15:
+
+- Full task unit suite: **83 per framework**, no failures/skips, under
+  `Iteration4/NormalizedLibraryIdentity` (`19_44_34` / `19_44_35`). Includes
+  build/discovery version normalization. Existing CA1416 warning remains.
+- PackageRestoreTests and LibraryProjectReferenceTests: **12 per framework**,
+  no failures/skips, `Iteration4/PackageConsumer` (`19_45_00`). The new fixture
+  builds real Base/Owner artifacts, creates local packages with an exact transitive
+  dependency, switches the consumer from ProjectReference to PackageReference,
+  restores and compares final XML byte-for-byte, then builds again without restore.
+- PackageRestoreTests using VS2022 desktop MSBuild: **2 net472**, no failures/skips,
+  `Iteration4/DesktopPackageConsumer` (`19_45_53`). This exercises the packaged
+  task's NuGet dependency loading in desktop MSBuild as well as dotnet MSBuild.
+- SDK packaging initially emitted NU5118 for duplicate net8.0
+  `System.Security.Cryptography.Pkcs.dll` runtime/reference entries. Preserving
+  `ReferenceCopyLocalPaths.DestinationSubDirectory` in package paths fixes the
+  collision and retains the Windows runtime asset alongside the portable asset.
+  Rebuilt without NU5118; package-content assertions verify NuGet assemblies in
+  both task directories and the Windows-specific Pkcs path.
+- OfflinePackageConsumer: **3 per framework**, no failures/skips (`19_47_15` /
+  `19_47_16`). Forced restore/build against an empty local feed succeeds from the
+  warm cache. Removing a cached artifact fails Build and preserves previous output;
+  removing the package reference and restoring leaves only the new local alarm,
+  despite cached library bytes remaining.
+- PackageUpdateConflict: **3 per framework**, no failures/skips (`19_48_25` /
+  `19_48_26`). Real library artifacts rebuilt as version `2.0` are packaged as
+  normalized `2.0.0`; updating Owner and its exact Base dependency changes the
+  consuming XML. A conflicting direct Base version fails restore/build and a
+  subsequent no-restore Build, preserving previous XML in both cases.
+- DesktopPackageLifecycle: **4 net472**, no failures/skips (`19_49_01`), covering
+  the complete package lifecycle scenarios and SDK package contents through
+  VS2022 desktop MSBuild. SDK README now documents implemented package consumption
+  and distinguishes project path discovery from restored package requirements.
+
+Consulted the installed NuGet pack targets and the official
+[Pack/Nuspec workflow documentation](https://learn.microsoft.com/en-us/nuget/reference/msbuild-targets).
+Implemented a focused Pack target using NuGet.Packaging 7.9.0 PackageBuilder,
+declared explicitly in the task project and central version catalogue. The existing
+native SDK has no managed target-framework compilation/pack pipeline; its thin task
+feeds the validated library output and captured reference identities to NuGet's
+package writer instead of importing the managed pack target dependency chain.
+Compiler artifact semantics remain compiler-owned.
+
+Pack builds/validates first, emits one artifact under `alarmlist/`, and represents
+direct library references as exact NuGet dependencies. It rejects applications,
+self/conflicting identities, graphs with IsPackable=false projects and destinations
+that collide with source inputs. Staging and atomic installation preserve existing
+packages on validation/writer failures. PackageOutputPath, Authors, Description and
+AlarmlistPackages are documented. Pack does not publish, embed dependencies or ship
+analyzers/configuration. Current explicit limitation: NoBuild=true is rejected;
+packages are not compiled outputs owned by Clean.
+
+Validation on 2026-10-15:
+
+- Task build succeeds for net472/net8.0 with zero warnings/errors.
+- Initial LibraryPack: **5 per framework**, no failures/skips (`19_51_56`). The
+  real consumer equivalence/offline test now creates Base/Owner packages through
+  the SDK Pack target and verifies the exact Base dependency in Owner's nuspec.
+- LibraryPackValidation: **6 per framework**, no failures/skips (`19_52_50` /
+  `19_52_51`), including non-packable dependency rejection and prior package
+  preservation. NuGet.Packaging restore succeeded.
+- MixedLibraryPack: **5 per framework**, no failures/skips (`19_53_30`). A project
+  consumer referencing Owner with a Base PackageReference produces the same XML
+  after packing Owner and switching to an entirely package-based graph. An explicit
+  source at the destination .nupkg path is preserved and Pack rejects the collision.
+- DesktopLibraryPack: **8 net472**, no failures/skips (`19_54_01`), using VS2022
+  desktop MSBuild for all Pack and package-consumption scenarios above.
+
+Final iteration-4 validation and acceptance audit (2026-10-15):
+
+- Full task suite: **83 per framework**, no failures/skips, `FinalTasks`
+  (`19_55_54` / `19_55_55`); only the existing CA1416 test-helper warning.
+- Task integration: **4 per framework**, no failures/skips, `TaskIntegration`
+  (`19_56_28`). VSIX/template package integration: **12 per framework**, no
+  failures/skips, `VSIXIntegration` (`19_56_33`).
+- Full SDK suite: **73 per framework**, no failures/skips, `FullSDK` (`19_55_34`).
+  As in iteration 3, only generated North example test copies temporarily used
+  the committed baseline; they were restored in finally and the original user
+  source hashes were verified unchanged. No persistent example source was edited.
+- Added XLIFF reference discovery without Build and protected library artifact
+  and assets paths. A deliberate export/library path collision is rejected while
+  retaining the artifact bytes. The initial new fixture duplicated an implicitly
+  included RESX and failed before export; changing Include to Update fixed setup.
+  `LibraryExchangeFixed`: **1 additional test per framework**, no failures/skips
+  (`19_58_52` / `19_58_53`). This is additional to the full 73-test run, not a
+  claimed 74-test full run. Production code did not change between those runs.
+  `DesktopLibraryExchange`: **1 net472**, no failures/skips (`19_59_29`), verifies
+  the same collision with VS2022 desktop MSBuild.
+- Reviewed tracked/new implementation, package layout, target wiring and docs;
+  `git diff --check -- AGENTS.md Directory.Packages.props src` passes. Unrelated
+  North source edits (including their pre-existing whitespace) are preserved.
+
+Iteration 4's criteria are met: fresh isolated package restore, warm-cache offline
+restore/build, transitive and mixed graphs, project/package output equivalence,
+update/removal/conflict behavior, exact Pack dependency mapping, rejection of
+non-packable references, and previous-output/input preservation have executable
+evidence above. Documentation records Pack's required Build and package ownership.
+Native UI acceptance remains covered by iteration 1's foundation evidence and the
+later integrated scenarios; saved dependency analysis/designer behavior is still
+iterations 5–6. No release/publication is authorized or performed.

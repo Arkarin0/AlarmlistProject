@@ -7,6 +7,7 @@
   <Import Project="Alarmlist.targets"/>
   <Import Project="Alarmlist.ProjectReferences.targets" />
   <Import Project="Alarmlist.Restore.targets" />
+  <Import Project="Alarmlist.Pack.targets" />
   <Import Project="Alarmlist.DesignTime.targets" />
 
 </Project>

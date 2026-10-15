@@ -141,7 +141,7 @@ namespace Alarmlist.MSBuild
                         CheckCancellation();
                         var context = new CompilationContext(resources, lookups, "keyword", ProjectPath, Configuration, Platform,
                             properties, diagnosticOptions, loader.Analyzers).WithLibraries(libraryInputs);
-                        var identity = new LibraryIdentity(PackageId, PackageVersion);
+                        var identity = new LibraryIdentity(PackageId, NuGet.Versioning.NuGetVersion.Parse(PackageVersion).ToNormalizedString());
                         LibraryBuildResult result = new AlarmCompiler().CreateLibrary(identity, sources, context,
                             _cancellation.Token, CapturePortableNames());
                         LogDiagnostics(result.Diagnostics);

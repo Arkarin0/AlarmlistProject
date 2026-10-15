@@ -337,8 +337,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   builds use toolset configuration assignment; IDE/BuildProjectReferences=false
   consumption must not rebuild dependencies. GetTargetPath stays local and
   GetAlarmlistReferenceClosure discovers transitive identities/paths without Build.
-  Protect project/import and dependency inputs during Build/Clean. Follow the
-  milestone plan for acceptance evidence and remaining package/editor integration.
+  Protect project/import and dependency inputs during Build/Clean and library
+  artifacts during XLIFF exchange. Package discovery uses NuGet's selected assets
+  graph and declared files, never a package-cache scan. Normalize NuGet versions
+  consistently in artifact production and output discovery. Pack builds first,
+  uses exact library dependency versions, rejects non-packable project dependencies,
+  and installs packages only after successful staging. Preserve runtime asset
+  subdirectories in the SDK package. Follow the milestone plan for acceptance
+  evidence and remaining editor integration.
 
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
   saved dependency-byte capture, contract-3 detached inputs, cooperative cancellation,

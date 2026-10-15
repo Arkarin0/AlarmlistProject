@@ -181,11 +181,12 @@ Restore uses the installed MSBuild toolset's NuGet targets and supports
 default. Restore writes NuGet assets under `MSBuildProjectExtensionsPath` without
 compiling alarms. Visual Studio's Project > Add Reference and Manage NuGet Packages
 commands can edit project/package references; save the project to persist edits.
-Project references consume library artifacts; NuGet artifact consumption and Pack remain under implementation in
-[milestone nine](../../VisualStudio/MILESTONE-9.md).
+Project and package references consume library artifacts; see
+[milestone nine](../../VisualStudio/MILESTONE-9.md) for validation and remaining work.
 
 To build a standalone library, set `OutputType` to `Library`. `PackageId` defaults
-to the project name and `PackageVersion` to `1.0.0`. Build writes one
+to the project name and `PackageVersion` to `1.0.0`. Versions use NuGet normalization
+(for example, `1.0` becomes `1.0.0`). Build writes one
 `$(OutputPath)/$(AlarmlistLibraryFileName)` artifact; the filename defaults to
 `$(PackageId).almlib`. `GetTargetPath` discovers this path without building, and
 Clean/Rebuild use the same ownership tracking as application outputs. The default
@@ -204,7 +205,33 @@ build and preserve its previous outputs. Configuration assignments, including
 CLI Clean/Rebuild traverse references when reference building is enabled.
 `GetTargetPath` returns only the current project's outputs without building;
 `GetAlarmlistReferenceClosure` discovers transitive library paths and identities
-without compiling or requiring the artifacts to exist.
+without compiling. Project output paths need no prior build; package paths require
+a valid restore and existing artifacts in the selected package folders.
+
+Add `<PackageReference Include="Plant.Alarms" Version="1.0.0" />` to consume a
+library package. Build with `dotnet msbuild Plant.almproj /restore`; subsequent
+builds can reuse restored assets. Each library package contains one `.almlib`
+under `alarmlist/`, with dependency packages carrying their own artifacts. The SDK
+uses the selected graph in `project.assets.json`, including mixed project/package
+references, rather than searching the package cache. Library dependency identities
+must match the versions selected by NuGet. Missing artifacts, restore errors and
+conflicting identities fail before installing new compiled outputs. Removing a
+reference and restoring removes its imports even when package bytes remain cached.
+A warm cache supports restore/build against an empty local feed.
+
+Run `dotnet msbuild Library.almproj /restore /t:Pack` to create a library package.
+Pack builds and validates the library first, then writes
+`$(PackageOutputPath)/<PackageId>.<normalized PackageVersion>.nupkg`;
+`PackageOutputPath` defaults to `OutputPath`. `Authors` and `Description` supply
+package metadata, with library-identity defaults when omitted. The package contains
+one `alarmlist/<PackageId>.almlib`; direct library references become exact NuGet
+dependencies, including project references. Dependencies are not embedded.
+`IsPackable=false` prevents packing that project and prevents consumers from
+packing a library graph that requires it. Pack rejects applications and output/input
+collisions; validation or packaging failures preserve an existing package.
+`@(AlarmlistPackages)` returns the installed package path. Pack currently requires
+Build (`NoBuild=true` is rejected), and does not publish packages. Clean owns the
+compiled artifacts, not packages prepared for distribution.
 
 Reference errors ALM0001-ALM0004 include the source file and declaration line/column
 when read from ALMX files. Missing, self, and circular references point to the

@@ -43,7 +43,15 @@
     </MSBuild>
   </Target>
 
-  <Target Name="ResolveProjectReferences" DependsOnTargets="_BuildAlarmlistProjectReferences;_GetAlarmlistProjectReferenceInputs"
+  <Target Name="_ResolveAlarmlistPackageReferences">
+    <ItemGroup><_AlarmlistPackageReferenceInputs Remove="@(_AlarmlistPackageReferenceInputs)" /></ItemGroup>
+    <AlarmlistResolvePackageLibrariesTask AssetsFile="$(ProjectAssetsFile)" FrameworkMoniker="$(TargetFrameworkMoniker)"
+                                         PackageReferences="@(PackageReference)">
+      <Output TaskParameter="LibraryReferences" ItemName="_AlarmlistPackageReferenceInputs" />
+    </AlarmlistResolvePackageLibrariesTask>
+  </Target>
+
+  <Target Name="ResolveProjectReferences" DependsOnTargets="_BuildAlarmlistProjectReferences;_GetAlarmlistProjectReferenceInputs;_ResolveAlarmlistPackageReferences"
           Returns="@(_AlarmlistProjectReferenceInputs)" />
 
   <Target Name="CleanReferencedProjects" AfterTargets="CoreClean" DependsOnTargets="AssignProjectConfiguration"
@@ -55,17 +63,16 @@
   </Target>
 
   <!-- Discovery never invokes Build and returns the complete captured-artifact path set. -->
-  <Target Name="GetAlarmlistReferenceClosure" DependsOnTargets="GetTargetPath;_GetAlarmlistProjectReferenceInputs"
+  <Target Name="GetAlarmlistReferenceClosure" DependsOnTargets="GetTargetPath;_GetAlarmlistProjectReferenceInputs;_ResolveAlarmlistPackageReferences"
           Returns="@(_AlarmlistReferenceClosure)">
     <Error Condition="'$(OutputType)' != 'Library'" Text="An Alarmlist project reference must use OutputType=Library: $(MSBuildProjectFullPath)" />
     <ItemGroup>
       <_AlarmlistReferenceClosure Remove="@(_AlarmlistReferenceClosure)" />
-      <_AlarmlistReferenceClosure Include="@(_AlarmlistProjectReferenceInputs)"><Direct>false</Direct></_AlarmlistReferenceClosure>
+      <_AlarmlistReferenceClosure Include="@(_AlarmlistProjectReferenceInputs);@(_AlarmlistPackageReferenceInputs)"><Direct>false</Direct></_AlarmlistReferenceClosure>
       <_AlarmlistReferenceClosure Include="@(CompiledAlarmlistFiles)">
         <Direct>true</Direct>
-        <PackageId>$(PackageId)</PackageId>
-        <PackageVersion>$(PackageVersion)</PackageVersion>
         <SourceProject>$(MSBuildProjectFullPath)</SourceProject>
+        <IsPackable>$(IsPackable)</IsPackable>
       </_AlarmlistReferenceClosure>
     </ItemGroup>
   </Target>

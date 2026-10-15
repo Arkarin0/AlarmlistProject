@@ -49,6 +49,24 @@ namespace AlarmList.MSBuild.UnitTests
         }
 
         [Fact]
+        public void LibraryVersionIsNormalizedForBuildAndNoBuildDiscovery()
+        {
+            var task = Create();
+            task.PackageVersion = "1.0";
+            Assert.True(task.Execute(), string.Join("; ", buildErrors.Select(error => error.Message)));
+            Assert.Equal("1.0.0", Assert.Single(task.OutputFiles).GetMetadata("PackageVersion"));
+            var discovery = new AlarmlistGetOutputsTask
+            {
+                BuildEngine = buildEngine.Object, OutputDirectory = Path.GetDirectoryName(Output),
+                OutputFileName = "Plant.almlib", OutputType = "Library", PackageId = "Plant", PackageVersion = "1.0"
+            };
+            Assert.True(discovery.Execute());
+            Assert.Equal("Plant", Assert.Single(discovery.OutputFiles).GetMetadata("PackageId"));
+            Assert.Equal("1.0.0", Assert.Single(discovery.OutputFiles).GetMetadata("PackageVersion"));
+            Assert.Contains("1.0.0", File.ReadAllText(Output));
+        }
+
+        [Fact]
         public void FailedLibraryBuildPreservesPreviousArtifactAndManifest()
         {
             Assert.True(Create().Execute());

@@ -18,6 +18,12 @@ and [TestApp](https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Ar
   Each invocation receives a separate log, including expected failures.
 - Tests cover package contents, compilation, conditional inputs, diagnostics,
   framework selection, and Clean/Rebuild behavior.
+- `LibraryPackTests` and `PackageRestoreTests` build real library artifacts and
+  packages in isolated local feeds. They cover exact project/package dependency
+  mapping, mixed graphs, equivalent compiled XML, warm-cache restore against an
+  empty feed, updates/removal, missing artifacts, version conflicts, non-packable
+  dependencies and prior-output preservation. The same tests can use desktop
+  MSBuild through `ALARMLIST_TEST_MSBUILD_PATH` below.
 - `ExamplePlaygroundTests` builds isolated copies of the example's current source
   inputs with the packaged SDK and both prepared sample-analyzer runtimes. It
   checks project/shared configuration scope, warning controls, source preservation,
