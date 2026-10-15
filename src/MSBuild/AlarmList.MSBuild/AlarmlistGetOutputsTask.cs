@@ -10,11 +10,12 @@ namespace Alarmlist.MSBuild
         [Required] public string OutputDirectory { get; set; }
         [Required] public string OutputFileName { get; set; }
         public string Cultures { get; set; }
+        public string OutputType { get; set; }
         [Output] public ITaskItem[] OutputFiles { get; private set; } = Array.Empty<ITaskItem>();
 
         public override bool Execute()
         {
-            try { OutputFiles = BuildOutputPlan.Create(OutputDirectory, OutputFileName, Cultures); return true; }
+            try { OutputFiles = BuildOutputPlan.Create(OutputDirectory, OutputFileName, Cultures, OutputType); return true; }
             catch (Exception exception) { BuildOutputPlan.LogFailure(Log, exception); return false; }
         }
     }

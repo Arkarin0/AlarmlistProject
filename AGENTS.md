@@ -329,6 +329,17 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 
 ## MSBuild SDK contracts
 
+- Milestone-nine library builds use OutputType=Library and produce one
+  culture-independent `.almlib`; Application remains the default XML output.
+  Preserve captured library references, portable project-relative/Link names,
+  deferred consumer values and transactional output ownership. Manifest version 2
+  distinguishes output kinds and must continue reading version 1. ProjectReference
+  builds use toolset configuration assignment; IDE/BuildProjectReferences=false
+  consumption must not rebuild dependencies. GetTargetPath stays local and
+  GetAlarmlistReferenceClosure discovers transitive identities/paths without Build.
+  Protect project/import and dependency inputs during Build/Clean. Follow the
+  milestone plan for acceptance evidence and remaining package/editor integration.
+
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
   saved dependency-byte capture, contract-3 detached inputs, cooperative cancellation,
   ALM0025 failure reporting, and diagnostic policy before output installation. The

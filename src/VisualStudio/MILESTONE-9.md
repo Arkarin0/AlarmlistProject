@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–2 complete (2026-10-14); 3–8 planned.
+Status: iterations 1–3 complete (2026-10-15); 4–8 planned.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -539,3 +539,188 @@ UI remain required iterations 3–8. The compiler's internal deferred validation
 and public consumer analysis are verified here; the library-project editor mode
 must be wired through the saved-project host work in iterations 5–6. No native UI,
 performance or release gate is inferred from these unit/package results.
+
+Iteration 2 committed as `93393b7` (64 files); the unrelated example edit remains
+outside the commit.
+
+### Iteration 3 — in progress
+
+Implementation sequence within this reviewable iteration:
+1. Extend the existing output plan/build/get-output/clean task boundary for
+   OutputType=Library and package identity, preserving transactional installation,
+   ownership manifests, cancellation, diagnostics and input collision protection.
+   Capture portable names from project-relative/linked input metadata; compile
+   captured library references without introducing compiler filesystem access.
+2. Add SDK ProjectReference orchestration with configuration/platform propagation,
+   reference dependency order and no-build output discovery. Preserve
+   BuildProjectReferences=false and design-time guards; allow reference-only
+   applications. Carry transitive artifact identity/path metadata to the task.
+3. Validate task failure/rollback behavior and isolated packaged consumers on both
+   runtimes: library-to-application and transitive projects, conditional references,
+   solution mappings, Build/Clean/Rebuild, no-build discovery and missing/stale
+   dependency failures. Update SDK documentation alongside the implementation.
+
+Initial source inspection confirms BuildOutputPlan, OutputManifest and
+OutputTransaction already centralize the application output lifecycle. Extend
+those paths rather than introducing a separate installation/cleanup mechanism.
+The current SDK Compile target rejects empty local sources and has no project
+reference pipeline; both must change before iteration 3 can pass. These are
+implementation findings, not completed behavior. No iteration-3 checks run yet.
+
+Initial implementation evidence (2026-10-14): the build task now produces a
+library artifact through the existing transaction and manifest lifecycle.
+BuildOutputPlan/GetTargetPath/Clean agree on the culture-independent output;
+project-relative or Link names are exported while validation uses physical inputs.
+The SDK exposes OutputType (default Application), PackageId (project name),
+PackageVersion (1.0.0) and AlarmlistLibraryFileName (`$(PackageId).almlib`).
+Library projects may have no ALMX sources. Reference-only application support and
+reference capture/orchestration remain pending.
+
+The first task regression run exposed the manifest's culture-directory-only
+assumption (4 failures per framework). Manifest version 2 records output type;
+reading version 1 remains supported. Added preflight protected-input checks to
+Clean and project-file collision protection to Build. SDK Clean supplies evaluated
+source/resource/lookup/analyzer inputs. Further dependency-input protection must
+be added with reference capture.
+
+Validation:
+- Full MSBuild unit suite after library manifest support: 73 passed per framework,
+  `Iteration3/LibraryManifest` (`22_43_44` / `22_43_45`).
+- Full MSBuild unit suite after protected Clean: **74 passed per framework**, no
+  failures/skips, `Iteration3/ProtectedLibraryClean` (`22_44_05` / `22_44_06`).
+  Covers deferred values, failed-build preservation, resource-only/linked inputs,
+  output-type transition, no-build discovery, cleanup and protected-input refusal.
+- Packaged SDK `--filter FullyQualifiedName~BuildLifecycleTests`: **2 passed per
+  framework** with dotnet MSBuild, no failures/skips, `SDKLibraryLifecycle`
+  (`22_44_57`). Proves default application lifecycle and standalone library
+  discovery/Build/Clean/Rebuild. Desktop MSBuild validation is still required.
+
+Iteration 3 remains incomplete and uncommitted. Next: captured dependency inputs,
+ProjectReference configuration/order/GetTargetPath behavior, failure and lifecycle
+tests against transitive consumers, then required broader regressions.
+
+Captured task consumption implemented: LibraryReferences carry PackageId,
+PackageVersion and Direct metadata (false marks transitive-only inputs). The task
+captures artifact text once with other saved inputs, passes LibraryReferenceSet
+to both library production and application compilation, and protects artifact
+paths from output/manifest collisions. Applications with references can have no
+local ALMX files. Regression coverage checks a consumer-supplied value, missing
+artifact preservation, output collisions and a two-library chain with repeated
+transitive input and exactly-once concrete output.
+
+Full MSBuild unit suite: **77 passed per framework**, no failures/skips,
+`Iteration3/TransitiveTask` (`2026-10-14_22_46_46` / `22_46_47`). Earlier direct
+consumption checks passed 76 per framework in `LibraryConsumption` (`22_46_05` /
+`22_46_06`). SDK targets do not yet populate these reference inputs.
+
+Before adding reference orchestration, consulted the upstream
+[ProjectReference protocol](https://github.com/dotnet/msbuild/blob/main/documentation/ProjectReference-Protocol.md)
+and installed MSBuild's AssignProjectConfiguration/ResolveProjectReferences
+implementation. The repository's similarly named tools/Microsoft.Common.targets
+only handles extension and Directory.Build.targets imports; it does not import
+the managed reference pipeline. The Alarmlist integration therefore needs explicit
+configuration assignment and cross-project calls. Planned implementation uses the
+toolset's AssignProjectConfiguration task, separates reference Build from no-build
+closure discovery, and respects the VS scheduler and BuildProjectReferences=false.
+GetTargetPath must still return only this project's outputs; a separate closure
+target will provide transitive identities/paths without building. This is a scoped
+adaptation for data-library artifacts and the framework-independent project type.
+
+Project-reference pipeline implemented in Alarmlist.ProjectReferences.targets:
+AssignProjectConfiguration supplies per-reference configuration/platform; CLI
+builds build dependencies, while IDE-scheduled and BuildProjectReferences=false
+builds discover existing paths. GetTargetPath remains local-only; the no-build
+GetAlarmlistReferenceClosure target carries direct/transitive identities and paths.
+Reference-only applications feed those artifacts to the captured compiler context.
+CLI Clean/Rebuild traverse dependencies, with captured paths protected during the
+consumer's cleanup. Native editor analysis remains outside this iteration.
+
+Packaged SDK evidence (dotnet MSBuild on both test frameworks):
+- Initial transitive build/no-build/preservation scenario: **1 passed per framework**,
+  `ProjectReferencePipeline` (`2026-10-14_22_48_37` / `22_48_38`).
+- Clean/Rebuild, explicit Release reference configuration and conditional removal:
+  **4 passed per framework**, `ProjectReferenceLifecycle`
+  (`2026-10-15_19_22_16` / `19_22_17`).
+- Extended with IDE-scheduler mode and solution configuration mapping:
+  **6 passed per framework**, no failures/skips, `ReferenceConfiguration`
+  (`2026-10-15_19_23_11` / `19_23_12`).
+
+The DesktopReferences run is pending; it is not yet passing evidence. Additional
+scope review and full SDK/downstream regression remain required before commit.
+Both changes in example/North (Alarms1.almx and North.almproj) are unrelated working
+tree edits and must remain outside the iteration commit.
+
+DesktopReferences completed: **8 net472 passed**, no failures/skips
+(`2026-10-15_19_25_14`), selecting LibraryProjectReferenceTests and
+BuildLifecycleTests with installed VS2022 MSBuild.exe. The previous
+ALARMLIST_TEST_MSBUILD_PATH value was restored. This verifies the packaged net472
+task, transitive builds, no-build/IDE scheduling, configuration mapping and cleanup
+with desktop MSBuild; it is not a native UI test. Full SDK regression follows.
+
+Full SDK regression with the current working-tree examples completed with
+**61 passed / 1 failed per framework**, no skips, `SDKRegression`
+(`2026-10-15_19_26_00` / `19_26_01`). The only failure is the North example analyzer
+scenario: its unrelated local ProjectReference points to South, which is an
+Application, and library consumption correctly refuses it. The example also has
+an unrelated ALMX edit. Neither source file was changed to make the test pass.
+
+For baseline regression, rebuilt the current SDK/test assemblies and started the
+complete suite with the two North files restored from HEAD **only in generated
+testassets copies**. The command backs up/restores those generated copies in a
+finally block and checks that working-tree example hashes remain unchanged.
+`--no-build` deliberately retains the freshly built package and controlled copies.
+Results under SDKCommittedExample are pending. The new tests additionally cover
+design-time/no-build closure discovery and missing/application/cyclic project
+references preserving the consumer output; their acceptance is also pending.
+
+The first controlled-copy invocation exited 1 before producing any TRX, so it is
+not counted as test evidence. Its finally block restored the generated copies.
+Retried the same complete run outside the sandbox; both framework runners started
+and remain in progress. No source-example edits or relaxed reference semantics
+were used to bypass the initial North failure.
+
+The controlled baseline run completed: **66 passed per framework**, no
+failures/skips, `SDKCommittedExample/2026-10-15_19_29_26`. Generated example copies
+were restored and hashes confirmed the working-tree example sources unchanged.
+This covers the full SDK suite against the committed example baseline, not the
+user-edited North playground. It includes the design-time/discovery and invalid
+reference graph scenarios added above.
+
+A final collision review added referenced project paths and imported MSBuild
+files to protected inputs for Build/Clean. The build task also protects SourceProject
+metadata on transitive artifacts. Full task unit suite after this change:
+**78 passed per framework**, no failures/skips, `ProtectedBuildInputs`
+(`2026-10-15_19_30_46` / `19_30_47`). Full task integration suite: **4 passed per
+framework**, no failures/skips, `MSBuildIntegration/2026-10-15_19_31_45`.
+The package reference/lifecycle selection is rerunning against this final task
+and SDK change. The application-reference rejection test now first supplies its
+required value and asserts the explicit OutputType=Library diagnostic.
+
+FinalReferences passed **12 tests per framework**, no failures/skips
+(`2026-10-15_19_32_29`), against the updated protected-input implementation.
+VSIX/template package integration passed **12 per framework**, no failures/skips,
+`VSIXIntegration` (`2026-10-15_19_34_07` / `19_34_08`). The final desktop selection
+is still running. Repository guidance now documents library outputs, manifest
+compatibility, no-build discovery, reference scheduling and input protection.
+
+### Iteration 3 — acceptance complete (2026-10-15)
+
+FinalDesktopReferences passed **12 net472 tests**, no failures/skips
+(`2026-10-15_19_34_38`), using the already rebuilt package with VS2022 MSBuild.exe;
+the original environment setting was restored.
+
+Acceptance review: standalone library Build/GetTargetPath/Clean/Rebuild and
+transactional failure preservation are covered by LibraryBuildTests and packaged
+BuildLifecycleTests. LibraryProjectReferenceTests cover the transitive/reference-
+only consumer, configuration and solution mappings, conditional removal, CLI and
+IDE/no-build scheduling, no-build discovery, missing inputs, application targets,
+cycles and output preservation. Full task suites and the SDK baseline regression
+plus final scoped package checks cover existing application workflows on both
+frameworks; desktop package checks verify the alternate task runtime. VSIX package
+integration remains green. Diff review excludes the two unrelated North edits.
+
+The current edited North playground is not a passing fixture: it references an
+Application as a library. Baseline acceptance uses committed example copies as
+described above. No user edits were reverted or included in this iteration.
+NuGet artifact Restore/Pack/consumption, saved dependency analysis, native library
+editor workflows, templates/examples and performance remain iterations 4–8.

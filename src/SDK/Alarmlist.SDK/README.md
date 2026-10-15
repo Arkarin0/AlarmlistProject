@@ -45,8 +45,9 @@ origins expose ownership, and analysis includes dependency identities, portable
 definitions and original-to-generated source span maps. Hosts supply portable
 relative source/resource/lookup names when creating libraries, or provide the
 `portablePaths` mapping to keep physical captured paths for owning-project
-EditorConfig/analyzer validation while exporting portable names. SDK library Build,
-Pack and saved-project graph integration remain under implementation in
+EditorConfig/analyzer validation while exporting portable names. Standalone SDK
+library Build and project-reference consumption are available; Pack and saved-project graph
+integration remain under implementation in
 [Milestone nine](../../VisualStudio/MILESTONE-9.md).
 
 The designer's **Add alarm** command resolves creation defaults from saved
@@ -180,9 +181,30 @@ Restore uses the installed MSBuild toolset's NuGet targets and supports
 default. Restore writes NuGet assets under `MSBuildProjectExtensionsPath` without
 compiling alarms. Visual Studio's Project > Add Reference and Manage NuGet Packages
 commands can edit project/package references; save the project to persist edits.
-This is the milestone-nine reference/restore foundation. Alarm library artifact
-consumption, referenced-project builds and Pack remain planned in
+Project references consume library artifacts; NuGet artifact consumption and Pack remain under implementation in
 [milestone nine](../../VisualStudio/MILESTONE-9.md).
+
+To build a standalone library, set `OutputType` to `Library`. `PackageId` defaults
+to the project name and `PackageVersion` to `1.0.0`. Build writes one
+`$(OutputPath)/$(AlarmlistLibraryFileName)` artifact; the filename defaults to
+`$(PackageId).almlib`. `GetTargetPath` discovers this path without building, and
+Clean/Rebuild use the same ownership tracking as application outputs. The default
+`OutputType=Application` retains culture-specific XML output. Library validation
+permits missing consumer-supplied values but rejects structural/reference errors.
+Exported input names are project-relative; linked inputs should specify portable
+`Link` metadata.
+
+Add `<ProjectReference Include="../Library/Library.almproj" />` to consume another
+project whose `OutputType` is `Library`. CLI builds build references first and
+capture their transitive artifacts; an application can contain only references.
+`BuildProjectReferences=false` and IDE-scheduled builds consume existing artifacts
+without rebuilding dependencies. Missing or invalid artifacts fail the consuming
+build and preserve its previous outputs. Configuration assignments, including
+`SetConfiguration`/`SetPlatform` reference metadata, select dependency outputs.
+CLI Clean/Rebuild traverse references when reference building is enabled.
+`GetTargetPath` returns only the current project's outputs without building;
+`GetAlarmlistReferenceClosure` discovers transitive library paths and identities
+without compiling or requiring the artifacts to exist.
 
 Reference errors ALM0001-ALM0004 include the source file and declaration line/column
 when read from ALMX files. Missing, self, and circular references point to the

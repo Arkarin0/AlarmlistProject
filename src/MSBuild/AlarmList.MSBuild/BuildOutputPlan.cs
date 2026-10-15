@@ -14,11 +14,25 @@ namespace Alarmlist.MSBuild
     internal static class BuildOutputPlan
     {
         internal static readonly StringComparer PathComparer = Path.DirectorySeparatorChar == '\\' ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-        internal static ITaskItem[] Create(string directory, string fileName, string cultures)
+        internal static bool IsLibrary(string outputType)
         {
+            if (string.Equals(outputType, "Library", StringComparison.OrdinalIgnoreCase)) return true;
+            if (string.IsNullOrWhiteSpace(outputType) || string.Equals(outputType, "Application", StringComparison.OrdinalIgnoreCase)) return false;
+            throw new ArgumentException("Unsupported Alarmlist OutputType '" + outputType + "'. Expected Application or Library.");
+        }
+
+        internal static ITaskItem[] Create(string directory, string fileName, string cultures, string outputType = null)
+        {
+            bool library = IsLibrary(outputType);
             ValidateFileName(fileName);
             if (string.IsNullOrWhiteSpace(directory)) throw new ArgumentException("An output directory is required.");
             string root = Path.GetFullPath(directory);
+            if (library)
+            {
+                var output = new TaskItem(Path.Combine(root, fileName));
+                output.SetMetadata("OutputType", "Library");
+                return new ITaskItem[] { output };
+            }
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var outputs = new List<ITaskItem>();
             foreach (string value in (string.IsNullOrWhiteSpace(cultures) ? LocalizationCulture.Keyword : cultures).Split(';'))

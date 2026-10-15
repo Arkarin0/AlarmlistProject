@@ -1,7 +1,13 @@
 <Project>
   <PropertyGroup>
     <AssemblyName Condition="'$(AssemblyName)' == ''">$(MSBuildProjectName)</AssemblyName>
+    <OutputType Condition="'$(OutputType)' == ''">Application</OutputType>
+    <PackageId Condition="'$(PackageId)' == ''">$(MSBuildProjectName)</PackageId>
+    <PackageVersion Condition="'$(PackageVersion)' == ''">1.0.0</PackageVersion>
+    <AlarmlistLibraryFileName Condition="'$(AlarmlistLibraryFileName)' == ''">$(PackageId).almlib</AlarmlistLibraryFileName>
     <CompiledAlarmlistFileName Condition="'$(CompiledAlarmlistFileName)' == ''">$(AssemblyName).Alarmlist.xml</CompiledAlarmlistFileName>
+    <_AlarmlistOutputFileName>$(CompiledAlarmlistFileName)</_AlarmlistOutputFileName>
+    <_AlarmlistOutputFileName Condition="'$(OutputType)' == 'Library'">$(AlarmlistLibraryFileName)</_AlarmlistOutputFileName>
     <AlarmlistCultures Condition="'$(AlarmlistCultures)' == ''">keyword</AlarmlistCultures>
     <AlarmlistCulture Condition="'$(AlarmlistCulture)' == ''">keyword</AlarmlistCulture>
     <AlarmlistXliffSourceCulture Condition="'$(AlarmlistXliffSourceCulture)' == ''">en</AlarmlistXliffSourceCulture>
@@ -54,11 +60,14 @@
   <Target Name="BeforeBuild" />
   <Target Name="AfterBuild" />
   <Target Name="CoreBuild" DependsOnTargets="Compile" />
-  <Target Name="Compile" Condition="'$(DesignTimeBuild)' != 'true'">
-    <Error Condition="'@(Compile)' == ''" Text="No ALMX files were provided to the Alarmlist compiler." />
+  <Target Name="Compile" DependsOnTargets="ResolveProjectReferences" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Error Condition="'@(Compile)' == '' and '@(_AlarmlistProjectReferenceInputs)' == '' and '$(OutputType)' != 'Library'" Text="No ALMX files were provided to the Alarmlist compiler." />
     <Error Condition="!Exists('$(AlarmlistTasksAssembly)')" Text="Alarmlist task assembly was not found: $(AlarmlistTasksAssembly). Rebuild or restore the Alarmlist.MSBuild.SDK package." />
     <ItemGroup><CompiledAlarmlistFiles Remove="@(CompiledAlarmlistFiles)" /></ItemGroup>
-    <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Compile="@(Compile)"
+    <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(_AlarmlistOutputFileName)" Compile="@(Compile)"
+                       OutputType="$(OutputType)" PackageId="$(PackageId)" PackageVersion="$(PackageVersion)"
+                       LibraryReferences="@(_AlarmlistProjectReferenceInputs)"
+                       ProtectedFiles="@(ProjectReference);$(MSBuildAllProjects)"
                        Resources="@(AlarmlistResource)" Lookups="@(AlarmlistLookup)" Cultures="$(AlarmlistCultures)" ManifestFile="$(_AlarmlistOutputManifest)"
                        TreatWarningsAsErrors="$(TreatWarningsAsErrors)" NoWarn="$(NoWarn)" WarningsAsErrors="$(WarningsAsErrors)" WarningsNotAsErrors="$(WarningsNotAsErrors)"
                        Analyzers="@(AlarmlistAnalyzer)"
@@ -73,15 +82,16 @@
   <Target Name="Clean" DependsOnTargets="$(CleanDependsOn)" />
   <Target Name="BeforeClean" />
   <Target Name="AfterClean" />
-  <Target Name="CoreClean">
-    <AlarmlistCleanTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Cultures="$(AlarmlistCultures)"
+  <Target Name="CoreClean" DependsOnTargets="_GetAlarmlistProjectReferenceInputs">
+    <AlarmlistCleanTask OutputDirectory="$(OutputPath)" OutputFileName="$(_AlarmlistOutputFileName)" Cultures="$(AlarmlistCultures)" OutputType="$(OutputType)"
+                       ProtectedFiles="@(Compile);@(AlarmlistResource);@(AlarmlistLookup);@(AlarmlistAnalyzer);@(ProjectReference);@(_AlarmlistProjectReferenceInputs);@(_AlarmlistProjectReferenceInputs->'%(SourceProject)');$(MSBuildProjectFullPath);$(MSBuildAllProjects)"
                        ManifestFile="$(_AlarmlistOutputManifest)" ProjectPath="$(MSBuildProjectFullPath)"
                        Configuration="$(Configuration)" Platform="$(Platform)" />
   </Target>
   <Target Name="Rebuild" DependsOnTargets="Clean;Build" />
   <Target Name="GetTargetPath" Returns="@(CompiledAlarmlistFiles)">
     <ItemGroup><CompiledAlarmlistFiles Remove="@(CompiledAlarmlistFiles)" /></ItemGroup>
-    <AlarmlistGetOutputsTask OutputDirectory="$(OutputPath)" OutputFileName="$(CompiledAlarmlistFileName)" Cultures="$(AlarmlistCultures)">
+    <AlarmlistGetOutputsTask OutputDirectory="$(OutputPath)" OutputFileName="$(_AlarmlistOutputFileName)" Cultures="$(AlarmlistCultures)" OutputType="$(OutputType)">
       <Output TaskParameter="OutputFiles" ItemName="CompiledAlarmlistFiles" />
     </AlarmlistGetOutputsTask>
   </Target>

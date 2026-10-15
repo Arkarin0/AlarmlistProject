@@ -9,6 +9,7 @@ using Alarmlist.Configuration;
 using Alarmlist.ConfigurationInput;
 using Alarmlist.Diagnostics;
 using Alarmlist.Localization;
+using Alarmlist.Libraries;
 using Alarmlist.Output;
 using Alarmlist.Text;
 using Microsoft.Build.Framework;
@@ -26,8 +27,11 @@ namespace Alarmlist.MSBuild
 
         public string OutputFileName { get; set; } = "Alarmlist.xml";
 
-        [Required]
-        public ITaskItem[] Compile { get; set; }
+        public ITaskItem[] Compile { get; set; } = Array.Empty<ITaskItem>();
+
+        public string OutputType { get; set; }
+        public string PackageId { get; set; }
+        public string PackageVersion { get; set; }
 
         public string ProjectPath { get; set; }
         public string Configuration { get; set; }
@@ -36,6 +40,8 @@ namespace Alarmlist.MSBuild
         public ITaskItem[] Resources { get; set; } = Array.Empty<ITaskItem>();
         public ITaskItem[] Lookups { get; set; } = Array.Empty<ITaskItem>();
         public ITaskItem[] Analyzers { get; set; } = Array.Empty<ITaskItem>();
+        public ITaskItem[] LibraryReferences { get; set; } = Array.Empty<ITaskItem>();
+        public ITaskItem[] ProtectedFiles { get; set; } = Array.Empty<ITaskItem>();
         public string Cultures { get; set; }
         public string ManifestFile { get; set; }
         public bool TreatWarningsAsErrors { get; set; }
@@ -63,14 +69,15 @@ namespace Alarmlist.MSBuild
                 if (!base.Execute())
                     return false;
 
-                if (Compile == null || Compile.Length == 0)
+                bool library = BuildOutputPlan.IsLibrary(OutputType);
+                if (!library && (Compile == null || Compile.Length == 0) && (LibraryReferences == null || LibraryReferences.Length == 0))
                 {
                     Log.LogError("No ALMX files were provided to the Alarmlist compiler.");
                     return false;
                 }
 
-                ITaskItem[] outputs = BuildOutputPlan.Create(OutputDirectory, OutputFileName, Cultures);
-                string[] sourceFiles = Compile.ToIncludeList();
+                ITaskItem[] outputs = BuildOutputPlan.Create(OutputDirectory, OutputFileName, Cultures, OutputType);
+                string[] sourceFiles = (Compile ?? Array.Empty<ITaskItem>()).ToIncludeList();
                 IReadOnlyList<CapturedEditorConfig> configurations = SavedEditorConfigCapture.Capture(sourceFiles, _cancellation.Token);
                 IReadOnlyList<CapturedAnalyzerReference> analyzers = SavedAnalyzerCapture.Capture(
                     (Analyzers ?? Array.Empty<ITaskItem>()).Select(Factory.GetFullFilePath), _cancellation.Token);
@@ -98,9 +105,23 @@ namespace Alarmlist.MSBuild
                     string path = Factory.GetFullFilePath(item);
                     return new LookupTextSnapshot(Capture(path), path, 0);
                 }).ToArray();
+                ITaskItem[] referenceItems = LibraryReferences ?? Array.Empty<ITaskItem>();
+                var libraryInputs = new LibraryReferenceSet(referenceItems.Where(item =>
+                    !string.Equals(item.GetMetadata("Direct"), "false", StringComparison.OrdinalIgnoreCase))
+                    .Select(item => new LibraryIdentity(item.GetMetadata("PackageId"), item.GetMetadata("PackageVersion"))),
+                    referenceItems.Select(item =>
+                    {
+                        string path = Factory.GetFullFilePath(item);
+                        return new LibraryTextSnapshot(Capture(path), path, 0);
+                    }));
                 var inputPaths = new HashSet<string>(sourceFiles.Concat(resources.Select(resource => resource.FilePath))
+                    .Concat(libraryInputs.Artifacts.Select(artifact => artifact.FilePath))
                     .Concat(lookups.Select(lookup => lookup.FilePath)).Concat(configurations.Select(input => input.FilePath))
                     .Concat(analyzers.SelectMany(analyzer => analyzer.Images).Select(image => image.FilePath)), BuildOutputPlan.PathComparer);
+                if (!string.IsNullOrWhiteSpace(ProjectPath)) inputPaths.Add(Path.GetFullPath(ProjectPath));
+                inputPaths.UnionWith((ProtectedFiles ?? Array.Empty<ITaskItem>()).Select(Factory.GetFullFilePath));
+                inputPaths.UnionWith(referenceItems.Select(item => item.GetMetadata("SourceProject"))
+                    .Where(path => !string.IsNullOrWhiteSpace(path)).Select(Path.GetFullPath));
                 if (outputs.Any(item => inputPaths.Contains(item.ItemSpec))
                     || (!string.IsNullOrEmpty(ManifestFile) && inputPaths.Contains(Path.GetFullPath(ManifestFile))))
                     throw new InvalidOperationException("An output or ownership manifest must not replace a source input.");
@@ -115,15 +136,34 @@ namespace Alarmlist.MSBuild
                 using (var loader = new AnalyzerAssemblyLoader(analyzers.Select(analyzer => new AnalyzerAssemblyReference(analyzer.FilePath,
                     analyzer.Images.Select(image => new AnalyzerAssemblyImage(image.FilePath, image.GetImage()))))))
                 {
+                    if (library)
+                    {
+                        CheckCancellation();
+                        var context = new CompilationContext(resources, lookups, "keyword", ProjectPath, Configuration, Platform,
+                            properties, diagnosticOptions, loader.Analyzers).WithLibraries(libraryInputs);
+                        var identity = new LibraryIdentity(PackageId, PackageVersion);
+                        LibraryBuildResult result = new AlarmCompiler().CreateLibrary(identity, sources, context,
+                            _cancellation.Token, CapturePortableNames());
+                        LogDiagnostics(result.Diagnostics);
+                        success = result.Success;
+                        if (result.Success)
+                        {
+                            outputs[0].SetMetadata("PackageId", identity.Id);
+                            outputs[0].SetMetadata("PackageVersion", identity.Version);
+                            changes.Add(new OutputTransaction.Change(outputs[0].ItemSpec, result.ArtifactText));
+                        }
+                    }
+                    else
                     foreach (ITaskItem output in outputs)
                     {
                         CheckCancellation();
                         string culture = output.GetMetadata("Culture");
                         Log.LogMessage(MessageImportance.High, "Compiling {0} ALMX file(s) for '{1}'.", sources.Length == 0 ? sourceFiles.Length : sources.Length, culture);
-                        var context = new CompilationContext(resources, lookups, culture, ProjectPath, Configuration, Platform, properties, diagnosticOptions, loader.Analyzers);
+                        var context = new CompilationContext(resources, lookups, culture, ProjectPath, Configuration, Platform, properties, diagnosticOptions, loader.Analyzers)
+                            .WithLibraries(libraryInputs);
                         CompilationResult result = _compileAction == null ? new AlarmCompiler().CompileSnapshots(sources, context, _cancellation.Token) : _compileAction(sourceFiles);
                         if (_compileAction != null) result = new CompilationResult(result.AlarmList, DiagnosticPolicy.Apply(result.Diagnostics, diagnosticOptions));
-                        LogDiagnostics(result);
+                        LogDiagnostics(result.Diagnostics);
                         success &= result.Success;
                         if (result.Success) changes.Add(new OutputTransaction.Change(output.ItemSpec, new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList)));
                     }
@@ -137,7 +177,7 @@ namespace Alarmlist.MSBuild
                 var transaction = new OutputTransaction(changes);
                 if (manifestChange != null)
                     manifestChange.Text = OutputManifest.Write(ProjectPath, Configuration, Platform, destinations,
-                        previous.TemporaryFiles.Where(File.Exists).Concat(transaction.TemporaryPaths));
+                        previous.TemporaryFiles.Where(File.Exists).Concat(transaction.TemporaryPaths), OutputType);
                 transaction.Commit(CheckCancellation, message => Log.LogWarning("{0}", message));
                 foreach (string path in previous.TemporaryFiles)
                 {
@@ -164,9 +204,26 @@ namespace Alarmlist.MSBuild
             if (_cancelled) throw new OperationCanceledException("Alarmlist compilation was cancelled.");
         }
 
-        private void LogDiagnostics(CompilationResult result)
+        private IReadOnlyDictionary<string, string> CapturePortableNames()
         {
-            foreach (var diagnostic in result.Diagnostics)
+            if (string.IsNullOrWhiteSpace(ProjectPath)) throw new ArgumentException("A library build requires ProjectPath.");
+            string directory = Path.GetDirectoryName(Path.GetFullPath(ProjectPath)) + Path.DirectorySeparatorChar;
+            var root = new Uri(directory);
+            var names = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (ITaskItem item in (Compile ?? Array.Empty<ITaskItem>()).Concat(Resources ?? Array.Empty<ITaskItem>())
+                .Concat(Lookups ?? Array.Empty<ITaskItem>()))
+            {
+                string path = Factory.GetFullFilePath(item);
+                string name = item.GetMetadata("Link");
+                if (string.IsNullOrWhiteSpace(name)) name = Uri.UnescapeDataString(root.MakeRelativeUri(new Uri(path)).ToString());
+                names[path] = name.Replace('\\', '/');
+            }
+            return names;
+        }
+
+        private void LogDiagnostics(IEnumerable<Diagnostic> diagnostics)
+        {
+            foreach (var diagnostic in diagnostics)
             {
                 SourceLocation location = diagnostic.Location;
                 switch (diagnostic.Severity)
