@@ -46,12 +46,12 @@ namespace Alarmlist.Analysis
             }
         }
 
-        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots, CompilationContext context, bool includeCompiledXml, CancellationToken token = default)
+        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots, CompilationContext context, bool includeCompiledXml, CancellationToken token = default, bool allowDeferredValues = false)
         {
             var binder = new Binder();
             binder.AddSourceTexts(snapshots.Select(snapshot => snapshot.CreateSourceText()));
             BindingResult binding = LibraryCompilation.Include(binder.Bind(), context);
-            var analyzer = new SnapshotAnalyzer(binding, context);
+            var analyzer = new SnapshotAnalyzer(binding, context, allowDeferredValues);
             CompilationResult compilation = analyzer.CompleteCompilation(binding, token);
             IReadOnlyList<Diagnostic> diagnostics = compilation.Diagnostics;
             string xml = null;

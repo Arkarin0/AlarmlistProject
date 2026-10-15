@@ -13,6 +13,41 @@ namespace Alarmlist.Core.UnitTests.Libraries
     public class LibraryDeferredValidationTests
     {
         [Theory]
+        [InlineData("$(Declared)")]
+        [InlineData("$(loc:Missing)")]
+        [InlineData("$(list:Missing#Entry)")]
+        public void LibraryAnalysisDefersConsumerValuesWithoutProducingFinalXml(string expression)
+        {
+            var compiler = new AlarmCompiler();
+            var sources = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName>"
+                + "<Properties><Property Name='Declared'/></Properties><Name>" + expression + "</Name></Alarm></Alarmlist>", "A.almx", 4) };
+            var context = new CompilationContext(resources: null, culture: "de");
+            var result = compiler.AnalyzeLibrarySnapshots(sources, context);
+            Assert.True(result.Success);
+            Assert.Empty(result.Diagnostics);
+            Assert.Null(result.CompiledXml);
+            var alarm = Assert.Single(result.Alarms);
+            Assert.False(alarm.HasEvaluatedValues);
+            var name = alarm.Fields.Single(field => field.Name == "Name");
+            Assert.False(name.IsValueAvailable);
+            Assert.Equal(expression, name.EffectiveExpression);
+            Assert.False(compiler.AnalyzeSnapshots(sources, context).Success);
+            Assert.False(compiler.CompileSnapshots(sources, context).Success);
+        }
+
+        [Theory]
+        [InlineData("<ReferenceName>ConsumerOnly</ReferenceName>", "ALM0002")]
+        [InlineData("<Name>$(Broken</Name>", "ALM0006")]
+        public void LibraryAnalysisRetainsDefinitionErrors(string content, string id)
+        {
+            var result = new AlarmCompiler().AnalyzeLibrarySnapshots(new[] { new AlmxTextSnapshot(
+                "<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName>" + content + "</Alarm></Alarmlist>", "A.almx", 4) }, CompilationContext.Empty);
+            Assert.False(result.Success);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == id);
+            Assert.Null(result.CompiledXml);
+        }
+
+        [Theory]
         [InlineData("$(Unknown)", "ALM0007")]
         [InlineData("$(Declared)", "ALM0008")]
         [InlineData("$(AlarmlistProjectFullPath)", "ALM0009")]

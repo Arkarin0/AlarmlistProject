@@ -665,7 +665,7 @@ autosave a committed cell; that saved value is then eligible for capture.
 The compiler in each SDK task-runtime directory exposes
 `AlarmCompiler.AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot>)` for host adapters.
 It returns a detached, read-only `Alarmlist.Analysis.AnalysisResult` with contract
-version 3, input versions, local/effective fields, defining alarms and locations,
+version 5, input versions, local/effective fields, defining alarms and locations,
 reference chains, procedure origins, Clear exclusions, and located diagnostics.
 It shares the compiler's resolution rules and never reads or writes snapshot paths.
 
@@ -673,6 +673,11 @@ The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` al
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
 The original overload keeps its analysis-only behavior and returns contract 5.
+`AnalyzeLibrarySnapshots(snapshots, context, cancellationToken)` analyzes library
+definitions with the same deferred-value rules as library validation. Missing
+consumer values remain unavailable; syntax, structure and reference errors remain
+diagnostics. This mode never returns compiled XML. Application analysis and
+compilation remain strict about missing values.
 `AnalyzeSnapshots(snapshots, context, includeCompiledXml)` captures the same
 CompilationContext as compilation. EffectiveExpression and procedure RawText retain
 source tokens; EffectiveValue and surviving procedure Text carry evaluated results.

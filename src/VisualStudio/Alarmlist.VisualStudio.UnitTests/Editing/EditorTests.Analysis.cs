@@ -369,6 +369,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             public Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token)
                 => CultureWriter?.Invoke(project, culture) ?? Task.CompletedTask;
             public void Navigate(AnalysisLocation location, string text) { Navigation = location; NavigationText = text; }
+            public AnalysisNavigationTarget NavigationTarget { get; private set; }
+            public void Navigate(AnalysisNavigationTarget target)
+            { NavigationTarget = target; Navigate(target.Location, target.Text); }
             public void Set(ProjectAnalysisState state) { _current = state; Changed?.Invoke(this, EventArgs.Empty); }
             public void Dispose() { Disposed = true; }
         }

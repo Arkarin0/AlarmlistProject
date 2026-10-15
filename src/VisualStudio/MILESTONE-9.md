@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–5 complete (2026-10-15); 6–8 planned.
+Status: iterations 1–6 complete (2026-10-15); 7–8 planned.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -1291,3 +1291,229 @@ Iteration 5 is complete: saved dependency capture, invalidation, failure recover
 draft isolation, current-input checks and disposal have implementation evidence.
 Library-aware UI/navigation remains iteration 6; integrated performance and full
 milestone acceptance remain iteration 8. No milestone completion is claimed.
+
+### Iteration 6 — complete
+
+Iteration 5 committed as `f2f4dc9`. Initial UI inspection confirms that analysis
+already carries library identity on alarm origins and the project preview includes
+imported concrete alarms. ReferenceChoice currently labels only source filenames;
+navigation still opens physical paths and validates them against captured text.
+Those existing paths do not implement generated package definition views or the
+portable-to-physical mapping for referenced-project sources.
+
+Implementation sequence within this iteration:
+
+1. Add explicit library origin labels to reference choices/completion and preview
+   presentation; retain unavailable/deferred values and consumer-only editing.
+2. Resolve navigation from detached captured library provenance: project sources
+   use actual saved local files, packages use generated read-only definitions.
+   Revalidate captured dependencies and preserve destination draft guards.
+3. Cover stale actions, source mapping, generated views, Undo and disposal in
+   focused tests, then run native navigation/UI cases on both supported hosts.
+
+These are remaining deliverables, not passing evidence. No iteration-6 commit or
+completion is claimed.
+
+Initial implementation: reference choices and preview Source labels now include
+library ID/version; both searches match that origin. Deferred names remain raw
+expressions in reference choices and unavailable in preview values. Added a
+detached AnalysisNavigationTarget resolver for captured local text, physical
+referenced-project sources and generated package spans/captions. It uses compiler
+origin maps, does not read disk, and rejects absent/ambiguous destinations. The
+resolver is not yet connected to UI actions or a read-only native definition view.
+
+Validation (`dotnet test` on the VS unit-test project, `--no-restore --verbosity
+minimal --logger trx`, output under `Milestone9/Iteration6/`):
+
+- OriginPresentation: **17 net472 passed**, no failures/skips (`21_05_33`), filter
+  LibraryOriginPresentationTests, ReferenceSearch and AlarmTable.
+- NavigationTargets: **4 net472 passed**, no failures/skips (`21_07_00`), filter
+  AnalysisNavigationTargetTests and LibraryOriginPresentationTests. Generated
+  positions differ from original source positions; unmapped/case-mismatched
+  portable paths are rejected, and local unsaved text is retained without I/O.
+- ProjectNavigationTargets: **2 net472 passed**, no failures/skips (`21_07_21`),
+  filter LiveServiceRevalidatesSavedLibraries. Actual selected-SDK library origins
+  resolve to captured physical source paths/text in both import-recovery variants.
+- `git diff --check -- src`: passed.
+
+Remaining: wire the resolver into all relevant designer/preview/diagnostic
+navigation actions, implement native generated read-only document lifetime,
+exercise resources/lookups and real packaged definitions, and complete the
+iteration's UI, stale-action, draft/Undo and native-host acceptance checks.
+
+Designer inherited-field/reference/group actions and project preview navigation
+now dispatch detached navigation targets after their existing current-input and
+draft checks. Added a shell-owned generated definition code window with an
+immutable read-only text region and no-save/no-MRU/no-reopen RDT flags. Identical
+open definitions are reused by enumerating shell frames; no global document cache
+retains project state. The implementation follows the public
+[CreateDocumentWindow contract](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.shell.interop.ivsuishell.createdocumentwindow?view=visualstudiosdk-2022)
+and [RDT flags](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.shell.interop._vsrdtflags?view=visualstudiosdk-2022).
+Native generated-view behavior is not yet verified. An initial compilation error
+used a nonexistent SOleServiceProvider marker; corrected the service request to
+the OLE IServiceProvider interface and rebuilt successfully.
+
+- NavigationWiring: **342 net472 passed**, no failures/skips (`21_09_47`, 1m26s),
+  filter AnalysisNavigationTargetTests and EditorTests; results under
+  `Milestone9/Iteration6/NavigationWiring`.
+- PackagePreviewNavigation: **1 net472 passed**, no failures/skips (`21_11_32`),
+  filter ProjectPreviewNavigatesPackageDefinition. Exercises a package row's
+  actual preview command, rejection when current-input validation fails, generated
+  span dispatch when it succeeds, and view disposal.
+- Extended native LibraryAnalysis with inherited-value navigation to the actual
+  out-of-solution project source. VS2022: **1 passed**, no failures/skips
+  (`21_12_14`), TRX run `d2cf06238cb641a3b746a9148c1544d2`.
+
+Added native LibraryDefinitions scenarios for both hosts using actual SDK Pack
+and isolated NuGet restore. The first VS2022 run failed waiting for the generated
+editor: the captured UI shows an invalid-argument error from the navigation action.
+Pack, restore and inherited preview succeeded. Evidence: fixture
+`VisualStudioUI/PackageDefinition/2022/3f08ce3fffc04ab2b7b7bbbbd069169d`,
+TRX `f8975b2051364e4baf01cc898df34ca6` (`21_14_38`). Added operation-specific
+HRESULT reporting to the native definition creation calls; diagnostic rerun is
+pending. This is an unresolved implementation check, not passing acceptance.
+
+Designer diagnostic navigation now uses the same detached target resolution,
+retaining existing local source-version checks and current-input/draft validation.
+Error List integration and validation of this subsequent change remain pending.
+
+The diagnostic native rerun isolated `CreateDocumentWindow` returning
+E_INVALIDARG (`0x80070057`); text initialization, language selection, read-only
+flags and code-window setup succeeded. Fixture
+`PackageDefinition/2022/1d7431e174ee417b8598c3948b3ced94`, TRX
+`5a863fa91ac14ac7ae277d0a9a3367a2` (`21_16_52`). Replaced the custom URI document
+moniker with a rooted temporary-path identity (no file or directory is written).
+The moniker hypothesis is being validated in another native run; not yet proven.
+
+That rerun also failed at CreateDocumentWindow with E_INVALIDARG: fixture
+`PackageDefinition/2022/2cc146ed3ef84a769436ea4f825c04bc`, TRX
+`7058238b5fcb4033ab5b199a68c0a8d3` (`21_18_44`). Changing the moniker alone did
+not resolve creation. All owned test processes completed and cleanup evidence is
+retained. Next investigation must examine document-data initialization and shell
+embedding/registration, rather than treating this as an automation selector issue.
+No native generated-definition acceptance or iteration-6 completion is claimed.
+
+Further native investigation:
+
+- Explicit SetUntitledDocPath initialization and a standard text-editor GUID
+  each still returned E_INVALIDARG at direct window creation (TRX runs
+  `cc1d9c80eafd4f9a87aefe982d3df1d4`, `3484fcae3086419c82b44168fc0b47e9`).
+- Direct OpenSpecificEditor with the unregistered buffer caused an experimental
+  VS2022 access violation in msenv.dll; Windows Application events confirmed the
+  OpenSpecificEditor stack. Fixture `PackageDefinition/2022/34dd1aa99b454fba84e7e6fd57335846`,
+  TRX `fbe3c4138d514601a09c74fbe8db8ae4`. Removed that opening path.
+- Replaced low-level window creation with a registered LibraryDefinitionEditorFactory
+  and non-saving IVsPersistDocData/IVsTextBufferProvider document. The shell now
+  opens it through OpenDocumentViaProjectWithSpecific. Pending captured inputs
+  exist only for the synchronous factory invocation and are removed in finally;
+  open documents retain only their own buffer/definition, not analysis projects.
+  Load/Save never touch disk. Factory output preserves the read-only region and
+  no-save/no-reopen RDT flags. The preexisting editor-factory pattern is reused.
+- The first registered-factory run visibly opened the generated XML definition
+  at the mapped Name line, with portable library/source caption. Test then failed
+  on a transient UIA 0x80040201 while enumerating controls during the document
+  switch. Screenshot/automation evidence: `PackageDefinition/2022/8e84404eb71e467f8a86de8cb5a55cdc`,
+  TRX `f0d151d4fa6a4b76b54ce00adc029925` (`21_24_08`). The test now selects the
+  observed WpfTextView ID and retries that specific transition error. Read-only
+  editing assertions still require a passing run.
+
+Live Error List navigation also dispatches detached targets after the same
+current-input checks; local diagnostic source-version checks remain intact.
+Subsequent focused diagnostics/editor regression is still required.
+
+- Native VS2022 LibraryDefinitions: **1 passed**, no failures/skips (`21_25_10`),
+  TRX `48930e716ed241be9f14a5bd617d433d`. Actual locally packed/restored package
+  navigation opens generated XML, attempts to type do not change its text,
+  package bytes remain unchanged, consumer output remains absent, and the view
+  closes normally. This supersedes the failed low-level-opening probes above.
+- Native VS2026 `Area=LibraryDefinitions|Area=LibraryAnalysis`: **2 passed**, no
+  failures/skips (`21_25_50`), TRX `bfb25df574de4aa0bc5c55fa8f35c1aa`. Covers both
+  generated package navigation/read-only behavior and out-of-solution physical
+  source navigation plus saved dependency draft/unload/reload behavior.
+
+Added resource/lookup diagnostic navigation cases with distinct original and
+generated spans. Full editor unit regression against the registered factory,
+Error List dispatch and those new tests: **518 net472 passed**, no failures/skips
+(`21_26_33`, 1m33s), results under `Milestone9/Iteration6/EditorRegression`.
+
+Extended the native definition scenario to navigate twice and assert one tab,
+close it, reopen it and close it again. VS2022: **1 passed**, no failures/skips
+(`21_30_24`), TRX `8225d378181a4aeaae123bfbdd00e941`. VS2026: **1 passed**, no
+failures/skips (`21_31_11`), TRX `ff4f74ee802846e691903deb0e390d2d`.
+Remaining iteration gates include stale dependency actions and the
+final review of all library-aware completion/navigation paths.
+
+Review finding: the root project snapshot currently does not carry OutputType
+into AnalysisContext, and SdkAnalysisWorker always calls strict AnalyzeSnapshots.
+Imported deferred values are already unavailable in that result (covered by
+LibraryBuilderTests), but analysis of a library project itself has no library
+validation mode. Resolve this distinction before iteration completion; library
+Build's deferred validation and final application strictness must remain intact.
+
+Implemented the root-library distinction with `AnalyzeLibrarySnapshots`, reusing
+SnapshotAnalyzer and the existing deferred evaluator. It returns detached values
+and diagnostics but never final XML. The CPS snapshot captures OutputType into
+AnalysisContext.IsLibrary; saved-input/library updates retain it and context
+comparison invalidates on mode changes. The SDK worker requires the matching
+library analysis entry point and selects it only for a library project.
+Added parameter/translation/list deferral tests, structural/reference error tests,
+mode-capture tests and an isolated packaged-bridge comparison with strict
+application analysis. The SDK consumer contract asset also exercises this API.
+SDK/extension documentation and repository instructions describe the distinction.
+
+- LibraryDeferredValidationTests: **16 passed on each framework**, no failures or
+  skips (`21_32_38`), results under `Iteration6/LibraryAnalysis`.
+- LibraryProjectAnalysisDefersValues: **1 net472 passed**, no failures or skips
+  (`21_32_54`), results under `Iteration6/LibraryBridge`.
+- Full compiler regression after that build (`--no-build --no-restore`):
+  **618 net472 and 620 net8.0 passed**, no failures or skips (`21_34_15/16`),
+  results under `Iteration6/CompilerRegression`.
+- Full editor regression: **523 net472 passed**, no failures/skips (`21_33_10`,
+  1m30s), results under `Iteration6/LibraryModeRegression`.
+- Expanded PackagedCompilerAnalyzesUnsavedSnapshotsWithOrigins contract:
+  **1 passed on each test framework**, no failures/skips (`21_35_02`), results
+  under `Iteration6/LibraryPackagedContract`. Both use dotnet MSBuild by default;
+  the first explicit VS2022 desktop MSBuild run aborted before tests because
+  vstest could not connect to testhost within 90 seconds (`21_36_39`,
+  `Iteration6/LibraryDesktopContract`). After that process reached a terminal
+  result, retrying outside the sandbox **passed 1 net472 test**, no failures or
+  skips (`21_37_17`, `Iteration6/LibraryDesktopContractRetry`). The invocation
+  selected VS2022 MSBuild.exe and restored the previous environment value.
+- Native root-library mode: VS2022 **1 passed** (`21_37_50`, TRX
+  `1068aec5fcbf4e7298f76a46a9b5ac80`) and VS2026 **1 passed** (`21_38_35`, TRX
+  `6179ce8f0cbf44ed8b6e23e012e9dd63`), no failures/skips. The fixture evaluates a
+  supplied parameter, confirms absence of final XML, removes the assignment in
+  the unsaved buffer and observes an unavailable concrete preview row while saved
+  source/output/artifact state stays unchanged. Added an explanatory XML-preview
+  message directing library users to their consuming application.
+
+Final navigation review: inherited fields, references and procedures share the
+detached resolver; selected/project preview and live diagnostics also use it.
+Action execution retains full current-input validation, generation/draft checks,
+and physical destination text/draft checks. An ambiguous local mapping now returns
+no target instead of throwing from diagnostic command availability evaluation.
+Existing stale-action/draft tests and the new package-row validation test run in
+the full editor suite; the real saved-library service tests cover dependency input
+changes before publication and later revalidation. Native LibraryAnalysis covers
+saved refresh, private dependency drafts, deletion/recovery and unload/reload.
+Final focused bridge/navigation tests after the message/resolver changes:
+**53 net472 passed**, no failures/skips (`21_39_00`, 23s), results under
+`Iteration6/FinalBridgeNavigation`.
+
+Iteration 6 acceptance: origin-aware reference search and concrete preview rows,
+deferred availability, physical project-source navigation, generated read-only
+package definitions, current-input/draft guards and document reuse/close/reopen
+are implemented and validated by the compiler, packaged bridge, editor and native
+evidence above. The native cases passed on both hosts. No essential iteration-6
+gate remains. Templates/examples/documentation expansion and full integrated
+acceptance/performance remain iterations 7 and 8; this does not claim their gates.
+Final scoped diff check passed. The full-worktree check also reports preexisting
+trailing whitespace in the unrelated North example edit, which is preserved.
+
+VSIX/package regression now explicitly checks the generated-definition editor
+registration in the packaged pkgdef. `dotnet test
+src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj
+--no-restore --verbosity minimal --logger trx --results-directory
+artifacts/log/Debug/Milestone9/Iteration6/PackageRegression`: **12 net472 and
+12 net8.0 passed**, no failures/skips (`21_31_28`). `git diff --check -- src`
+also passed; Git reported only existing LF/CRLF conversion warnings.

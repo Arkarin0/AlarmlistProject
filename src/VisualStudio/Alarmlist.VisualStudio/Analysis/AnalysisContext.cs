@@ -14,7 +14,7 @@ namespace Alarmlist.VisualStudio.Analysis
         public AnalysisContext(string projectPath = null, string configuration = null, string platform = null, IEnumerable<AnalysisPropertyDefinition> properties = null,
             IEnumerable<AnalysisResourceInput> resources = null, string culture = null, IEnumerable<AnalysisLookupInput> lookups = null,
             AnalysisDiagnosticOptions diagnosticOptions = null, IEnumerable<CapturedEditorConfig> configurations = null,
-            IEnumerable<CapturedAnalyzerReference> analyzers = null, AnalysisLibraryReferences libraries = null)
+            IEnumerable<CapturedAnalyzerReference> analyzers = null, AnalysisLibraryReferences libraries = null, bool isLibrary = false)
         {
             ProjectPath = projectPath; Configuration = configuration; Platform = platform;
             Properties = Array.AsReadOnly((properties ?? Array.Empty<AnalysisPropertyDefinition>()).ToArray());
@@ -29,6 +29,7 @@ namespace Alarmlist.VisualStudio.Analysis
             Configurations = Array.AsReadOnly((configurations ?? Array.Empty<CapturedEditorConfig>()).ToArray());
             Analyzers = Array.AsReadOnly((analyzers ?? Array.Empty<CapturedAnalyzerReference>()).ToArray());
             Libraries = libraries ?? AnalysisLibraryReferences.Empty;
+            IsLibrary = isLibrary;
         }
         public string ProjectPath { get; }
         public string Configuration { get; }
@@ -41,18 +42,19 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<CapturedEditorConfig> Configurations { get; }
         public IReadOnlyList<CapturedAnalyzerReference> Analyzers { get; }
         public AnalysisLibraryReferences Libraries { get; }
+        public bool IsLibrary { get; }
 
         public AnalysisContext WithLibraries(AnalysisLibraryReferences libraries)
             => new AnalysisContext(ProjectPath, Configuration, Platform, Properties, Resources, Culture, Lookups,
-                DiagnosticOptions, Configurations, Analyzers, libraries);
+                DiagnosticOptions, Configurations, Analyzers, libraries, IsLibrary);
 
         public AnalysisContext WithSavedInputs(IEnumerable<AnalysisResourceInput> resources, IEnumerable<AnalysisLookupInput> lookups,
             IEnumerable<CapturedEditorConfig> configurations = null, IEnumerable<CapturedAnalyzerReference> analyzers = null)
-            => new AnalysisContext(ProjectPath, Configuration, Platform, Properties, resources, Culture, lookups, DiagnosticOptions, configurations ?? Configurations, analyzers ?? Analyzers, Libraries);
+            => new AnalysisContext(ProjectPath, Configuration, Platform, Properties, resources, Culture, lookups, DiagnosticOptions, configurations ?? Configurations, analyzers ?? Analyzers, Libraries, IsLibrary);
 
         public bool Matches(AnalysisContext other)
             => other != null && ProjectPath == other.ProjectPath && Configuration == other.Configuration && Platform == other.Platform
-                && Culture == other.Culture && Resources.Count == other.Resources.Count
+                && Culture == other.Culture && IsLibrary == other.IsLibrary && Resources.Count == other.Resources.Count
                 && DiagnosticOptions.Matches(other.DiagnosticOptions)
                 && Libraries.Matches(other.Libraries)
                 && Configurations.Count == other.Configurations.Count && Configurations.Select((input, index) => input.Matches(other.Configurations[index])).All(equal => equal)

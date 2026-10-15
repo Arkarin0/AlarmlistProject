@@ -80,6 +80,20 @@ public sealed class VerifyPackagedAnalysis : Task
         object context = Activator.CreateInstance(contextType, Path.Combine(ProjectDirectory, "Plant.almproj"), "Release", "AnyCPU", properties);
         MethodInfo contextual = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType, contextType, typeof(bool) });
         Require(contextual != null, "The packaged compiler has no captured-context analysis API.");
+        MethodInfo libraryAnalysis = compilerType.GetMethod("AnalyzeLibrarySnapshots", new[] { snapshotsType, contextType, typeof(System.Threading.CancellationToken) });
+        Require(libraryAnalysis != null, "The packaged compiler has no library analysis API.");
+        Array deferredSources = Array.CreateInstance(snapshotType, 1);
+        deferredSources.SetValue(Activator.CreateInstance(snapshotType,
+            "<Alarmlist><Alarm><FullyQualifiedName>Deferred</FullyQualifiedName><Properties><Property Name='required'/></Properties><Name>$(required)</Name></Alarm></Alarmlist>",
+            childPath, 29), 0);
+        object deferredResult = libraryAnalysis.Invoke(compiler, new[] { deferredSources, context, (object)System.Threading.CancellationToken.None });
+        Require((bool)Value(deferredResult, "Success") && Value(deferredResult, "CompiledXml") == null,
+            "Library analysis must defer consumer values without generating application XML.");
+        object deferredName = Items(Items(deferredResult, "Alarms").Single(), "Fields").Single(field => (string)Value(field, "Name") == "Name");
+        Require(!(bool)Value(deferredName, "IsValueAvailable") && (string)Value(deferredName, "EffectiveExpression") == "$(required)",
+            "Deferred library values lost availability or their expression.");
+        Require(!(bool)Value(contextual.Invoke(compiler, new[] { deferredSources, context, (object)true }), "Success"),
+            "Application analysis unexpectedly deferred missing values.");
         Array scoped = Array.CreateInstance(snapshotType, 1);
         scoped.SetValue(Activator.CreateInstance(snapshotType, "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName>"
             + "<Properties><Property Name='p' Value='ignored'/></Properties><Code>$(p)</Code>"

@@ -30,6 +30,15 @@ namespace Alarmlist.VisualStudio.Analysis
             return Array.Empty<LiveDiagnostic>();
         }
 
+        public bool TryGetNavigationTarget(AnalysisLocation location, out AnalysisNavigationTarget target)
+        {
+            target = null;
+            if (location == null || string.IsNullOrEmpty(location.FilePath) || location.LineNumber <= 0 || location.ColumnNumber <= 0) return false;
+            if (!location.FilePath.StartsWith("library://", StringComparison.Ordinal) && !TryGetSourceText(location, out _)) return false;
+            target = AnalysisNavigationTarget.Resolve(State, location);
+            return target != null;
+        }
+
         public bool TryGetSourceText(AnalysisLocation location, out string text)
         {
             CapturedAnalysisInput input = location == null ? null : State.Inputs.FirstOrDefault(item =>

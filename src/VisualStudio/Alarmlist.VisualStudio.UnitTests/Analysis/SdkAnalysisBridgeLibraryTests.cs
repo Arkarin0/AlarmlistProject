@@ -15,6 +15,30 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
 {
     public partial class SdkAnalysisBridgeTests
     {
+        [Fact]
+        public void LibraryProjectAnalysisDefersValuesAndApplicationAnalysisRemainsStrict()
+        {
+            using (var sdk = new SdkAsset())
+            using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+            {
+                var inputs = new[] { Input("<FullyQualifiedName>Local</FullyQualifiedName><Properties><Property Name='P'/></Properties><Name>$(P)</Name>") };
+                var context = new AnalysisContext(isLibrary: true);
+                Assert.True(context.WithLibraries(AnalysisLibraryReferences.Empty).IsLibrary);
+                Assert.True(context.WithSavedInputs(null, null).IsLibrary);
+                Assert.False(context.Matches(AnalysisContext.Empty));
+                var response = bridge.Analyze(inputs, context: context);
+                Assert.True(response.Snapshot?.Success == true, response.Message);
+                Assert.Null(response.CompiledXml);
+                Assert.Contains("consuming application", response.XmlPreviewMessage);
+                var name = Assert.Single(response.Snapshot.Alarms).Fields.Single(field => field.Name == "Name");
+                Assert.False(name.IsValueAvailable);
+                Assert.Equal("$(P)", name.EffectiveExpression);
+                var strict = bridge.Analyze(inputs);
+                Assert.False(strict.Snapshot.Success);
+                Assert.Contains(strict.Snapshot.Diagnostics, diagnostic => diagnostic.Id == "ALM0008");
+            }
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -67,6 +91,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Contains("live consumer", state.Response.CompiledXml);
                     Assert.DoesNotContain("old saved", state.Response.CompiledXml);
                     Assert.NotNull(state.Libraries);
+                    var imported = state.Response.Snapshot.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Saved");
+                    var navigation = AnalysisNavigationTarget.Resolve(state, imported.Origin.Location);
+                    Assert.NotNull(navigation);
+                    Assert.False(navigation.IsReadOnlyDefinition);
+                    Assert.Equal(source, navigation.Location.FilePath);
+                    Assert.Equal(saved.Replace("old saved", "new saved"), navigation.Text);
                     Assert.True(documents.Captures >= 4);
                     Assert.Equal("<broken>", File.ReadAllText(local));
                     completed = new TaskCompletionSource<ProjectAnalysisState>(TaskCreationOptions.RunContinuationsAsynchronously);

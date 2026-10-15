@@ -31,6 +31,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private Type _propertyType;
         private object _compiler;
         private MethodInfo _analyze;
+        private MethodInfo _analyzeLibrary;
         private PropertyInfo _compiledXml;
         private AnalysisContractReader _reader;
         public string CompilerIdentity { get; private set; }
@@ -89,6 +90,9 @@ namespace Alarmlist.VisualStudio.Analysis
                 _analyze = compilerType.GetMethod("AnalyzeSnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType), _contextType, typeof(bool), typeof(CancellationToken) });
                 if (_analyze == null || _analyze.IsStatic || _analyze.ReturnType != assembly.GetType("Alarmlist.Analysis.AnalysisResult"))
                     throw new NotSupportedException("The SDK has no compatible AnalyzeSnapshots method.");
+                _analyzeLibrary = compilerType.GetMethod("AnalyzeLibrarySnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType), _contextType, typeof(CancellationToken) });
+                if (_analyzeLibrary == null || _analyzeLibrary.IsStatic || _analyzeLibrary.ReturnType != _analyze.ReturnType)
+                    throw new NotSupportedException("The SDK has no compatible library analysis method.");
                 PropertyInfo xml = _analyze.ReturnType.GetProperty("CompiledXml", BindingFlags.Public | BindingFlags.Instance);
                 if (xml?.PropertyType != typeof(string) || xml.GetGetMethod() == null || xml.GetIndexParameters().Length != 0)
                     throw new NotSupportedException("The SDK has no compatible compiled XML preview.");
@@ -120,10 +124,13 @@ namespace Alarmlist.VisualStudio.Analysis
             {
                 return WithCapturedInputs(inputs, context, (snapshots, capturedContext) =>
                 {
-                    object result = _analyze.Invoke(_compiler, new object[] { snapshots, capturedContext, true, token });
+                    object result = context?.IsLibrary == true
+                        ? _analyzeLibrary.Invoke(_compiler, new object[] { snapshots, capturedContext, token })
+                        : _analyze.Invoke(_compiler, new object[] { snapshots, capturedContext, true, token });
                     AnalysisSnapshot snapshot = _reader.Read(result);
                     return new AnalysisResponse(AnalysisAvailability.Available, null, snapshot,
-                        snapshot.Success ? (string)_compiledXml.GetValue(result, null) : null);
+                        snapshot.Success ? (string)_compiledXml.GetValue(result, null) : null,
+                        context?.IsLibrary == true ? "Library definitions do not produce final application XML. Preview compiled XML in a consuming application project." : null);
                 });
             }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(Unwrap(exception)))

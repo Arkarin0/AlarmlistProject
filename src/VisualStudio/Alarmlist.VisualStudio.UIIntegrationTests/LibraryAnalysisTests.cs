@@ -21,6 +21,50 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         [UiFact("2026"), Trait("VSVersion", "2026"), Trait("Area", "LibraryAnalysis")]
         public Task SavedLibraryAnalysis2026() => UiTestRun.ExecuteAsync("2026", "SavedLibraryAnalysis", _output, CheckSavedLibraryAnalysis);
 
+        [UiFact("2022"), Trait("VSVersion", "2022"), Trait("Area", "LibraryMode")]
+        public Task LibraryMode2022() => UiTestRun.ExecuteAsync("2022", "LibraryMode", _output, CheckLibraryMode);
+
+        [UiFact("2026"), Trait("VSVersion", "2026"), Trait("Area", "LibraryMode")]
+        public Task LibraryMode2026() => UiTestRun.ExecuteAsync("2026", "LibraryMode", _output, CheckLibraryMode);
+
+        private static void CheckLibraryMode(VisualStudioSession ide, UiTestWorkspace workspace)
+        {
+            workspace.CreateProject(ide, build: false);
+            ide.Automation.Solution.Close(false);
+            string projectPath = Path.Combine(workspace.ProjectDirectory, "Plant.almproj");
+            var project = XDocument.Load(projectPath);
+            project.Root.Add(new XElement("PropertyGroup", new XElement("OutputType", "Library")));
+            project.Save(projectPath);
+            const string source = "<Alarmlist><Alarm><FullyQualifiedName>Reusable</FullyQualifiedName>"
+                + "<Properties><Property Name='Required' Value='Known value'/></Properties><Name>$(Required)</Name></Alarm></Alarmlist>";
+            File.WriteAllText(workspace.AlarmPath, source);
+            VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
+            using var automation = new UIA3Automation();
+            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
+            ide.OpenDesigner(workspace.AlarmPath);
+            var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            window.SetForeground();
+            SelectDesigner(window);
+            ide.Automation.ExecuteCommand("View.AlarmlistPreview");
+            SelectPreviewTab(window, "Selected alarm preview");
+            VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Known value", "library preview evaluates available values");
+            SelectPreviewTab(window, "Compiled XML preview");
+            VisualStudioSession.Wait(() => PreviewValue(window, "Compiled project XML") != null, "library XML preview is present");
+            Assert.Equal("", PreviewValue(window, "Compiled project XML").Text);
+
+            VisualStudioSession.Wait(() => VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, workspace.AlarmPath,
+                source.Replace(" Value='Known value'", "")), "unsaved library input without consumer value");
+            ide.OpenDesigner(workspace.AlarmPath);
+            SelectDesigner(window);
+            ide.Automation.ExecuteCommand("View.AlarmlistPreview");
+            SelectPreviewTab(window, "Alarm table preview");
+            VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Reusable — (unavailable)"), "deferred library preview value");
+            Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
+            Assert.False(File.Exists(workspace.OutputPath));
+            Assert.Empty(Directory.GetFiles(workspace.ProjectDirectory, "*.almlib", SearchOption.AllDirectories));
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "deferred-library-preview.png"));
+        }
+
         private static void CheckSavedLibraryAnalysis(VisualStudioSession ide, UiTestWorkspace workspace)
         {
             workspace.CreateProject(ide, build: false);
@@ -55,6 +99,16 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             SelectPreviewTab(window, "Alarm table preview");
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Consumer — Saved library"),
                 "saved out-of-solution library analysis without Build");
+            SelectPreviewTab(window, "Selected alarm preview");
+            VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Saved library", "inherited library preview");
+            window.FindFirstDescendant(cf => cf.ByName("Go to source for resolved Name").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
+            VisualStudioSession.Wait(() => string.Equals(ide.Automation.ActiveDocument?.FullName, sourcePath, StringComparison.OrdinalIgnoreCase),
+                "library origin opens physical out-of-solution source");
+            Assert.Equal(source, File.ReadAllText(sourcePath));
+            ide.Automation.Documents.Item(sourcePath).Close(EnvDTE.vsSaveChanges.vsSaveChangesNo);
+            ide.OpenDesigner(workspace.AlarmPath);
+            SelectDesigner(window);
+            SelectPreviewTab(window, "Alarm table preview");
             var loadedLibrary = ide.Automation.Solution.AddFromFile(libraryPath);
             Assert.Equal(libraryPath, loadedLibrary.FullName, ignoreCase: true);
             VisualStudioSession.Wait(() => VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, sourcePath,

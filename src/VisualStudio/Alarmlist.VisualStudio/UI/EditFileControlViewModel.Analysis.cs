@@ -35,9 +35,10 @@ namespace Alarmlist.VisualStudio.UI
                 return name?.IsValueAvailable == true ? name.EffectiveValue ?? Identifier : name?.EffectiveExpression ?? Identifier;
             }
         }
+        public string OriginLabel => AlarmOriginPresentation.Library(Alarm.Origin);
         public string Label => Name
-            + " — " + Identifier + " — " + Path.GetFileName(Alarm.Origin.Location?.FilePath);
-        public string HelpText => Name + " — " + Identifier + " — " + Alarm.Origin.Location?.FilePath;
+            + " — " + Identifier + " — " + AlarmOriginPresentation.Source(Alarm.Origin);
+        public string HelpText => Name + " — " + Identifier + " — " + AlarmOriginPresentation.Source(Alarm.Origin, fullPath: true);
         public ReferenceChoice(AnalysisAlarm alarm) { Alarm = alarm; }
     }
 
@@ -342,8 +343,9 @@ namespace Alarmlist.VisualStudio.UI
         private void Navigate(ProjectAnalysisState state, AnalysisLocation location)
         {
             if (location == null) return;
-            string text = state.Inputs.First(item => string.Equals(item.Input.FilePath, location.FilePath, StringComparison.OrdinalIgnoreCase)).Input.Text;
-            _analysis.Navigate(location, text);
+            AnalysisNavigationTarget target = AnalysisNavigationTarget.Resolve(state, location);
+            if (target == null) throw new InvalidOperationException("The source definition is unavailable. Wait for current analysis and try again.");
+            _analysis.Navigate(target);
         }
 
         private void DisposeAnalysis()

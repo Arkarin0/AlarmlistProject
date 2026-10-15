@@ -118,6 +118,17 @@ namespace Alarmlist.Compiler
             return SnapshotAnalyzer.Analyze(inputs, context, includeCompiledXml, cancellationToken);
         }
 
+        /// <summary>Analyzes library definitions with deferred consumer values and no final XML output.</summary>
+        public AnalysisResult AnalyzeLibrarySnapshots(IEnumerable<AlmxTextSnapshot> snapshots, CompilationContext context, CancellationToken cancellationToken = default)
+        {
+            if (snapshots == null) throw new ArgumentNullException(nameof(snapshots));
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            cancellationToken.ThrowIfCancellationRequested();
+            AlmxTextSnapshot[] inputs = snapshots.ToArray();
+            if (inputs.Any(snapshot => snapshot == null)) throw new ArgumentException("A source snapshot must not be null.", nameof(snapshots));
+            return SnapshotAnalyzer.Analyze(inputs, context, false, cancellationToken, allowDeferredValues: true);
+        }
+
         public CompilationResult Compile(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree)
             => Compile(syntaxTree, CompilationContext.Empty);
 

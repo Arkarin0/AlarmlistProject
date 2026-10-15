@@ -26,6 +26,8 @@ namespace Alarmlist.VisualStudio
     [ProvideEditorLogicalView(typeof(AlmxEditorFactory), VSConstants.LOGVIEWID.Designer_string)]
     [ProvideEditorLogicalView(typeof(AlmxEditorFactory), VSConstants.LOGVIEWID.Code_string)]
     [ProvideEditorLogicalView(typeof(AlmxEditorFactory), VSConstants.LOGVIEWID.TextView_string)]
+    [ProvideEditorFactory(typeof(LibraryDefinitionEditorFactory), 111)]
+    [ProvideEditorLogicalView(typeof(LibraryDefinitionEditorFactory), VSConstants.LOGVIEWID.TextView_string)]
     public sealed class AlarmlistPackage : AsyncPackage
     {
         public const string PackageGuid = "2c4fa8f8-d641-4f5c-a7df-6cfc6bf30f34";
@@ -47,6 +49,7 @@ namespace Alarmlist.VisualStudio
             if (commands == null) throw new System.InvalidOperationException("Visual Studio's command service is unavailable.");
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             RegisterEditorFactory(components.GetService<AlmxEditorFactory>());
+            RegisterEditorFactory(components.GetService<LibraryDefinitionEditorFactory>());
             commands.AddCommand(new MenuCommand((sender, args) =>
             {
                 ThreadHelper.ThrowIfNotOnUIThread();

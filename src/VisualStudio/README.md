@@ -74,9 +74,14 @@ library and do not become consumer policy.
 Package analysis uses the selected SDK and restored NuGet assets. Restore after
 changing package references. Missing or invalid dependencies clear stale results;
 saved-file recovery triggers analysis again. Inputs and package selections are
-revalidated before results are published or used for editor actions. Library-aware
-completion, origin labels and package definition navigation remain tracked in
-milestone-nine iteration six; see the plan for current acceptance evidence.
+revalidated before results are published or used for editor actions. Reference
+choices and preview source labels show library identity/version and can be searched
+by library name. Concrete imported alarms appear in the project preview table;
+deferred values remain unavailable. Navigation into a referenced project opens
+its actual source. Package navigation opens a generated, read-only definition
+with portable origin information; it does not expose the original formatting or
+write to the package cache. Repeated navigation reuses an identical open definition.
+See milestone-nine iteration six for validation evidence.
 
 [Milestone six](MILESTONE-6.md) adds saved EditorConfig settings, diagnostic severity,
 project warning controls and explicit `AlarmlistAnalyzer` DLLs. The SDK owns rule
@@ -160,6 +165,11 @@ Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
 Contract 5 requires captured-context analysis and compiled preview support. It
+also requires library snapshot analysis. CPS captures `OutputType=Library` and
+uses that mode for the project's own editor: missing consumer values are unavailable
+in previews, without treating those missing values as invalid library definitions.
+Library previews never provide final application XML. Application projects retain
+strict value validation. The bridge
 copies selected culture, saved-resource identities/versions, raw catalogue entries,
 translation origins and alarm-specific localization uses, as well as raw expressions,
 evaluated values, abstract state, availability, and separate

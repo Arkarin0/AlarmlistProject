@@ -308,6 +308,15 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   values, abstract state, availability, and declaration/assignment origins. The
   unreleased contracts 1, 2, 3 and 4 are no longer supported by the bridge. `CompiledXml` is unavailable
   on errors; in-memory previews must never save source or write build output.
+  `AnalyzeLibrarySnapshots` uses deferred consumer-value validation and never
+  returns final XML. Capture the root project's OutputType in the IDE analysis
+  context, preserve it through input updates, and invalidate on mode changes.
+  Application analysis and compilation remain strict about missing values.
+  Package definition navigation uses the registered in-memory editor factory,
+  captured generated text and compiler-provided location maps. Keep its documents
+  read-only and non-saving, and retain no project analysis state in open buffers.
+  Project-reference navigation uses captured physical source mappings and the
+  existing current-input and destination-draft checks.
 - Contract 5 localization results retain captured resource identities/versions,
   normalized selected culture, raw entries and ambiguity, compiler-owned parent
   lookup origins and per-alarm LocalizationUses. Lookup availability is distinct

@@ -113,6 +113,13 @@ namespace Alarmlist.VisualStudio.Editor
             if (!_disposed) VsSourceNavigation.Navigate(_services, _adapters, location, expectedText);
         }
 
+        public void Navigate(AnalysisNavigationTarget target)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (_disposed || target == null) return;
+            VsSourceNavigation.Navigate(_services, _adapters, target);
+        }
+
         public Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(VsDesignerAnalysis));

@@ -47,6 +47,7 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("Menus.ctmenu, 2", registration);
                 Assert.Contains("ToolWindows\\{2c7f1b33-66f5-4831-96b1-c11cd1e28769}", registration);
                 Assert.Contains("Editors\\{6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f}", registration);
+                Assert.Contains("Editors\\{92d86a30-3de0-4f7d-bc54-3e801efb277d}", registration);
                 Assert.Contains("\"almx\"=dword:00000060", registration);
                 foreach (string logicalView in new[] { "7651a701", "7651a702", "7651a703" }) Assert.Contains(logicalView, registration);
                 Assert.Contains(manifest.Descendants(ns + "Asset"), asset => (string)asset.Attribute("Type") == "Microsoft.VisualStudio.MefComponent"

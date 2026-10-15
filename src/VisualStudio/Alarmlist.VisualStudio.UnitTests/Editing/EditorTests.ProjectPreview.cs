@@ -24,6 +24,43 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
+        public async Task ProjectPreviewNavigatesPackageDefinitionAfterCurrentInputValidationAsync()
+        {
+            const string path = "library://Common/1.0.0/Pump.almx";
+            var origin = new AnalysisLocation(path, 12, 4, 12, 9, null);
+            var generated = new AnalysisLocation(path, 2, 3, 2, 8, null);
+            var identity = new AnalysisLibraryIdentity("Common", "1.0.0");
+            var alarm = new AnalysisAlarm(new AnalysisAlarmOrigin(0, "Pump", origin, identity), null, true,
+                Array.Empty<AnalysisAlarmOrigin>(), Array.Empty<AnalysisField>(), Array.Empty<AnalysisSection>());
+            var library = new AnalysisLibrary(identity, Array.Empty<AnalysisLibraryIdentity>(),
+                new[] { new AnalysisLibrarySource("Pump.almx", path, "generated source", Array.Empty<AnalysisProperty>(),
+                    new[] { new AnalysisLibraryLocation("alarm/0", origin, generated) }) }, Array.Empty<AnalysisResource>(),
+                Array.Empty<AnalysisLookupFile>(), Array.Empty<AnalysisLibraryDocument>());
+            var snapshot = new AnalysisSnapshot(5, true, Array.Empty<AnalysisSource>(), new[] { alarm },
+                Array.Empty<AnalysisDiagnostic>(), libraries: new[] { library });
+            var project = new AnalysisProject(@"C:\Consumer.almproj", "Debug", "compiler.dll", Array.Empty<string>());
+            var analysis = new DesignerAnalysis { Projects = new[] { project } };
+            analysis.Set(new ProjectAnalysisState(1, project, ProjectAnalysisStatus.Available, null,
+                new AnalysisResponse(AnalysisAvailability.Available, null, snapshot)));
+            using (var view = new ProjectPreviewViewModel(analysis))
+            {
+                view.SelectProject(project.ProjectPath);
+                var row = Assert.Single(view.AlarmTableRows);
+                analysis.Valid = false;
+                row.GoToSourceCommand.Execute(null);
+                await view.PendingAnalysisAction;
+                Assert.Null(analysis.NavigationTarget);
+                analysis.Valid = true;
+                row.GoToSourceCommand.Execute(null);
+                await view.PendingAnalysisAction;
+                Assert.True(analysis.NavigationTarget.IsReadOnlyDefinition);
+                Assert.Same(generated, analysis.Navigation);
+                Assert.Equal("generated source", analysis.NavigationText);
+            }
+            Assert.True(analysis.Disposed);
+        }
+
+        [Fact]
         public async Task ProjectPreviewUsesWholeProjectWithoutEditorSelectionAndKeepsPrivateDraftsOutAsync()
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Step>Check</Step></Group>")))

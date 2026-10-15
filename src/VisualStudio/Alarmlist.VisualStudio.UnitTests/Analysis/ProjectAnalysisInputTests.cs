@@ -193,6 +193,30 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             }
         }
 
+        [Theory]
+        [InlineData("Library", true)]
+        [InlineData("library", true)]
+        [InlineData("Application", false)]
+        [InlineData("", false)]
+        public void EvaluationCapturesLibraryAnalysisMode(string outputType, bool expected)
+        {
+            using (var directory = new TempDirectory())
+            using (var projects = new ProjectCollection())
+            using (var reader = XmlReader.Create(new StringReader("<Project><PropertyGroup><OutputType>"
+                + outputType + "</OutputType></PropertyGroup></Project>")))
+            {
+                ProjectRootElement root = ProjectRootElement.Create(reader, projects);
+                root.FullPath = Path.Combine(directory.Path, "Plant.almproj");
+                var instance = new ProjectInstance(root, null, null, projects);
+                AnalysisProject snapshot = AlarmlistProjectSnapshot.Capture(instance, root.FullPath, "Debug");
+                Assert.Equal(expected, snapshot.Context.IsLibrary);
+                instance.SetProperty("OutputType", expected ? "Application" : "Library");
+                AnalysisProject changed = AlarmlistProjectSnapshot.Capture(instance, root.FullPath, "Debug");
+                Assert.False(snapshot.Context.Matches(changed.Context));
+                Assert.Equal(expected, snapshot.Context.IsLibrary);
+            }
+        }
+
         [Fact]
         public async Task LinkedUnsavedInputsResolveAgainstEachCapturedProjectContextAsync()
         {

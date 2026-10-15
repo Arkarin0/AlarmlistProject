@@ -25,7 +25,8 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             var context = new AnalysisContext(projectPath, EmptyToNull(project.GetPropertyValue("Configuration")),
                 EmptyToNull(project.GetPropertyValue("Platform")), properties, culture: project.GetPropertyValue("AlarmlistCulture"),
                 diagnosticOptions: new AnalysisDiagnosticOptions(bool.TryParse(project.GetPropertyValue("TreatWarningsAsErrors"), out bool promote) && promote,
-                    project.GetPropertyValue("NoWarn"), project.GetPropertyValue("WarningsAsErrors"), project.GetPropertyValue("WarningsNotAsErrors")));
+                    project.GetPropertyValue("NoWarn"), project.GetPropertyValue("WarningsAsErrors"), project.GetPropertyValue("WarningsNotAsErrors")),
+                isLibrary: string.Equals(project.GetPropertyValue("OutputType"), "Library", System.StringComparison.OrdinalIgnoreCase));
             return new AnalysisProject(projectPath, configuration, project.GetPropertyValue(CompilerPathProperty), paths, context,
                 resources, project.GetPropertyValue("AlarmlistCultures"), project.GlobalProperties.ContainsKey("AlarmlistCulture"),
                 project.GetItems("AlarmlistLookup").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))),

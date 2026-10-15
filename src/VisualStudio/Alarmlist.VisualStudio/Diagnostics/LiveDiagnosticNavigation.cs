@@ -59,7 +59,7 @@ namespace Alarmlist.VisualStudio.Diagnostics
                 using (var inputs = new ProjectAnalysisInputSource(_documents))
                 {
                     Action<AnalysisLocation, string> navigate = (location, text) => VsSourceNavigation.Navigate(_services, _adapters, location, text);
-                    bool current = entry != null ? await entry.TryNavigateAsync(inputs, navigate, _lifetime.Token)
+                    bool current = entry != null ? await entry.TryNavigateAsync(inputs, target => VsSourceNavigation.Navigate(_services, _adapters, target), _lifetime.Token)
                         : await build.TryNavigateAsync(_registry, inputs, navigate, _lifetime.Token);
                     if (!current) message = "This diagnostic is no longer current or has no source location. Wait for analysis or rebuild and try again.";
                 }
