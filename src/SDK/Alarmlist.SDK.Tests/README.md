@@ -29,6 +29,10 @@ and [TestApp](https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Ar
   checks project/shared configuration scope, warning controls, source preservation,
   output preservation on promotion, and the missing-preparation message. It does
   not build or modify the persistent playground's outputs.
+- `LibraryExampleTests` builds an isolated copy of `example/Libraries/Libraries.sln`,
+  checks both consumers' transitive parameter/resource/lookup overrides, packs
+  the libraries and verifies equivalent output after switching one consumer to
+  PackageReference. It never changes the persistent example sources.
 - `AnalyzerLifecycle` builds a disposable analyzer against the restored SDK's
   compiler for the selected MSBuild runtime. It checks one disposal after a
   multi-culture batch, output/manifest preservation on disposal failure, and

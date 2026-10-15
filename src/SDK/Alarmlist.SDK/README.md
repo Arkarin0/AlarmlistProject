@@ -195,6 +195,14 @@ permits missing consumer-supplied values but rejects structural/reference errors
 Exported input names are project-relative; linked inputs should specify portable
 `Link` metadata.
 
+The Visual Studio **Alarmlist Library** project template starts with an abstract
+template and a concrete derived alarm. The Alarmlist project property page exposes
+Output type, Library filename, Package ID and Package version. Package identity
+settings are shared across configurations; output settings can vary by configuration.
+For an executable example with two consumers, transitive references and
+parameter/resource/lookup overrides, see the
+[library playground](../../../example/Libraries/README.md).
+
 Add `<ProjectReference Include="../Library/Library.almproj" />` to consume another
 project whose `OutputType` is `Library`. CLI builds build references first and
 capture their transitive artifacts; an application can contain only references.

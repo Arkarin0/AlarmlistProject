@@ -27,18 +27,24 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             File.WriteAllText(SolutionPath, "Microsoft Visual Studio Solution File, Format Version 12.00\r\n# Visual Studio Version 17\r\nGlobal\r\nEndGlobal\r\n");
         }
 
-        public void CreateProject(VisualStudioSession ide, bool build = true)
+        public void CreateProject(VisualStudioSession ide, bool build = true, bool library = false)
         {
             PrepareSdkFeed(DirectoryPath, Path.Combine(AppContext.BaseDirectory, "testassets"));
             Directory.CreateDirectory(ProjectDirectory);
-            string projectTemplate = VisualStudioAutomation.GetTemplate(ide.Automation, false);
+            string projectTemplate = library
+                ? ((EnvDTE80.Solution2)ide.Automation.Solution).GetProjectTemplate("AlarmlistLibrary.vstemplate", "Alarmlist")
+                : VisualStudioAutomation.GetTemplate(ide.Automation, false);
             string itemTemplate = VisualStudioAutomation.GetTemplate(ide.Automation, true);
             Assert.True(File.Exists(projectTemplate), "The deployed project template is missing.");
             Assert.True(File.Exists(itemTemplate), "The deployed item template is missing.");
             ide.Automation.Solution.AddFromTemplate(projectTemplate, ProjectDirectory, "Plant", false);
             VisualStudioSession.Wait(() => ide.Automation.Solution.Projects.Count == 1, "project creation");
             ide.Automation.Solution.SaveAs(SolutionPath);
-            if (build) Build(ide, 1);
+            if (build)
+            {
+                if (library) throw new InvalidOperationException("Library fixtures must validate their artifact instead of application XML.");
+                Build(ide, 1);
+            }
         }
 
         public void Build(VisualStudioSession ide, int alarmCount)
@@ -58,7 +64,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         {
             using var archive = ZipFile.OpenRead(Path.Combine(assets, "Alarmlist.VisualStudio.vsix"));
             ZipArchiveEntry template = archive.Entries.Single(entry => entry.FullName.StartsWith("ProjectTemplates/", StringComparison.Ordinal)
-                && entry.FullName.EndsWith(".almproj", StringComparison.Ordinal));
+                && entry.FullName.EndsWith("/Alarmlist.almproj", StringComparison.Ordinal));
             using var stream = template.Open();
             string sdk = (string)XDocument.Load(stream).Root.Attribute("Sdk");
             const string prefix = "Alarmlist.MSBuild.SDK/";

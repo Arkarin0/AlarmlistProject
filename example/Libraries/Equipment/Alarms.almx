@@ -1,0 +1,12 @@
+<Alarmlist>
+  <Alarm abstract="true">
+    <FullyQualifiedName>Equipment.Template</FullyQualifiedName>
+    <ReferenceName>Common.Template</ReferenceName>
+    <Category>Equipment</Category>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Equipment.Pump</FullyQualifiedName>
+    <ReferenceName>Equipment.Template</ReferenceName>
+    <Name>Pump at $(Site)</Name>
+  </Alarm>
+</Alarmlist>

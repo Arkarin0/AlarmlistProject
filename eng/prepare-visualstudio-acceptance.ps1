@@ -12,8 +12,8 @@ $repoRoot = Split-Path $PSScriptRoot -Parent
 $vsixPath = Join-Path $repoRoot "artifacts/bin/Alarmlist.VisualStudio/$Configuration/net472/Alarmlist.VisualStudio.vsix"
 $archive = [IO.Compression.ZipFile]::OpenRead($vsixPath)
 try {
-  $templates = @($archive.Entries | Where-Object { $_.FullName.StartsWith('ProjectTemplates/') -and $_.FullName.EndsWith('.almproj') })
-  if ($templates.Count -ne 1) { throw 'Expected exactly one ALMX project template in the built VSIX.' }
+  $templates = @($archive.Entries | Where-Object { $_.FullName.StartsWith('ProjectTemplates/') -and $_.FullName.EndsWith('/Alarmlist.almproj') })
+  if ($templates.Count -ne 1) { throw 'Expected exactly one Alarmlist application template in the built VSIX.' }
   $reader = [IO.StreamReader]::new($templates[0].Open())
   try { [xml]$template = $reader.ReadToEnd() } finally { $reader.Dispose() }
   $sdk = $template.Project.Sdk

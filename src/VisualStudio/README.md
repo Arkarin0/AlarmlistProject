@@ -5,6 +5,13 @@ templates, Solution Explorer file management, project properties, and
 Build/Rebuild/Clean through `Alarmlist.MSBuild.SDK`. Compiler errors are reported
 through the standard MSBuild logger and Visual Studio Error List.
 
+**Add New Project > Alarmlist Library** creates reusable definitions with an abstract
+template and a concrete derived alarm. In its Alarmlist project properties, choose
+the output type and library filename, and set the package ID/version before sharing
+it through project or NuGet references. Package identity is shared across build
+configurations. The [library playground](../../example/Libraries/README.md) includes
+two consumers, a transitive dependency, local feed preparation and expected output.
+
 **Add > New Item > Alarmlist > Translations (RESX)** creates a resource file and
 opens Visual Studio's resource editor. Keep a culture suffix in its name, such as
 `Translations.en.resx` (the default) or `Translations.de.resx`. It is included as

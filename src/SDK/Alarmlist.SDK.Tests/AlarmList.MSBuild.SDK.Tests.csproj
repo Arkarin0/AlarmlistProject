@@ -19,6 +19,9 @@
       <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
     </ProjectReference>
     <Content Include="testassets/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../example/Libraries/**/*.almx;../../../example/Libraries/**/*.almproj;../../../example/Libraries/**/*.resx;../../../example/Libraries/**/*.almlookup;../../../example/Libraries/Directory.Build.props;../../../example/Libraries/Directory.Build.targets;../../../example/Libraries/Libraries.sln"
+             Exclude="../../../example/Libraries/**/bin/**;../../../example/Libraries/**/obj/**;../../../example/Libraries/**/.*/**"
+             Link="testassets/LibraryExample/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../example/**/*.almx;../../../example/**/*.resx;../../../example/**/*.almlookup;../../../example/**/*.almproj;../../../example/**/.editorconfig;../../../example/Directory.Build.props;../../../example/Directory.Build.targets"
              Exclude="../../../example/**/bin/**;../../../example/**/obj/**;../../../example/**/.*/**"
              Link="testassets/Example/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

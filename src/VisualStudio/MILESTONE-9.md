@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–6 complete (2026-10-15); 7–8 planned.
+Status: iterations 1–7 complete (2026-10-15); iteration 8 planned.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -1509,6 +1509,151 @@ gate remains. Templates/examples/documentation expansion and full integrated
 acceptance/performance remain iterations 7 and 8; this does not claim their gates.
 Final scoped diff check passed. The full-worktree check also reports preexisting
 trailing whitespace in the unrelated North example edit, which is preserved.
+
+### Iteration 7 — complete
+
+Iteration 6 committed as `b9d3a5c`. Initial inspection confirms the VSIX has one
+application project template and two item templates; template packaging explicitly
+replaces the SDK version and zips each directory. General.xaml currently exposes
+application output/culture settings but no library output or package identity
+controls. Extend these existing mechanisms, retaining the built SDK version.
+
+Implementation sequence within this iteration:
+
+1. Add the library project template with reusable abstract/concrete definitions;
+   extend template preparation, packaged registration/content checks and native
+   project creation tests on both hosts. Add output type, library filename and
+   package identity/version property controls with persistence/schema validation.
+2. Add a persistent standalone library example graph with two consumers and a
+   transitive library, demonstrating parameter, translation and lookup overrides.
+   Keep it isolated from the existing North/South example's shared analyzer/source
+   imports, and preserve the owner's uncommitted North edits.
+3. Document CLI Restore/Build/Pack and native creation/reference/property workflows,
+   plus package-feed setup and expected results. Validate the examples through
+   isolated packaged SDK consumers on both runtimes and native template/property
+   flows. Record actual results before marking this iteration complete and commit
+   the entire successful iteration before starting integrated acceptance.
+
+Implemented the Alarmlist Library project template with an abstract base and a
+concrete derived alarm, OutputType=Library, package identity/version and the
+build-selected SDK pin. Added output type, artifact filename and package identity
+controls to the existing General property rule. Template packaging now includes
+both project templates; package tests validate their SDK pin and actual library
+Build/Pack. Example/acceptance preparation selects the application template
+explicitly; release preparation validates the pins of both templates. No release
+or publication command has run. UI fixture feed discovery likewise selects the
+application template explicitly.
+
+Validation:
+
+- Initial package run (`21_41_26`): 12 passed and the new library test failed on
+  each framework. ReadLinesFromFile's list-to-property conversion inserted
+  semicolons between project XML lines. Replaced that conversion for the new
+  template with ReadAllText, preserving complete XML before SDK substitution.
+- Full package rerun: **13 net472 and 13 net8.0 passed**, no failures/skips
+  (`21_41_53`), `Iteration7/TemplatesRetry`. Includes actual template Build/Pack.
+- Property rule tests: **14 net472 passed**, no failures/skips (`21_42_19`),
+  `Iteration7/PropertyRules`; validates MSBuild XAML loading, enum values and
+  configuration-independent package identity persistence.
+- Native LibraryTemplate creation/build/reopen: VS2022 **1 passed**, no failures
+  or skips (`21_43_07`), TRX `e51049a1cfc74794a259d09e2b61fad7`. VS2026 **1 passed**,
+  no failures/skips (`21_43_34`), TRX `5371ba1ec27d4171ab8cef4c512efe54`.
+  Property-page interaction, persistent examples
+  and their documentation/validation remain outstanding. Iteration not complete.
+- Modified preparation/release scripts pass PowerShell parser checks; scoped diff
+  check passes. These are syntax checks, not release execution or publication.
+
+Added `example/Libraries`: Common -> Equipment -> LineA/LineB, with abstract and
+concrete alarms, consumer parameter overrides, ancestor translation/list overrides
+and different final consumer values. Its own Directory.Build files prevent the
+North/South playground's shared sources/analyzers from being imported. A separate
+Libraries.sln and `eng/prepare-library-example.ps1` prepare the SDK selected by the
+built library template, using ignored local configuration and a content-specific
+cache. The checked-in README documents expected values, native exploration and
+local NuGet packing; no North sources were edited.
+
+The package-test fixture copies these actual source files. LibraryExampleTests
+checks both consumers' three concrete alarms, all parameter/code/translation
+results, packs both dependencies, changes an isolated LineB copy to PackageReference,
+restores and verifies byte-identical final XML.
+
+- Initial project-build example checks: **1 passed per framework**, no failures or
+  skips (`21_44_54`, `Iteration7/Examples`). Expanded package-equivalence checks:
+  **1 passed per framework** (`21_46_18`, `Iteration7/ExamplePackages`).
+- Explicit desktop VS2022 MSBuild: **1 net472 passed**, no failures/skips
+  (`21_46_35`, `Iteration7/ExampleDesktop`), with environment restored afterward.
+- Preparation script and documented local Pack commands succeeded, producing the
+  two packages under the ignored `.feed` directory.
+- Direct solution build in the sandbox returned failure after Common with zero
+  reported warnings/errors. Diagnostic text/binlog retained under
+  `Iteration7/library-example-solution.*`. The same build outside the sandbox
+  succeeded for all four projects; its binlog is
+  `Iteration7/library-example-solution-unsandboxed.binlog`. No code change was
+  made to bypass solution/reference semantics.
+- Expanded the test to start with actual Libraries.sln Restore/Build, then inspect
+  both outputs and test package equivalence. **1 passed on each test framework**,
+  no failures/skips (`21_47_26`, `Iteration7/ExampleSolution`), outside the sandbox.
+
+Native property-page interaction and final documentation/instruction review remain
+before iteration-7 completion. The integrated acceptance/performance gate remains
+iteration 8.
+
+Native property-page probes on VS2022 initially failed: the first timed out and
+required termination of its identity-verified owned test IDE; the second captured
+"No property pages for this selection" with the ALMX editor still active. Closing
+that editor and explicitly focusing the project node opened the correct Alarmlist
+page (fixture `7b6109f35ed2450cbfc9660f43f621cc`). Its retained UIA tree contains
+Output type, Package ID/version and Library filename. That probe still failed
+because it expected an Edit control before selecting the property row; the native
+grid initially exposes only the selected Output type editor. The test now selects
+each row before editing and checks saved project values plus a reopened build.
+These failed probes are not passing native property-edit evidence.
+
+The subsequent row-click and Focus/F2 probes timed out waiting for the Package ID
+editor (`21_55_08`, `21_57_38`); UIA SelectionItem is unsupported (`21_55_55`).
+The native grid's MSAA TAKEFOCUS/TAKESELECTION operation selects the intended row.
+Using it, `Area=LibraryProperties` now edits Package ID, Package version and
+Library filename, saves their project XML, reopens the solution and verifies the
+renamed artifact and changed identity/version after Build:
+
+- VS2022: **1 passed**, no failures/skips (`21_58_17`), TRX
+  `3c6de57803254401ae0b198cf82c60ad`.
+- VS2026: **1 passed**, no failures/skips (`21_58_55`), TRX
+  `bbb82ee7495b4c578b3996e46f364a9c`.
+
+The attempted diagnostic stack capture found that the earlier owned IDE had
+already exited; no stack capture was produced. All later tests completed normally.
+Output-type switching in the native page still needs explicit coverage, followed
+by final iteration review and commit. The passing text-field checks do not prove
+that enum interaction.
+
+Final iteration-7 validation closes those remaining scoped checks:
+
+- The native scenario now changes Library -> Application, saves and builds one
+  concrete alarm into XML, then changes Application -> Library, saves/reopens and
+  verifies the library artifact and removal of the obsolete application output.
+  It retains the package identity/version/filename assertions above. Dialog lookup
+  uses the property-grid identity rather than a localized window title. Initial
+  lookup/focus probes failed (`22_00_35`, `22_01_08`); the final helper finds the
+  owning window and waits for keyboard focus. VS2026 additionally needed a wait
+  for refreshed property rows (`22_02_57` was a failed probe).
+- `eng/test-visualstudio.ps1 -VisualStudioPath <VS2022> -RootSuffix AlarmlistExp
+  -Filter 'Area=LibraryProperties'`: **1 passed**, no failures/skips (`22_01_48`),
+  TRX `736c68550ecf47828bd955c2c6fac857`.
+- Same command for VS2026: **1 passed**, no failures/skips (`22_03_39`), TRX
+  `3c0906edbe0e4e68833a737ec6995a08`.
+- Final LibraryExampleTests with `--framework net472` and
+  ALARMLIST_TEST_MSBUILD_PATH selecting VS2022 desktop MSBuild: **1 passed**, no
+  failures/skips (`22_03_54`), `Iteration7/ExampleSolutionDesktop`. Includes the
+  actual solution Restore/Build, both consumers and project/package equivalence.
+  The previous environment value was restored.
+- Reviewed templates, package scripts, example sources and documentation links;
+  scoped `git diff --check` passed. Existing unrelated North edits remain outside
+  this iteration. No publication was performed.
+
+Iteration 7 is complete. Integrated regression, requirement audit and library
+performance measurements remain required in iteration 8; this is not milestone
+completion.
 
 VSIX/package regression now explicitly checks the generated-definition editor
 registration in the packaged pkgdef. `dotnet test

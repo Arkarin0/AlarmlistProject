@@ -56,11 +56,13 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("\"almx\"=dword:00000028", xmlRegistration);
                 Assert.Contains("Languages\\File Extensions\\.almx", xmlRegistration);
                 Assert.Contains("{F6819A78-A205-47B5-BE1C-675B3C7F0B8E}", xmlRegistration);
-                Assert.Equal(3, package.Entries.Count(entry => entry.FullName.EndsWith(".vstemplate")));
-                var projectTemplate = XDocument.Parse(Read(package.Entries.Single(entry =>
+                Assert.Equal(4, package.Entries.Count(entry => entry.FullName.EndsWith(".vstemplate")));
+                var projectTemplates = package.Entries.Where(entry =>
                     entry.FullName.StartsWith("ProjectTemplates/", StringComparison.Ordinal)
-                    && entry.FullName.EndsWith(".vstemplate", StringComparison.Ordinal))));
-                Assert.Equal("true", projectTemplate.Descendants(s_templateNamespace + "CreateInPlace").Single().Value);
+                    && entry.FullName.EndsWith(".vstemplate", StringComparison.Ordinal)).ToArray();
+                Assert.Equal(2, projectTemplates.Length);
+                Assert.All(projectTemplates, entry => Assert.Equal("true", XDocument.Parse(Read(entry))
+                    .Descendants(s_templateNamespace + "CreateInPlace").Single().Value));
                 var catalogs = package.Entries.Where(entry => entry.FullName.EndsWith(".vstman")).ToArray();
                 Assert.Equal(2, catalogs.Length);
                 foreach (var catalog in catalogs)
@@ -130,7 +132,11 @@ namespace Alarmlist.VisualStudio.IntegrationTests
         {
             using (var vsix = OpenPackage())
             {
-                var project = XDocument.Parse(Read(vsix.Entries.Single(entry => entry.FullName.EndsWith(".almproj"))));
+                var projects = vsix.Entries.Where(entry => entry.FullName.EndsWith(".almproj")).ToArray();
+                Assert.Equal(2, projects.Length);
+                Assert.All(projects, entry => Assert.Equal(XDocument.Parse(Read(projects[0])).Root.Attribute("Sdk").Value,
+                    XDocument.Parse(Read(entry)).Root.Attribute("Sdk").Value));
+                var project = XDocument.Parse(Read(projects[0]));
                 string sdk = project.Root.Attribute("Sdk").Value;
                 const string prefix = "Alarmlist.MSBuild.SDK/";
                 Assert.StartsWith(prefix, sdk);
@@ -145,6 +151,29 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                     Assert.NotNull(package.GetEntry("tasks/net472/Alarmlist.Core.dll"));
                     Assert.NotNull(package.GetEntry("tasks/net8.0/Alarmlist.Core.dll"));
                 }
+            }
+        }
+
+        [Fact]
+        public void PackagedLibraryTemplateBuildsAndPacksReusableDefinitions()
+        {
+            using (var app = CreateApp(nameof(PackagedLibraryTemplateBuildsAndPacksReusableDefinitions)))
+            using (var package = OpenPackage())
+            {
+                Instantiate(package, "ProjectTemplates/", app.WorkingDirectory, "Plant", "AlarmlistLibrary.vstemplate");
+                var result = app.Run(_output, "/t:Restore;Build;Pack");
+                Assert.True(result.ExitCode == 0, result.Output);
+                var project = XDocument.Load(Path.Combine(app.WorkingDirectory, "Plant.almproj"));
+                Assert.Empty(project.Descendants("TargetFramework"));
+                Assert.Equal("Library", project.Descendants("OutputType").Single().Value);
+                string artifact = Directory.GetFiles(Path.Combine(app.WorkingDirectory, "bin"), "Plant.almlib", SearchOption.AllDirectories).Single();
+                string text = File.ReadAllText(artifact);
+                Assert.Contains("Plant.Template", text);
+                Assert.Contains("Plant.Example", text);
+                Assert.Contains("abstract=\"true\"", text);
+                Assert.Contains("ReferenceName", text);
+                Assert.False(File.Exists(app.OutputPath));
+                Assert.Single(Directory.GetFiles(Path.Combine(app.WorkingDirectory, "bin"), "Plant.1.0.0.nupkg", SearchOption.AllDirectories));
             }
         }
 

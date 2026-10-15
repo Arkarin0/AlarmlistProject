@@ -1,0 +1,7 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup><AlarmlistCultures>en</AlarmlistCultures><AlarmlistCulture>en</AlarmlistCulture></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Equipment/Equipment.almproj" />
+    <AlarmlistProperty Include="Site" Value="LineA" />
+  </ItemGroup>
+</Project>

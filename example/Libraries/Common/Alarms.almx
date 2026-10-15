@@ -1,0 +1,14 @@
+<Alarmlist>
+  <Alarm abstract="true">
+    <FullyQualifiedName>Common.Template</FullyQualifiedName>
+    <Properties><Property Name="Site" /></Properties>
+    <Name>Stop at $(Site)</Name>
+    <Code>$(list:Codes#Stop)</Code>
+    <Category>Safety</Category>
+    <Description>$(loc:Inspection)</Description>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Common.Stop</FullyQualifiedName>
+    <ReferenceName>Common.Template</ReferenceName>
+  </Alarm>
+</Alarmlist>
