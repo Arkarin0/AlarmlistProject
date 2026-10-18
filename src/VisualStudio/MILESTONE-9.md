@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–9 and 13 complete; iterations 10–12 planned for Solution Explorer dependencies; iteration 14 planned for example RESX compatibility.
+Status: iterations 1–9 and 13 complete; iterations 10–12 planned for Solution Explorer dependencies; iterations 14–15 planned for RESX compatibility and XML keyboard editing.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2340,3 +2340,67 @@ Planning validation: reviewed the three resources, the existing template/shared
 resource headers, compiler header handling and native localization test harness;
 the read-only reader probe reproduced all three failures. No automated test suite
 or implementation change was run in this planning step.
+
+### Iteration 15 — usable XML keyboard editing (planned 2026-10-18)
+
+The owner reports that the ALMX XML view accepts inserted text, but deletion and
+Enter/newline do not work. Restore ordinary XML editing in the embedded editor.
+This fix is independent of planned iterations 10–12 and 14; preserve completed
+work and the unrelated user edit to LineB.almproj.
+
+Inspection finds an embedded VS code window/text view in AlmxEditorPane. The pane
+implements IOleCommandTarget, intercepts designer Return/clipboard/Undo commands,
+and forwards other QueryStatus/Exec calls to the code window. SplitEditorControl
+also participates in designer Return handling. This makes focus/command routing
+a diagnostic candidate, not a proven root cause. Several native scenarios use
+VisualStudioAutomation.ReplaceXmlBuffer; successful programmatic replacement does
+not prove that physical Backspace, Delete and Enter reach the text editor.
+
+**Deliverable:** typing, character/selection deletion and newlines work normally
+in writable ALMX XML panes, including after switching between Designer, Split and
+XML modes. The existing shared-buffer, Undo, save and designer-draft contracts
+remain intact. Generated package-definition documents must remain read-only.
+
+Implementation and validation plan:
+
+1. Reproduce in an isolated native IDE fixture on VS2022 and VS2026. Focus the
+   actual XML text surface and use real keyboard input to insert a marker, press
+   Backspace, forward Delete, delete a selection and press Enter. Observe caret,
+   selection and captured shared-buffer text after each operation. Test both XML
+   mode and the XML pane in Split mode, including focus round trips to a designer
+   field and a shell window. Record native evidence and command results; compare
+   with Open With > XML (Text) Editor if needed to isolate hosting from language
+   service behavior. Never reproduce by modifying the user's current document.
+2. Trace QueryStatus/Exec and keyboard preprocessing for the failing commands,
+   including VSStd2K RETURN/BACKSPACE/DELETE and relevant standard edit commands.
+   Verify the active text-view command chain, editor focus, read-only state and
+   whether the host reports success without executing a command. Select a fix
+   from observed evidence using supported VS editor/CPS contracts. Scope designer
+   handlers to their actual focused controls; keep QueryStatus free of edits.
+   Do not implement ad hoc string deletion/newline insertion as a substitute for
+   repairing the native text editor's command path.
+3. Add regressions at the affected command/focus boundary and native keyboard
+   scenarios covering insertion, Backspace/Delete with and without selection,
+   Enter, multiline selection replacement, Cut/Paste, Undo/Redo and save/reopen.
+   Assert the actual buffer and persisted text, not only keystroke delivery or
+   absence of exceptions. Retain normal XML indentation behavior rather than
+   hard-coding one whitespace layout. Include a well-formed final XML state and
+   verify the designer reflects it without losing source comments/expressions.
+4. Validate designer Enter/Shift+Enter, private drafts, mode switching and shared
+   document Undo so the XML repair does not redirect designer keys into the source.
+   Verify read-only generated library views still reject editing. Run the editor
+   unit suite plus affected native editor/lifecycle/definition scenarios on both
+   hosts sequentially, using owned fixtures and preserving open user IDEs.
+
+Completion criteria: physical keyboard deletion and newline operations pass in
+both embedded layouts on both supported hosts; insertions, selection, Undo/Redo,
+save/reopen and designer synchronization work; designer field semantics and
+read-only views remain protected. Record reproduction, root cause, final changes,
+commands/results and any essential host blocker before declaring this iteration
+complete and committing it. No compiler/language-format change or XML IntelliSense
+feature expansion is included.
+
+Planning validation: read editor initialization, command forwarding, designer key
+handling and the existing XML automation approach; reviewed this plan and paths.
+No native reproduction, implementation change or automated test suite was run in
+this planning step. The user report is not yet attributed to a specific handler.
