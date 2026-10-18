@@ -2404,3 +2404,11 @@ Planning validation: read editor initialization, command forwarding, designer ke
 handling and the existing XML automation approach; reviewed this plan and paths.
 No native reproduction, implementation change or automated test suite was run in
 this planning step. The user report is not yet attributed to a specific handler.
+
+User-supplied reproduction evidence: `20261018-2020-10.0108382.mp4`, attached to
+this conversation and explicitly identified by the owner as evidence for this
+XML editing issue. The attachment is accessible (5,914,805 bytes), but its video
+contents have not been independently reviewed here; no video decoder was available
+on PATH during intake. Do not infer specific keystrokes or a root cause from file
+presence. Review the recording alongside the native reproduction in step 1.
+The recording and its machine-specific temporary path are not repository assets.
