@@ -1,3 +1,4 @@
 global.json
 NuGet.Config
 .feed/
+LibraryExample.local.props

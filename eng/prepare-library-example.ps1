@@ -1,6 +1,9 @@
 # Prepare only the reusable-library example with the SDK selected by the built VSIX.
 [CmdletBinding()]
-param([ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug')
+param(
+  [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
+  [ValidateSet('Project', 'Package')][string]$ReferenceMode = 'Project'
+)
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -18,8 +21,18 @@ try {
   $sdkVersion = $Matches[1]
 } finally { $archive.Dispose() }
 $packagePath = Join-Path $repoRoot "artifacts/packages/$Configuration/NonShipping/Alarmlist.MSBuild.SDK.$sdkVersion.nupkg"
-$packageHash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash.ToLowerInvariant()
+$hashAlgorithm = [Security.Cryptography.SHA256]::Create()
+$packageStream = [IO.File]::OpenRead($packagePath)
+try {
+  $packageHash = [BitConverter]::ToString($hashAlgorithm.ComputeHash($packageStream)).Replace('-', '').ToLowerInvariant()
+} finally {
+  $packageStream.Dispose()
+  $hashAlgorithm.Dispose()
+}
 $cachePath = ".packages/$packageHash"
+# Local packages deliberately retain their example versions. A fresh package-mode
+# cache ensures repacking edited sources cannot reuse an earlier payload.
+if ($ReferenceMode -eq 'Package') { $cachePath += '/' + [Guid]::NewGuid().ToString('N') }
 @{ 'msbuild-sdks' = @{ 'Alarmlist.MSBuild.SDK' = $sdkVersion } } |
   ConvertTo-Json | Set-Content (Join-Path $exampleRoot 'global.json') -Encoding UTF8
 @"
@@ -35,12 +48,21 @@ $previousPackages = $env:NUGET_PACKAGES
 Push-Location $exampleRoot
 try {
   $env:NUGET_PACKAGES = Join-Path $exampleRoot $cachePath
-  foreach ($name in @('LineA', 'LineB')) {
-    & dotnet msbuild "$name/$name.almproj" /t:Restore /nr:false /v:minimal
+  if ($ReferenceMode -eq 'Package') {
+    foreach ($name in @('Common', 'Equipment')) {
+      & dotnet msbuild "$name/$name.almproj" '/t:Restore;Pack' /p:UseLibraryPackages=false "/p:Configuration=$Configuration" "/p:PackageOutputPath=$exampleRoot/.feed" /nr:false /v:minimal
+      if ($LASTEXITCODE -ne 0) { throw "Library example packing failed for $name." }
+    }
+  }
+  $usePackages = ($ReferenceMode -eq 'Package').ToString().ToLowerInvariant()
+  "<Project><PropertyGroup><UseLibraryPackages>$usePackages</UseLibraryPackages></PropertyGroup></Project>" |
+    Set-Content (Join-Path $exampleRoot 'LibraryExample.local.props') -Encoding UTF8
+  foreach ($name in @('Common', 'Equipment', 'LineA', 'LineB')) {
+    & dotnet msbuild "$name/$name.almproj" /t:Restore "/p:Configuration=$Configuration" /nr:false /v:minimal
     if ($LASTEXITCODE -ne 0) { throw "Library example restore failed for $name." }
   }
 } finally {
   $env:NUGET_PACKAGES = $previousPackages
   Pop-Location
 }
-Write-Output "Prepared library example with Alarmlist.MSBuild.SDK/$sdkVersion. Open example/Libraries/Libraries.sln."
+Write-Output "Prepared $ReferenceMode references with Alarmlist.MSBuild.SDK/$sdkVersion. Open example/Libraries/Libraries.sln."

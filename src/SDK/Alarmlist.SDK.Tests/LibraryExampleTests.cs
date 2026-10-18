@@ -2,6 +2,7 @@
 
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -34,8 +35,8 @@ namespace Alarmlist.MSBuild.SDK.Tests
                     Assert.Equal(consumer == "LineA" ? "Inspect line LineA" : "Check LineB", alarm.Element("Description").Value);
                 });
             }
-            string expectedPath = Path.Combine(app.WorkingDirectory, "LineB", "bin", "Debug", "en", "LineB.Alarmlist.xml");
-            byte[] expected = File.ReadAllBytes(expectedPath);
+            var expected = new[] { "LineA", "LineB" }.ToDictionary(name => name,
+                name => File.ReadAllBytes(Path.Combine(app.WorkingDirectory, name, "bin", "Debug", "en", name + ".Alarmlist.xml")));
             foreach (string library in new[] { "Common", "Equipment" })
             {
                 var pack = app.RunProject(_output, Path.Combine(app.WorkingDirectory, library, library + ".almproj"),
@@ -43,15 +44,26 @@ namespace Alarmlist.MSBuild.SDK.Tests
                 Assert.True(pack.ExitCode == 0, pack.Output);
                 Assert.True(File.Exists(Path.Combine(app.WorkingDirectory, "feed", "Example." + library + ".1.0.0.nupkg")));
             }
-            string consumerPath = Path.Combine(app.WorkingDirectory, "LineB", "LineB.almproj");
-            var consumerProject = XDocument.Load(consumerPath);
-            consumerProject.Descendants("ProjectReference").Remove();
-            consumerProject.Root.Add(new XElement("ItemGroup", new XElement("PackageReference",
-                new XAttribute("Include", "Example.Equipment"), new XAttribute("Version", "1.0.0"))));
-            consumerProject.Save(consumerPath);
-            var restored = app.RunProject(_output, consumerPath, "/t:Restore;Build");
-            Assert.True(restored.ExitCode == 0, restored.Output);
-            Assert.Equal(expected, File.ReadAllBytes(expectedPath));
+            foreach (bool packages in new[] { true, false })
+            {
+                // The launchers persist this property for IDE and CLI evaluation.
+                File.WriteAllText(Path.Combine(app.WorkingDirectory, "LibraryExample.local.props"),
+                    "<Project><PropertyGroup><UseLibraryPackages>" + packages.ToString().ToLowerInvariant()
+                    + "</UseLibraryPackages></PropertyGroup></Project>");
+                var restored = app.RunProject(_output, Path.Combine(app.WorkingDirectory, "Libraries.sln"), "/t:Restore;Build");
+                Assert.True(restored.ExitCode == 0, restored.Output);
+                foreach (string name in expected.Keys)
+                {
+                    Assert.Equal(expected[name], File.ReadAllBytes(Path.Combine(app.WorkingDirectory, name, "bin", "Debug", "en", name + ".Alarmlist.xml")));
+                    string assets = File.ReadAllText(Path.Combine(app.WorkingDirectory, name, "obj", "project.assets.json"));
+                    foreach (string library in new[] { "Equipment", "Common" })
+                    {
+                        string type = Regex.Match(assets, "\"Example\\." + library
+                            + "/1\\.0\\.0\"\\s*:\\s*\\{\\s*\"type\"\\s*:\\s*\"([^\"]+)\"").Groups[1].Value;
+                        Assert.Equal(packages ? "package" : "project", type);
+                    }
+                }
+            }
         }
     }
 }

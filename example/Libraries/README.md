@@ -7,6 +7,16 @@ playground's shared source items or analyzer configuration.
 
 ## Prepare and build
 
+Double-click either shortcut in `scripts/`:
+
+- `start-library-project-references.bat`: live project references.
+- `start-library-packages.bat`: locally packed NuGet libraries.
+
+Both deploy the matching extension and open this same `Libraries.sln` in VS2026
+(`AlarmlistExp`). Pass `-VisualStudioVersion 2022` to select VS2022, or
+`-PrepareOnly` to deploy/prepare without opening the IDE. Close this solution before
+switching modes or deploying again. These scripts do not prepare North/South.
+
 From the repository root:
 
 ```powershell
@@ -16,9 +26,10 @@ dotnet msbuild example/Libraries/LineA/LineA.almproj /t:Build
 dotnet msbuild example/Libraries/LineB/LineB.almproj /t:Build
 ```
 
-Preparation writes ignored SDK/feed configuration using the version from the built
-VSIX and a content-specific package cache. It restores both consumers without
-changing ALMX sources. In an experimental IDE with the matching extension deployed,
+Preparation writes ignored SDK/feed configuration and `LibraryExample.local.props`
+using the version from the built VSIX and an isolated package cache. It restores
+all four projects without changing ALMX sources. In an experimental IDE with the
+matching extension deployed,
 open `Libraries.sln`. Both VS2022 and VS2026 support the `.sln` format.
 
 Each consumer's `bin/Debug/en/<project>.Alarmlist.xml` contains three alarms:
@@ -51,21 +62,23 @@ configuring a feed containing the library and all transitive dependency packages
 
 ## Try NuGet instead of a project reference
 
-Pack both libraries from this directory:
+From the repository root, prepare package mode:
 
 ```powershell
-dotnet msbuild Common/Common.almproj /t:Pack /p:PackageOutputPath=../.feed
-dotnet msbuild Equipment/Equipment.almproj /t:Pack /p:PackageOutputPath=../.feed
+./eng/prepare-library-example.ps1 -ReferenceMode Package
+dotnet msbuild example/Libraries/Libraries.sln /t:Build
 ```
 
-In a copy of LineB, replace its ProjectReference with:
-
-```xml
-<PackageReference Include="Example.Equipment" Version="1.0.0" />
-```
-
-Keep the prepared NuGet configuration in an ancestor directory, run Restore then
-Build, and compare the three alarm values above. Equipment's package declares its
+The helper packs Common and Equipment into `.feed` using project references, then
+sets `UseLibraryPackages=true` in the ignored local props file and restores the
+solution projects. Equipment and both consumers condition their references on
+this property; sources are shared unchanged. A fresh package-mode cache prevents
+old contents of the fixed example versions from being reused after repacking.
+Compare the three alarm values above. Equipment's package declares its
 dependency on Example.Common; it does not embed that library. Package navigation
 opens generated read-only definitions. The commands create local packages only.
-When changing package contents, use a new package version to avoid cached payloads.
+Saved library-source edits reach package consumers only after packing/restoring
+again. To return to live project references, run preparation with
+`-ReferenceMode Project` or use the project-reference shortcut. For an individual
+CLI build the property can also be overridden with `/p:UseLibraryPackages=false`
+or `true`; restore after changing it. Package mode requires prepared local packages.

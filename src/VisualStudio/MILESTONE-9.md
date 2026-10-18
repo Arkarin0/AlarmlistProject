@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: all eight iterations complete; final acceptance passed 2026-10-18.
+Status: iterations 1–9 complete; example shortcuts validated 2026-10-18.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2110,3 +2110,52 @@ milestones remain outside this milestone, as do Shared Projects, XML IntelliSens
 syntax generation and legacy bridge adapters. Raw generated evidence remains in
 ignored artifacts; it is not committed as source. Final documentation changes need
 diff/link consistency review, not another unchanged-code test run.
+
+### Iteration 9 — example shortcuts (complete 2026-10-18)
+
+Deliver two scripts opening the existing reusable-library solution, one with
+ProjectReference and one with PackageReference. Share source projects and use
+`UseLibraryPackages` to switch references. Preparation persists the selected mode
+for IDE evaluation, packs the local libraries before package restore and avoids
+stale same-version cache contents. A shared launcher deploys the matching extension
+and supports both IDE hosts. No publication or duplicated example sources.
+
+Depends on iterations 1–8. Validate both consumers' equivalent output, transitive
+package dependencies and switching back; run the affected SDK example/exchange
+tests on both frameworks. Check PowerShell/batch syntax and prepare both modes
+with the real built SDK. Review docs and commit after these checks pass.
+
+Implemented `scripts/start-library-project-references.bat` and
+`scripts/start-library-packages.bat`, sharing `eng/start-library-example.ps1`.
+Both open the existing Libraries.sln; VS2026 is the default, with
+`-VisualStudioVersion 2022` and `-PrepareOnly` supported. The existing four projects
+condition references on `UseLibraryPackages`, persisted in ignored
+`LibraryExample.local.props`. Package preparation packs Common/Equipment using
+project references, then restores package mode into a fresh cache so repacked
+fixed-version examples do not reuse stale payloads. Sources are not duplicated.
+
+Validation evidence:
+
+- `dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj
+  --no-restore --filter 'FullyQualifiedName~LibraryExampleTests|FullyQualifiedName~LibraryExchangeTests'
+  --verbosity minimal --logger trx --results-directory
+  artifacts/log/Debug/Milestone9/Iteration9/ExamplesFinal`: **3 passed per
+  framework**, zero failures/skips. Both consumers produce identical XML in both
+  modes and after switching back. Assets identify both transitive dependencies
+  as package/project appropriately; XLIFF isolation still passes. An initial test
+  incorrectly assumed project identities disappear from assets; it failed on both
+  frameworks and was corrected to assert NuGet's actual dependency type.
+- Both batch shortcuts with `-VisualStudioVersion 2022 -PrepareOnly` completed
+  successfully, exercising real extension deployment and Windows PowerShell
+  preparation. The initial nested preparation could not resolve Get-FileHash;
+  SHA-256 now uses the framework stream API, and both shortcuts passed afterward.
+- `dotnet msbuild example/Libraries/Libraries.sln /t:Build /nr:false /v:minimal`
+  succeeded with the prepared package mode. PowerShell parsing, ignored local
+  configuration, diff and documentation links were checked.
+
+No interactive IDE was opened by these checks. VS2026 deployment/opening was not
+rerun because the user's experimental instance was already open on North/South;
+that instance and its example sources were left untouched. The launch path uses
+the existing experimental-profile/solution command pattern. This follow-up changes
+example preparation and shortcuts, not compiler/SDK/extension behavior; no full
+solution or native functional suite was repeated.

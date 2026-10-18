@@ -575,6 +575,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   explicit sample analyzer references, and intentional nonfatal warnings. The
   preparation helper builds both analyzer runtimes into ignored example/.analyzers;
   preserve these references and validate changes through ExamplePlaygroundTests.
+- The library shortcuts `scripts/start-library-project-references.bat` and
+  `scripts/start-library-packages.bat` share `eng/start-library-example.ps1` and
+  open `example/Libraries/Libraries.sln` (VS2026 by default, optional VS2022).
+  Preparation persists `UseLibraryPackages` in ignored `LibraryExample.local.props`.
+  Package mode packs dependencies with project references before restoring all
+  projects into a fresh cache. Keep sources shared and North/South untouched;
+  validate switching and equivalent consumer output through LibraryExampleTests.
 - `eng/measure-visualstudio-live.ps1` (also reached through the compatibility
   `test-visualstudio.ps1 -MeasureAnalysis` option) measures running-IDE buffer-to-diagnostic
   latency and repeated designer close/process-memory samples. Parameters select
