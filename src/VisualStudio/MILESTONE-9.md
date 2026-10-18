@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–9 and 13 complete; iterations 10–12 planned for Solution Explorer dependencies.
+Status: iterations 1–9 and 13 complete; iterations 10–12 planned for Solution Explorer dependencies; iteration 14 planned for example RESX compatibility.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2285,3 +2285,58 @@ explicit deselection and existing navigation/lifecycle tests. Diff and local
 documentation links pass review. Native IDE suites and the full solution were
 not rerun for this editor-only change; the built VSIX has not been redeployed into
 the user's running instance. The unrelated LineB project edit remains untouched.
+
+### Iteration 14 — library example RESX editor compatibility (planned 2026-10-18)
+
+The owner reports that opening Common, Equipment and LineA's `Labels.en.resx`
+in Visual Studio fails with invalid ResX input / missing valid reader and writer
+resheader tags. Inspection confirms all three files contain only root/data/value
+elements. The shipped Translations.resx item template and North/South resources
+already contain the standard resmimetype, version, reader and writer headers.
+
+Read-only reproduction: Windows PowerShell loaded System.Windows.Forms and
+enumerated each file with ResXResourceReader and UseResXDataNodes=true. All three
+failed with the same missing-reader/writer-header message shown in the screenshot.
+The compiler's Text/ResxReader accepts the string data and explicitly skips headers;
+successful compilation therefore did not establish native resource-editor
+compatibility. No source files were changed by this probe.
+
+**Deliverable:** make these three checked-in example resources readable and
+editable in the native resource editor without changing library localization
+semantics. This is independent of planned dependency-tree iterations 10–12 and
+depends only on the existing library example. Preserve the user's LineB project edit.
+
+Implementation plan:
+
+1. Add the XML declaration and four standard RESX headers to Common, Equipment
+   and LineA's Labels.en.resx, following the existing translation item template.
+   Preserve the Inspection keys, xml:space attributes and values exactly:
+   `Inspect $(Site)`, `Check $(Site)` and `Inspect line $(Site)` respectively.
+   Inspect the remaining checked-in example resources for the same omission;
+   keep any additional repair limited to actual native-editor compatibility.
+2. Add a Windows/.NET Framework compatibility regression that reads the actual
+   copied playground resources through ResXResourceReader and verifies string
+   keys/values. Follow the existing test asset-copy workflow; do not test only a
+   separately synthesized resource fixture or only header presence. Keep native
+   RESX APIs confined to tests, not the compiler or cross-runtime tasks.
+3. Run LibraryExampleTests and LibraryExchangeTests on both supported frameworks
+   to confirm project/package equivalence, translation overrides and XLIFF input
+   protection remain intact. Repack the example when checking package consumption;
+   a previously cached package is not evidence for the repaired files.
+4. Using isolated copies of the real example files and the existing native test
+   harness, open each resource on VS2022 and VS2026. Verify the resource grid shows
+   Inspection and the original value, edit/save/reopen a value in the fixture, and
+   verify that `$(Site)` remains literal in saved RESX. Do not edit the user's
+   persistent example or close their existing IDE. Run these checks sequentially.
+
+Completion criteria: framework reader regression, both-framework example/exchange
+tests and native open/edit/save/reopen on both hosts pass; original resource values
+and resulting consumer alarms remain unchanged by the header-only repair. Record
+commands/results and any host blocker here before committing the successful
+iteration. No new RESX format, compiler deserialization, global migration or
+automatic rewriting of user resources is authorized by this fix.
+
+Planning validation: reviewed the three resources, the existing template/shared
+resource headers, compiler header handling and native localization test harness;
+the read-only reader probe reproduced all three failures. No automated test suite
+or implementation change was run in this planning step.
