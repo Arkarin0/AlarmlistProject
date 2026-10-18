@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–9 complete; example shortcuts validated 2026-10-18.
+Status: iterations 1–9 complete; iterations 10–12 planned for Solution Explorer dependencies.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2159,3 +2159,85 @@ that instance and its example sources were left untouched. The launch path uses
 the existing experimental-profile/solution command pattern. This follow-up changes
 example preparation and shortcuts, not compiler/SDK/extension behavior; no full
 solution or native functional suite was repeated.
+
+## Follow-up plan: Solution Explorer dependencies (2026-10-18)
+
+### Intended outcome and scope
+
+The owner requests project references and NuGet packages used by an Alarmlist
+project to appear in Solution Explorer like a .NET project's dependency tree.
+The supplied screenshot establishes the grouped native-tree presentation.
+The following details are the proposed implementation direction, not evidence of
+working behavior or approval of additional compiler features.
+
+```text
+LineA
+  Dependencies
+    Projects
+      Equipment
+    Packages
+      Example.Equipment (1.0.0)
+```
+
+The example illustrates both possible groups; actual entries follow evaluated
+references in the active configuration. In the library playground, project mode
+shows Equipment under Projects, while package mode shows Example.Equipment under
+Packages. Use native/localized labels and icons where supported (for example,
+Abhängigkeiten, Projekte, Pakete in German). Do not add net472/net8.0 groups:
+framework-independent `.almproj` consumers do not target those task runtimes.
+Do not add empty .NET Frameworks/Assemblies groups merely to copy the screenshot.
+
+Confirmed scope is visibility of used project references and NuGet packages.
+Proposed related behavior: package version and unresolved-state presentation,
+refresh after reference edits/restore/configuration changes, and existing native
+reference-management actions from appropriate nodes. Direct references must be
+distinguishable from transitive dependencies; any transitive expansion is read-only
+and must use the already selected graph, never a package-cache scan. Package nodes
+must remain visible as unresolved when restore fails, rather than disappear.
+
+No compiler/artifact semantic changes, new TargetFramework requirement, automatic
+Build/Pack on tree expansion, private NuGet host loading, or new package-management
+implementation. Preserve existing Add Project Reference and NuGet workflows.
+
+### Inspection and architecture
+
+Current `Alarmlist.DesignTime.targets` declares ProjectReferences,
+ReferenceManagerProjects and PackageReferences, and registers the corresponding
+XAML rules. `PackageReference` already participates in ProjectSubscriptionService;
+`ProjectReference` currently uses Project/BrowseObject contexts. These declarations
+and the successful native dialogs do not prove grouped dependency-tree support.
+The extension pins CPS SDK 17.9.380 and remains net472.
+
+Use the [.NET project-system reference](https://github.com/dotnet/project-system)
+to inspect how CPS tree composition, dependency providers and evaluation/restore
+updates work. Its [dependency-tree issue 9415](https://github.com/dotnet/project-system/issues/9415)
+also shows why successful restore alone is insufficient evidence of tree visibility.
+First verify which public extension points are available in the pinned CPS SDK
+and on both supported IDE hosts. Prefer supported CPS composition. Do not turn on
+unrelated .NET capabilities to activate a provider with unmet language/runtime
+assumptions. If Alarmlist needs its own CPS tree provider, document that compatibility
+reason and reuse detached saved-graph/package-resolution data rather than introducing
+a second resolver. Keep callbacks cancellable and detach subscriptions on unload.
+
+### Independently reviewable iterations
+
+| Iteration | Deliverable and dependencies | Validation and completion criteria |
+| --- | --- | --- |
+| 10 | Native dependency root and project-reference group. Depends on iteration 9. Probe public CPS extension points, select/document the supported integration, publish evaluated direct project references with stable identities and missing-project state. Wire relevant existing add/remove commands without duplicating project items. | Rule/provider tests for conditions, duplicate prevention, missing/unloaded references and disposal; package/rule regression; native VS2022 and VS2026 checks for visible root/group/children, add/remove, reopen and no Build on expansion. Finish only when actual host presentation works on both hosts. |
+| 11 | NuGet package group and resolution state. Depends on iteration 10. Display direct package IDs, requested/resolved version information and pending/unresolved state. Integrate selected restored dependency data; expose supported read-only transitive expansion without treating transitives as direct editable references. Connect existing NuGet management commands. | Tests for install/update/uninstall, failed restore/recovery, version selection, condition/configuration changes and stale-result suppression; assert no NuGet implementation assembly enters the VS host. Native both-host checks verify package nodes and versions before/after restore and removal, including transitive Example.Common if expansion is provided. Project group remains usable. |
+| 12 | Integrated lifecycle and library-playground acceptance. Depends on iteration 11. Validate the two shortcut modes, mixed project/package projects, localized presentation and cleanup; document actual supported actions and limitations. | Unit/package regression for affected components and native both-host scenarios: project/package switching, reload, dependency deletion/recovery, configuration change, keyboard expansion/selection and available context actions. Verify no duplicate nodes, no stale children after unload/reopen, and no source/output writes merely from browsing. Update this plan with commands, artifacts and results, and commit the completed iteration. |
+
+### Decisions to resolve during the integration probe
+
+- Exact public CPS tree/provider contracts and capabilities usable on both hosts;
+  do not promise API names based only on upstream main.
+- Whether native providers supply empty-group hiding, localization, warning icons,
+  transitive expansion and browse properties, and what minimal Alarmlist adapter
+  is needed. Keep direct dependency visibility mandatory regardless of provider.
+- Map available node commands to existing supported workflows. Do not silently
+  enable removal of transitive dependencies or implement broader package editing.
+
+Planning-only validation: inspected current capabilities/rules, reference capture
+boundaries and pinned extension packages; reviewed the plan and local links.
+No implementation or tests run for iterations 10–12. The existing user edit to
+`example/Libraries/LineB/LineB.almproj` is outside this planning change.
