@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–9 and 13–14 complete; iterations 10–12 planned for Solution Explorer dependencies; iteration 15 planned for XML keyboard editing.
+Status: iterations 1–9 and 13–15 complete; iterations 10–12 planned for Solution Explorer dependencies.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2364,7 +2364,7 @@ Implementation and validation (2026-10-18):
   Each run covers all three resources; screenshots remain in its scenario logs.
   The user's main VS2022 process was preserved. All iteration-14 gates passed.
 
-### Iteration 15 — usable XML keyboard editing (planned 2026-10-18)
+### Iteration 15 — usable XML keyboard editing (complete 2026-10-18)
 
 The owner reports that the ALMX XML view accepts inserted text, but deletion and
 Enter/newline do not work. Restore ordinary XML editing in the embedded editor.
@@ -2428,10 +2428,48 @@ handling and the existing XML automation approach; reviewed this plan and paths.
 No native reproduction, implementation change or automated test suite was run in
 this planning step. The user report is not yet attributed to a specific handler.
 
-User-supplied reproduction evidence: `20261018-2020-10.0108382.mp4`, attached to
-this conversation and explicitly identified by the owner as evidence for this
-XML editing issue. The attachment is accessible (5,914,805 bytes), but its video
-contents have not been independently reviewed here; no video decoder was available
-on PATH during intake. Do not infer specific keystrokes or a root cause from file
-presence. Review the recording alongside the native reproduction in step 1.
-The recording and its machine-specific temporary path are not repository assets.
+User-supplied reproduction evidence: `20261018-2020-10.0108382.mp4`, explicitly
+identified by the owner as evidence. Initially no decoder was available on PATH;
+subsequently decoded the 34-second recording through Windows' installed media
+support and reviewed frames at 5%, 30%, 60% and 90%. They show LineA in the embedded
+XML view, inserted text and the typed report that Delete does not work; later
+content shows joined lines. There is no key overlay, so these frames alone cannot
+distinguish Backspace from forward Delete. The recording and extracted frames are
+not repository assets; only ignored local artifacts were created during review.
+
+Implementation and final validation (2026-10-18):
+
+- Native physical-key reproduction on VS2022 (`c3347f484e664f91a8f216f92046706f`)
+  and VS2026 (`11863831d6e1460faebfbda4b96f2656`) confirmed insertion and forward
+  Delete worked, but Backspace and Enter left the buffer unchanged. Temporary
+  tracing found no dispatch of those two commands to the custom pane.
+- The custom frame lacked inherited text-editor key bindings. Setting the supported
+  [VSFPROPID_InheritKeyBindings](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.shell.interop.__vsfpropid?view=visualstudiosdk-2022)
+  property caused VSStd2K Backspace/Return to arrive and execute successfully.
+  The final fix inherits bindings only while the XML text view has aggregate focus;
+  designer fields retain WPF editing and private drafts. Focus handlers detach on
+  disposal. No ad hoc text deletion/newline logic or compiler change was added.
+- XmlKeyboardTests now covers XML and Split layouts, insertion, character and
+  selection deletion, physical Shift+Right selection, Enter, multiline replacement,
+  Cut/Paste, Undo/Redo, shell/designer focus round trips, draft Backspace/cancel,
+  designer synchronization and save/reopen. Comments and raw `$(Site)` survive.
+  XML auto-completion/format-on-paste remain enabled; formatting is accepted only
+  when parsed XML content is unchanged. The test uses an extended arrow scan code:
+  injecting a nonextended virtual arrow exercised keypad Shift semantics instead.
+- Package-definition checks now also attempt Backspace/Delete/Return and verify
+  generated text and package bytes remain unchanged. UI coverage documentation and
+  repository focus/keyboard guidance were updated.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --verbosity quiet`: **529 passed net472**, zero failures/skips.
+- `eng/test-visualstudio.ps1 -VisualStudioPath <host> -Filter
+  'FullyQualifiedName~XmlKeyboardTests|FullyQualifiedName~DesignerTests.ScalarCommitAndUndo|FullyQualifiedName~ProcedureDesignerTests|FullyQualifiedName~ProjectTests.SharedEditor|FullyQualifiedName~PackageDefinition<version>'`:
+  VS2022's four companion scenarios passed in `4b9e0ae706c148ec87b767fbb53ff56b`;
+  after correcting the extended-arrow test input, final XML/Split coverage passed
+  in `92f4d16fb6ad428e89a82b2de0cf1380`. VS2026 passed all **5** scenarios together
+  in `61537951d0624a4aa7510015aca6fe1e`. No final cases skipped. These include
+  designer Enter/shared Undo, procedure Shift+Enter/private drafts, shared-document
+  lifecycle and read-only package definitions. Runs were sequential in owned
+  AlarmlistExp fixtures; no user's source or running IDE was closed by the tests.
+
+All iteration-15 gates passed. Dependency-tree iterations 10–12 remain outstanding;
+this repair does not implement or claim their behavior.

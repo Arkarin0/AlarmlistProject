@@ -462,6 +462,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   lookup/member/metadata completion inserts compiler-supplied expressions, with no
   automatic metadata defaults or range validation. Suppress ambiguous path choices.
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
+  Embedded XML keyboard editing inherits native text-editor bindings only while
+  the source view has aggregate focus; designer controls retain WPF draft editing.
+  Preserve focus-handler disposal and verify physical keys in XML and Split modes,
+  not only programmatic buffer replacement (milestone-nine iteration 15).
   Preview culture changes persist shared AlarmlistCulture through CPS without
   changing build cultures or committing ALMX drafts. Global overrides disable the
   selector; write failures retain evaluated state. Use

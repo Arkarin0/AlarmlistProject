@@ -10,6 +10,7 @@ using Alarmlist.VisualStudio.Testing;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 using FlaUI.Core.Input;
+using FlaUI.Core.WindowsAPI;
 using FlaUI.UIA3;
 using Xunit;
 
@@ -63,6 +64,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.RequireForeground();
             Assert.True(editor.Properties.HasKeyboardFocus.Value);
             Keyboard.Type("MUST_NOT_EDIT");
+            foreach (var key in new[] { VirtualKeyShort.BACK, VirtualKeyShort.DELETE, VirtualKeyShort.RETURN })
+            {
+                ide.RequireForeground();
+                Assert.True(editor.Properties.HasKeyboardFocus.Value);
+                Keyboard.Type(key);
+            }
             Assert.Equal(generated, editor.Patterns.Text.Pattern.DocumentRange.GetText(-1));
             Assert.Equal(original, File.ReadAllBytes(artifact));
             Assert.False(File.Exists(workspace.OutputPath));

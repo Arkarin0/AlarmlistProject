@@ -25,6 +25,7 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Configured external analyzer | Live warning/navigation, saved severity and option refresh, promoted build failure preserves output, and source DLL remains unlocked | `Analyzers` |
 | Build failure/Clean/Rebuild | Error List, failure preserves output, updated live errors preserve Build errors, Clean removes output, Rebuild restores it | `Build` |
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
+| XML keyboard editing | Physical insertion, Backspace/Delete and selections, Enter, multiline replacement, Cut/Paste, Undo/Redo, XML/Split and shell/designer focus transitions, private drafts and save/reopen | `Keyboard` |
 | Procedure editing | Cleared draft hide/show, Enter commit/shared Undo, add/move/remove focus, Shift+Enter multiline text, and saved source/output preservation | `Procedures` |
 | Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, direct local edits, inheritance context-menu reset/Undo and saved build parity | `Properties` |
 | Searchable references | 1,200 template candidates, case-insensitive name search, keyboard selection, shared Undo, unresolved literal entry, clearing and saved source/output preservation | `References` |
