@@ -131,6 +131,49 @@ namespace AlarmList.MSBuild.UnitTests
             Assert.False(File.Exists(Manifest));
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void VersionOneManifestStillOwnsPreviousApplicationOutputs(bool cleanOnly)
+        {
+            File.WriteAllText(Source, "<Alarmlist><Alarm><Name>Ready</Name></Alarm></Alarmlist>");
+            var application = Create();
+            application.OutputType = "Application";
+            application.OutputFileName = "Previous.xml";
+            Assert.True(application.Execute());
+            string previous = Assert.Single(application.OutputFiles).ItemSpec;
+            var legacy = XDocument.Load(Manifest);
+            legacy.Root.SetAttributeValue("version", "1");
+            legacy.Root.Attribute("outputType").Remove();
+            legacy.Save(Manifest);
+            string unrelated = Path.Combine(Path.GetDirectoryName(previous), "unrelated.xml");
+            File.WriteAllText(unrelated, "keep");
+
+            if (cleanOnly)
+            {
+                var clean = new AlarmlistCleanTask
+                {
+                    BuildEngine = buildEngine.Object, OutputDirectory = Path.GetDirectoryName(Output),
+                    OutputFileName = "Plant.almlib", OutputType = "Library", ManifestFile = Manifest,
+                    ProjectPath = Path.Combine(_directory, "Plant.almproj")
+                };
+                Assert.True(clean.Execute(), string.Join("; ", buildErrors.Select(error => error.Message)));
+                Assert.False(File.Exists(Manifest));
+                Assert.False(File.Exists(Output));
+            }
+            else
+            {
+                Assert.True(Create().Execute(), string.Join("; ", buildErrors.Select(error => error.Message)));
+                Assert.True(File.Exists(Output));
+                var migrated = XDocument.Load(Manifest);
+                Assert.Equal("2", (string)migrated.Root.Attribute("version"));
+                Assert.Equal("Library", (string)migrated.Root.Attribute("outputType"));
+            }
+            Assert.False(File.Exists(previous));
+            Assert.Equal("keep", File.ReadAllText(unrelated));
+            Assert.True(File.Exists(Source));
+        }
+
         [Fact]
         public void ReferenceOnlyConsumerResolvesLibraryValuesAndPreservesOutputOnMissingDependency()
         {

@@ -46,9 +46,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 string libraryPath = Path.Combine(libraryDirectory, "Library.almproj");
                 XDocument libraryProject = XDocument.Load(Path.Combine(workspace.ProjectDirectory, "Plant.almproj"));
                 libraryProject.Descendants("ProjectGuid").Single().Value = Guid.NewGuid().ToString();
+                libraryProject.Root.Add(new XElement("PropertyGroup", new XElement("OutputType", "Library"),
+                    new XElement("PackageId", "Native.Reference")));
                 libraryProject.Save(libraryPath);
                 File.WriteAllText(Path.Combine(libraryDirectory, "Library.almx"),
-                    "<Alarmlist><Alarm abstract=\"true\"><FullyQualifiedName>Library.Template</FullyQualifiedName></Alarm></Alarmlist>");
+                    "<Alarmlist><Alarm abstract=\"true\"><FullyQualifiedName>Library.Template</FullyQualifiedName>"
+                    + "<Name>Native project library</Name></Alarm><Alarm><FullyQualifiedName>Library.Imported</FullyQualifiedName>"
+                    + "<ReferenceName>Library.Template</ReferenceName></Alarm></Alarmlist>");
                 ide.Automation.Solution.AddFromFile(libraryPath);
                 ide.Automation.Solution.SaveAs(workspace.SolutionPath);
             }
@@ -61,7 +65,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             try
             {
                 if (create) ChangeReference(true);
-                else Assert.Single(XDocument.Load(Path.Combine(workspace.ProjectDirectory, "Plant.almproj")).Descendants("ProjectReference"));
+                else
+                {
+                    Assert.Single(XDocument.Load(Path.Combine(workspace.ProjectDirectory, "Plant.almproj")).Descendants("ProjectReference"));
+                    VerifyCompiledReference(true);
+                }
                 ChangeReference(false);
                 if (create) ChangeReference(true);
             }
@@ -189,9 +197,19 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                         Path.GetFullPath(Path.Combine(workspace.ProjectDirectory, (string)saved.Attribute("Include"))),
                         ignoreCase: true);
                 }
+                VerifyCompiledReference(add);
                 AutomationElement[] VisibleMenuItems() => automation.GetDesktop()
                     .FindAllDescendants(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.MenuItem)))
                     .Where(item => !item.IsOffscreen && item.IsEnabled).ToArray();
+            }
+
+            void VerifyCompiledReference(bool expected)
+            {
+                workspace.Build(ide, expected ? 2 : 1);
+                XElement imported = XDocument.Load(workspace.OutputPath).Root.Elements("Alarm")
+                    .SingleOrDefault(alarm => alarm.Element("FullyQualifiedName")?.Value == "Library.Imported");
+                if (expected) Assert.Equal("Native project library", imported?.Element("Name")?.Value);
+                else Assert.Null(imported);
             }
         }
     }

@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–7 complete (2026-10-15); iteration 8 planned.
+Status: all eight iterations complete; final acceptance passed 2026-10-18.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -1651,9 +1651,386 @@ Final iteration-7 validation closes those remaining scoped checks:
   scoped `git diff --check` passed. Existing unrelated North edits remain outside
   this iteration. No publication was performed.
 
-Iteration 7 is complete. Integrated regression, requirement audit and library
+Iteration 7 is complete (commit `f20c3fc`). Integrated regression, requirement audit and library
 performance measurements remain required in iteration 8; this is not milestone
 completion.
+
+### Iteration 8 — complete
+
+Completion requires the full acceptance matrix above, with current regression
+evidence and actual library performance measurements. Planned remaining work:
+
+1. Run solution regressions, resolve implementation/contract failures, and verify
+   desktop-MSBuild consumers. Preserve unrelated North playground edits and
+   distinguish their failures from validation of the committed baseline.
+2. Audit the design contract against compiler, SDK, bridge and native tests;
+   run native library workflows on both hosts after the final implementation.
+3. Add library-specific performance workloads to the existing opt-in harness:
+   saved dependency graph capture, saved-change recapture/analysis, imported
+   preview publication/layout, and bridge/project unload. Retain raw samples,
+   revision/runtime/workload metadata and correctness checks outside measurements.
+   Include both native hosts for saved-refresh/unload evidence; do not infer live
+   performance from isolated timings or add machine-dependent thresholds.
+4. Record any limitations, review the final diff, and commit this iteration only
+   after the essential checks pass. Native/performance skips in ordinary solution
+   runs do not satisfy their acceptance gates.
+
+Initial `dotnet test AlarmlistProject.slnx --no-restore --verbosity minimal
+--logger trx --results-directory artifacts/log/Debug/Milestone9/Iteration8/FullRegression`
+found a missing `IDesignerAnalysis.Navigate(AnalysisNavigationTarget)` implementation
+in the performance harness's CapturedDesignerAnalysis. Added the same rejecting
+adapter behavior as its existing navigation overload; validation pending.
+The current-working-tree SDK ExamplePlaygroundTests North case also fails because
+the unrelated North.almproj edit references South, an application project. The
+SDK correctly requires OutputType=Library for that reference. Both user-modified
+North files remain untouched. This first run is not a passing full regression.
+
+Initial requirement audit (test bodies inspected, not merely test names):
+
+| Contract requirement | Current evidence | Remaining verification |
+| --- | --- | --- |
+| Alarm/file/consumer/library parameter precedence; explicit empty; no inherited assignments/defaults for consumer-derived alarms | LibraryCompilationTests exercises all four precedence levels, three explicit-empty scopes and strict missing-value failure for the local derived alarm. Current compiler run: 618 net472 / 620 net8.0 passed. | Final integrated package/native scope audit. |
+| Portable source identity, final consumer project identity and unavailable physical paths | LibraryCompilationTests checks evaluated identity fields and rejects both physical path expressions; captures retain portable diagnostic provenance. | Verify corresponding bridge/package assertions in final audit. |
+| Dependency-first diamond deduplication; cycles and identity/payload conflicts | LibraryGraphTests asserts exact graph order, cycle chain, missing version rejection, case-insensitive identity version conflicts and a 4,096-node graph. Included in passing compiler suites. | Integrated project/package graph evidence. |
+| Resource precedence by key/culture before parent fallback; sibling override requirement | LibraryResourceTests checks exact vs parent culture, empty/whitespace, reversed root order, sibling conflicts/explicit override, same-owner duplicates and actual consumer expression evaluation. Included in passing compiler suites. | Complete lookup, artifact, SDK and native sections of audit. |
+| Whole-path, whole-entry and whole-completion-binding overrides | LibraryLookupTests checks removed path members, removed entry description/metadata, retained unrelated entries, replaced binding targets, all three sibling conflicts, explicit consumer overrides, rejected malformed/duplicate inputs and actual compiled values. Included in the passing compiler suites. | Integrated package/native lookup presentation remains part of final acceptance. |
+| Detached package navigation maps original locations to generated definitions | AnalysisNavigationTargetTests checks generated ALMX spans and portable captions, rejects unknown/case-mismatched locations, and maps resource/lookup diagnostics to generated documents. Local navigation uses captured unsaved text at an unavailable disk path. Included in the passing editor/bridge suite. | Native read-only/non-saving behavior and physical project navigation require the separate host cases. |
+| Deterministic versioned artifacts retain raw values, scopes and portable origins | LibraryArtifactXmlTests compares write/read/write bytes, distinguishes empty/unset/raw properties, retains dependency/resource/lookup identities and origin spans, and excludes physical paths and formatting comments. It rejects unsupported versions, malformed envelopes/spans, duplicate portable names, DTDs and external entities. Included in the passing compiler suites. | Final SDK artifact/package equivalence verification. |
+| Deferred library values with strict final application validation | LibraryDeferredValidationTests asserts successful library analysis with unavailable parameter/localization/list values and no compiled XML, while application analysis/compilation fails for the same inputs. Structural/expression errors and consumer-only references remain errors. Included in the passing compiler suites. | Native library/application-mode evidence remains separately required. |
+| Project-reference lifecycle, configuration and no-build consumption | LibraryProjectReferenceTests checks actual transitive output, unchanged artifacts after dependency source corruption in both no-build modes, strict subsequent Build failure with preserved output, Clean/Rebuild, explicit/solution configuration mapping, conditional removal and discovery without artifacts. | Final full regression and desktop-MSBuild rerun. |
+| Mixed project/package equivalence and safe packing | LibraryPackTests compares compiled bytes before/after conversion of a mixed graph to packages, rejects non-packable dependencies and Application packing, protects a source at the package destination, and retains prior packages after failed builds. Together with LibraryProjectReferenceTests, 15 cases passed per framework in the inspected initial FullRegression TRX files (`22_04_42`). | Final full regression and desktop-MSBuild rerun; native install/update/uninstall remains unverified for real packages. |
+| Saved dependency evaluation without target execution or loaded drafts | SavedProjectEvaluationTests creates a modified loaded MSBuild project but verifies only saved items/package metadata are captured in a separate evaluation. InitialTargets error sentinels never execute; import/glob changes, duplicates, missing-import discovery hints and recovery are asserted. SavedProjectGraphTests verifies dependency-first diamonds, cycles/recovery, distinct configurations and solution mapping. Included in the passing editor/bridge suite. | Native private-ALMX-draft gate remains failed on VS2022; watcher/publication race coverage is audited separately. |
+| Captured dependency bytes and portable linked inputs | CapturedLibraryProjectTests checks explicit-empty resource culture, duplicate/order preservation, Link names, saved configuration and no output directories. ALMX/RESX/lookup/EditorConfig byte changes invalidate captures even with restored timestamps; Application dependencies and missing inputs fail. Included in the passing editor/bridge suite. | Final regression and native recovery evidence. |
+| Revalidation races, retained watches and SDK-only NuGet resolution | SdkAnalysisBridgeLibraryTests changes dependency text during consumer validation and requires recapture before publication while retaining consumer drafts. It exercises later saves, glob membership, missing-import recovery, changed artifact/assets bytes, preferred package-folder changes and missing-package restoration. Resolver results are detached, and host assemblies must exclude the task and NuGet implementation assemblies. Included in the passing editor/bridge suite. | Final integrated rerun; corresponding native scenarios remain separate evidence. |
+| Coordinated analysis 5/analyzer 3 transition | SdkAnalysisBridgeTests rejects missing, legacy 1–4 and unknown contracts while a compatible bridge remains usable, releases failed compiler images and excludes compiler assemblies from the host. AlarmAnalyzerTests rejects analyzer contracts 1/2; the packaged AnalysisContract asset checks version 5, library ownership and detached preview data from restored compiler binaries. | Final compiler/bridge/package regression. |
+| Owner-only library analyzers/policy, combined consumer analyzer model | Added LibraryAnalyzerAndPolicyStayWithOwnerWhileConsumerAnalyzerSeesCombinedModel: the owning rule runs once with suppressed warning; consuming its artifact without a rule produces no diagnostics; a consumer rule sees imported/local alarms and emits both warnings without inheriting owner suppression. | Focused test passed on both frameworks; final regression pending. |
+| Fresh package graph, offline reuse, updates/removal and conflicts | PackageRestoreTests packs separate dependency artifacts with exact nuspec versions, converts a project-reference fixture to packages and compares final XML, then forces restore from an empty feed using its warm cache. Missing artifacts fail without replacing output. Updates change compiled values; conflicting selected versions fail both Restore and subsequent Build while retaining output. Removing references excludes cached packages from output. Included in the earlier SDK regression. | Final SDK regression on both runtimes and desktop MSBuild. |
+| Raw inherited definitions, procedure directives and ownership | LibrarySourceTests round-trips abstract state, unassigned/empty values, references, expression titles and Clear without flattening inherited fields, and verifies captured data survives mutation of original syntax. LibraryBuilderTests retains only owned definitions plus dependency identities, checks consumer/default provenance and validates all provided cultures. Included in the compiler regression. | Final compiler and downstream suites. |
+| Output-kind transition and legacy ownership manifests | LibraryBuildTests verifies culture-independent library output/discovery, normalized versions, prior artifact/manifest preservation after failure, source-safe Clean and Application-to-Library retirement. Added VersionOneManifestStillOwnsPreviousApplicationOutputs checks legacy manifest consumption by both library Build and Clean, migration to version 2, and preservation of unrelated files. | Focused legacy cases passed on both frameworks; final task/SDK regression pending. |
+
+This partial audit does not establish milestone completion. The pending rows and
+performance work remain essential acceptance work.
+
+Initial full-regression run finished with exit code 1. Recorded TRX evidence:
+compiler **618 net472 / 620 net8.0 passed**; task unit **83 per framework passed**;
+task integration **4 per framework passed**; VSIX integration **13 per framework
+passed**; editor/bridge **524 net472 passed**. SDK tests: **74 passed / 1 failed
+on each framework**, with the sole failure being the unrelated North application
+reference described above. Native tests were opt-in skipped (66); performance
+tests did not run because of the adapter compilation error. Ordinary build output
+also reports existing CA1416 warnings in the shared test helper.
+
+To distinguish the committed example from local playground edits, a focused
+ExamplePlaygroundTests run temporarily substitutes HEAD's two North files only
+in generated `artifacts/bin/.../testassets/Example/North` copies, uses
+`--no-build --no-restore`, and restores those generated bytes in finally. No
+repository example source is changed. Results remain pending; this is a separate
+baseline check, not a claim that the current working-tree example builds.
+
+The committed ExamplePlaygroundTests baseline check completed: **3 passed per
+framework**, no failures/skips (`22_08_13`), retained under
+`Iteration8/CommittedExampleBaseline`. Generated test copies were restored.
+The performance adapter fix is verified by `dotnet test
+src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/Alarmlist.VisualStudio.PerformanceTests.csproj
+--no-restore --verbosity minimal --logger trx --results-directory
+artifacts/log/Debug/Milestone9/Iteration8/PerformanceHarness`: **47 passed,
+14 opt-in skipped**, no failures (`22_08_38`). This proves harness compilation and
+ordinary report/deployment checks, not timing measurements. Library-specific
+measurement implementation and native acceptance runs remain outstanding.
+
+Added isolated library performance workloads using the existing Release/x64
+BenchmarkDotNet harness and the packaged SDK. `1000-diamond` contains one abstract
+template shared by Left/Right libraries with 500 concrete alarms each; the final
+consumer supplies its parameter. Saved project capture uses the production path,
+with an InitialTargets error sentinel forbidding accidental target execution.
+Correctness checks verify three deduplicated artifacts, all 1,000 final names,
+latest saved-template changes, no output writes, compiler host isolation and, for
+the actual WPF preview, version labels and bounded realized rows.
+
+- `eng/measure-visualstudio-analysis.ps1 -Job Short -Filter
+  'Category=Performance&Host=Isolated&Area=Libraries'`: **1 xUnit case passed**,
+  four successful measurements, no skips (`22_10_29`). Raw CSV/full JSON/logs and
+  revision/runtime metadata: `artifacts/log/Release/AnalysisPerformance/
+  5a4c206d245c4f559e1094c31d1a033d`. Means: saved graph/artifact capture 632.777 ms;
+  saved-change recapture plus analysis 830.409 ms; captured-library analysis
+  192.057 ms; populated consumer bridge disposal 0.764 ms. The disposal sample is
+  short/noisy (BenchmarkDotNet minimum-iteration warning); it does not establish
+  native project-unload latency or leak freedom. Full capture includes opening
+  and disposing the dependency SDK domains. File writes and validation are outside
+  the measured intervals; no machine-dependent thresholds are asserted.
+- Same launcher with `Area=LibraryPreview`: **1 xUnit case passed**, two successful
+  measurements, no skips (`22_12_01`). Raw evidence:
+  `artifacts/log/Release/AnalysisPerformance/3cc5df56527c406895ac8becdc8c3452`.
+  Actual WPF project-report creation/layout: 54.49 ms; publication/layout of an
+  already captured/analyzed saved-library change: 62.39 ms. Capture and compilation
+  are outside these UI intervals. Both runs use two warmups and five measured
+  iterations; raw exported samples include outliers, with BDN summaries applying
+  its standard outlier policy.
+
+Native library saved-refresh/project-unload measurements on both IDE hosts,
+final native regressions and the rest of the requirement audit remain open.
+
+Additional acceptance work after the isolated measurements:
+
+- Initial integrated VS2022 `Area~Library` run: **6 passed / 1 failed**, no skips,
+  TRX `1fbe9fcac706470c82bec400025f4fa6` (`2026-10-15 22_13_01`). SavedLibraryAnalysis
+  timed out returning from XML drafts to the designer. Its retained UIA tree shows
+  the ALMX editor frame waiting for IntelliSense initialization; this is not proof
+  of an analysis semantics failure, but the native gate remains failed until a
+  successful rerun or fix. Fixture: `SavedLibraryAnalysis/2022/
+  d5be84c8beaf4b8e98f93a2676743ff7`.
+- The native package-management audit found that its original packages were only
+  restore probes. Expanded the test to build real SDK library packages, verify
+  the installed/updated version's imported concrete alarm in compiled output, and
+  verify its removal after native uninstall. Validation of the expanded case is
+  pending; earlier restore-probe passes do not prove these new assertions.
+- Added LibraryExchangeTests coverage that exports only consumer-owned text,
+  imports its translation and requires byte-identical resources/artifacts in both
+  referenced libraries. `dotnet test
+  src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj --no-restore
+  --filter FullyQualifiedName~LibraryExchangeTests --verbosity minimal --logger trx
+  --results-directory artifacts/log/Debug/Milestone9/Iteration8/LibraryExchange`:
+  **2 passed per framework**, no failures/skips (`2026-10-15 22_16_12`). Run with
+  no concurrent native IDE tests so the resource-editor safety guard remains valid.
+
+Resumed 2026-10-18 at `f20c3fc`; the former unrelated North working-tree changes
+are no longer present. They were not reverted by this task. The previous regression
+failure remains historical evidence of the then-current working tree.
+
+The focused native retry has again recorded a SavedLibraryAnalysis timeout at
+the XML-draft-to-designer transition, with the same IntelliSense initialization
+placeholder (`dbb6aa7f018448379dbd865961e8a545`). The runner remains in cleanup;
+this is failed case evidence, not a completed suite result. A managed-stack
+capture targeted that fixture's owned IDE to investigate the stall. Capture
+`Iteration8/DesignerTimeout/heap-da32b1c9bdc44c3c8d7c233c608c04d3.json`
+shows XmlSchemaServiceContext.LazyInitialize waiting on its parse thread and a
+DTE main-thread dispatch waiting; the main managed stack is unavailable, so this
+does not establish the root cause. After capturing evidence, only the failed
+fixture's PID/start-time-matched IDE was stopped to release stalled cleanup.
+The runner then reported the designer timeout and continued to the package case.
+
+Added the native `Area=Libraries` measurement driver and both host wrappers:
+saved external-library changes through unique consumer diagnostics, and consumer
+project removal through diagnostic disappearance, with re-add correctness checks
+outside timing. Raw samples, preserved-input/output checks and zero-project memory
+samples are required. Ordinary report tests reject wrong workloads, incomplete
+modes and a still-loaded project. PowerShell parsing and diff checks pass;
+The shared automation helper also compiles through Windows PowerShell Add-Type
+against the VS2022 interop assembly. Project compilation, report tests and actual
+measurements remain pending. This work does
+not yet provide native performance acceptance evidence.
+
+The native retry finished with **0 passed / 2 failed**, no skips, TRX
+`addab766068245b3bc9a27ec2d07d434` (`2026-10-18 08_45_36`). In addition to the
+designer failure, PackageManagement2022 timed out obtaining the new IDE's DTE
+object before creating the fixture project; it did not exercise package behavior.
+The failed IDE was cleaned up. Ordinary measurement report validation now passes:
+`dotnet test src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/Alarmlist.VisualStudio.PerformanceTests.csproj
+--no-restore --filter FullyQualifiedName~RunReportTests --verbosity minimal
+--logger trx --results-directory artifacts/log/Debug/Milestone9/Iteration8/LibraryLiveReports`:
+**37 net472 passed**, no failures/skips (`2026-10-18 08_46_43`). This also compiles
+the new native wrappers, but does not substitute for native measurement results.
+
+First VS2026 Release library-measurement run (two warmups/two requested samples,
+1,000 alarms) reached saved-library diagnostic publication but failed the
+zero-open-editor precondition: reopening the template solution restored its
+starter editor. Run `a9118b92bcd14fc6ae6ac20ec2d968d5`, TRX `08_48_26`;
+this is harness failure evidence, not a performance result. Preparation now
+closes restored fixture editors before measurement, clears the old project
+automation reference and retains the strict zero-editor check. A corrected native
+run is pending; no implementation or acceptance check was relaxed.
+
+Corrected VS2026 harness validation passed **1 case**, no skips (`08_49_07`).
+The subsequent Release measurement of both hosts passed **2 cases**, no skips,
+TRX `Iteration8/LibraryLiveBoth/…08_50_10_net472.trx`. Command: performance project
+`dotnet test --configuration Release --no-build --no-restore --filter
+'Host=VisualStudio&Area=Libraries'`, with both host paths and the live opt-in set,
+`ALARMLIST_VS_MEASUREMENT_ITERATIONS=5`, `ALARMLIST_VS_MEASUREMENT_ALARMS=1000`.
+Each mode retains two warmups and all five measurements; no outliers are removed.
+
+| Host | Saved library publication median / max | Consumer removal median / max | Raw fixture under `artifacts/log/Release/VisualStudioSmoke/` |
+| --- | --- | --- | --- |
+| VS2022 17.14.36930.0 | 1172.123 / 1205.131 ms | 24.596 / 1016.867 ms | `1d215b6047c14b9baaa3db41b9b6c6a7` |
+| VS2026 18.10.12224.181 | 1137.975 / 1140.348 ms | 37.048 / 42.471 ms | `7ff04612d5be471e965b8173b67a5042` |
+
+Validated reports under `LiveVisualStudioTests/e0336ebce820427ea58915a2dfb63b7b`
+and `6345d3f2479149aeb47e25bb5cd9e471` confirm both modes, re-add correctness,
+preserved inputs/output, zero loaded projects/documents at memory sampling and
+owned-IDE cleanup. The 2022 removal outlier remains in the raw data. Timings include
+disk writes and shell/COM/polling overhead; removal from the solution is the
+measured project-unload operation. Whole-IDE memory observations and these timings
+do not prove leak freedom. Native functional failures and the final integrated
+regression/audit still prevent iteration completion.
+
+Native VS2026 focused acceptance now passed **2 cases**, no skips, TRX
+`1f81ecef471a4e668cda961496940f09` (`08_51_48`): real library package native
+install/update/uninstall with compiled-output checks (`0bc00f33d41d4baab33cb8b704e02548`)
+and saved-library/private-draft/navigation/unload/recovery behavior
+(`120ef5e66ce54d2d9dd643f20732f777`). Both owned IDEs were cleaned up.
+
+An experiment avoiding redundant XML-language assignment did not fix the VS2022
+transition failure and was reverted. The run completed with **2 passed / 1 failed**,
+no skips, TRX `81910b8d154848719ad7fd9a837bfc16` (`08_54_07`): real package management
+and LibraryMode passed, while SavedLibraryAnalysis again timed out at designer
+creation. Cleanup completed without intervention.
+
+The retained UI and ActivityLog identify the shell's deferred editor placeholder
+and `ReplaceFrameViewOnIntellisenseAvailable`. Inspection of the generated pkgdef
+found no explicit editor deferral policy. Following Microsoft's documented
+[editor registration guidance](https://devblogs.microsoft.com/visualstudio/async-loaded-net-projects-may-impact-visual-studio-extensions/),
+both ALMX and generated-library editor factories now declare
+`DeferUntilIntellisenseIsReady=false`: their analysis does not depend on the host's
+language-project IntelliSense readiness. The package test verifies this value in
+each editor's own registry sections, including repeated sections emitted by
+separate registration attributes. The pinned VSSDK exposes this option through
+the three-argument factory attribute constructor. Focused package validation
+passed **1 test per framework**, no failures/skips (`10_34_15`/`10_34_16`), under
+`Iteration8/EditorDeferralRegistration`; the initial test needed to account for
+repeated pkgdef sections. Native VS2022 saved-library validation then passed
+**1 case**, no skips, TRX `498c13cdcb844925bd58d6a0e3aadea7` (`10_35_22`), fixture
+`04f32d0ed52d40a5a779d6edf43ead3a`. The previously failing transition now completes
+through private drafts, saved changes, source deletion/restoration and project
+unload/reload, with owned-IDE cleanup. Broader native and final solution regression
+remain required before iteration completion.
+
+The analyzer-ownership audit regression passed **1 case per framework**, no
+failures/skips (`10_36_28`/`10_36_29`): compiler tests with
+`--filter FullyQualifiedName~LibraryAnalyzerAndPolicyStayWithOwner`, retained in
+`Iteration8/AnalyzerOwnership`. No production compiler change was needed.
+
+Legacy manifest regression passed **2 cases per framework**, no failures/skips
+(`10_38_24`/`10_38_25`): task unit tests with
+`--filter FullyQualifiedName~VersionOneManifestStillOwnsPreviousApplicationOutputs`,
+retained in `Iteration8/LegacyManifest`. No production manifest change was needed.
+
+Further audit inspected LibraryExampleTests (both consumers' transitive parameter,
+resource and lookup overrides, then byte-identical project/package output),
+LibraryOriginPresentationTests (searchable library identity and unavailable values),
+SdkAnalysisBridgeLibraryTests (detached ownership/location maps after domain unload),
+and the native saved-library and generated-definition test bodies. Native project
+reference management still used a foundation-only Application fixture. It now
+creates a real Library containing an abstract template and concrete derived alarm;
+after native add/remove and IDE restart, solution builds must include/exclude the
+imported alarm and preserve its inherited value. The expanded case is pending
+validation; the already-running full VS2022 suite uses the earlier test binary.
+
+That full VS2022 run has recorded a DuplicateBeforeFirstBuild failure while
+selecting the native Error List source filter. Fixture
+`DuplicateBeforeFirstBuild/2022/ebc6651ea21b4719a72dec4d03c51654` retains the
+timeout, screenshot and UIA tree: the expected ALM0001 row is present, but the
+source dropdown has no choices. The test helper now reopens an empty native list
+while waiting for initialization and still requires the actual requested choice;
+no diagnostic assertions or product behavior were changed. Targeted validation
+is pending after the current suite completes. This failure prevents claiming a
+passing full native regression.
+
+The full VS2022 run finished with **32 passed / 1 failed**, no skips, TRX
+`c0d5a0a6cc66467991f68a604961204d` (`2026-10-18 10_36_04`). The only failure
+was the empty native source filter described above. All seven library areas
+passed, including saved-library analysis with the editor-deferral fix. A targeted
+rerun covers DuplicateBeforeFirstBuild, SourceNavigation (also uses the helper)
+and the expanded real-library ProjectReferenceManagement case.
+
+The targeted VS2022 rerun passed **3 cases**, no failures/skips, TRX
+`9505c7ea20f6446f8c5a9ed70a38d79f` (`2026-10-18 10_46_04`). Command:
+`./eng/test-visualstudio.ps1 -VisualStudioPath '<VS2022>/Community'
+-RootSuffix AlarmlistExp -Filter
+'FullyQualifiedName~DuplicateBeforeFirstBuild|Area=Navigation|Area=LibraryReferences'`.
+This validates the native filter initialization correction, all dependent
+navigation assertions and real-library add/remove/restart compilation. Combined
+with the 32 passing full-run cases, all 33 native VS2022 scenarios now have passing
+evidence; the failed initial run remains above. The complete VS2026 suite follows.
+
+The complete VS2026 run subsequently reproduced the empty source-filter failure
+(`DuplicateBeforeFirstBuild/2026/0a460d6ef97340f3a9ee9c70fc5fc87d`), so reopening
+alone is not a reliable correction. Read-only inspection of the installed shell's
+ErrorListCommandTarget shows that its constructor creates all three localized
+choices and its command handler returns them; they are not supplied by an alarm
+provider. The helper now explicitly activates the Error List tool window through
+the public DTE WindowKinds identity before opening/reopening the native selector.
+This command-routing hypothesis still requires validation on both hosts; no
+private shell API is referenced by the test or product.
+
+The same run exposed an early native NuGet test acknowledgement:
+`LibraryPackages/2026/d6e61bb491d1419d977e36d1f4cebab9` passed its project/assets
+version check, then Build failed because a restore selected the previous version.
+The retained UI still reports installed 1.0.0 while the saved project requests
+2.0.0. The helper now also waits for the native package row to acknowledge the
+requested installed version (or the Install button after uninstall), before
+saving/building. The resolver correctly rejected the inconsistent graph and is
+unchanged. This expanded operation-completion check is pending native validation.
+
+Full VS2026 result: **24 passed / 9 failed**, no skips, TRX
+`fd196cc2470b4bc5a0d702795bf9936e` (`2026-10-18 10_48_41`). Besides the two
+failures above, LibraryProperties timed out focusing its native Library filename
+editor (`0ae7617322a3440395cd75fab260634c`). Its failure capture encountered rejected
+COM calls; six later cases refused startup while that owned IDE was still exiting.
+The fixture's cleanup record confirms forced termination of its owned IDE, and a
+subsequent process inventory confirmed no remaining devenv process. A diagnostic
+capture for its verified PID/start time is retained under
+`Iteration8/PropertyFocusTimeout/heap-54d284fc08dd43d89e6cabf2b8063452.json`; its
+main managed stack is unavailable, so it does not establish the focus failure's
+cause. No external IDE was stopped and no property behavior was changed.
+A ten-case rerun covers all nine failures plus SourceNavigation, which shares the
+updated source-selector helper. The new helper code compiles; execution is pending.
+
+Within that rerun, native package management passed with the installed-state wait
+(`LibraryPackages/2026/01c4740d8c0b48548d801ab355a96de0`). Error List pane activation
+alone still failed (`DuplicateBeforeFirstBuild/2026/72e1c9cdf7984e559ff3cd1c6038542b`),
+and LibraryProperties reproduced the same filename-editor focus timeout
+(`000924b870de4229a05c12a4e1882a21`). The selector investigation now additionally
+focuses the actual diagnostic table before opening the toolbar combo; that change
+has not yet run. Failure capture now caches the real shell HWND during startup and
+captures the UI before DTE build output, allowing modal/RPC-rejected failures to
+retain their actual screenshot/tree. This is diagnostic harness work, not a claim
+that the property failure is fixed. The remaining cases in the rerun are ongoing.
+
+That rerun finished **7 passed / 3 failed**, no skips, TRX
+`a4149ff6310f45c49fe72b6a9679acd0` (`2026-10-18 10_57_56`). Package management,
+library mode, selected/table previews, list/reference completion and source
+navigation passed. DuplicateBeforeFirstBuild and LibraryProperties remain failed.
+ProjectPreview also timed out finding its project node, although its retained
+actual-shell UIA tree/screenshot contains that node
+(`7a8744f321564c95ad32b6ff14e55438`). Its process-based main-window lookup can
+select a floating preview; it now uses the cached actual shell HWND. A four-case
+run validates these three outstanding cases and SourceNavigation with the current
+table-focus helper and improved failure capture.
+
+The four-case run finished **2 passed / 2 failed**, no skips, TRX
+`ed7330695a384397abe8dd6478b5382f` (`2026-10-18 11_04_15`). DuplicateBeforeFirstBuild
+passed with table focus, and ProjectPreview passed with the actual shell HWND.
+SourceNavigation exposed that the table cannot always receive focus after Build;
+the helper now requests table focus only for an empty dropdown and only for a
+visible, enabled, keyboard-focusable table. Existing populated choices still use
+their native SelectionItem pattern.
+
+The improved LibraryProperties capture
+(`a783bdfd49d2455b88e3a8e68993dbc7/failure.png` and `automation.txt`) shows the native
+"save changes made in property pages" prompt over the filename editor, with the
+two identity values still pending. The test now uses the native Apply button and
+waits for it to become clean after editing Package ID/version, before editing the
+configuration-scoped filename. All subsequent saved-project, reopen and
+Application/Library build-output assertions remain. A three-case VS2026 run is
+validating the final selector and Apply workflow; neither is yet a passing gate.
+
+The final three-case VS2026 rerun passed **3 cases**, no failures/skips, TRX
+`cb3a6d7d6d28406bbeea846e7ba78e97` (`2026-10-18 11_07_54`): SourceNavigation,
+LibraryProperties and DuplicateBeforeFirstBuild. Native Apply persists the identity
+before filename editing; the original reopen and output-mode transitions pass.
+The conditional table-focus recovery also passes both source-filter callers.
+Together with the full run's unaffected cases and the preceding targeted passes,
+all 33 VS2026 scenarios now have passing evidence. Earlier failed runs remain
+recorded; they are not described as passing full suites. A five-case VS2022 run
+revalidates the changed selector/navigation, native package acknowledgement,
+property Apply workflow and project-preview window selection.
+
+The five-case VS2022 rerun passed **5 cases**, no failures/skips, TRX
+`e1e08b9025c04434aaf63c7f493f3ee6` (`2026-10-18 11_09_14`). All changed native
+helpers and their affected workflows pass on both supported hosts. Final TRX
+aggregation confirms all 33 scenario names per host have passing evidence from
+the full and targeted runs; the original failed suites remain distinct evidence.
+`git diff --check` passes. The full solution regression is now running under
+`Iteration8/FinalRegression`, without a concurrent native IDE or measurement run.
 
 VSIX/package regression now explicitly checks the generated-definition editor
 registration in the packaged pkgdef. `dotnet test
@@ -1662,3 +2039,74 @@ src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.
 artifacts/log/Debug/Milestone9/Iteration6/PackageRegression`: **12 net472 and
 12 net8.0 passed**, no failures/skips (`21_31_28`). `git diff --check -- src`
 also passed; Git reported only existing LF/CRLF conversion warnings.
+
+### Final acceptance and requirement closure (2026-10-18)
+
+The chronological evidence above retains failed experiments and checks that were
+pending at the time. This closure supersedes those pending statuses; it does not
+reclassify failed runs as successful.
+
+Final solution command:
+`dotnet test AlarmlistProject.slnx --no-restore --verbosity minimal --logger trx
+--results-directory artifacts/log/Debug/Milestone9/Iteration8/FinalRegression`.
+The command completed successfully. Its 13 suite/framework reports contain
+**2,173 passed, zero failed, 84 opt-in skipped**:
+
+| Suite | net472 passed | net8.0 passed |
+| --- | --- | --- |
+| Compiler | 619 | 621 |
+| MSBuild task unit | 85 | 85 |
+| MSBuild integration | 4 | 4 |
+| Packaged SDK consumers | 76 | 76 |
+| VSIX/package integration | 13 | 13 |
+| Editor/bridge | 524 | — |
+| Ordinary performance harness checks | 53 | — |
+
+The 66 native and 18 performance opt-in skips are not acceptance evidence. Native
+acceptance uses the full/targeted runs recorded above: aggregation of the latest
+result for every scenario confirms **33 distinct passed scenarios per host**.
+The changed project-reference test uses actual inherited library output; package
+management uses actual packed libraries and checks compiled values after install
+and update, then absence after removal. Changed shared UI helpers were revalidated
+on both hosts. Separate isolated and live library measurements passed as recorded
+above, including both native hosts with two warmups and five retained samples.
+
+Final desktop SDK command used the same SDK test project with `--framework net472
+--no-restore --verbosity minimal --logger trx --results-directory
+artifacts/log/Debug/Milestone9/Iteration8/FinalDesktopSdk`, setting
+`ALARMLIST_TEST_MSBUILD_PATH` to the installed VS2022 desktop MSBuild for the run
+and restoring its previous value in `finally`. The process has exited; the
+`2026-10-18_11_14_25_net472.trx` report confirms **76 passed, zero failed/skipped**.
+No native IDE test or measurement overlapped these SDK/XLIFF checks.
+
+Final audit closes every row of the initial requirement audit against the current
+implementation, inspected test assertions and the passing results above:
+
+| Requirement group | Completion evidence |
+| --- | --- |
+| Deterministic versioned artifacts, raw inheritance/groups/expressions, scopes, portable origins, abstract/concrete alarms | LibraryArtifactXmlTests, LibrarySourceTests and LibraryBuilderTests cover round trips, immutability, version/malformed-input rejection and retained definitions; final compiler suites pass. |
+| Parameter precedence, explicit empty, consumer-derived isolation, consumer project identity and portable source identity | LibraryCompilationTests checks each scope and prohibited physical-path expressions; packaged AnalysisContract and bridge tests retain detached ownership/provenance. Final compiler, SDK and editor suites pass. |
+| Deferred library values and strict application validation | LibraryDeferredValidationTests and native LibraryMode cases pass; library analysis exposes unavailable values without final XML, while applications require final values. |
+| Graph order, diamonds, cycles, conflicts and global alarm identities | LibraryGraphTests plus compiler binding tests, LibraryProjectReferenceTests, LibraryPackTests and PackageRestoreTests cover compiler and mixed project/package graphs. Both SDK frameworks and desktop MSBuild pass. |
+| Resource precedence, per-culture fallback and whole-unit lookup overrides | LibraryResourceTests and LibraryLookupTests cover conflicts, explicit overrides, empty/whitespace semantics and replaced path/entry/binding units. LibraryExampleTests verifies consumer-specific parameter/resource/lookup output and byte-identical project/package conversion. |
+| Owner analyzers/configuration and consumer analysis | LibraryAnalyzerAndPolicyStayWithOwnerWhileConsumerAnalyzerSeesCombinedModel passes on both frameworks; owner suppression does not propagate and consumer rules see imported/local alarms. |
+| Transactional output, legacy manifests, configuration/build ordering, no-build discovery and input-safe lifecycle | LibraryBuildTests (including version-1 migration and Clean), LibraryProjectReferenceTests and packaging/lifecycle suites pass on both runtimes, including desktop task loading. |
+| Fresh/offline NuGet restore, selected graph, exact package dependencies, failed Pack preservation and reference-only consumers | PackageRestoreTests and LibraryPackTests exercise real isolated packages, mixed graphs, warm-cache offline restore, failure preservation and unrepresentable dependency rejection. Native install/update/remove and reopen workflows pass on both hosts. |
+| Saved graph without Build, unloaded/out-of-solution dependencies, private dependency drafts and consumer-buffer precedence | SavedProjectEvaluationTests, SavedProjectGraphTests, CapturedLibraryProjectTests and SdkAnalysisBridgeLibraryTests cover saved captures, sentinels, imports/membership/configuration, failed recapture recovery and race revalidation. Native saved-library cases pass on both hosts through drafts, navigation, save, deletion/restore and unload/reload. |
+| Analysis 5/analyzer 3, detached data and host isolation | Compiler analyzer contract tests, packaged AnalysisContract, SdkAnalysisBridgeTests and library bridge tests pass. Legacy contracts fail explicitly; NuGet/compiler implementations remain in the selected SDK AppDomain. |
+| Completion, imported previews, local navigation and read-only generated package views | LibraryOriginPresentationTests and AnalysisNavigationTargetTests verify origins, unavailable values and generated maps. Native library/source-navigation/definition cases verify actual views, blocked edits, unchanged artifacts and lifecycle on both hosts. Generated editor buffers retain detached text/location data, not project analysis state. |
+| Templates, properties, examples, docs and XLIFF boundaries | Native creation/property cases pass on both hosts, including identity Apply, reopen and output-kind transitions. LibraryExampleTests covers both consumers and transitive overrides. ConsumerTranslationExchangeLeavesImportedLibraryResourcesAndArtifactsUnchanged passes on both SDK frameworks and desktop MSBuild. SDK/extension documentation and the backlog identify the implemented scope. |
+| Capture, saved refresh, preview and unload performance | Four isolated bridge measurements, two actual WPF preview measurements and native saved-refresh/project-removal measurements on both hosts passed their correctness checks; raw samples and environment/revision metadata are retained at the paths above. |
+
+No essential Milestone 9 implementation or acceptance gate remains open. The
+existing framework-independent consumer, net472/net8.0 compiler/task and net472
+extension boundaries are preserved. Both requested branches exist; implementation
+commits are on `dev/milestone-9`. No merge or publication was performed.
+
+Performance results are observations for the recorded machines/workloads, without
+machine-dependent thresholds. Whole-IDE memory samples and project-removal timings
+do not establish leak freedom. Historical vendor/manual/release gates in earlier
+milestones remain outside this milestone, as do Shared Projects, XML IntelliSense,
+syntax generation and legacy bridge adapters. Raw generated evidence remains in
+ignored artifacts; it is not committed as source. Final documentation changes need
+diff/link consistency review, not another unchanged-code test run.

@@ -1,4 +1,7 @@
+// Created/modified by Arkarin0 under one ore more license(s).
+
 using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 using Xunit;
 using Xunit.Abstractions;
@@ -36,6 +39,42 @@ namespace Alarmlist.MSBuild.SDK.Tests
             Assert.NotEqual(0, export.ExitCode);
             Assert.Contains("must not replace a project input", export.Output);
             Assert.Equal(original, File.ReadAllBytes(artifact));
+        }
+
+        [Fact]
+        public void ConsumerTranslationExchangeLeavesImportedLibraryResourcesAndArtifactsUnchanged()
+        {
+            var app = _fixture.CreateTestApp("LibraryExample");
+            string consumer = Path.Combine(app.WorkingDirectory, "LineB", "LineB.almproj");
+            string consumerDirectory = Path.GetDirectoryName(consumer);
+            File.WriteAllText(Path.Combine(consumerDirectory, "Labels.en.resx"),
+                "<root><data name='ConsumerOnly'><value>Local text</value></data></root>");
+            string localTarget = Path.Combine(consumerDirectory, "Labels.de.resx");
+            File.WriteAllText(localTarget, "<root><data name='ConsumerOnly'><value>Alt</value></data></root>");
+            var build = app.RunProject(_output, consumer, "/t:Restore;Build");
+            Assert.True(build.ExitCode == 0, build.Output);
+            var protectedFiles = new[] { "Common", "Equipment" }.SelectMany(name =>
+                Directory.GetFiles(Path.Combine(app.WorkingDirectory, name), "*", SearchOption.AllDirectories))
+                .Where(path => path.EndsWith(".resx") || path.EndsWith(".almlib"))
+                .ToDictionary(path => path, File.ReadAllBytes);
+            Assert.Equal(4, protectedFiles.Count);
+            var export = app.RunProject(_output, consumer, "/t:ExportAlarmlistXliff", "/p:AlarmlistXliffTargetCultures=de");
+            Assert.True(export.ExitCode == 0, export.Output);
+            string exchange = Path.Combine(consumerDirectory, "xliff", "Alarmlist.en.de.xlf");
+            XNamespace ns = "urn:oasis:names:tc:xliff:document:2.0";
+            XDocument document = XDocument.Load(exchange);
+            XElement segment = Assert.Single(document.Descendants(ns + "segment"));
+            Assert.Equal("Local text", segment.Element(ns + "source").Value);
+            Assert.DoesNotContain("Inspection", File.ReadAllText(exchange));
+            XElement target = segment.Element(ns + "target");
+            if (target == null) { target = new XElement(ns + "target"); segment.Add(target); }
+            target.Value = "Lokaler Text";
+            document.Save(exchange);
+            var import = app.RunProject(_output, consumer, "/t:ImportAlarmlistXliff",
+                "/p:AlarmlistXliffImportFiles=xliff/Alarmlist.en.de.xlf", "/p:AlarmlistXliffApply=true");
+            Assert.True(import.ExitCode == 0, import.Output);
+            Assert.Equal("Lokaler Text", XDocument.Load(localTarget).Descendants("value").Single().Value);
+            foreach (var file in protectedFiles) Assert.Equal(file.Value, File.ReadAllBytes(file.Key));
         }
     }
 }

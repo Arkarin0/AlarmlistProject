@@ -1,8 +1,8 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -67,11 +67,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 SelectVersion("1.0.0");
                 Find("Button_Install").AsButton().Invoke();
                 WaitForVersion("1.0.0");
+                VerifyCompiledPackage("1.0.0");
                 SelectVersion("2.0.0");
                 Find("Project_Button_Update").AsButton().Invoke();
                 WaitForVersion("2.0.0");
+                VerifyCompiledPackage("2.0.0");
                 Find("Project_Button_Uninstall").AsButton().Invoke();
                 WaitForVersion(null);
+                workspace.Build(ide, 1);
                 Assert.Empty(XDocument.Load(Path.Combine(workspace.ProjectDirectory, "Plant.almproj")).Descendants("TargetFramework"));
                 workspace.AssertAlarmCount(1);
             }
@@ -110,6 +113,21 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             {
                 VisualStudioSession.Wait(() =>
                 {
+                    // NuGet writes project/assets files before its UI transaction
+                    // finishes. Building at that point can race a stale CPS restore.
+                    // Require the native installed-state acknowledgement as well.
+                    if (version == null)
+                    {
+                        AutomationElement install = window.FindFirstDescendant(cf => cf.ByAutomationId("Button_Install"));
+                        if (install == null || install.IsOffscreen || !install.IsEnabled) return false;
+                    }
+                    else
+                    {
+                        AutomationElement package = window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
+                            .FirstOrDefault(item => item.Name.Contains(PackageId));
+                        AutomationElement installed = package?.FindFirstDescendant(cf => cf.ByAutomationId("_installedVersion"));
+                        if (installed == null || !installed.Name.EndsWith(" " + version, StringComparison.Ordinal)) return false;
+                    }
                     EnvDTE.Projects projects = ide.Automation.Solution.Projects;
                     EnvDTE.Project project = null;
                     try
@@ -135,13 +153,36 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
             void CreatePackage(string version)
             {
-                using var archive = ZipFile.Open(Path.Combine(workspace.DirectoryPath, "feed", PackageId + "." + version + ".nupkg"), ZipArchiveMode.Create);
-                using (Stream stream = archive.CreateEntry(PackageId + ".nuspec").Open())
-                    new XDocument(new XElement("package", new XElement("metadata", new XElement("id", PackageId),
-                        new XElement("version", version), new XElement("authors", "Alarmlist tests"),
-                        new XElement("description", "Data package for native reference-management validation")))).Save(stream);
-                using var writer = new StreamWriter(archive.CreateEntry("alarmlist/definition.txt").Open());
-                writer.Write("Restore probe; not a compiled alarm library artifact.");
+                string directory = Path.Combine(workspace.DirectoryPath, "PackageSource-" + version);
+                Directory.CreateDirectory(directory);
+                string projectPath = Path.Combine(directory, "Library.almproj");
+                string sdk = (string)XDocument.Load(Path.Combine(workspace.ProjectDirectory, "Plant.almproj")).Root.Attribute("Sdk");
+                new XElement("Project", new XAttribute("Sdk", sdk), new XElement("PropertyGroup",
+                    new XElement("OutputType", "Library"), new XElement("PackageId", PackageId),
+                    new XElement("PackageVersion", version))).Save(projectPath);
+                new XElement("Alarmlist", new XElement("Alarm", new XElement("FullyQualifiedName", "Library.Imported"),
+                    new XElement("Name", "Native package " + version))).Save(Path.Combine(directory, "Alarms.almx"));
+                var start = new ProcessStartInfo("dotnet") { WorkingDirectory = workspace.DirectoryPath,
+                    UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
+                foreach (string argument in new[] { "msbuild", projectPath, "/t:Restore;Pack", "/nologo", "/nr:false", "/v:minimal",
+                    "/p:PackageOutputPath=" + Path.Combine(workspace.DirectoryPath, "feed") }) start.ArgumentList.Add(argument);
+                using var process = Process.Start(start);
+                Task<string> stdout = process.StandardOutput.ReadToEndAsync(), stderr = process.StandardError.ReadToEndAsync();
+                bool exited = process.WaitForExit(120000);
+                if (!exited) { process.Kill(entireProcessTree: true); process.WaitForExit(); }
+                Assert.True(exited, "Library package fixture build timed out.");
+                string output = stdout.GetAwaiter().GetResult() + stderr.GetAwaiter().GetResult();
+                File.WriteAllText(Path.Combine(workspace.DirectoryPath, "package-" + version + ".log"), output);
+                Assert.True(process.ExitCode == 0, output);
+                Assert.True(File.Exists(Path.Combine(workspace.DirectoryPath, "feed", PackageId + "." + version + ".nupkg")));
+            }
+
+            void VerifyCompiledPackage(string version)
+            {
+                workspace.Build(ide, 2);
+                XElement imported = XDocument.Load(workspace.OutputPath).Root.Elements("Alarm")
+                    .Single(alarm => alarm.Element("FullyQualifiedName")?.Value == "Library.Imported");
+                Assert.Equal("Native package " + version, imported.Element("Name").Value);
             }
         }
     }

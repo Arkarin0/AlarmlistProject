@@ -76,6 +76,53 @@ namespace Alarmlist.Core.UnitTests.Configuration
         }
 
         [Fact]
+        public void LibraryAnalyzerAndPolicyStayWithOwnerWhileConsumerAnalyzerSeesCombinedModel()
+        {
+            var compiler = new AlarmCompiler();
+            var identity = new LibraryIdentity("Library", "1.0.0");
+            var source = Source("Library", "<Alarm><FullyQualifiedName>Imported</FullyQualifiedName><Name>Imported alarm</Name></Alarm>");
+            int ownerCalls = 0;
+            var ownerAnalyzer = new DelegateAnalyzer((context, token) =>
+            {
+                ownerCalls++;
+                return CheckCodes(context, token);
+            });
+            var policy = new AnalyzerConfiguration(new[] { new EditorConfigTextSnapshot(
+                "root=true\n[*.almx]\nalarmlist_diagnostic.TEST001.severity=none\n",
+                Path.Combine(s_directory, ".editorconfig"), 1) });
+            var ownerContext = CompilationContext.Empty.WithAnalyzers(new[] { ownerAnalyzer })
+                .WithDiagnosticOptions(new DiagnosticOptions(policy));
+            var library = compiler.CreateLibrary(identity, new[] { source }, ownerContext,
+                portablePaths: new Dictionary<string, string> { [source.FilePath] = "Library.almx" });
+            Assert.True(library.Success, string.Join("; ", library.Diagnostics));
+            Assert.Empty(library.Diagnostics);
+            Assert.Equal(1, ownerCalls);
+
+            var references = new LibraryReferenceSet(new[] { identity },
+                new[] { new LibraryTextSnapshot(library.ArtifactText, "Library.almlib", 1) });
+            var consumerContext = CompilationContext.Empty.WithLibraries(references);
+            var local = Source("Consumer", "<Alarm><FullyQualifiedName>Local</FullyQualifiedName><Name>Local alarm</Name></Alarm>");
+            var withoutAnalyzer = compiler.CompileSnapshots(new[] { local }, consumerContext);
+            Assert.True(withoutAnalyzer.Success);
+            Assert.Empty(withoutAnalyzer.Diagnostics);
+            Assert.Equal(2, withoutAnalyzer.AlarmList.Count);
+
+            AlarmAnalyzerContext captured = null;
+            var consumerAnalyzer = new DelegateAnalyzer((context, token) =>
+            {
+                captured = context;
+                return CheckCodes(context, token);
+            });
+            var analyzed = compiler.CompileSnapshots(new[] { local }, consumerContext.WithAnalyzers(new[] { consumerAnalyzer }));
+            Assert.True(analyzed.Success);
+            Assert.Equal(new[] { "Imported", "Local" }, captured.Alarms.Select(alarm => alarm.Origin.FullyQualifiedName).OrderBy(name => name));
+            Assert.Equal(2, analyzed.Diagnostics.Count);
+            Assert.All(analyzed.Diagnostics, diagnostic => Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity));
+            Assert.Contains(analyzed.Diagnostics, diagnostic => diagnostic.Location.FilePath.StartsWith("library://Library/1.0.0/", StringComparison.Ordinal));
+            Assert.Equal(1, ownerCalls);
+        }
+
+        [Fact]
         public void AnalyzerReceivesDetachedResolvedValuesAndGenericProcedureSections()
         {
             AlarmAnalyzerContext retained = null;

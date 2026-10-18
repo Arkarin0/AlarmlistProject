@@ -62,6 +62,34 @@ namespace Alarmlist.VisualStudio.Testing
         {
             ((EnvDTE.DTE)automation).Solution.Open(path);
         }
+        public static void RemoveMeasurementProject(object automation)
+        {
+            var solution = ((EnvDTE.DTE)automation).Solution;
+            var projects = solution.Projects;
+            EnvDTE.Project project = null;
+            try
+            {
+                if (projects.Count != 1) throw new InvalidOperationException("Expected one measurement consumer.");
+                project = projects.Item(1);
+                solution.Remove(project);
+            }
+            finally
+            {
+                if (project != null) Marshal.ReleaseComObject(project);
+                Marshal.ReleaseComObject(projects);
+                Marshal.ReleaseComObject(solution);
+            }
+        }
+        public static void AddMeasurementProject(object automation, string path)
+        {
+            var solution = ((EnvDTE.DTE)automation).Solution;
+            try
+            {
+                var project = solution.AddFromFile(path, false);
+                if (project != null) Marshal.ReleaseComObject(project);
+            }
+            finally { Marshal.ReleaseComObject(solution); }
+        }
         // PowerShell's COM adapter exposes the default interfaces, which omit these
         // newer Solution2/DTE2 members. Query the required interfaces explicitly.
         public static string GetTemplate(object automation, bool item)

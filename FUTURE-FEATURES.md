@@ -4,12 +4,13 @@ Status: ideas for future development, recorded on 2026-09-24. These notes captur
 intent and open design questions; they do not define implemented behavior,
 committed milestones, or a delivery schedule.
 
-Planning update (2026-10-13): [milestone nine](src/VisualStudio/MILESTONE-9.md)
-now authorizes reusable alarm libraries, project references and NuGet distribution,
+Implementation update (2026-10-18): [milestone nine](src/VisualStudio/MILESTONE-9.md)
+implements reusable alarm libraries, project references and NuGet distribution,
 including native Visual Studio management and saved-source dependency refresh.
 Its [design contract](src/VisualStudio/MILESTONE-9-DESIGN.md) supersedes the open
-library/project-reference questions below. This is authorized work, not evidence
-of implemented behavior; Shared Projects remain unassigned.
+library/project-reference questions below. All eight iterations and their scoped
+automated acceptance are complete; the milestone records the actual evidence and
+performance limitations. Shared Projects remain unassigned; publication is separate.
 
 Planning update (2026-10-10): the owner selected improvements to the existing ALMX
 file editor's UI/UX for [milestone seven](src/VisualStudio/MILESTONE-7.md), with

@@ -182,7 +182,7 @@ default. Restore writes NuGet assets under `MSBuildProjectExtensionsPath` withou
 compiling alarms. Visual Studio's Project > Add Reference and Manage NuGet Packages
 commands can edit project/package references; save the project to persist edits.
 Project and package references consume library artifacts; see
-[milestone nine](../../VisualStudio/MILESTONE-9.md) for validation and remaining work.
+[milestone nine](../../VisualStudio/MILESTONE-9.md) for acceptance evidence and limitations.
 
 To build a standalone library, set `OutputType` to `Library`. `PackageId` defaults
 to the project name and `PackageVersion` to `1.0.0`. Versions use NuGet normalization

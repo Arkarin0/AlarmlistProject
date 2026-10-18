@@ -49,8 +49,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.Documents.CloseAll(vsSaveChanges.vsSaveChangesNo);
             Assert.Equal(0, ide.Automation.Documents.Count);
             using var automation = new UIA3Automation();
-            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
-            Window window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            Window window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             window.SetForeground(); ide.Automation.ExecuteCommand("View.SolutionExplorer");
             AutomationElement projectNode = null;
             VisualStudioSession.Wait(() => (projectNode = window.FindFirstDescendant(cf => cf.ByName("Plant").And(cf.ByControlType(ControlType.TreeItem)))) != null, "project node");

@@ -38,6 +38,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             AutomationElement page = OpenPage();
             SetProperty("Package ID", "Plant.Reusable");
             SetProperty("Package version", "2.3.4");
+            // Commit the configuration-independent identity before editing the
+            // configuration-scoped output. Otherwise VS can display its native
+            // save-changes prompt while the next editor is receiving focus.
+            var apply = page.FindFirstDescendant(cf => cf.ByAutomationId("12321").And(cf.ByControlType(ControlType.Button))).AsButton();
+            Assert.True(apply.IsEnabled);
+            apply.Invoke();
+            VisualStudioSession.Wait(() => !apply.IsEnabled, "library identity properties applied");
             SetProperty("Library filename", "Reusable.almlib");
             page.FindFirstDescendant(cf => cf.ByAutomationId("1").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
             ide.Automation.ExecuteCommand("File.SaveAll");

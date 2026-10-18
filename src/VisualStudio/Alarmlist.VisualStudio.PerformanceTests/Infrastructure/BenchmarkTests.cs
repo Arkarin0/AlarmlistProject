@@ -63,6 +63,14 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         [InlineData("1000-100-analyzers-ranges")]
         public void AnalyzerBridge(string scenario) => Run(typeof(BridgeBenchmarks), scenario, 2);
 
+        [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Libraries")]
+        [InlineData("1000-diamond")]
+        public void Libraries(string scenario) => Run(typeof(LibraryBenchmarks), scenario, 4);
+
+        [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "LibraryPreview")]
+        [InlineData("1000-diamond")]
+        public void LibraryPreview(string scenario) => Run(typeof(LibraryPreviewBenchmarks), scenario, 2);
+
         private void Run(Type benchmark, string scenario, int expectedReports)
         {
             Assert.Equal(8, IntPtr.Size);

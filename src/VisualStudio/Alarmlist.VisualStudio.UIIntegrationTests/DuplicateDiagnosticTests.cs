@@ -168,6 +168,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             filter.Collapse();
             window.SetForeground();
             ide.RequireForeground();
+            ActivateErrorList();
             filter.Click();
             AutomationElement choice = null;
             VisualStudioSession.Wait(() =>
@@ -177,12 +178,46 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                         : source == "live" ? item.Name.Contains("IntelliSense") && !item.Name.Contains("+")
                         : item.Name.IndexOf("build", StringComparison.OrdinalIgnoreCase) >= 0 && !item.Name.Contains("+")
                             || item.Name.IndexOf("erstellen", StringComparison.OrdinalIgnoreCase) >= 0 && !item.Name.Contains("+"));
+                if (choice == null)
+                {
+                    // The toolbar's choices are supplied by the Error List's
+                    // command target. Reactivate that pane, not just the shell,
+                    // before reopening an empty list.
+                    filter.Collapse();
+                    window.SetForeground();
+                    ide.RequireForeground();
+                    ActivateErrorList(focusTable: true);
+                    filter.Click();
+                }
                 return choice != null;
             }, "Error List source choice " + source);
             // Native list peers can have empty bounds; clicking those can hit
             // (0,0) and open the shell system menu. Use their selection pattern.
             choice.Patterns.SelectionItem.Pattern.Select();
             filter.Collapse();
+
+            void ActivateErrorList(bool focusTable = false)
+            {
+                EnvDTE.Windows windows = ide.Automation.Windows;
+                EnvDTE.Window errorList = null;
+                try
+                {
+                    errorList = windows.Item(EnvDTE80.WindowKinds.vsWindowKindErrorList);
+                    errorList.Activate();
+                    if (focusTable)
+                    {
+                        AutomationElement table = window.FindAllDescendants(cf => cf.ByAutomationId("Tracking List View")
+                            .And(cf.ByControlType(ControlType.Table)))
+                            .FirstOrDefault(item => !item.IsOffscreen && item.IsEnabled && item.Properties.IsKeyboardFocusable.ValueOrDefault);
+                        table?.Focus();
+                    }
+                }
+                finally
+                {
+                    if (errorList != null) System.Runtime.InteropServices.Marshal.ReleaseComObject(errorList);
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(windows);
+                }
+            }
         }
     }
 }

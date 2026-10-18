@@ -313,6 +313,9 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   returns final XML. Capture the root project's OutputType in the IDE analysis
   context, preserve it through input updates, and invalidate on mode changes.
   Application analysis and compilation remain strict about missing values.
+  Both ALMX editor factories explicitly opt out of host IntelliSense deferral:
+  their captured analysis does not depend on language-project initialization.
+  Verify this policy in the packaged editor registration and native loading tests.
   Package definition navigation uses the registered in-memory editor factory,
   captured generated text and compiler-provided location maps. Keep its documents
   read-only and non-saving, and retain no project analysis state in open buffers.
@@ -605,6 +608,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   to fourteen ordered groups per alarm with inherited expression titles. Preserve
   group/title correctness, source-state and virtualization checks outside timing.
   See milestone eight for the implementation and acceptance record.
+- The isolated `Area=Libraries` workload measures production saved-project graph
+  capture, saved-change recapture/analysis, captured-library analysis and consumer
+  bridge disposal for a three-library diamond with 1,000 concrete alarms. Its
+  `Area=LibraryPreview` companion measures actual WPF project-report creation and
+  publication of precomputed changed analysis. Keep saved writes, setup and
+  correctness checks outside timing; verify deduplication, consumer values,
+  source/output isolation and preview virtualization. These do not replace native
+  saved-refresh/project-unload evidence or establish leak freedom.
 - The isolated `Area=Analyzers` bridge workload captures the sample analyzer and
   saved configuration for 1,000 alarms, validating warning counts and host isolation
   outside timing. Its paired range scenario uses a full positive Int64 glob range;
@@ -615,6 +626,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   driver with saved sample-analyzer/configuration inputs, unique analyzer messages,
   and a third saved-configuration mode. Require the workload marker and complete
   three-mode reports; restore configuration and preserve source/output/DLL hashes.
+- The live `Host=VisualStudio&Area=Libraries` workload measures a saved external library
+  change through unique consumer diagnostic publication, then consumer removal
+  from the solution through diagnostic removal. Re-add and verify the consumer
+  outside timing. Retain raw samples and project-unload memory observations;
+  project removal includes shell overhead and does not establish leak freedom.
 - Live performance xUnit wrappers require `ALARMLIST_RUN_LIVE_VS_TESTS=1` and explicit
   host paths;
   they run only on net472 in PerformanceTests and use the dedicated live measurement
@@ -639,6 +655,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   require an unlocked desktop and cover project/editor lifecycle as separate xUnit
   cases; package-consumer coverage remains in IntegrationTests. The PowerShell
   smoke entry point only launches xUnit; keep functional assertions in C#.
+  Use the session's captured shell HWND for shell lookup and failure capture;
+  process main-window discovery can select a floating tool window, and modal
+  failures can reject DTE calls. Capture UI evidence before requesting build logs.
+  Native NuGet tests must await the UI's installed-state acknowledgement as well
+  as saved project/assets changes before building the updated consumer.
 - Run WPF editor unit tests, native IDE functional tests and isolated WPF
   measurements sequentially. They share desktop focus even when their project
   files and experimental profiles are isolated; overlapping runs can close menus
