@@ -32,6 +32,7 @@ namespace Alarmlist.VisualStudio.UI
         private bool _pending;
         private bool _committing;
         private bool _refreshing;
+        private readonly List<AlarmViewModel> _allAlarms = new List<AlarmViewModel>();
         public event EventHandler PendingChanged;
         public ObservableCollection<AlarmViewModel> Alarms { get; } = new ObservableCollection<AlarmViewModel>();
         public IReadOnlyList<AlarmFieldViewModel> Fields { get; }
@@ -209,11 +210,14 @@ namespace Alarmlist.VisualStudio.UI
             string identity = _selected?.Source.Identity;
             int index = Alarms.IndexOf(_selected);
             Alarms.Clear();
+            _allAlarms.Clear();
             foreach (AlarmSource alarm in _model.Projection.Alarms)
             {
                 AlarmViewModel view = _factory.Create(alarm);
-                if ((view.Title + " " + view.Identity).IndexOf(_filter, StringComparison.OrdinalIgnoreCase) >= 0) Alarms.Add(view);
+                _allAlarms.Add(view);
             }
+            UpdateAlarmNames(_analysis?.Current);
+            foreach (AlarmViewModel view in _allAlarms.Where(view => view.Matches(_filter))) Alarms.Add(view);
             _selected = Alarms.FirstOrDefault(alarm => identity != null && alarm.Source.Identity == identity)
                 ?? (Alarms.Count == 0 ? null : Alarms[Math.Max(0, Math.Min(index, Alarms.Count - 1))]);
             LoadFields();

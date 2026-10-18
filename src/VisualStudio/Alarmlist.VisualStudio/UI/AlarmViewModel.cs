@@ -11,10 +11,22 @@ namespace Alarmlist.VisualStudio.UI
     internal sealed class AlarmViewModel : ObservableObject
     {
         public AlarmSource Source { get; }
-        public string Title => !string.IsNullOrWhiteSpace(Source.GetValue("Name")) ? Source.GetValue("Name")
+        private string _analysisName;
+        public string Title => _analysisName ?? RawTitle;
+        private string RawTitle => !string.IsNullOrWhiteSpace(Source.GetValue("Name")) ? Source.GetValue("Name")
             : !string.IsNullOrWhiteSpace(Source.Identity) ? Source.Identity : "Unnamed alarm";
         public string Identity => Source.Identity ?? "(no identifier)";
         public AlarmViewModel(AlarmSource source) { Source = source; }
+        public void SetName(AnalysisField field)
+        {
+            string name = field?.IsValueAvailable == true ? field.EffectiveValue : field?.EffectiveExpression;
+            if (string.IsNullOrWhiteSpace(name)) name = null;
+            if (_analysisName == name) return;
+            _analysisName = name;
+            Notify(nameof(Title));
+        }
+        public bool Matches(string filter) => (Title + " " + Source.GetValue("Name") + " " + Identity)
+            .IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     [Export(typeof(AlarmViewModelFactory))]

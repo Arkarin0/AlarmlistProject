@@ -479,6 +479,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   behavior, unsupported-location XML fallback and unapplied destination drafts.
   Navigation layout changes must not commit drafts in another editor view.
   Keep source presence/local drafts separate from inherited effective displays.
+  Alarm-list and compact-selector names use current compiler-resolved values in
+  the editor's preview culture, with raw-expression/identity fallback. Match source
+  declarations by location and captured text/version; never reuse stale labels.
+  Keep raw names and identifiers searchable and preserve filtered active drafts
+  during semantic refresh. See milestone-nine iteration 13 for regression evidence.
   Only the SDK's provenance determines inheritance; equal text is not evidence.
   Revalidate current project inputs before copying/picking/navigating, preserve
   active drafts, and dispose notification subscriptions on view close. WPF adorners

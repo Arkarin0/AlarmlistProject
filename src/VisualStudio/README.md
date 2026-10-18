@@ -282,6 +282,10 @@ from document contents. **Open With > XML (Text) Editor** remains available.
 Filter the alarm list by name or identifier, select an alarm, and edit its local
 `FullyQualifiedName`, `Name`, `Code`, `Category`, `Description`, or `ReferenceName`.
 The list becomes a selector when the designer pane is narrow.
+Both show resolved names in the current preview culture, including inherited
+names. When current values are unavailable, they fall back to raw expressions or
+identifiers. Filtering matches displayed names, local raw expressions and
+identifiers. Analysis refreshes preserve an actively edited alarm and its drafts.
 The Add alarm and Delete buttons expose A/D access keys in their tooltips and
 accessible help: press A or D while the designer has focus outside a text field.
 Inside text fields, letters remain ordinary input and Ctrl+A selects all text.

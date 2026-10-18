@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–9 complete; iterations 10–12 planned for Solution Explorer dependencies.
+Status: iterations 1–9 and 13 complete; iterations 10–12 planned for Solution Explorer dependencies.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2241,3 +2241,47 @@ Planning-only validation: inspected current capabilities/rules, reference captur
 boundaries and pinned extension packages; reviewed the plan and local links.
 No implementation or tests run for iterations 10–12. The existing user edit to
 `example/Libraries/LineB/LineB.almproj` is outside this planning change.
+
+### Iteration 13 — resolved alarm-list names (complete 2026-10-18)
+
+Independent of planned iterations 10–12; follows the owner's display correction.
+Use the same current compiler analysis and preview culture as the editor to label
+alarms in its list/compact selector. Fall back to raw expressions, identity, then
+the existing unnamed label when resolution is unavailable. Search both displayed
+names and raw source/identities. Refresh on analysis/culture/input changes without
+committing or discarding drafts or retaining stale translations. Match declarations
+by physical source location, not potentially duplicate alarm identities.
+
+Validate localization, inherited/expression names, culture/filter updates, stale
+inputs, unavailable values and draft/selection preservation in editor tests; run
+the editor unit suite and record results before committing. No compiler change.
+
+Implemented current-analysis list titles and shared compact-selector labels,
+including inherited names. Declaration matching checks captured text/version and
+physical location, scanning source positions once for the list. Filtering includes
+resolved labels, raw local names and identities; asynchronous updates retain item
+instances and keep a selected private draft visible without reloading its fields.
+Documentation and repository guidance describe the new presentation.
+
+Focused validation (`--filter 'FullyQualifiedName~AlarmListNames|FullyQualifiedName~AlarmListRefresh|FullyQualifiedName~LocalizationBaml'`)
+passed 6 cases under `Iteration13/Focused`. The first full editor regression
+finished with 525 passed and 4 failed: two existing navigation/table tests exposed
+automatic reselection after explicit deselection, and two accessibility cases
+still expected the old identifier instead of the now-resolved inherited label.
+The refresh now distinguishes an empty filter result gaining items from an
+explicitly deselected populated list. Accessibility asserts the resolved label in
+both wide and compact layouts. Rendered WPF tests also verify culture changes
+update the visible list text. Final full-suite validation is pending; no native
+deployment or user source change is part of this fix.
+
+Final validation: `dotnet test
+src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+--no-restore --verbosity minimal --logger trx --results-directory
+artifacts/log/Debug/Milestone9/Iteration13/EditorRegressionFinal` completed with
+**529 passed, zero failed/skipped** (`2026-10-18_22_07_02_net472.trx`). This includes
+rendered WPF localization refresh and wide/compact accessibility, inherited names,
+all XML newline forms, unavailable values, filter re-entry, drafts, stale inputs,
+explicit deselection and existing navigation/lifecycle tests. Diff and local
+documentation links pass review. Native IDE suites and the full solution were
+not rerun for this editor-only change; the built VSIX has not been redeployed into
+the user's running instance. The unrelated LineB project edit remains untouched.
