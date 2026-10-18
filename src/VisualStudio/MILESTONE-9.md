@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–9 and 13 complete; iterations 10–12 planned for Solution Explorer dependencies; iterations 14–15 planned for RESX compatibility and XML keyboard editing.
+Status: iterations 1–9 and 13–14 complete; iterations 10–12 planned for Solution Explorer dependencies; iteration 15 planned for XML keyboard editing.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2286,7 +2286,7 @@ documentation links pass review. Native IDE suites and the full solution were
 not rerun for this editor-only change; the built VSIX has not been redeployed into
 the user's running instance. The unrelated LineB project edit remains untouched.
 
-### Iteration 14 — library example RESX editor compatibility (planned 2026-10-18)
+### Iteration 14 — library example RESX editor compatibility (complete 2026-10-18)
 
 The owner reports that opening Common, Equipment and LineA's `Labels.en.resx`
 in Visual Studio fails with invalid ResX input / missing valid reader and writer
@@ -2340,6 +2340,29 @@ Planning validation: reviewed the three resources, the existing template/shared
 resource headers, compiler header handling and native localization test harness;
 the read-only reader probe reproduced all three failures. No automated test suite
 or implementation change was run in this planning step.
+
+Implementation and validation (2026-10-18):
+
+- Added the XML declaration and four standard RESX headers to Common, Equipment
+  and LineA, preserving Inspection, xml:space and all original translation values.
+  Auditing the other example resources found no additional missing headers.
+- Added three net472 native-reader regressions over the copied real playground
+  resources. System.Windows.Forms is a test-only framework reference; compiler
+  parsing and runtime contracts are unchanged.
+- Added LibraryExampleResources native scenarios using copies of those same files.
+  Each checks the key/value grid, keyboard editing, save/reopen and literal
+  `$(Site)` preservation. Only isolated fixture resources are edited.
+- `dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj
+  --filter 'FullyQualifiedName~LibraryExampleTests|FullyQualifiedName~LibraryExchangeTests'
+  --verbosity quiet`: **3 passed net8.0; 6 passed net472**, no failures/skips.
+  The example test freshly packs both libraries and compares consumer output
+  bytes across project/package/project modes.
+- `eng/test-visualstudio.ps1 -VisualStudioPath <host> -Filter
+  'FullyQualifiedName~LibraryExampleResources'`: **1 passed per host**, sequentially
+  on VS2022 and VS2026 using AlarmlistExp. TRX runs
+  `bee8afd9245e420e856d5c6a606d6b5a` and `ab88e441239346d0a867c8df40d17a1a`.
+  Each run covers all three resources; screenshots remain in its scenario logs.
+  The user's main VS2022 process was preserved. All iteration-14 gates passed.
 
 ### Iteration 15 — usable XML keyboard editing (planned 2026-10-18)
 

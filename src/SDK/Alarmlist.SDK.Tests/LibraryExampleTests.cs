@@ -16,6 +16,23 @@ namespace Alarmlist.MSBuild.SDK.Tests
         private readonly ITestOutputHelper _output;
         public LibraryExampleTests(TestProjectFixture fixture, ITestOutputHelper output) { _fixture = fixture; _output = output; }
 
+#if NETFRAMEWORK
+        [Theory]
+        [InlineData("Common", "Inspect $(Site)")]
+        [InlineData("Equipment", "Check $(Site)")]
+        [InlineData("LineA", "Inspect line $(Site)")]
+        public void LibraryResourcesCanBeReadByNativeResourceEditor(string project, string expected)
+        {
+            var app = _fixture.CreateTestApp("LibraryExample");
+            using var reader = new System.Resources.ResXResourceReader(
+                Path.Combine(app.WorkingDirectory, project, "Labels.en.resx"));
+            var entries = reader.Cast<System.Collections.DictionaryEntry>().ToArray();
+            var entry = Assert.Single(entries);
+            Assert.Equal("Inspection", entry.Key);
+            Assert.Equal(expected, Assert.IsType<string>(entry.Value));
+        }
+#endif
+
         [Fact]
         public void PersistentConsumersOverrideTransitiveLibraryValuesAndPackDependencies()
         {

@@ -6,6 +6,7 @@
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Windows.Forms" />
   </ItemGroup>
 
   <ItemGroup>

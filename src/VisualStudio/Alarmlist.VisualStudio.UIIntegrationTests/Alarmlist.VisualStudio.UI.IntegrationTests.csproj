@@ -12,6 +12,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
+    <Content Include="../../../example/Libraries/**/Labels.en.resx"
+             Exclude="../../../example/Libraries/**/bin/**;../../../example/Libraries/**/obj/**;../../../example/Libraries/**/.*/**"
+             Link="testassets/LibraryResources/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioAutomation.cs" Link="VisualStudioAutomation.cs" />
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioTestDeployment.cs" Link="VisualStudioTestDeployment.cs" />
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" ReferenceOutputAssembly="false"
