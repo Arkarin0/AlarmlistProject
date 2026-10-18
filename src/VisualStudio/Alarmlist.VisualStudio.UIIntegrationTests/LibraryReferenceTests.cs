@@ -71,7 +71,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     VerifyCompiledReference(true);
                 }
                 ChangeReference(false);
-                if (create) ChangeReference(true);
+                if (create)
+                {
+                    ChangeReference(true);
+                    RemoveReferenceNode();
+                    ChangeReference(true);
+                }
             }
             catch (Exception error)
             {
@@ -102,8 +107,16 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     cf.ByName("Plant").And(cf.ByControlType(ControlType.TreeItem)))) != null, "consumer project node");
                 project.AsTreeItem().Select();
                 project.Focus();
+                project.AsTreeItem().Expand();
+                AutomationElement dependencyRoot = project.FindFirstDescendant(cf =>
+                    (cf.ByName("Dependencies").Or(cf.ByName("Abhängigkeiten"))).And(cf.ByControlType(ControlType.TreeItem)));
+                if (dependencyRoot != null)
+                {
+                    dependencyRoot.AsTreeItem().Select();
+                    dependencyRoot.Focus();
+                }
                 ide.RequireForeground();
-                Assert.True(project.Properties.HasKeyboardFocus.Value);
+                Assert.True((dependencyRoot ?? project).Properties.HasKeyboardFocus.Value);
                 VisualStudioSession.Wait(() =>
                 {
                     EnvDTE.Command command = ide.Automation.Commands.Item("Project.AddReference");
@@ -205,11 +218,80 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
             void VerifyCompiledReference(bool expected)
             {
+                string[] beforeBrowsing = SourceAndOutputState();
+                AutomationElement dependencies = null;
+                VisualStudioSession.Wait(() =>
+                {
+                    var project = window.FindFirstDescendant(cf => cf.ByName("Plant").And(cf.ByControlType(ControlType.TreeItem)));
+                    project?.AsTreeItem().Expand();
+                    dependencies = project?.FindFirstDescendant(cf => (cf.ByName("Dependencies").Or(cf.ByName("Abhängigkeiten"))).And(cf.ByControlType(ControlType.TreeItem)));
+                    return dependencies != null;
+                }, "native Dependencies root");
+                dependencies.AsTreeItem().Expand();
+                VisualStudioSession.Wait(() =>
+                {
+                    var projects = dependencies.FindFirstDescendant(cf => (cf.ByName("Projects").Or(cf.ByName("Projekte"))).And(cf.ByControlType(ControlType.TreeItem)));
+                    if (!expected) return projects == null;
+                    if (projects == null) return false;
+                    projects.AsTreeItem().Expand();
+                    return projects.FindAllDescendants(cf => cf.ByName("Library").And(cf.ByControlType(ControlType.TreeItem))).Length == 1;
+                }, "project-reference dependency tree matches evaluation");
+                var rootIdentity = dependencies.FrameworkAutomationElement.RuntimeId.Value;
+                var referenceIdentity = expected ? dependencies.FindFirstDescendant(cf =>
+                    cf.ByName("Library").And(cf.ByControlType(ControlType.TreeItem))).FrameworkAutomationElement.RuntimeId.Value : null;
+                window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "dependency-tree-" + expected + ".png"));
+                Assert.Equal(beforeBrowsing, SourceAndOutputState());
                 workspace.Build(ide, expected ? 2 : 1);
+                var refreshedProject = window.FindFirstDescendant(cf => cf.ByName("Plant").And(cf.ByControlType(ControlType.TreeItem)));
+                var refreshedRoot = refreshedProject.FindFirstDescendant(cf =>
+                    (cf.ByName("Dependencies").Or(cf.ByName("Abhängigkeiten"))).And(cf.ByControlType(ControlType.TreeItem)));
+                Assert.Equal(rootIdentity, refreshedRoot.FrameworkAutomationElement.RuntimeId.Value);
+                if (expected)
+                    Assert.Equal(referenceIdentity, refreshedRoot.FindFirstDescendant(cf =>
+                        cf.ByName("Library").And(cf.ByControlType(ControlType.TreeItem))).FrameworkAutomationElement.RuntimeId.Value);
                 XElement imported = XDocument.Load(workspace.OutputPath).Root.Elements("Alarm")
                     .SingleOrDefault(alarm => alarm.Element("FullyQualifiedName")?.Value == "Library.Imported");
                 if (expected) Assert.Equal("Native project library", imported?.Element("Name")?.Value);
                 else Assert.Null(imported);
+            }
+
+            string[] SourceAndOutputState() => new[] { workspace.ProjectDirectory, Path.Combine(workspace.DirectoryPath, "Library") }
+                .SelectMany(directory => Directory.GetFiles(directory, "*", SearchOption.AllDirectories))
+                .Where(path => path.EndsWith(".almproj", StringComparison.OrdinalIgnoreCase)
+                    || path.EndsWith(".almx", StringComparison.OrdinalIgnoreCase)
+                    || path.IndexOf(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) >= 0)
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .Select(path => path + "|" + File.GetLastWriteTimeUtc(path).Ticks + "|" + Convert.ToBase64String(File.ReadAllBytes(path)))
+                .ToArray();
+
+            void RemoveReferenceNode()
+            {
+                var project = window.FindFirstDescendant(cf => cf.ByName("Plant").And(cf.ByControlType(ControlType.TreeItem)));
+                var root = project.FindFirstDescendant(cf =>
+                    (cf.ByName("Dependencies").Or(cf.ByName("Abhängigkeiten"))).And(cf.ByControlType(ControlType.TreeItem)));
+                root.AsTreeItem().Expand();
+                var group = root.FindFirstDescendant(cf =>
+                    (cf.ByName("Projects").Or(cf.ByName("Projekte"))).And(cf.ByControlType(ControlType.TreeItem)));
+                group.AsTreeItem().Expand();
+                var node = group.FindFirstDescendant(cf => cf.ByName("Library").And(cf.ByControlType(ControlType.TreeItem)));
+                node.AsTreeItem().Select();
+                node.Focus();
+                ide.RequireForeground();
+                Assert.True(node.Properties.HasKeyboardFocus.Value);
+                Keyboard.Type(VirtualKeyShort.DELETE);
+                VisualStudioSession.Wait(() =>
+                {
+                    var confirmation = automation.GetDesktop().FindAllDescendants(cf =>
+                        cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.Button)))
+                        .FirstOrDefault(item => !item.IsOffscreen && new[] { "Yes", "Ja" }.Contains(item.Name.Replace("&", "")));
+                    confirmation?.AsButton().Invoke();
+                    return root.FindFirstDescendant(cf => cf.ByName("Library").And(cf.ByControlType(ControlType.TreeItem))) == null;
+                }, "native reference-node removal");
+                ide.Automation.ExecuteCommand("File.SaveAll");
+                VisualStudioSession.Wait(() => !XDocument.Load(Path.Combine(workspace.ProjectDirectory, "Plant.almproj"))
+                    .Descendants("ProjectReference").Any(), "node removal persisted");
+                Assert.True(File.Exists(Path.Combine(workspace.DirectoryPath, "Library", "Library.almproj")));
+                VerifyCompiledReference(false);
             }
         }
     }

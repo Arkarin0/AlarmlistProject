@@ -28,9 +28,9 @@ namespace Alarmlist.VisualStudio.IntegrationTests
         {
             using (var package = OpenPackage())
             {
-                Assert.Equal(new[] { "Alarmlist.VisualStudio.dll" }, package.Entries
+                Assert.Equal(new[] { "Alarmlist.VisualStudio.dll", "de/Alarmlist.VisualStudio.resources.dll" }, package.Entries
                     .Where(entry => entry.FullName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-                    .Select(entry => entry.FullName).ToArray());
+                    .Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
                 Assert.DoesNotContain(package.Entries, entry => entry.FullName.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase));
                 var manifest = XDocument.Parse(Read(package.GetEntry("extension.vsixmanifest")));
                 XNamespace ns = manifest.Root.Name.Namespace;

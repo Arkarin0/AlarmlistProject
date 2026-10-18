@@ -14,6 +14,19 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
     public class ProjectAnalysisCompositionTests
     {
         [Fact]
+        public void DependenciesUseThePublicRootGraftOnlyForAlarmProjects()
+        {
+            Type provider = typeof(AlarmlistDependenciesTree);
+            ExportAttribute export = Assert.Single(provider.GetCustomAttributes<ExportAttribute>());
+            Assert.Equal(ExportContractNames.ProjectTreeProviders.PhysicalViewRootGraft, export.ContractName);
+            Assert.Equal(typeof(IProjectTreeProvider), export.ContractType);
+            CustomAttributeData capability = Assert.Single(provider.CustomAttributes
+                .Where(attribute => attribute.AttributeType == typeof(AppliesToAttribute)));
+            Assert.Equal(AlarmlistProject.Capability, capability.ConstructorArguments[0].Value);
+            Assert.True(AlarmlistDependenciesTree.RootFlags.Contains(ProjectTreeFlags.ReferencesFolder));
+        }
+
+        [Fact]
         public void AlarmReferenceEditingOverridesCpsCompatibilityDefaultsOnlyForAlarmProjects()
         {
             Type checker = typeof(AlarmlistProjectReferenceChecker);

@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–9 and 13–15 complete; iterations 10–12 planned for Solution Explorer dependencies.
+Status: iterations 1–10 and 13–15 complete; iterations 11–12 planned for Solution Explorer dependencies.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2239,8 +2239,66 @@ a second resolver. Keep callbacks cancellable and detach subscriptions on unload
 
 Planning-only validation: inspected current capabilities/rules, reference capture
 boundaries and pinned extension packages; reviewed the plan and local links.
-No implementation or tests run for iterations 10–12. The existing user edit to
+At initial planning, no implementation or tests had run for iterations 10–12. The existing user edit to
 `example/Libraries/LineB/LineB.almproj` is outside this planning change.
+
+### Iteration 10 — native project dependency tree (complete 2026-10-18)
+
+- Inspected the pinned CPS 17.9.380 contracts and the .NET project-system
+  DependenciesTreeProvider reference. CPS publicly exposes ProjectTreeProviderBase
+  and the PhysicalViewRootGraft contract; the .NET provider's dependency snapshot
+  components are internal to that project system. An Alarmlist-specific graft
+  avoids enabling unrelated .NET capabilities or loading NuGet implementations.
+- AlarmlistDependenciesTree subscribes to active evaluated project
+  snapshots, deduplicates normalized direct references and builds Dependencies /
+  Projects nodes with native reference/warning icons. It reuses immutable node
+  identities, disposes its subscription, rejects old source versions and checks
+  active configuration before publishing. Removal delegates to CPS's existing
+  project-reference service and never deletes the referenced project file.
+- Extension build passed against the pinned SDK. The first VS2022 probe displayed
+  the root but exposed a tree construction mistake: IProjectTree.Add returns the
+  added child, not its parent. Corrected this and preserved identities on updates.
+  Native ProjectReferenceManagement2022 then passed add/remove/reopen, including
+  visible Dependencies / Projects / Library (`070a2778c34546db99d3d149589e9ad0`).
+  The screenshot was reviewed. The first VS2026 run then exposed an initialization
+  race: the base provider's configured exports were unavailable when evaluation
+  arrived. Using IActiveConfiguredProjectProvider directly fixed it; the localized
+  retry passed (`b7683ea78a0f49bcac33a466a6f8d243`).
+- Added neutral English/German resources and verified the German satellite is in
+  the VSIX. Unit coverage checks culture fallback, evaluated Debug/Release items,
+  normalized duplicate paths, missing/unloaded project capture and recapture after
+  deletion/recovery without loading dependencies or executing targets. A real
+  Dataflow lifecycle test verifies disposal unlinks the source and drops queued
+  updates. CPS composition/rule tests verify the scoped public export.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --verbosity quiet`: **533 passed net472**. After adding subscription cleanup and
+  composition coverage, the focused filter
+  `FullyQualifiedName~DependencyTreeTests|FullyQualifiedName~ProjectAnalysisCompositionTests|FullyQualifiedName~RuleTests`
+  passed **22 tests**. No failures/skips. After correcting/documenting test-only
+  threading warnings, the final focused run passed **22 tests** again with no
+  reported build warnings.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj
+  --verbosity quiet`: **13 passed per framework**, net472 and net8.0, no skips.
+  This includes VSIX payload/registration and restored template consumers.
+- The expanded native case selects the dependency root for Add Reference, uses
+  physical Delete on a reference child, saves/reopens and verifies compiled parity.
+  Expansion checks exact source/output bytes and timestamps before any explicit
+  build; node UI Automation identities remain stable across build reevaluation.
+  The first identity assertion compared property wrappers; it was corrected to
+  capture their actual integer-array values. Final VS2022 passed in
+  `a0e4db412fca492c89c231de0e9d5369`; final VS2026 passed in
+  `4f9465b7ca65459785b0e1c61c11efd1`. Both TRX files confirm one executed/passed
+  case, no failures/skips. Runs used `eng/test-visualstudio.ps1 -VisualStudioPath
+  <host> -Filter FullyQualifiedName~ProjectReferenceManagement<version>` sequentially
+  in owned AlarmlistExp fixtures, preserving the user's IDE and sources.
+  Earlier VS2026 command/persistence/no-write coverage passed in
+  `f876e8afb4b0464694faa619ff4a838c`; its German tree screenshot was reviewed.
+- All iteration-10 gates passed; documentation/diff review completed. The owner’s
+  allowance threshold was reached during this iteration (14% remaining), so finish
+  its commit and pause before iteration 11. Iterations 11–12 are untouched.
+  File-presence state is captured on evaluation;
+  independent deletion/recovery watches and integrated native configuration/mode
+  transitions remain explicit iteration-12 gates. No claim of NuGet tree support.
 
 ### Iteration 13 — resolved alarm-list names (complete 2026-10-18)
 

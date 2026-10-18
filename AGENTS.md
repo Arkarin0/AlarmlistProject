@@ -428,6 +428,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   builds until removed/conditional input handling has an alternative guarantee.
   Keep Folder out of declared file item types in ProjectItemsSchema; its rule uses
   ProjectFileFolderItems so persisted empty folders can reload in CPS.
+- The Solution Explorer dependency tree uses the public CPS PhysicalViewRootGraft
+  contract, scoped to Alarmlist projects. Direct project references come from the
+  active evaluated snapshot, retain normalized path identities and missing-project
+  warning state, and never trigger Build/Pack while browsing. Keep subscription
+  cancellation/disposal, version/configuration guards, localized labels and native
+  CPS reference-management actions. See milestone-nine iterations 10–12 for scope;
+  do not enable unrelated .NET capabilities to obtain internal dependency providers.
 - The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
   SDK's net472 compiler independently of the build task runtime. The extension's
   `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-5 data

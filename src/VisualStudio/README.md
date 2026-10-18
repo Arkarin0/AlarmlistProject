@@ -78,6 +78,15 @@ participate in its analysis. Solution configuration mappings select the referenc
 project configuration. Library analyzers and EditorConfig validate their owning
 library and do not become consumer policy.
 
+Solution Explorer groups direct project references under Dependencies / Projects
+(Abhängigkeiten / Projekte in a German IDE). The tree follows evaluated project
+items in the active configuration, keeps missing references visible with a warning,
+and does not require referenced projects to be loaded. Expanding it does not build
+the project. Use the native Add Reference command with the dependency root selected,
+or remove a selected direct reference with Delete; removal keeps the referenced
+project on disk. Empty Projects groups are hidden. NuGet tree presentation remains
+tracked separately in milestone-nine iterations 11–12.
+
 Package analysis uses the selected SDK and restored NuGet assets. Restore after
 changing package references. Missing or invalid dependencies clear stale results;
 saved-file recovery triggers analysis again. Inputs and package selections are
