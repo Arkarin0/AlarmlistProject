@@ -96,7 +96,8 @@ action on the dependency root to install, update or uninstall packages. Delete
 does not edit package references or transitives. Resolution follows the selected
 SDK's restored assets; invalid/failed restore clears resolved children until
 recovery. An older SDK without the graph projection leaves package nodes unresolved.
-Integrated playground/configuration lifecycle acceptance remains iteration 12.
+Integrated playground/configuration lifecycle acceptance passed on both supported
+hosts; milestone-nine iteration 12 records the scenarios and retained evidence.
 
 Package analysis uses the selected SDK and restored NuGet assets. Restore after
 changing package references. Missing or invalid dependencies clear stale results;

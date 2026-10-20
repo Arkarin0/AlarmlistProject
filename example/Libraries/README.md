@@ -50,6 +50,20 @@ scope. Library project defaults do not follow template inheritance into local al
 
 ## Explore in Visual Studio
 
+Expand **Dependencies / Projects** in project mode to see Equipment in each
+consumer and Common in Equipment. In package mode, **Dependencies / Packages**
+shows Example.Equipment (1.0.0), with Example.Common (1.0.0) beneath it as a
+read-only transitive dependency. Labels follow the IDE language (for example,
+Abhängigkeiten / Projekte / Pakete). Empty groups are hidden; no target-framework
+group is needed for these framework-independent projects.
+
+Use the dependency root's native Add Reference or Manage NuGet Packages action.
+Delete can remove a direct project reference; package changes go through NuGet
+management. Missing or failed restore keeps direct package nodes visible as
+unresolved and clears their old children until recovery. Browsing the tree does
+not build or pack libraries. Configuration changes use the references evaluated
+for the selected configuration.
+
 Open a consumer's `Alarms.almx`, choose its inherited template in the reference picker,
 and inspect the project preview table. Library labels show identity and version.
 Go to source opens the actual referenced project source. Save an Equipment edit to

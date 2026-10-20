@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–11 and 13–15 complete; iteration 12 planned for integrated Solution Explorer dependency acceptance.
+Status: iterations 1–15 complete, including integrated Solution Explorer dependency acceptance.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2361,6 +2361,82 @@ Validation evidence (native runs on 2026-10-18; final focused checks on 2026-10-
 - Diff/whitespace and documentation consistency reviewed. No iteration-11 blocker
   remains; iteration 12 retains integrated playground and configuration/lifecycle
   acceptance. Older SDKs without graph projection display unresolved nodes.
+
+### Iteration 12 — integrated dependency lifecycle (complete 2026-10-21)
+
+Deliverable: validate both launcher modes and the checked-in library playground
+through native CPS lifecycle changes on VS2022 and VS2026. Preserve the user's
+playground by running lifecycle edits against an isolated copy of its sources.
+
+- Add native scenarios for project/package mode switching, mixed references via
+  a conditional independent library, Debug/Release activation, missing assets
+  recovery, unload/reload, IDE restart, keyboard navigation and duplicate checks.
+- Compare source and compiled-output bytes/timestamps around tree browsing.
+  Reuse iteration-10/11 native reference-management evidence and rerun those
+  scenarios alongside the integrated acceptance where needed.
+- Validate both shortcut preparation paths, affected unit/package regressions,
+  localized tree screenshots and owned-IDE cleanup. Record actual commands and
+  results here; completion requires both native hosts and no unresolved essential
+  gate. Review the focused diff and commit this iteration after validation.
+
+Implementation and validation evidence:
+
+- `LibraryExampleTests` passed **1 net8.0 / 4 net472** cases. Freshly packed
+  project/package/project consumers retain byte-identical output; native RESX
+  reader checks also pass on net472.
+- Initial lifecycle compilation used a nonexistent FlaUI TreeItem property;
+  corrected the assertion to use its public ExpandCollapse pattern.
+- VS2026 probe `f82cda154cde473aaec46450f18a07c3` passed through IDE restart,
+  with manual assistance saving the disposable LineA project at unload. Its
+  screenshot shows localized package/transitive nodes. The fixture now saves
+  before synchronous unload; this assisted probe is not unattended acceptance.
+- VS2022 project-reference and package-management regressions passed in
+  `e6a398113acd4d33ad7800c4f64bff16`. The lifecycle case failed an immediate
+  keyboard-expanded assertion; the fixture now waits for observable collapse,
+  expansion and group selection between physical keys instead of racing UI input.
+- Corrected VS2022 lifecycle run `ce67771bef5f40c58d95415fa7e7bc8d` passed
+  unattended, including restart and owned-IDE cleanup; fixture
+  `DependencyLifecycle/2022/b9840c4575ba431f87a52ef583c9f37a` retains the screenshot.
+- Final VS2026 run `92b6e798729c4e6abc84f74ec59d5721` passed **3 cases**:
+  lifecycle, project-reference management and package management, unattended with
+  no skips. The lifecycle fixture `DependencyLifecycle/2026/78bdfcb947fb4151bd49c319d1420c5f`
+  retains the reviewed German tree screenshot and both cleanup records.
+- Focused `DependencyTreeTests|PackageTreeTests` passed **10 net472 tests** after
+  the native runs. No production change was needed for iteration 12.
+- Both batch shortcuts passed with `-VisualStudioVersion 2026 -PrepareOnly`.
+  Package preparation freshly packed/restored the libraries; project preparation
+  restored the original project-reference mode. All tracked example file hashes
+  and timestamps remained unchanged. Logs and the preservation record are under
+  `artifacts/log/Debug/Milestone9/Iteration12/`. Iteration 9 already records the
+  VS2022 shortcut checks. Native scenarios above cover actual loaded solutions.
+- Final diff/whitespace, documentation paths and scenario assertions reviewed.
+  Both phases of each final lifecycle case report normal owned-IDE exit, without
+  forced termination. No generated evidence or local configuration is committed.
+
+Commands: native runs use `eng/test-visualstudio.ps1 -VisualStudioPath <host>`
+with `FullyQualifiedName~DependencyLifecycle<version>`, plus
+`ProjectReferenceManagement<version>` and `PackageManagement<version>` joined by
+`|`. The focused editor command is `dotnet test
+src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+--filter 'FullyQualifiedName~DependencyTreeTests|FullyQualifiedName~PackageTreeTests'
+--verbosity quiet`. SDK validation uses its existing test project with
+`--filter FullyQualifiedName~LibraryExampleTests --verbosity quiet` on both frameworks.
+
+Final requested-work audit:
+
+| Requirement | Authoritative completion evidence |
+| --- | --- |
+| Feature/dev branches and reusable-library milestone implementation | Both milestone-9 branches exist; implementation commits are on dev/milestone-9. Iteration 8's requirement matrix remains satisfied; re-reading its retained final-regression TRX reports confirms 2,173 passed and zero failures. Opt-in skips are not acceptance evidence. |
+| Two shortcuts, one solution and shared example sources | Both batch entry points and shared preparation/property switch inspected; actual preparation paths pass, preserve tracked example bytes/timestamps and return to the original mode. SDK LibraryExampleTests freshly verifies equivalent consumer output across both modes. |
+| Project and NuGet dependency presentation | Iterations 10/11 provide evaluated project nodes and isolated selected-package graphs. Final native reference-management and lifecycle cases pass on both hosts: mode/configuration changes, mixed groups, versions/transitives, failed/missing assets, recovery, unload/reload, restart, keyboard navigation, duplicate prevention and browsing preservation. |
+| Alarm-list names match the evaluated editor display | Iteration 13's retained EditorRegressionFinal TRX confirms 529 passed, including rendered localization refresh, inherited names, filters, drafts and stale-input fallback. Iteration 11's later full editor suite also passed. |
+| Common/Equipment/LineA RESX open in the native editor | Iteration 14's two native TRX reports each confirm a pass over all three resources; current net472 LibraryExampleTests reader checks pass. Header fixes preserve original resource values. |
+| XML deletion/newline editing and supplied video evidence | Iteration 15 records reviewed video and native reproduction, scoped key-binding repair and actual keyboard assertions. Retained reports confirm the final XML case and four companion scenarios passed on VS2022, and all five passed on VS2026. |
+
+All requested implementation and scoped acceptance gates are complete. Historical
+manual/vendor/release gates remain outside this goal; no merge or publication is
+performed. Browsing remains read-only, packages use native NuGet management, and
+older SDKs without graph projection remain explicitly unresolved.
 
 ### Iteration 13 — resolved alarm-list names (complete 2026-10-18)
 
