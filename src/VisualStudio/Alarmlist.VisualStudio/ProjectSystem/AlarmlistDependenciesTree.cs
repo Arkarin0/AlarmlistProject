@@ -6,6 +6,8 @@ using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
+using Alarmlist.VisualStudio.Analysis;
 using Microsoft.Build.Execution;
 using Microsoft.VisualStudio.Imaging;
 using Microsoft.VisualStudio.ProjectSystem;
@@ -14,7 +16,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
 {
     [Export(ExportContractNames.ProjectTreeProviders.PhysicalViewRootGraft, typeof(IProjectTreeProvider))]
     [AppliesTo(AlarmlistProject.Capability)]
-    internal sealed class AlarmlistDependenciesTree : ProjectTreeProviderBase
+    internal sealed partial class AlarmlistDependenciesTree : ProjectTreeProviderBase
     {
         private readonly IActiveConfiguredProjectSubscriptionService _subscriptions;
         private readonly IActiveConfiguredProjectProvider _active;
@@ -25,9 +27,9 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         [ImportingConstructor]
         public AlarmlistDependenciesTree(IProjectThreadingService threading,
             UnconfiguredProject project, IActiveConfiguredProjectSubscriptionService subscriptions,
-            IActiveConfiguredProjectProvider active)
+            IActiveConfiguredProjectProvider active, ProjectAnalysisRegistry registry)
             : base(threading, project, configuredProjectExportsRequired: false)
-        { _subscriptions = subscriptions; _active = active; }
+        { _subscriptions = subscriptions; _active = active; _registry = registry; }
 
         protected override void Initialize()
         {
@@ -35,6 +37,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             _subscription = new DependencyTreeSubscription<IProjectVersionedValue<IProjectSnapshot>>(
                 _subscriptions.ProjectSource.SourceBlock, UpdateAsync, DefaultCancellationToken);
             ProjectFaultHandlerService.RegisterFaultHandler(_subscription.Completion, project: UnconfiguredProject);
+            InitializePackages();
         }
 
         private Task UpdateAsync(IProjectVersionedValue<IProjectSnapshot> update)
@@ -77,6 +80,9 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                     root = group.Parent;
                 }
                 else if (group != null) root = root.Remove(group);
+                _treeProject = AlarmlistProjectSnapshot.Capture(project, update.Value.FullPath, active.ProjectConfiguration.Name);
+                _treeConfigured = active;
+                root = UpdatePackages(root);
                 return Task.FromResult(new TreeUpdateResult(root));
             }, update.DataSourceVersions, TreeSubmissionOptions.SkipIfUpdateHasOldDataSources, DefaultCancellationToken);
         }
@@ -94,7 +100,14 @@ namespace Alarmlist.VisualStudio.ProjectSystem
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) _subscription?.Dispose();
+            if (disposing)
+            {
+                _registry.Changed -= OnPackagesChanged;
+                _active.Changed -= OnPackagesChanged;
+                _packageSubscription?.Dispose();
+                _packageSignals.Complete();
+                _subscription?.Dispose();
+            }
             base.Dispose(disposing);
         }
 

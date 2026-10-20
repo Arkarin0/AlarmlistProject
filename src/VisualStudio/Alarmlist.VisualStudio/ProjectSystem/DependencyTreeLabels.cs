@@ -11,6 +11,10 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             "Alarmlist.VisualStudio.ProjectSystem.DependencyTreeResources", typeof(DependencyTreeLabels).Assembly);
 
         public static string Dependencies => s_resources.GetString("Dependencies", CultureInfo.CurrentUICulture);
+        public static string Packages => s_resources.GetString("Packages", CultureInfo.CurrentUICulture);
+        public static string Pending => s_resources.GetString("Pending", CultureInfo.CurrentUICulture);
+        public static string Unresolved => s_resources.GetString("Unresolved", CultureInfo.CurrentUICulture);
+        public static string Transitive => s_resources.GetString("Transitive", CultureInfo.CurrentUICulture);
         public static string Projects => s_resources.GetString("Projects", CultureInfo.CurrentUICulture);
     }
 }

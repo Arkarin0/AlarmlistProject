@@ -163,6 +163,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 PackageResolutionResponse resolved;
                 using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
                 {
+                    var packageGraph = bridge.ResolvePackageGraph(assets, assetsPath, "native,Version=v0.0",
+                        new[] { "Saved.Library" }, new[] { "1.0" }, CancellationToken.None);
+                    Assert.True(packageGraph.Availability == AnalysisAvailability.Available, packageGraph.Message);
+                    Assert.Equal("1.0.0", Assert.Single(packageGraph.Packages).Version);
+                    Assert.True(packageGraph.Packages[0].IsDirect);
+                    Assert.Empty(packageGraph.Packages[0].Dependencies);
                     resolved = bridge.ResolvePackages(assets, assetsPath, "native,Version=v0.0", new[] { "Saved.Library" }, new[] { "1.0" });
                     Assert.True(resolved.Availability == AnalysisAvailability.Available, resolved.Message);
                     Assert.Equal(artifact, Assert.Single(resolved.Packages).FilePath);

@@ -181,6 +181,11 @@ Restore uses the installed MSBuild toolset's NuGet targets and supports
 default. Restore writes NuGet assets under `MSBuildProjectExtensionsPath` without
 compiling alarms. Visual Studio's Project > Add Reference and Manage NuGet Packages
 commands can edit project/package references; save the project to persist edits.
+The matching extension displays direct packages and selected transitive dependencies
+under Solution Explorer's Dependencies / Packages node. It obtains graph metadata
+from this SDK using the same framework/version selection as library consumption;
+failed restore leaves direct nodes visible as unresolved. Browsing does not build
+or pack the project.
 Project and package references consume library artifacts; see
 [milestone nine](../../VisualStudio/MILESTONE-9.md) for acceptance evidence and limitations.
 

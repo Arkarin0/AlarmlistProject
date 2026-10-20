@@ -84,11 +84,13 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<CapturedEditorConfig> Configurations { get; }
         public IReadOnlyList<CapturedAnalyzerReference> Analyzers { get; }
         public CapturedProjectLibraries Libraries { get; }
+        public CapturedPackageGraph PackageGraph { get; }
 
         public ProjectAnalysisState(long generation, AnalysisProject project, ProjectAnalysisStatus status, string message,
             AnalysisResponse response = null, IReadOnlyList<CapturedAnalysisInput> inputs = null, IReadOnlyList<AnalysisResourceInput> resources = null,
             IReadOnlyList<AnalysisLookupInput> lookups = null, IReadOnlyList<CapturedEditorConfig> configurations = null,
-            IReadOnlyList<CapturedAnalyzerReference> analyzers = null, CapturedProjectLibraries libraries = null)
+            IReadOnlyList<CapturedAnalyzerReference> analyzers = null, CapturedProjectLibraries libraries = null,
+            CapturedPackageGraph packageGraph = null)
         {
             Generation = generation;
             Project = project;
@@ -101,6 +103,7 @@ namespace Alarmlist.VisualStudio.Analysis
             Configurations = Array.AsReadOnly((configurations ?? Array.Empty<CapturedEditorConfig>()).ToArray());
             Analyzers = Array.AsReadOnly((analyzers ?? Array.Empty<CapturedAnalyzerReference>()).ToArray());
             Libraries = libraries;
+            PackageGraph = packageGraph;
         }
     }
 

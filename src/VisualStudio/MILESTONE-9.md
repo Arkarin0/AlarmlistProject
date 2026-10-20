@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–10 and 13–15 complete; iterations 11–12 planned for Solution Explorer dependencies.
+Status: iterations 1–11 and 13–15 complete; iteration 12 planned for integrated Solution Explorer dependency acceptance.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2299,6 +2299,68 @@ At initial planning, no implementation or tests had run for iterations 10–12. 
   File-presence state is captured on evaluation;
   independent deletion/recovery watches and integrated native configuration/mode
   transitions remain explicit iteration-12 gates. No claim of NuGet tree support.
+
+### Iteration 11 — NuGet package tree (complete 2026-10-20)
+
+The owner explicitly resumed this iteration after the iteration-10 allowance pause.
+Complete and validate this iteration, commit it, then report its result; iteration
+12 remains separate.
+
+Implementation decisions:
+
+- Extend the selected SDK's existing LibraryPackageResolver with a detached graph
+  projection. Artifact resolution and tree projection share framework, requested
+  version and reachable-closure selection. Include non-library package references;
+  do not scan caches or load NuGet implementation assemblies into the VS host.
+- Capture package graph data through the existing isolated SDK bridge and project
+  analysis lifetime. Watch the assets path before reading so failed/missing restore
+  can recover. Keep package resolution available independently of ALMX errors and
+  reject changed assets text, configuration, SDK and reference requests.
+- Publish direct IDs with requested/resolved versions and localized pending/error
+  labels. Expand selected dependency edges read-only, guard cycles and retain
+  stable identities. Package edits use the existing native NuGet UI; package and
+  transitive nodes are not removed through the project-reference delete service.
+- Validate graph selection/non-library packages, restore failure/recovery, stale
+  results and host isolation; then native install/update/uninstall on both IDEs,
+  including transitive children and the existing project-reference tree. Run the
+  affected build/SDK, editor and VSIX regressions before committing. Results below
+  must distinguish preliminary probes from final passing evidence.
+
+Validation evidence (native runs on 2026-10-18; final focused checks on 2026-10-20):
+
+- Shared task suite: `dotnet test src/MSBuild/AlarmList.MSBuild.UnitTests/AlarmList.MSBuild.UnitTests.csproj
+  --verbosity quiet`: **86 passed per framework**. After adding an explicit
+  restore-error-log assertion, the `PackageLibraryResolutionTests` filter passed
+  **5 per framework**. The existing net8.0 shared-helper CA1416 warning remains.
+- SDK package/consumer regression: `dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj
+  --filter 'FullyQualifiedName~LibraryPackTests|FullyQualifiedName~LibraryProjectReferenceTests|FullyQualifiedName~PackageRestoreTests|FullyQualifiedName~PackageTests'
+  --verbosity quiet`: **21 passed per framework**, no failures/skips. No XLIFF or
+  desktop-dependent SDK cases overlapped the native tests.
+- Initial full editor suite passed **538 net472 tests**. After adding conditional-item
+  and diamond-expansion checks and strengthening mid-analysis assets revalidation,
+  the final full suite passed **540 net472 tests**, no failures/skips. The real bridge test now calls ResolveGraph
+  and checks that NuGet.ProjectModel/NuGet.Versioning/task assemblies stay out of
+  the host. Requested ranges, failures/recovery, cycles, changed configurations,
+  changed requests/assets, non-library packages and uninstall are covered.
+- VS2026 first package probe passed (`bfdc68720ae844108153fef576404ab8`). The expanded
+  package plus project-reference run passed **2 cases**
+  (`09356fff72ce416caab80df708653358`): native management from the dependency root,
+  install 1.0.0, update 2.0.0, a 1.0.0 transitive Common child, disabled direct
+  Delete of that child, invalid-assets unresolved state, recovery and uninstall;
+  compiled outputs match the selected package version. German tree screenshot
+  reviewed. Final active-configuration invalidation/icon handling was tightened
+  afterward; final host evidence follows before declaring completion.
+- Final VS2022 package/project-reference run passed **2 cases** in
+  `0c63e4d3abbc478a86c1e1a531e56ca9`. Final VS2026 passed the same **2 cases** in
+  `a566c42e57284c97902d0fe2482ca344`, with no failures/skips on either host.
+- The final `PackageTreeTests` filter passed **5 tests**, including package visibility
+  when ALMX analysis is incomplete.
+- VSIX integration: `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj --verbosity quiet`
+  passed **13 tests per framework**, no failures/skips. An overlapping rerun first
+  hit CS2012 shared compiler-output locks; the sequential rerun passed.
+- Diff/whitespace and documentation consistency reviewed. No iteration-11 blocker
+  remains; iteration 12 retains integrated playground and configuration/lifecycle
+  acceptance. Older SDKs without graph projection display unresolved nodes.
 
 ### Iteration 13 — resolved alarm-list names (complete 2026-10-18)
 

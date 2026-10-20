@@ -6,4 +6,8 @@
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <data name="Dependencies" xml:space="preserve"><value>Abhängigkeiten</value></data>
   <data name="Projects" xml:space="preserve"><value>Projekte</value></data>
+  <data name="Packages"><value>Pakete</value></data>
+  <data name="Pending"><value>Wiederherstellung ausstehend</value></data>
+  <data name="Unresolved"><value>Nicht aufgelöst</value></data>
+  <data name="Transitive"><value>Transitiv</value></data>
 </root>

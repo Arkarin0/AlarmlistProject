@@ -24,35 +24,9 @@ namespace Alarmlist.MSBuild
             if (packageIds == null || packageVersions == null || packageIds.Length != packageVersions.Length)
                 throw new ArgumentException("Package identifiers and versions must have matching lengths.");
             if (packageIds.Length == 0) return Array.Empty<ResolvedLibraryPackage>();
-            var logger = new AssetLogger();
-            LockFile assets = new LockFileFormat().Parse(assetsText, logger, assetsPath);
-            if (assets.Version < 3 || assets.Version > LockFileFormat.Version || assets.LogMessages.Any(message => message.Level == LogLevel.Error))
-                throw new InvalidDataException("Package assets are invalid or contain restore errors. Run Restore. " + string.Join("; ", logger.Errors));
-            NuGetFramework framework = NuGetFramework.Parse(frameworkMoniker);
-            LockFileTarget target = assets.Targets.SingleOrDefault(candidate => candidate.TargetFramework.Equals(framework)
-                && string.IsNullOrEmpty(candidate.RuntimeIdentifier));
-            if (target == null) throw new InvalidDataException("Package assets contain no matching framework: " + frameworkMoniker);
-            var selected = target.Libraries.ToDictionary(library => library.Name, StringComparer.OrdinalIgnoreCase);
-            for (int index = 0; index < packageIds.Length; index++)
-            {
-                if (!selected.TryGetValue(packageIds[index], out LockFileTargetLibrary library) || library.Type != "package")
-                    throw new InvalidDataException("Package reference is not restored: " + packageIds[index]);
-                string requested = packageVersions[index];
-                if (!string.IsNullOrEmpty(requested) && (!VersionRange.TryParse(requested, out VersionRange range) || !range.Satisfies(library.Version)))
-                    throw new InvalidDataException("Restored version does not satisfy package reference " + packageIds[index] + ". Run Restore.");
-            }
-
-            var reachable = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var queue = new Queue<string>(packageIds);
-            while (queue.Count != 0)
-            {
-                string id = queue.Dequeue();
-                if (!reachable.Add(id)) continue;
-                if (!selected.TryGetValue(id, out LockFileTargetLibrary library))
-                    throw new InvalidDataException("A restored dependency is missing: " + id);
-                foreach (var dependency in library.Dependencies) queue.Enqueue(dependency.Id);
-            }
-
+            SelectGraph(assetsText, assetsPath, frameworkMoniker, packageIds, packageVersions,
+                out LockFile assets, out LockFileTarget target, out Dictionary<string, LockFileTargetLibrary> selected, out HashSet<string> reachable);
+            Queue<string> queue;
             var artifacts = new Dictionary<string, ResolvedLibraryPackage>(StringComparer.OrdinalIgnoreCase);
             foreach (LockFileTargetLibrary selection in target.Libraries.Where(library => reachable.Contains(library.Name) && library.Type == "package"))
             {
@@ -86,6 +60,57 @@ namespace Alarmlist.MSBuild
             return target.Libraries.Where(library => artifacts.ContainsKey(library.Name)).Select(library => artifacts[library.Name]).ToArray();
         }
 
+        // Presentation and artifact resolution share framework/version/closure selection.
+        // Graph projection never scans caches or loads a NuGet implementation in VS.
+        public static IReadOnlyList<ResolvedPackageNode> ResolveGraph(string assetsText, string assetsPath, string frameworkMoniker,
+            string[] packageIds, string[] packageVersions)
+        {
+            if (packageIds == null || packageVersions == null || packageIds.Length != packageVersions.Length)
+                throw new ArgumentException("Package identifiers and versions must have matching lengths.");
+            if (packageIds.Length == 0) return Array.Empty<ResolvedPackageNode>();
+            SelectGraph(assetsText, assetsPath, frameworkMoniker, packageIds, packageVersions,
+                out _, out LockFileTarget target, out _, out HashSet<string> reachable);
+            return target.Libraries.Where(library => library.Type == "package" && reachable.Contains(library.Name))
+                .Select(library => new ResolvedPackageNode(library.Name, library.Version.ToNormalizedString(),
+                    packageIds.Contains(library.Name, StringComparer.OrdinalIgnoreCase),
+                    library.Dependencies.Select(dependency => dependency.Id))).ToArray();
+        }
+
+        private static void SelectGraph(string assetsText, string assetsPath, string frameworkMoniker,
+            string[] packageIds, string[] packageVersions, out LockFile assets, out LockFileTarget target,
+            out Dictionary<string, LockFileTargetLibrary> selected, out HashSet<string> reachable)
+        {
+            var logger = new AssetLogger();
+            assets = new LockFileFormat().Parse(assetsText, logger, assetsPath);
+            if (assets.Version < 3 || assets.Version > LockFileFormat.Version || assets.LogMessages.Any(message => message.Level == LogLevel.Error))
+                throw new InvalidDataException("Package assets are invalid or contain restore errors. Run Restore. " + string.Join("; ", logger.Errors));
+            NuGetFramework framework = NuGetFramework.Parse(frameworkMoniker);
+            target = assets.Targets.SingleOrDefault(candidate => candidate.TargetFramework.Equals(framework)
+                && string.IsNullOrEmpty(candidate.RuntimeIdentifier));
+            if (target == null) throw new InvalidDataException("Package assets contain no matching framework: " + frameworkMoniker);
+            selected = target.Libraries.ToDictionary(library => library.Name, StringComparer.OrdinalIgnoreCase);
+            for (int index = 0; index < packageIds.Length; index++)
+            {
+                if (!selected.TryGetValue(packageIds[index], out LockFileTargetLibrary library) || library.Type != "package")
+                    throw new InvalidDataException("Package reference is not restored: " + packageIds[index]);
+                string requested = packageVersions[index];
+                if (!string.IsNullOrEmpty(requested) && (!VersionRange.TryParse(requested, out VersionRange range) || !range.Satisfies(library.Version)))
+                    throw new InvalidDataException("Restored version does not satisfy package reference " + packageIds[index] + ". Run Restore.");
+            }
+
+            reachable = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var queue = new Queue<string>(packageIds);
+            while (queue.Count != 0)
+            {
+                string id = queue.Dequeue();
+                if (!reachable.Add(id)) continue;
+                if (!selected.TryGetValue(id, out LockFileTargetLibrary library))
+                    throw new InvalidDataException("A restored dependency is missing: " + id);
+                foreach (var dependency in library.Dependencies) queue.Enqueue(dependency.Id);
+            }
+
+        }
+
         private sealed class AssetLogger : LoggerBase
         {
             internal List<string> Errors { get; } = new List<string>();
@@ -105,6 +130,16 @@ namespace Alarmlist.MSBuild
                 throw new InvalidDataException("Package asset escapes its package directory.");
             return path;
         }
+    }
+
+    public sealed class ResolvedPackageNode
+    {
+        internal ResolvedPackageNode(string id, string version, bool isDirect, IEnumerable<string> dependencies)
+        { PackageId = id; PackageVersion = version; IsDirect = isDirect; Dependencies = Array.AsReadOnly(dependencies.ToArray()); }
+        public string PackageId { get; }
+        public string PackageVersion { get; }
+        public bool IsDirect { get; }
+        public IReadOnlyList<string> Dependencies { get; }
     }
 
     public sealed class ResolvedLibraryPackage

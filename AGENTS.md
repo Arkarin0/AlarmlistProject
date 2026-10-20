@@ -435,6 +435,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   cancellation/disposal, version/configuration guards, localized labels and native
   CPS reference-management actions. See milestone-nine iterations 10–12 for scope;
   do not enable unrelated .NET capabilities to obtain internal dependency providers.
+  Package nodes reuse the SDK's shared graph selection through the isolated bridge
+  and existing project-analysis watches. Preserve direct requested/resolved versions,
+  visible pending/unresolved states, read-only transitive edges and current-assets/
+  configuration/request guards. Bound repeated graph expansion and route package
+  changes through native NuGet management, not project-reference deletion.
 - The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
   SDK's net472 compiler independently of the build task runtime. The extension's
   `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-5 data

@@ -30,6 +30,31 @@ namespace AlarmList.MSBuild.UnitTests
         }
 
         [Fact]
+        public void PackageGraphIncludesNonLibraryPackagesAndSelectedDependencyEdges()
+        {
+            Add("Dependency");
+            Add("Aggregator", "Dependency");
+            Add("Unrelated");
+            _assets.Libraries.Single(item => item.Name == "Aggregator").Files.Clear();
+            new LockFileFormat().Write(AssetsPath, _assets);
+            var graph = LibraryPackageResolver.ResolveGraph(File.ReadAllText(AssetsPath), AssetsPath, "native,Version=v0.0",
+                new[] { "Aggregator" }, new[] { "[1.0,2.0)" });
+            Assert.Equal(new[] { "Dependency", "Aggregator" }, graph.Select(item => item.PackageId));
+            Assert.False(graph[0].IsDirect);
+            Assert.True(graph[1].IsDirect);
+            Assert.Equal("Dependency", Assert.Single(graph[1].Dependencies));
+            Assert.All(graph, item => Assert.Equal("1.0.0", item.PackageVersion));
+            Assert.Throws<InvalidDataException>(() => LibraryPackageResolver.ResolveGraph(File.ReadAllText(AssetsPath), AssetsPath,
+                "native,Version=v0.0", new[] { "Aggregator" }, new[] { "[2.0.0]" }));
+            Assert.Empty(LibraryPackageResolver.ResolveGraph(File.ReadAllText(AssetsPath), AssetsPath,
+                "native,Version=v0.0", Array.Empty<string>(), Array.Empty<string>()));
+            string failedRestore = File.ReadAllText(AssetsPath).Insert(1,
+                "\"logs\":[{\"level\":\"Error\",\"code\":\"NU1101\",\"message\":\"Restore failed\"}],");
+            Assert.Throws<InvalidDataException>(() => LibraryPackageResolver.ResolveGraph(failedRestore, AssetsPath,
+                "native,Version=v0.0", new[] { "Aggregator" }, new[] { "1.0.0" }));
+        }
+
+        [Fact]
         public void SelectedGraphSuppliesNormalizedIdentitiesAndDirectRoots()
         {
             Add("Dependency");

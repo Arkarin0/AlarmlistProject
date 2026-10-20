@@ -104,6 +104,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private async Task RunAsync(AnalysisProject project, long generation, CancellationTokenSource pending)
         {
             CancellationToken token = pending.Token;
+            CapturedPackageGraph packageGraph = null;
             try
             {
                 await _delay(token).ConfigureAwait(false);
@@ -142,6 +143,12 @@ namespace Alarmlist.VisualStudio.Analysis
                         }
                     }
                     _bridgeAnalyzers = analyzers;
+
+                    packageGraph = CapturedPackageGraph.Capture(project, _bridge, path =>
+                    {
+                        _dependencyWatchPaths.Add(path);
+                        (_inputs as IProjectDependencyInputSource)?.WatchDependencies(_dependencyWatchPaths.ToArray(), _dependencyWatchGlobs);
+                    }, token);
 
                     var captured = await _inputs.CaptureAsync(project.Inputs, token).ConfigureAwait(false);
                     var resources = await _inputs.CaptureResourcesAsync(project.Resources, token).ConfigureAwait(false);
@@ -187,6 +194,7 @@ namespace Alarmlist.VisualStudio.Analysis
                         || lookups.Count != verifiedLookups.Count || lookups.Where((input, index) => !input.Matches(verifiedLookups[index])).Any()
                         || configurations.Count != verifiedConfigurations.Count || configurations.Where((input, index) => !input.Matches(verifiedConfigurations[index])).Any()
                         || !AnalyzersMatch(analyzers, verifiedAnalyzers)
+                        || (packageGraph != null && packageGraph.CurrentResponse == null)
                         || (libraries != null && !libraries.IsCurrent(project, token)))
                     {
                         // Also catches a disk/buffer race whose change event has not
@@ -198,13 +206,20 @@ namespace Alarmlist.VisualStudio.Analysis
                     }
                     ProjectAnalysisStatus status = response.Availability == AnalysisAvailability.Available ? ProjectAnalysisStatus.Available
                         : response.Availability == AnalysisAvailability.InvalidInput ? ProjectAnalysisStatus.Incomplete : ProjectAnalysisStatus.Unavailable;
-                    Publish(generation, new ProjectAnalysisState(generation, project, status, response.Message, response, captured, resources, lookups, configurations, analyzers, libraries));
+                    Publish(generation, new ProjectAnalysisState(generation, project, status, response.Message, response, captured, resources, lookups, configurations, analyzers, libraries, packageGraph));
                 }, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception))
             {
-                Publish(generation, new ProjectAnalysisState(generation, project, ProjectAnalysisStatus.Incomplete, exception.Message));
+                if (packageGraph != null && packageGraph.CurrentResponse == null)
+                {
+                    lock (_gate)
+                        if (!_stopped && generation == _generation) ScheduleLocked("Package assets changed during analysis.");
+                    Changed?.Invoke(this, EventArgs.Empty);
+                    return;
+                }
+                Publish(generation, new ProjectAnalysisState(generation, project, ProjectAnalysisStatus.Incomplete, exception.Message, packageGraph: packageGraph));
             }
             finally
             {

@@ -171,6 +171,36 @@ namespace Alarmlist.VisualStudio.Analysis
             finally { AppDomain.CurrentDomain.AssemblyResolve -= ResolvePackageRuntimeDependency; }
         }
 
+        public PackageGraphResponse ResolvePackageGraph(string assetsText, string assetsPath, string frameworkMoniker,
+            string[] packageIds, string[] packageVersions)
+        {
+            AppDomain.CurrentDomain.AssemblyResolve += ResolvePackageRuntimeDependency;
+            try
+            {
+                Type resolver = Assembly.LoadFrom(Path.Combine(Path.GetDirectoryName(_contextType.Assembly.Location), "AlarmList.MSBuild.dll"))
+                    .GetType("Alarmlist.MSBuild.LibraryPackageResolver", true);
+                MethodInfo method = resolver.GetMethod("ResolveGraph");
+                if (method == null) throw new NotSupportedException("The SDK does not expose a package graph.");
+                var packages = (System.Collections.IEnumerable)method.Invoke(null,
+                    new object[] { assetsText, assetsPath, frameworkMoniker, packageIds, packageVersions });
+                return new PackageGraphResponse(AnalysisAvailability.Available, null, packages.Cast<object>().Select(package =>
+                {
+                    Type type = package.GetType();
+                    return new AnalysisPackageNode((string)type.GetProperty("PackageId").GetValue(package),
+                        (string)type.GetProperty("PackageVersion").GetValue(package),
+                        (bool)type.GetProperty("IsDirect").GetValue(package),
+                        ((System.Collections.IEnumerable)type.GetProperty("Dependencies").GetValue(package)).Cast<string>());
+                }));
+            }
+            catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(Unwrap(exception)))
+            {
+                Exception failure = Unwrap(exception);
+                return new PackageGraphResponse(failure is NotSupportedException ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.InvalidInput,
+                    failure.Message);
+            }
+            finally { AppDomain.CurrentDomain.AssemblyResolve -= ResolvePackageRuntimeDependency; }
+        }
+
         private Assembly ResolvePackageRuntimeDependency(object sender, ResolveEventArgs args)
         {
             var requested = new AssemblyName(args.Name);

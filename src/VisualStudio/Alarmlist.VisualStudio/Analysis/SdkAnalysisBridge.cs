@@ -77,6 +77,12 @@ namespace Alarmlist.VisualStudio.Analysis
             CancellationToken cancellationToken = default);
     }
 
+    internal interface ISdkPackageGraphBridge
+    {
+        PackageGraphResponse ResolvePackageGraph(string assetsText, string assetsPath, string frameworkMoniker,
+            string[] packageIds, string[] packageVersions, CancellationToken cancellationToken);
+    }
+
     [Export(typeof(ISdkAnalysisBridgeFactory))]
     internal sealed class SdkAnalysisBridgeFactory : ISdkAnalysisBridgeFactory
     {
@@ -84,7 +90,7 @@ namespace Alarmlist.VisualStudio.Analysis
     }
 
     /// <summary>Owned by one project/configuration. Call off the UI thread and dispose on SDK change or project unload.</summary>
-    internal sealed class SdkAnalysisBridge : ISdkLibraryBridge
+    internal sealed class SdkAnalysisBridge : ISdkLibraryBridge, ISdkPackageGraphBridge
     {
         private readonly object _gate = new object();
         private AppDomain _domain;
@@ -175,6 +181,23 @@ namespace Alarmlist.VisualStudio.Analysis
                     (string[])packageIds.Clone(), (string[])packageVersions.Clone())); }
                 catch (Exception exception) when (IsRecoverable(exception))
                 { response = new PackageResolutionResponse(AnalysisAvailability.AnalysisFailed, "SDK package resolution failed: " + exception.Message); }
+                cancellationToken.ThrowIfCancellationRequested();
+                return response;
+            }
+        }
+
+        public PackageGraphResponse ResolvePackageGraph(string assetsText, string assetsPath, string frameworkMoniker,
+            string[] packageIds, string[] packageVersions, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_gate)
+            {
+                if (_domain == null) throw new ObjectDisposedException(nameof(SdkAnalysisBridge));
+                PackageGraphResponse response;
+                try { response = WithHostAssemblyResolution(() => _worker.ResolvePackageGraph(assetsText, assetsPath,
+                    frameworkMoniker, (string[])packageIds.Clone(), (string[])packageVersions.Clone())); }
+                catch (Exception exception) when (IsRecoverable(exception))
+                { response = new PackageGraphResponse(AnalysisAvailability.AnalysisFailed, exception.Message); }
                 cancellationToken.ThrowIfCancellationRequested();
                 return response;
             }

@@ -84,8 +84,19 @@ items in the active configuration, keeps missing references visible with a warni
 and does not require referenced projects to be loaded. Expanding it does not build
 the project. Use the native Add Reference command with the dependency root selected,
 or remove a selected direct reference with Delete; removal keeps the referenced
-project on disk. Empty Projects groups are hidden. NuGet tree presentation remains
-tracked separately in milestone-nine iterations 11–12.
+project on disk. Empty Projects groups are hidden.
+
+Dependencies / Packages (Pakete) shows evaluated direct NuGet references. Resolved
+nodes show the selected version; a differing requested version/range appears as
+`requested → resolved`. Restore-pending and unresolved references remain visible.
+Expand a package to inspect its selected transitive dependencies, labelled as
+read-only transitive entries. Shared dependencies expand once per direct root;
+repeated occurrences stay visible as leaves. Use the native Manage NuGet Packages
+action on the dependency root to install, update or uninstall packages. Delete
+does not edit package references or transitives. Resolution follows the selected
+SDK's restored assets; invalid/failed restore clears resolved children until
+recovery. An older SDK without the graph projection leaves package nodes unresolved.
+Integrated playground/configuration lifecycle acceptance remains iteration 12.
 
 Package analysis uses the selected SDK and restored NuGet assets. Restore after
 changing package references. Missing or invalid dependencies clear stale results;
