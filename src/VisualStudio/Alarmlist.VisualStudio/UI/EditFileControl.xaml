@@ -23,6 +23,40 @@
       <Setter Property="Padding" Value="5,3" />
     </Style>
     <Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
+    <Style x:Key="ProcedureHeading" TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type ui:ExpressionTextBox}}">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Style.Triggers>
+        <Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" /></Trigger>
+        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+          <Setter Property="BorderBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
+          <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+          <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="ProcedureGroup" TargetType="GroupBox">
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
+      <Setter Property="Padding" Value="10,4,10,10" />
+      <!-- A star-width header keeps long expression titles within the group.
+           The stock GroupBox header measures its content in an auto column. -->
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="GroupBox">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+          <Border Grid.RowSpan="2" Margin="0,12,0,0" BorderThickness="1" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" />
+          <Border Margin="10,0,10,0" Background="{TemplateBinding Background}">
+            <ContentPresenter ContentSource="Header" />
+          </Border>
+          <ContentPresenter Grid.Row="1" Margin="{TemplateBinding Padding}" />
+        </Grid>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
     <Style TargetType="ui:ReferenceComboBox" BasedOn="{StaticResource {x:Type TextBox}}">
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ui:ReferenceComboBox">
         <Border x:Name="ReferenceBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
@@ -176,12 +210,30 @@
       </Expander>
     </StackPanel>
     </ScrollViewer>
-    <GridSplitter x:Name="ScopeDivider" Grid.Row="2" Height="7" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+    <GridSplitter x:Name="ScopeDivider" Grid.Row="2" Height="11" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                   Tag="PreserveDraft" Focusable="True" KeyboardIncrement="12" DragCompleted="OnScopeDragCompleted" KeyUp="OnScopeDividerKeyUp"
+                  AutomationProperties.HelpText="Drag to resize file and alarm areas, or use Up/Down while focused. Drafts are preserved."
                   AutomationProperties.Name="Resize file and alarm areas" ToolTip="Drag to resize file and alarm areas, or focus this divider and use Up/Down. Drafts are preserved.">
       <GridSplitter.Style><Style TargetType="GridSplitter">
-        <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
-        <Style.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /></Trigger></Style.Triggers>
+        <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="GridSplitter">
+          <Grid Background="{TemplateBinding Background}">
+            <Border Height="1" VerticalAlignment="Center" Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" IsHitTestVisible="False" />
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" Padding="8,0" Background="{TemplateBinding Background}" IsHitTestVisible="False">
+              <Border x:Name="ScopeGrip" Width="32" Height="5" BorderThickness="0,1,0,1" BorderBrush="{TemplateBinding Foreground}" />
+            </Border>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ScopeGrip" Property="BorderThickness" Value="0,2,0,2" /></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+        <Style.Triggers>
+          <Trigger Property="IsKeyboardFocused" Value="True">
+            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}" />
+          </Trigger>
+        </Style.Triggers>
       </Style></GridSplitter.Style>
     </GridSplitter>
     <Grid Grid.Row="3">
@@ -274,6 +326,27 @@
                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
             <StackPanel Margin="0,8,0,0">
               <WrapPanel Margin="0,0,0,8">
+                <Button Content="Expand all groups" Tag="PreserveDraft" Click="OnExpandProcedureGroups" />
+                <Button Content="Collapse all groups" Tag="PreserveDraft" Click="OnCollapseProcedureGroups" />
+              </WrapPanel>
+              <TextBlock Text="Search procedures" />
+              <DockPanel Margin="0,3,0,4">
+                <Button DockPanel.Dock="Right" Content="Next match" Click="OnNextProcedureMatch" Tag="PreserveDraft" />
+                <Button DockPanel.Dock="Right" Content="Previous match" Click="OnPreviousProcedureMatch" Tag="PreserveDraft" />
+                <TextBox x:Name="ProcedureSearchEditor" Text="{Binding ProcedureSearch, UpdateSourceTrigger=PropertyChanged}"
+                         Tag="PreserveDraft" AutomationProperties.Name="Search procedures"
+                         ToolTip="Search IDs, raw/resolved titles and entry text, including cleared entries. Enter: next; Shift+Enter: previous; Escape: clear." />
+              </DockPanel>
+              <TextBlock Text="{Binding ProcedureSearchStatus}" Margin="0,0,0,4" />
+              <ListBox x:Name="ProcedureSearchResults" ItemsSource="{Binding ProcedureMatches}" SelectedItem="{Binding SelectedProcedureMatch}"
+                       Tag="PreserveDraft" MaxHeight="140" Margin="0,0,0,8" SelectionChanged="OnProcedureMatchSelected"
+                       Visibility="{Binding HasProcedureSearch, Converter={StaticResource Visibility}}"
+                       AutomationProperties.Name="Procedure search results" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="Tag" Value="PreserveDraft" />
+                  <Setter Property="AutomationProperties.Name" Value="{Binding Label}" /></Style></ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
+              <WrapPanel Margin="0,0,0,8">
                 <TextBox x:Name="NewGroupIdEditor" Text="{Binding NewGroupName, UpdateSourceTrigger=PropertyChanged}" MinWidth="150" Margin="0,0,6,0"
                          AutomationProperties.Name="New procedure group ID" ToolTip="Stable group identity. Titles can be translated; IDs remain unchanged." />
                 <Button Content="+ Add group" Command="{Binding AddGroupCommand}" Click="OnProcedureAction"
@@ -282,108 +355,117 @@
               <ItemsControl ItemsSource="{Binding ProcedureSections}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
-                    <StackPanel Margin="0,0,0,16">
-                      <DockPanel Margin="0,0,0,6">
-                        <ToggleButton DockPanel.Dock="Right" IsChecked="{Binding ShowCleared}" IsEnabled="{Binding HasExcluded}"
-                                      Tag="PreserveDraft" ToolTip="{Binding ClearedHelp}" ToolTipService.ShowOnDisabled="True"
-                                      AutomationProperties.Name="{Binding Name, StringFormat=Show cleared {0} entries}"
-                                      AutomationProperties.HelpText="{Binding ClearedHelp}" Padding="6,3">
-                          <StackPanel Orientation="Horizontal">
-                            <Path Width="16" Height="12" Stretch="Uniform" Margin="0,0,6,0"
-                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" StrokeThickness="1.5"
-                                  Data="M 1,8 Q 8,-2 15,8 Q 8,18 1,8 M 11,8 A 3,3 0 1 1 5,8 A 3,3 0 1 1 11,8" />
-                            <TextBlock Text="{Binding ClearedToggleText}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-                          </StackPanel>
-                        </ToggleButton>
-                        <Button DockPanel.Dock="Right" Content="Inheritance ▾" Click="OnInheritanceActions" Tag="PreserveDraft"
-                                Unloaded="OnActionsUnloaded" ContextMenuOpening="OnActionsMenuOpening"
-                                ToolTip="Actions for this entire procedure group. Inherited entries remain read-only."
-                                AutomationProperties.Name="{Binding Name, StringFormat=Inheritance actions for {0}}">
-                          <Button.ContextMenu>
+                    <GroupBox Style="{StaticResource ProcedureGroup}" Margin="0,0,0,16" AutomationProperties.Name="{Binding Name, StringFormat=Procedure group {0}}">
+                      <GroupBox.Header>
+                        <ui:ExpressionTextBox DataContext="{Binding TitleField}" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
+                            ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" MinHeight="26" Style="{StaticResource ProcedureHeading}"
+                            IsEnabled="{Binding DataContext.CanEditTitle, RelativeSource={RelativeSource AncestorType=GroupBox}}"
+                            Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}"
+                            IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus" AutomationProperties.Name="Procedure group title"
+                            ToolTip="Edit the display title, including expressions. Empty uses the ID. Use the context menu to remove a local title."
+                            AutomationProperties.HelpText="{Binding EditHelp}">
+                          <ui:ExpressionTextBox.ContextMenu>
                             <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
-                              <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Inheritance}}" Header="Use local entries only" Command="{Binding UseLocalEntriesCommand}"
-                                        ToolTip="Insert Clear before local entries to exclude inherited entries. Undo restores the previous source." />
-                              <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Copy}}" Header="Make local copy" Command="{Binding MakeLocalCopyCommand}" ToolTipService.ShowOnDisabled="True"
-                                        ToolTip="Copy the effective sequence, preserving raw expressions. Future reference changes stop flowing into this group. Commit or cancel drafts first." />
+                              <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Inheritance}}" Header="Use inherited title" Command="{Binding UseInheritedCommand}" ToolTip="Remove the local Title element. Use the inherited title, or the ID when none exists." />
+                              <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.GoToSourceCode}}" Header="Go to title source" Command="{Binding GoToSourceCommand}" />
+                              <Separator/>
+                              <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Copy}}" Header="Copy" Command="ApplicationCommands.Copy" />
+                              <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Paste}}" Header="Paste" Command="ApplicationCommands.Paste" />
                             </ContextMenu>
-                          </Button.ContextMenu>
-                        </Button>
-                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                      </DockPanel>
-                      <WrapPanel Margin="0,4,0,4">
-                        <TextBlock Text="{Binding Name, StringFormat=ID: {0}}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                        <Button Content="↑" Command="{Binding MoveGroupUpCommand}" Click="OnProcedureAction" AutomationProperties.Name="Move procedure group up" ToolTip="Move this locally introduced group up. Inherited group order is fixed." />
-                        <Button Content="↓" Command="{Binding MoveGroupDownCommand}" Click="OnProcedureAction" AutomationProperties.Name="Move procedure group down" ToolTip="Move this locally introduced group down. Inherited group order is fixed." />
-                        <Button Content="Remove local group" Command="{Binding RemoveGroupCommand}" Click="OnProcedureAction" AutomationProperties.Name="Remove local procedure group" ToolTip="Remove the local declaration and its entries. An inherited group becomes visible again. Undo restores the source." />
-                      </WrapPanel>
-                      <ui:ExpressionTextBox DataContext="{Binding TitleField}" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
-                          ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" MinHeight="26" Margin="0,0,0,6"
-                          IsEnabled="{Binding DataContext.CanEditTitle, RelativeSource={RelativeSource AncestorType=StackPanel}}"
-                          Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                          ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                          ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                          ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}"
-                          IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus" AutomationProperties.Name="Procedure group title"
-                          ToolTip="Edit the display title, including expressions. Empty uses the ID. Use the context menu to remove a local title."
-                          AutomationProperties.HelpText="{Binding EditHelp}">
-                        <ui:ExpressionTextBox.ContextMenu>
-                          <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
-                            <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Inheritance}}" Header="Use inherited title" Command="{Binding UseInheritedCommand}" ToolTip="Remove the local Title element. Use the inherited title, or the ID when none exists." />
-                            <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.GoToSourceCode}}" Header="Go to title source" Command="{Binding GoToSourceCommand}" />
-                            <Separator/>
-                            <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Copy}}" Header="Copy" Command="ApplicationCommands.Copy" />
-                            <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Paste}}" Header="Paste" Command="ApplicationCommands.Paste" />
-                          </ContextMenu>
-                        </ui:ExpressionTextBox.ContextMenu>
-                      </ui:ExpressionTextBox>
-                      <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
-                      <TextBlock Text="{Binding AnalysisGuidance}" TextWrapping="Wrap" Margin="0,0,0,5">
-                        <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
-                          <DataTrigger Binding="{Binding HasAnalysis}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
-                        </Style.Triggers></Style></TextBlock.Style>
-                      </TextBlock>
-                      <ItemsControl ItemsSource="{Binding InheritedSequence}" ItemTemplate="{StaticResource InlineInheritedProcedure}" />
-                      <WrapPanel Margin="0,0,0,8">
-                        <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding NewKind}" MinWidth="92" Margin="0,0,6,0"
-                                  AutomationProperties.Name="{Binding Name, StringFormat=New {0} entry kind}" />
-                        <Button Content="+ Add entry" Command="{Binding AddCommand}" Click="OnProcedureAction" ToolTip="Append an entry to this group and start editing it."
-                                AutomationProperties.Name="{Binding Name, StringFormat=Add {0} entry}" />
-                      </WrapPanel>
-                      <ItemsControl ItemsSource="{Binding Items}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
-                                    Padding="6" Margin="0,0,0,5"
-                                    ToolTip="{Binding HelpText}">
-                              <Border.Style><Style TargetType="Border">
-                                <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource Visibility}}" />
-                                <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsExcluded}" Value="True"><Setter Property="Opacity" Value="0.78" /></DataTrigger>
-                                <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="Opacity" Value="1" /><Setter Property="Visibility" Value="Visible" /></Trigger>
-                              </Style.Triggers></Style></Border.Style>
-                              <StackPanel>
-                                <WrapPanel Margin="0,0,0,5">
-                                  <TextBlock Text="{Binding State}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                  <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind, UpdateSourceTrigger=PropertyChanged}"
-                                            IsEnabled="{Binding CanEdit}" MinWidth="88" Margin="0,0,6,0"
-                                            AutomationProperties.Name="Procedure entry kind" LostKeyboardFocus="OnFieldLostFocus" />
-                                  <Button Content="↑" Command="{Binding MoveUpCommand}" Click="OnProcedureAction" ToolTip="Move entry up. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry up" />
-                                  <Button Content="↓" Command="{Binding MoveDownCommand}" Click="OnProcedureAction" ToolTip="Move entry down. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry down" />
-                                  <Button Content="×" Command="{Binding DeleteCommand}" Click="OnProcedureAction" ToolTip="Remove this local source entry. Undo restores it." AutomationProperties.Name="Remove procedure entry" />
-                                </WrapPanel>
-                                <Separator Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
-                                <TextBlock Text="Clear preceding entries" FontWeight="SemiBold" Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
-                                <ui:ExpressionTextBox RawText="{Binding Text, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedText}" HasResolvedValue="{Binding CanShowResolved}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" IsEnabled="{Binding IsTextEnabled}" Visibility="{Binding ShowText, Converter={StaticResource Visibility}}"
-                                         AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxHeight="160" VerticalScrollBarVisibility="Auto"
-                                         IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus" AutomationProperties.Name="Procedure entry text"
-                                         AutomationProperties.HelpText="{Binding HelpText}" />
-                                <TextBlock Text="{Binding Guidance}" TextWrapping="Wrap" Opacity="0.75" />
-                              </StackPanel>
-                            </Border>
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-                    </StackPanel>
+                          </ui:ExpressionTextBox.ContextMenu>
+                        </ui:ExpressionTextBox>
+                      </GroupBox.Header>
+                      <StackPanel>
+                        <TextBlock Text="{Binding Name, StringFormat=Group ID: {0}}" TextWrapping="Wrap" Margin="0,0,0,6" />
+                        <ToggleButton Content="{Binding ExpansionText}" IsChecked="{Binding IsExpanded}" Tag="PreserveDraft"
+                                      HorizontalAlignment="Left" Margin="0,0,0,6" Padding="6,3"
+                                      AutomationProperties.Name="{Binding Name, StringFormat=Expand procedure group {0}}"
+                                      ToolTip="Show or hide this group's entries. Private drafts are preserved." />
+                        <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource Visibility}}">
+                        <WrapPanel Margin="0,0,0,6">
+                          <ToggleButton IsChecked="{Binding ShowCleared}" IsEnabled="{Binding HasExcluded}"
+                                        Tag="PreserveDraft" ToolTip="{Binding ClearedHelp}" ToolTipService.ShowOnDisabled="True"
+                                        AutomationProperties.Name="{Binding Name, StringFormat=Show cleared {0} entries}"
+                                        AutomationProperties.HelpText="{Binding ClearedHelp}" Padding="6,3">
+                            <StackPanel Orientation="Horizontal">
+                              <Path Width="16" Height="12" Stretch="Uniform" Margin="0,0,6,0"
+                                    Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" StrokeThickness="1.5"
+                                    Data="M 1,8 Q 8,-2 15,8 Q 8,18 1,8 M 11,8 A 3,3 0 1 1 5,8 A 3,3 0 1 1 11,8" />
+                              <TextBlock Text="{Binding ClearedToggleText}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                            </StackPanel>
+                          </ToggleButton>
+                          <Button Content="Inheritance ▾" Click="OnInheritanceActions" Tag="PreserveDraft"
+                                  Unloaded="OnActionsUnloaded" ContextMenuOpening="OnActionsMenuOpening"
+                                  ToolTip="Actions for this entire procedure group. Inherited entries remain read-only."
+                                  AutomationProperties.Name="{Binding Name, StringFormat=Inheritance actions for {0}}">
+                            <Button.ContextMenu>
+                              <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
+                                <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Inheritance}}" Header="Use local entries only" Command="{Binding UseLocalEntriesCommand}"
+                                          ToolTip="Insert Clear before local entries to exclude inherited entries. Undo restores the previous source." />
+                                <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Copy}}" Header="Make local copy" Command="{Binding MakeLocalCopyCommand}" ToolTipService.ShowOnDisabled="True"
+                                          ToolTip="Copy the effective sequence, preserving raw expressions. Future reference changes stop flowing into this group. Commit or cancel drafts first." />
+                              </ContextMenu>
+                            </Button.ContextMenu>
+                          </Button>
+                        </WrapPanel>
+                        <WrapPanel Margin="0,4,0,4">
+                          <Button Content="↑" Command="{Binding MoveGroupUpCommand}" Click="OnProcedureAction" AutomationProperties.Name="Move procedure group up" ToolTip="Move this locally introduced group up. Inherited group order is fixed." />
+                          <Button Content="↓" Command="{Binding MoveGroupDownCommand}" Click="OnProcedureAction" AutomationProperties.Name="Move procedure group down" ToolTip="Move this locally introduced group down. Inherited group order is fixed." />
+                          <Button Content="Remove local group" Command="{Binding RemoveGroupCommand}" Click="OnProcedureAction" AutomationProperties.Name="Remove local procedure group" ToolTip="Remove the local declaration and its entries. An inherited group becomes visible again. Undo restores the source." />
+                        </WrapPanel>
+                        <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding AnalysisGuidance}" TextWrapping="Wrap" Margin="0,0,0,5">
+                          <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
+                            <DataTrigger Binding="{Binding HasAnalysis}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                          </Style.Triggers></Style></TextBlock.Style>
+                        </TextBlock>
+                        <ItemsControl ItemsSource="{Binding InheritedSequence}" ItemTemplate="{StaticResource InlineInheritedProcedure}" />
+                        <WrapPanel Margin="0,0,0,8">
+                          <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding NewKind}" MinWidth="92" Margin="0,0,6,0"
+                                    AutomationProperties.Name="{Binding Name, StringFormat=New {0} entry kind}" />
+                          <Button Content="+ Add entry" Command="{Binding AddCommand}" Click="OnProcedureAction" ToolTip="Append an entry to this group and start editing it."
+                                  AutomationProperties.Name="{Binding Name, StringFormat=Add {0} entry}" />
+                        </WrapPanel>
+                        <ItemsControl ItemsSource="{Binding Items}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}"
+                                      Padding="6" Margin="0,0,0,5"
+                                      ToolTip="{Binding HelpText}">
+                                <Border.Style><Style TargetType="Border">
+                                  <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource Visibility}}" />
+                                  <Style.Triggers>
+                                  <DataTrigger Binding="{Binding IsExcluded}" Value="True"><Setter Property="Opacity" Value="0.78" /></DataTrigger>
+                                  <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="Opacity" Value="1" /><Setter Property="Visibility" Value="Visible" /></Trigger>
+                                </Style.Triggers></Style></Border.Style>
+                                <StackPanel>
+                                  <WrapPanel Margin="0,0,0,5">
+                                    <TextBlock Text="{Binding State}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind, UpdateSourceTrigger=PropertyChanged}"
+                                              IsEnabled="{Binding CanEdit}" MinWidth="88" Margin="0,0,6,0"
+                                              AutomationProperties.Name="Procedure entry kind" LostKeyboardFocus="OnFieldLostFocus" />
+                                    <Button Content="↑" Command="{Binding MoveUpCommand}" Click="OnProcedureAction" ToolTip="Move entry up. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry up" />
+                                    <Button Content="↓" Command="{Binding MoveDownCommand}" Click="OnProcedureAction" ToolTip="Move entry down. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry down" />
+                                    <Button Content="×" Command="{Binding DeleteCommand}" Click="OnProcedureAction" ToolTip="Remove this local source entry. Undo restores it." AutomationProperties.Name="Remove procedure entry" />
+                                  </WrapPanel>
+                                  <Separator Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
+                                  <TextBlock Text="Clear preceding entries" FontWeight="SemiBold" Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
+                                  <ui:ExpressionTextBox RawText="{Binding Text, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedText}" HasResolvedValue="{Binding CanShowResolved}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" IsEnabled="{Binding IsTextEnabled}" Visibility="{Binding ShowText, Converter={StaticResource Visibility}}"
+                                           AcceptsReturn="True" TextWrapping="Wrap" MinHeight="46" MaxHeight="160" VerticalScrollBarVisibility="Auto"
+                                           IsUndoEnabled="False" LostKeyboardFocus="OnFieldLostFocus" AutomationProperties.Name="Procedure entry text"
+                                           AutomationProperties.HelpText="{Binding HelpText}" />
+                                  <TextBlock Text="{Binding Guidance}" TextWrapping="Wrap" Opacity="0.75" />
+                                </StackPanel>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                      </StackPanel>
+                    </GroupBox>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>

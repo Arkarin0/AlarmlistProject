@@ -26,6 +26,13 @@ namespace Alarmlist.VisualStudio.UI
         private readonly Action<string, int, ProcedureAction, string> _edit;
         private string _error;
         private bool _showCleared = true;
+        private bool _isExpanded = true;
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set { if (_isExpanded == value) return; _isExpanded = value; Notify(); Notify(nameof(ExpansionText)); }
+        }
+        public string ExpansionText => IsExpanded ? "Collapse entries" : "Expand entries";
         private int _clearedCount;
         public string Name { get; private set; }
         public string Title { get; private set; }

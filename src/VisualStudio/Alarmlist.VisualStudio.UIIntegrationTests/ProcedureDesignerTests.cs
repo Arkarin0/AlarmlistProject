@@ -54,6 +54,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             designer.Patterns.SelectionItem.Pattern.Select();
             AutomationElement toggle = null;
             VisualStudioSession.Wait(() => (toggle = window.FindFirstDescendant(cf => cf.ByName("Show cleared Verification entries")))?.IsEnabled == true, "compiler cleared rows");
+            CheckHeadingNavigation(ide, workspace, automation, window);
             TextBox editor = null;
             VisualStudioSession.Wait(() => (editor = window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
                 .Select(element => element.AsTextBox()).SingleOrDefault(element => element.Text == "Earlier local")) != null, "editable cleared local row");
@@ -64,6 +65,28 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A);
             Keyboard.Type("Private cleared draft");
             VisualStudioSession.Wait(() => editor.Text == "Private cleared draft", "cleared draft typing");
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            AutomationElement collapseGroup = window.FindFirstDescendant(cf => cf.ByName("Expand procedure group Verification"));
+            Press(ide, collapseGroup, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => editor.IsOffscreen, "collapse preserves procedure draft");
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            Press(ide, collapseGroup, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => !editor.IsOffscreen && editor.Text == "Private cleared draft", "expand restores procedure draft");
+            TextBox search = window.FindFirstDescendant(cf => cf.ByName("Search procedures").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
+            search.Focus();
+            VisualStudioSession.Wait(() => search.Properties.HasKeyboardFocus.Value, "procedure search focus");
+            ide.RequireForeground(); Keyboard.Type("private");
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
+                .Any(item => item.Name.Contains("Private cleared draft")), "search finds private cleared draft");
+            Press(ide, window.FindFirstDescendant(cf => cf.ByName("Collapse all groups")), VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => editor.IsOffscreen, "collapse all before search navigation");
+            Press(ide, search, VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => !editor.IsOffscreen && editor.Text == "Private cleared draft", "search reveals collapsed match");
+            Assert.True(search.Properties.HasKeyboardFocus.Value);
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            Press(ide, search, VirtualKeyShort.ESCAPE);
+            VisualStudioSession.Wait(() => search.Text == "", "Escape clears procedure search");
+            Assert.Equal("Private cleared draft", editor.Text);
             Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
             toggle.Focus();
             VisualStudioSession.Wait(() => toggle.Properties.HasKeyboardFocus.Value, "cleared toggle focus");
@@ -149,6 +172,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         private static void CheckGroupAuthoring(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
         {
+            // A restored floating preview can cover the designer in screenshots.
+            foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
             string original = ide.ReadText(workspace.AlarmPath);
             foreach (string name in new[] { "Startup", "Shutdown" })
             {
@@ -168,6 +194,16 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 Assert.Null(Groups(ide, workspace).Last().Element("Title"));
                 Press(ide, title, VirtualKeyShort.RETURN);
                 VisualStudioSession.Wait(() => Groups(ide, workspace).Last().Element("Title")?.Value == "Check $(AlarmlistAlarmFullyQualifiedName)", "group title commit");
+                string committed = ide.ReadText(workspace.AlarmPath);
+                id.Focus();
+                VisualStudioSession.Wait(() => title.Text == "Check Child", "resolved GroupBox heading");
+                var group = window.FindFirstDescendant(cf => cf.ByName("Procedure group " + name).And(cf.ByControlType(ControlType.Group)));
+                Assert.NotNull(group);
+                Assert.Single(group.FindAllDescendants(cf => cf.ByName("Procedure group title").And(cf.ByControlType(ControlType.Edit))));
+                Assert.NotNull(group.FindFirstDescendant(cf => cf.ByName("Group ID: " + name)));
+                title.Focus();
+                VisualStudioSession.Wait(() => title.Text == "Check $(AlarmlistAlarmFullyQualifiedName)", "raw GroupBox heading");
+                Assert.Equal(committed, ide.ReadText(workspace.AlarmPath));
             }
             AutomationElement up = null;
             VisualStudioSession.Wait(() => (up = window.FindAllDescendants(cf => cf.ByName("Move procedure group up")).LastOrDefault())?.IsEnabled == true, "local group movement enabled");
@@ -181,6 +217,39 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => Groups(ide, workspace).Length == 3, "group removal Undo");
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "procedure-groups.png"));
             Assert.Contains("Group Name='Verification'", original);
+        }
+
+        private static void CheckHeadingNavigation(VisualStudioSession ide, UiTestWorkspace workspace, UIA3Automation automation, Window window)
+        {
+            string source = ide.ReadText(workspace.AlarmPath);
+            EnvDTE.Property preference = ide.Automation.Properties["Alarmlist", "Navigation"].Item("SourceView");
+            object previous = preference.Value;
+            try
+            {
+                preference.Value = 0;
+                TextBox heading = window.FindFirstDescendant(cf => cf.ByName("Procedure group title").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
+                heading.Focus(); ide.RequireForeground();
+                VisualStudioSession.Wait(() => heading.Properties.HasKeyboardFocus.Value, "inherited heading focus");
+                Assert.Equal("Verify $(AlarmlistAlarmFullyQualifiedName)", heading.Text);
+                Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.END);
+                Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.SPACE);
+                AutomationElement suggestions = null;
+                VisualStudioSession.Wait(() => (suggestions = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                    .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)))
+                    .FirstOrDefault(item => item.Name.StartsWith("AlarmlistAlarmFullyQualifiedName (", StringComparison.Ordinal))) != null, "heading expression completion");
+                Keyboard.Type(VirtualKeyShort.ESCAPE);
+                Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+                Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
+                AutomationElement go = null;
+                VisualStudioSession.Wait(() => (go = automation.GetDesktop().FindFirstDescendant(cf => cf.ByName("Go to title source").And(cf.ByControlType(ControlType.MenuItem))))?.IsEnabled == true, "title source action");
+                go.AsMenuItem().Invoke();
+                VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("FullyQualifiedName").And(cf.ByControlType(ControlType.Edit)))?.AsTextBox().Text == "Base", "title source alarm");
+                VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Procedure group title").And(cf.ByControlType(ControlType.Edit)))?.Properties.HasKeyboardFocus.ValueOrDefault == true, "title source heading focus");
+                Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+                window.FindFirstDescendant(cf => cf.ByName("Child").And(cf.ByControlType(ControlType.ListItem))).Patterns.SelectionItem.Pattern.Select();
+                VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("FullyQualifiedName").And(cf.ByControlType(ControlType.Edit)))?.AsTextBox().Text == "Child", "return to consuming alarm");
+            }
+            finally { preference.Value = previous; }
         }
 
         private static XElement[] Groups(VisualStudioSession ide, UiTestWorkspace workspace) => XDocument.Parse(ide.ReadText(workspace.AlarmPath))
@@ -207,10 +276,25 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     var current = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").ToArray();
                     if (current.Length > count) return true;
                     AutomationElement add = window.FindFirstDescendant(cf => cf.ByName("Add alarm").And(cf.ByControlType(ControlType.Button)));
-                    if (add?.IsEnabled == true) Press(ide, add, VirtualKeyShort.SPACE);
+                    if (add?.IsEnabled != true) return false;
+                    Press(ide, add, VirtualKeyShort.SPACE);
+                    // A key is queued input, not acknowledgement. Do not submit
+                    // another Add until this one creates an alarm or explicitly
+                    // refuses stale saved inputs. Otherwise a fast second key
+                    // can create two alarms using the previous defaults.
+                    VisualStudioSession.Wait(() =>
+                        XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Count() > count
+                        || (add.IsEnabled && window.FindAllDescendants(cf => cf.ByControlType(ControlType.Text)).Any(item =>
+                            item.Name.StartsWith("Wait for current project analysis before adding", StringComparison.Ordinal)
+                            || item.Name.StartsWith("The source, draft or saved configuration changed.", StringComparison.Ordinal)
+                            || item.Name.StartsWith("The source, draft or project context changed.", StringComparison.Ordinal))),
+                        "alarm creation acknowledgement");
+                    if (XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Count() > count) return true;
+                    Press(ide, add, VirtualKeyShort.ESCAPE); // Clear the acknowledged refusal before retrying.
                     return false;
                 }, "alarm creation with captured saved defaults");
                 count++;
+                Assert.Equal(count, XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Count());
                 var group = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Last().Element("TestProcedure").Elements("Group").Single();
                 Assert.Equal(name, (string)group.Attribute("Name"));
             }

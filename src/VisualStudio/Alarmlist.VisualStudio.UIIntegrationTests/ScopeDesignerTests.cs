@@ -65,6 +65,21 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             divider.Focus(); ide.RequireForeground(); Keyboard.Type(VirtualKeyShort.DOWN);
             VisualStudioSession.Wait(() => divider.BoundingRectangle.Top > top + 5, "keyboard scope resize");
             Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            double keyboardTop = divider.BoundingRectangle.Top;
+            var bounds = divider.BoundingRectangle;
+            ide.RequireForeground();
+            Mouse.MoveTo(new System.Drawing.Point(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2));
+            Mouse.Down();
+            try
+            {
+                FlaUI.Core.Input.Wait.UntilInputIsProcessed();
+                Mouse.MoveBy(0, 36);
+                FlaUI.Core.Input.Wait.UntilInputIsProcessed();
+            }
+            finally { Mouse.Up(); }
+            VisualStudioSession.Wait(() => divider.BoundingRectangle.Top > keyboardTop + 20, "centered grip mouse resize");
+            Assert.Equal("private scope draft", code.Text);
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
             file.Focus(); ide.RequireForeground(); Keyboard.Type(VirtualKeyShort.SPACE);
             VisualStudioSession.Wait(() => file.Patterns.Toggle.Pattern.ToggleState == ToggleState.Off, "collapse file settings");
             Assert.Equal("private scope draft", code.Text); Assert.Equal(source, ide.ReadText(workspace.AlarmPath));

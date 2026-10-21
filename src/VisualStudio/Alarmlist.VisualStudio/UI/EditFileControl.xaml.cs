@@ -56,6 +56,42 @@ namespace Alarmlist.VisualStudio
             if (IsKeyboardFocusWithin && !Equals((args.NewFocus as FrameworkElement)?.Tag, "PreserveDraft")) ViewModel.CommitPending();
         }
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
+        private void OnExpandProcedureGroups(object sender, RoutedEventArgs args)
+        {
+            foreach (ProcedureSectionViewModel section in ViewModel.ProcedureSections) section.IsExpanded = true;
+        }
+        private void OnCollapseProcedureGroups(object sender, RoutedEventArgs args)
+        {
+            foreach (ProcedureSectionViewModel section in ViewModel.ProcedureSections) section.IsExpanded = false;
+        }
+        private void OnNextProcedureMatch(object sender, RoutedEventArgs args) => MoveProcedureMatch(1);
+        private void OnPreviousProcedureMatch(object sender, RoutedEventArgs args) => MoveProcedureMatch(-1);
+        private void MoveProcedureMatch(int direction)
+        {
+            ViewModel.MoveProcedureMatch(direction);
+            RevealProcedureMatch();
+        }
+        private void OnProcedureMatchSelected(object sender, SelectionChangedEventArgs args)
+        {
+            if (ViewModel.IsRefreshingProcedureSearch) return;
+            if (ProcedureSearchResults.SelectedItem is ProcedureSearchMatch match)
+            {
+                ViewModel.SelectedProcedureMatch = match;
+                RevealProcedureMatch();
+            }
+        }
+        private void RevealProcedureMatch()
+        {
+            ProcedureSearchMatch match = ViewModel.SelectedProcedureMatch;
+            if (match == null || !ViewModel.ProcedureMatches.Contains(match)) return;
+            match.Section.IsExpanded = true;
+            match.Section.ShowCleared = true;
+            UpdateLayout();
+            FrameworkElement target = Children(this).OfType<FrameworkElement>().FirstOrDefault(element =>
+                ReferenceEquals(element.DataContext, match.Target) && element.IsVisible
+                && !(element is ContentPresenter));
+            target?.BringIntoView();
+        }
         private void OnUnloaded(object sender, RoutedEventArgs args)
         {
             _inputVersion++;
@@ -115,6 +151,8 @@ namespace Alarmlist.VisualStudio
                 // input anywhere in the shell still cancels this focus request.
                 || (button.IsLoaded && Keyboard.FocusedElement != null && !IsKeyboardFocusWithin)) return;
 
+            if (request.Section != null) request.Section.IsExpanded = true;
+            UpdateLayout();
             if (request.Index == -2)
             {
                 FrameworkElement groupTarget = request.Section == null ? NewGroupIdEditor : Children(this).OfType<ExpressionTextBox>()
@@ -141,6 +179,11 @@ namespace Alarmlist.VisualStudio
         private void OnPreviewKeyDown(object sender, KeyEventArgs args)
         {
             _inputVersion++;
+            if (ProcedureSearchEditor.IsKeyboardFocusWithin || ProcedureSearchResults.IsKeyboardFocusWithin)
+            {
+                if (args.Key == Key.Escape) { ViewModel.ProcedureSearch = string.Empty; ProcedureSearchEditor.Focus(); args.Handled = true; return; }
+                if (args.Key == Key.Enter) { MoveProcedureMatch(Keyboard.Modifiers == ModifierKeys.Shift ? -1 : 1); args.Handled = true; return; }
+            }
             if (args.OriginalSource is ReferenceComboBox reference && reference.HandleChoiceKey(args.Key, Keyboard.Modifiers))
             { args.Handled = true; return; }
             if (args.OriginalSource is ExpressionTextBox expression && expression.HandleCompletionKey(args.Key, Keyboard.Modifiers))
@@ -151,6 +194,11 @@ namespace Alarmlist.VisualStudio
         internal bool HandleReturnCommand(bool execute, ModifierKeys modifiers)
         {
             if (!IsKeyboardFocusWithin || !(Keyboard.FocusedElement is TextBox text)) return false;
+            if (ReferenceEquals(text, ProcedureSearchEditor))
+            {
+                if (execute) MoveProcedureMatch(modifiers == ModifierKeys.Shift ? -1 : 1);
+                return true;
+            }
             if (!execute || text.IsReadOnly) return true;
             _inputVersion++;
             if (text is ReferenceComboBox reference && reference.HandleChoiceKey(Key.Enter, modifiers)) return true;
