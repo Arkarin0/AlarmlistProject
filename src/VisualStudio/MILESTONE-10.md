@@ -1,6 +1,6 @@
 # Milestone ten: procedure-group presentation and splitter refinement
 
-Status: implementation authorized; iteration 1 complete, iterations 2–3 pending.
+Status: iterations 1–2 complete; iteration 3 pending.
 
 ## Outcome and confirmed design
 
@@ -66,3 +66,44 @@ Recorded the approved design and iteration gates, linked this plan from AGENTS.m
 and assigned the existing future-feature proposal to milestone ten. Reviewed the
 documentation diff, relative links and consistency with milestone-eight semantics.
 Tests were not run: this iteration changes documentation only. No blocker remains.
+
+### Iteration 2 — group boundaries and editable headings (2026-10-21)
+
+Moved the existing expression editor into a themed GroupBox header and removed
+the duplicate title row. Headers retain the original field/context-menu/navigation
+bindings, completion and inherited-value behavior. A bounded header template wraps
+long expressions; each group shows its read-only ID and existing wrapping actions.
+
+Added WPF coverage for inherited/raw/resolved titles, localized long headings,
+missing/empty/error titles, theme resources, stable controls/selection across
+refresh, Escape/Enter, source selection and Undo. Extended the native procedure
+scenario with heading completion/navigation and ID/raw/resolved presentation.
+
+Evidence so far (not iteration completion):
+
+- Focused editor test filter `FullyQualifiedName~Group|FullyQualifiedName~Procedure`:
+  **46 passed net472**, zero failures/skips.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --verbosity minimal -m:1 -nr:false`: **557 passed net472**, zero failures/skips.
+- Initial sandbox build stopped producing output and was cancelled. The normal
+  Windows-access single-worker build/test completed successfully. No repository
+  build configuration was changed.
+- Initial VS2022 native run failed in the pre-existing creation-defaults helper:
+  polling queued another Add key before acknowledgement, creating two alarms.
+  The helper now waits for creation or an explicit stale-input refusal before
+  retrying, clears acknowledged refusals, and asserts the exact alarm count.
+  No application behavior was changed for this test correction.
+- `eng/test-visualstudio.ps1 -VisualStudioPath <host> -Filter 'Area=Procedures'`:
+  **1 passed per host**, zero failures/skips. Final TestResults runs:
+  `b3a74da8a1654c7a87ab0c11f4d37ff1` (VS2022),
+  `591e70f29cef411d84cabee647c2cb57` (VS2026). The failure evidence remains in
+  `c78cb4e5717547eab6720029e0f4b299`.
+- After improving render framing, reran `FullyQualifiedName~GroupHeading`:
+  **4 passed net472**. Reviewed complete GroupBox images under
+  `artifacts/log/Debug/Milestone10/iteration2/` for light (900 DIP, 100%),
+  dark (650 DIP, 150%) and high-contrast (440 DIP, 200%) resource palettes.
+  Headings wrap, IDs/actions remain separated and borders remain visible.
+  These are WPF resource-palette/scaled renders, not a claim of changing the OS
+  accessibility theme or display DPI. Native interaction was verified separately.
+- Updated designer usage documentation and reviewed the final diff/whitespace.
+  No iteration-2 blocker remains. Splitter and integrated acceptance follow.

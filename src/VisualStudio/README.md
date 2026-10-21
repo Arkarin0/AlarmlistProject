@@ -420,7 +420,10 @@ never rewrite existing alarms. See the [creation settings](../SDK/Alarmlist.SDK/
 
 Expand **Test procedure** below the alarm fields to edit ordered named groups.
 Enter a stable group ID and select **Add group**; IDs compare ignoring case.
-Edit the title with the same expression editor and completion as alarm fields.
+Each group has its own bordered area. Edit its heading with the same expression
+editor and completion as alarm fields: it shows resolved text normally and the
+raw expression when focused. The read-only **Group ID** remains visible beneath
+the heading; editing the title never renames the group. Long headings wrap.
 An absent title inherits; an explicit empty title displays the group ID. The
 title context menu can remove a local title or navigate to its source.
 Move controls reorder newly introduced local groups; inherited order stays fixed.
