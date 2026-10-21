@@ -34,10 +34,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Theory]
-        [InlineData(900)]
-        [InlineData(650)]
-        [InlineData(440)]
-        public void DesignerScopesScrollCollapseAndResizeWithoutCommittingDrafts(int width)
+        [InlineData("Light", 900, 1.0)]
+        [InlineData("Dark", 650, 1.5)]
+        [InlineData("HighContrast", 440, 2.0)]
+        public void DesignerScopesScrollCollapseAndResizeWithoutCommittingDrafts(string palette, int width, double scale)
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
@@ -47,16 +47,22 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 using (var host = ExpressionHost())
                 {
                     var control = new EditFileControl(session.View) { Width = width, Height = 850 };
-                    SetThemeBrush(control, "ToolWindowTextBrushKey", Brushes.WhiteSmoke);
-                    SetThemeBrush(control, "ComboBoxTextBrushKey", Brushes.WhiteSmoke);
-                    SetThemeBrush(control, "ComboBoxBackgroundBrushKey", Brushes.DimGray);
-                    SetThemeBrush(control, "ToolWindowBackgroundBrushKey", Brushes.Black);
+                    Brush text = palette == "Light" ? Brushes.Black : palette == "Dark" ? Brushes.WhiteSmoke : Brushes.Yellow;
+                    Brush background = palette == "Light" ? Brushes.White : Brushes.Black;
+                    foreach (string key in new[] { "ToolWindowTextBrushKey", "ComboBoxTextBrushKey", "ToolWindowBorderBrushKey" }) SetThemeBrush(control, key, text);
+                    foreach (string key in new[] { "ToolWindowBackgroundBrushKey", "ComboBoxBackgroundBrushKey" }) SetThemeBrush(control, key, background);
                     host.RootVisual = control; InheritanceAdornerTests.Pump();
                     var file = (ScrollViewer)control.FindName("FileAreaScroll");
                     var alarm = (ScrollViewer)control.FindName("AlarmAreaScroll");
                     var divider = (GridSplitter)control.FindName("ScopeDivider");
                     var fileHeader = (ToggleButton)control.FindName("FileAreaHeader");
                     var alarmHeader = (ToggleButton)control.FindName("AlarmAreaHeader");
+                    var grip = Assert.IsType<Border>(divider.Template.FindName("ScopeGrip", divider));
+                    Assert.False(grip.IsHitTestVisible); Assert.False(grip.Focusable);
+                    Assert.Same(text, grip.BorderBrush);
+                    Assert.Equal(divider.ActualWidth / 2, grip.TranslatePoint(new Point(grip.ActualWidth / 2, 0), divider).X, 5);
+                    Assert.DoesNotContain(VisualChildren(divider).OfType<UIElement>(), element => element.Focusable);
+                    RenderPreview(divider, palette + "-scope-grip", scale);
                     Assert.True(file.ScrollableHeight > 0); Assert.True(alarm.ScrollableHeight > 0);
                     file.ScrollToEnd(); InheritanceAdornerTests.Pump();
                     Assert.True(file.VerticalOffset > 0); Assert.Equal(0, alarm.VerticalOffset);
@@ -65,6 +71,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.True(session.View.HasPending);
                     double before = file.ActualHeight;
                     Assert.True(divider.Focus());
+                    InheritanceAdornerTests.Pump();
+                    Assert.Same(SystemColors.HighlightBrush, divider.Background);
+                    Assert.Same(SystemColors.HighlightTextBrush, grip.BorderBrush);
+                    RenderPreview(divider, palette + "-scope-grip-focused", scale);
                     divider.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, host, 0, Key.Down) { RoutedEvent = Keyboard.KeyDownEvent });
                     InheritanceAdornerTests.Pump();
                     divider.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, host, 0, Key.Down) { RoutedEvent = Keyboard.KeyUpEvent });
@@ -82,7 +92,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     session.View.DesignerLayout.FileExpanded = true; session.View.DesignerLayout.AlarmExpanded = true;
                     InheritanceAdornerTests.Pump(); Assert.Equal("draft", code.Text);
                     file.ScrollToTop(); alarm.ScrollToTop(); InheritanceAdornerTests.Pump();
-                    RenderPreview(control, "scopes-" + width, 1);
+                    RenderPreview(control, palette + "-scopes-" + width, scale);
                     host.RootVisual = null; InheritanceAdornerTests.Pump();
                     session.View.DesignerLayout.FileExpanded = false;
                     Assert.Equal(Visibility.Visible, file.Visibility); // Unloaded view released its settings subscription.

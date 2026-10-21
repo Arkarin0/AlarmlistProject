@@ -210,12 +210,30 @@
       </Expander>
     </StackPanel>
     </ScrollViewer>
-    <GridSplitter x:Name="ScopeDivider" Grid.Row="2" Height="7" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+    <GridSplitter x:Name="ScopeDivider" Grid.Row="2" Height="11" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
                   Tag="PreserveDraft" Focusable="True" KeyboardIncrement="12" DragCompleted="OnScopeDragCompleted" KeyUp="OnScopeDividerKeyUp"
+                  AutomationProperties.HelpText="Drag to resize file and alarm areas, or use Up/Down while focused. Drafts are preserved."
                   AutomationProperties.Name="Resize file and alarm areas" ToolTip="Drag to resize file and alarm areas, or focus this divider and use Up/Down. Drafts are preserved.">
       <GridSplitter.Style><Style TargetType="GridSplitter">
-        <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
-        <Style.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" /></Trigger></Style.Triggers>
+        <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="GridSplitter">
+          <Grid Background="{TemplateBinding Background}">
+            <Border Height="1" VerticalAlignment="Center" Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" IsHitTestVisible="False" />
+            <Border HorizontalAlignment="Center" VerticalAlignment="Center" Padding="8,0" Background="{TemplateBinding Background}" IsHitTestVisible="False">
+              <Border x:Name="ScopeGrip" Width="32" Height="5" BorderThickness="0,1,0,1" BorderBrush="{TemplateBinding Foreground}" />
+            </Border>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ScopeGrip" Property="BorderThickness" Value="0,2,0,2" /></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+        <Style.Triggers>
+          <Trigger Property="IsKeyboardFocused" Value="True">
+            <Setter Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}" />
+          </Trigger>
+        </Style.Triggers>
       </Style></GridSplitter.Style>
     </GridSplitter>
     <Grid Grid.Row="3">

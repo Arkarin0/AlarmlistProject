@@ -336,7 +336,8 @@ properties and procedures for the selected alarm. Each area scrolls independentl
 In either parameter list, right-click a row or focus a cell and press Shift+F10
 for assignment, explicit-empty, fallback and declaration actions. Cell menus also
 retain normal text-editing commands. Add and Remove remain above each list.
-Use either header to collapse its area; drag the divider or focus it and use
+Use either header to collapse its area; drag the divider's centered grip (or
+anywhere along the divider), or focus it and use
 Up/Down to resize. These actions preserve private drafts. Collapse states and the
 divider position are restored from Visual Studio user settings. A single project
 context is shown as a label; linked files with multiple contexts get a labelled

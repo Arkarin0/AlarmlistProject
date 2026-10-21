@@ -150,6 +150,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         private static void CheckGroupAuthoring(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
         {
+            // A restored floating preview can cover the designer in screenshots.
+            foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
             string original = ide.ReadText(workspace.AlarmPath);
             foreach (string name in new[] { "Startup", "Shutdown" })
             {

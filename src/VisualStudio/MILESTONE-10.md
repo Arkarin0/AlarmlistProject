@@ -1,6 +1,7 @@
 # Milestone ten: procedure-group presentation and splitter refinement
 
-Status: iterations 1–2 complete; iteration 3 pending.
+Status: all three authorized iterations complete. Scoped automated acceptance
+passed on VS2022 and VS2026; historical manual/vendor/release gates remain separate.
 
 ## Outcome and confirmed design
 
@@ -79,7 +80,7 @@ missing/empty/error titles, theme resources, stable controls/selection across
 refresh, Escape/Enter, source selection and Undo. Extended the native procedure
 scenario with heading completion/navigation and ID/raw/resolved presentation.
 
-Evidence so far (not iteration completion):
+Validation and review:
 
 - Focused editor test filter `FullyQualifiedName~Group|FullyQualifiedName~Procedure`:
   **46 passed net472**, zero failures/skips.
@@ -107,3 +108,50 @@ Evidence so far (not iteration completion):
   accessibility theme or display DPI. Native interaction was verified separately.
 - Updated designer usage documentation and reviewed the final diff/whitespace.
   No iteration-2 blocker remains. Splitter and integrated acceptance follow.
+
+### Iteration 3 — splitter grip and integrated acceptance (2026-10-21)
+
+Retained the existing scope GridSplitter and handlers; added a centered decorative
+two-line grip, themed hover/focus feedback, accessible keyboard help and an 11-DIP
+full-width drag area. No extra focusable control or layout preference is added.
+Scope tests now cover grip alignment, theme/focus colors, draft-safe resize and
+palette/scaled renders. The native scope scenario also drags the centered grip
+with a private field draft and verifies unchanged source. Native group captures
+hide the owned IDE's floating preview first so it cannot obscure the designer.
+Updated the usage guide to describe the grip and full-width drag target.
+
+Validation: full editor suite with the splitter
+change passed **557 net472 tests**, zero failures/skips, using the iteration-2
+command with `--verbosity quiet`. After allowing the focus render to settle,
+three scope-layout cases passed again. Final contrast review replaced hover
+background changes with a thicker grip so matching high-contrast foreground and
+border brushes cannot hide it; the seven group-heading/scope-layout cases passed
+after that final style adjustment.
+
+Final native acceptance:
+
+- `eng/test-visualstudio.ps1 -VisualStudioPath <host> -Filter
+  'Area=Procedures|Area=Scopes'`: **2 passed per host**, zero failures/skips.
+  Final TestResults runs: `e2285d3556284a1087ef16d3868f8b74` (VS2022),
+  `f0c5657f099d4aa5bdd2e74aa6039539` (VS2026). The earlier VS2022 splitter
+  run also passed both cases (`2f757a03ff13421394cc9447a0a8aec1`).
+- Native scope cases verify keyboard and centered-grip mouse resize with a private
+  draft, collapse/reopen, persisted proportions and unchanged source/output bytes.
+  Procedure cases retain completion, title navigation, group/entry authoring,
+  Undo and saved creation-default refresh. Desktop suites ran sequentially.
+- Reviewed WPF group/scope/grip renders under
+  `artifacts/log/Debug/Milestone10/iteration3/` at the same three palettes,
+  widths and scales as iteration 2, including settled keyboard-focus colors.
+  Reviewed native group screenshots as additional presentation evidence.
+  Palette and scale coverage uses WPF resources/render scaling; it does not
+  claim a separate OS high-contrast or per-monitor DPI-switching exercise.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj
+  --verbosity quiet -m:1 -nr:false`: **13 passed net472 and 13 passed net8.0**,
+  zero failures/skips, including a final run against the rebuilt VSIX after the
+  hover adjustment. Focused final layout filter:
+  `FullyQualifiedName~DesignerScopesScrollCollapse|FullyQualifiedName~GroupHeading`
+  with the editor unit project and the same switches: **7 passed net472**.
+- Reviewed final diff, whitespace, documentation paths and acceptance coverage.
+  No implementation gate remains. Compiler/SDK-wide suites were not rerun because
+  their implementation/contracts were unchanged; package-consumer validation was
+  included. No publication occurred. Existing release/vendor gates are unaffected.
