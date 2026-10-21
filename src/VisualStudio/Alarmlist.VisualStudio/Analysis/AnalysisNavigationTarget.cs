@@ -8,13 +8,17 @@ namespace Alarmlist.VisualStudio.Analysis
     /// <summary>Resolves a captured location without disk access or compiler objects.</summary>
     internal sealed class AnalysisNavigationTarget
     {
-        private AnalysisNavigationTarget(AnalysisLocation location, string text, string caption, bool readOnly)
-        { Location = location; Text = text; Caption = caption; IsReadOnlyDefinition = readOnly; }
+        private AnalysisNavigationTarget(AnalysisLocation location, string text, string caption, bool readOnly, bool xml = true)
+        { Location = location; Text = text; Caption = caption; IsReadOnlyDefinition = readOnly; IsXml = xml; }
 
         public AnalysisLocation Location { get; }
         public string Text { get; }
         public string Caption { get; }
         public bool IsReadOnlyDefinition { get; }
+        public bool IsXml { get; }
+
+        internal static AnalysisNavigationTarget ReadOnlyDocument(string text, string caption, bool xml) =>
+            new AnalysisNavigationTarget(new AnalysisLocation("package-content:" + caption, 1, 1, 1, 1, 0), text, caption, true, xml);
 
         public static AnalysisNavigationTarget Resolve(ProjectAnalysisState state, AnalysisLocation location)
         {

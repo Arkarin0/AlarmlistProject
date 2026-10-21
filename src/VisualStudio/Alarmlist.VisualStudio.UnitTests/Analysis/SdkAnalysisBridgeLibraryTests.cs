@@ -169,6 +169,11 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Equal("1.0.0", Assert.Single(packageGraph.Packages).Version);
                     Assert.True(packageGraph.Packages[0].IsDirect);
                     Assert.Empty(packageGraph.Packages[0].Dependencies);
+                    var content = Assert.Single(packageGraph.Packages[0].Contents);
+                    Assert.Equal("Library", content.Kind);
+                    Assert.Equal(artifact, content.FilePath);
+                    Assert.Equal(File.ReadAllBytes(artifact), content.ReadCurrentBytes());
+                    Assert.Contains(artifact, packageGraph.WatchedPaths);
                     resolved = bridge.ResolvePackages(assets, assetsPath, "native,Version=v0.0", new[] { "Saved.Library" }, new[] { "1.0" });
                     Assert.True(resolved.Availability == AnalysisAvailability.Available, resolved.Message);
                     Assert.Equal(artifact, Assert.Single(resolved.Packages).FilePath);

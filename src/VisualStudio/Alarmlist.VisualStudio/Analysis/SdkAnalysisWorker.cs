@@ -174,31 +174,38 @@ namespace Alarmlist.VisualStudio.Analysis
         }
 
         public PackageGraphResponse ResolvePackageGraph(string assetsText, string assetsPath, string frameworkMoniker,
-            string[] packageIds, string[] packageVersions)
+            string[] packageIds, string[] packageVersions, string[] analyzerPaths = null)
         {
+            var watchedPaths = new List<string>();
             AppDomain.CurrentDomain.AssemblyResolve += ResolvePackageRuntimeDependency;
             try
             {
                 Type resolver = Assembly.LoadFrom(Path.Combine(Path.GetDirectoryName(_contextType.Assembly.Location), "AlarmList.MSBuild.dll"))
                     .GetType("Alarmlist.MSBuild.LibraryPackageResolver", true);
-                MethodInfo method = resolver.GetMethod("ResolveGraph");
+                MethodInfo method = resolver.GetMethod("ResolveContentGraph") ?? resolver.GetMethod("ResolveGraph");
                 if (method == null) throw new NotSupportedException("The SDK does not expose a package graph.");
-                var packages = (System.Collections.IEnumerable)method.Invoke(null,
-                    new object[] { assetsText, assetsPath, frameworkMoniker, packageIds, packageVersions });
+                var arguments = new object[] { assetsText, assetsPath, frameworkMoniker, packageIds, packageVersions };
+                if (method.Name == "ResolveContentGraph") arguments = arguments.Concat(new object[] { analyzerPaths, new Action<string>(watchedPaths.Add) }).ToArray();
+                var packages = (System.Collections.IEnumerable)method.Invoke(null, arguments);
                 return new PackageGraphResponse(AnalysisAvailability.Available, null, packages.Cast<object>().Select(package =>
                 {
                     Type type = package.GetType();
                     return new AnalysisPackageNode((string)type.GetProperty("PackageId").GetValue(package),
                         (string)type.GetProperty("PackageVersion").GetValue(package),
                         (bool)type.GetProperty("IsDirect").GetValue(package),
-                        ((System.Collections.IEnumerable)type.GetProperty("Dependencies").GetValue(package)).Cast<string>());
-                }));
+                        ((System.Collections.IEnumerable)type.GetProperty("Dependencies").GetValue(package)).Cast<string>(),
+                        ((System.Collections.IEnumerable)type.GetProperty("Contents")?.GetValue(package))?.Cast<object>().Select(content =>
+                        {
+                            string Value(string property) => (string)content.GetType().GetProperty(property).GetValue(content);
+                            return new AnalysisPackageContent(Value("PackageDirectory"), Value("RelativePath"), Value("Kind"), Value("ContentHash"));
+                        }));
+                }), watchedPaths);
             }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(Unwrap(exception)))
             {
                 Exception failure = Unwrap(exception);
                 return new PackageGraphResponse(failure is NotSupportedException ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.InvalidInput,
-                    failure.Message);
+                    failure.Message, watchedPaths: watchedPaths);
             }
             finally { AppDomain.CurrentDomain.AssemblyResolve -= ResolvePackageRuntimeDependency; }
         }

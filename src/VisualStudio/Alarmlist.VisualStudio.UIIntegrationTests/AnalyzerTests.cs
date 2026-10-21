@@ -76,10 +76,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.ExecuteCommand("View.SolutionExplorer");
             using var automation = new UIA3Automation();
             var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
-            AutomationElement Find(AutomationElement parent, string first, string second = null)
+            AutomationElement Find(AutomationElement parent, string first, string second = null, bool direct = false)
             {
                 AutomationElement result = null;
-                VisualStudioSession.Wait(() => (result = parent.FindFirstDescendant(cf =>
+                VisualStudioSession.Wait(() => (result = direct ? parent.FindFirstChild(cf =>
+                    (cf.ByName(first).Or(cf.ByName(second ?? first))).And(cf.ByControlType(ControlType.TreeItem))) : parent.FindFirstDescendant(cf =>
                     (cf.ByName(first).Or(cf.ByName(second ?? first))).And(cf.ByControlType(ControlType.TreeItem)))) != null, first);
                 return result;
             }
@@ -87,7 +88,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             project.AsTreeItem().Expand();
             var dependencies = Find(project, "Dependencies", "Abhängigkeiten");
             dependencies.AsTreeItem().Expand();
-            var analyzers = Find(dependencies, "Analyzers", "Analysetools");
+            var analyzers = Find(dependencies, "Analyzers", "Analysetools", direct: true);
             analyzers.AsTreeItem().Expand();
             var assembly = Find(analyzers, "Alarmlist.SampleAnalyzer");
             assembly.AsTreeItem().Expand();

@@ -39,7 +39,7 @@ namespace Alarmlist.VisualStudio.Editor
         public IVsWindowFrame Open(IVsUIShellOpenDocument opener, AnalysisNavigationTarget target)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            string moniker = Path.Combine(Path.GetTempPath(), "AlarmlistDefinitions", Guid.NewGuid().ToString("N") + ".xml");
+            string moniker = Path.Combine(Path.GetTempPath(), "AlarmlistDefinitions", Guid.NewGuid().ToString("N") + (target.IsXml ? ".xml" : ".txt"));
             _pending.Add(moniker, target);
             try
             {
@@ -64,8 +64,12 @@ namespace Alarmlist.VisualStudio.Editor
             if (!_pending.TryGetValue(moniker, out AnalysisNavigationTarget target) || existingData != IntPtr.Zero) return VSConstants.E_INVALIDARG;
             var lines = (IVsTextLines)_adapters.CreateVsTextBufferAdapter(_site);
             ErrorHandler.ThrowOnFailure(lines.InitializeContent(target.Text, target.Text.Length));
-            Guid language = AlmxEditorFactory.XmlLanguageGuid;
-            ErrorHandler.ThrowOnFailure(lines.SetLanguageServiceID(ref language));
+            if (target.IsXml)
+            {
+                Guid language = AlmxEditorFactory.XmlLanguageGuid;
+                ErrorHandler.ThrowOnFailure(lines.SetLanguageServiceID(ref language));
+            }
+            else caption = " [read-only]";
             ITextBuffer buffer = _adapters.GetDocumentBuffer(lines);
             buffer.Properties.AddProperty(typeof(GeneratedLibraryDefinition), target);
             using (IReadOnlyRegionEdit edit = buffer.CreateReadOnlyRegionEdit())

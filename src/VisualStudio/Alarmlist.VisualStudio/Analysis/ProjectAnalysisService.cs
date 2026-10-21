@@ -154,7 +154,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     var resources = await _inputs.CaptureResourcesAsync(project.Resources, token).ConfigureAwait(false);
                     var lookups = await _inputs.CaptureLookupsAsync(project.Lookups, token).ConfigureAwait(false);
                     var configurations = await _inputs.CaptureConfigurationsAsync(project.Inputs, token).ConfigureAwait(false);
-                    var dependencyPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    var dependencyPaths = new HashSet<string>(packageGraph?.WatchedPaths ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
                     var dependencyGlobs = new List<AnalysisDiscoveryGlob>();
                     void ObserveDependencies(IEnumerable<string> paths)
                     {

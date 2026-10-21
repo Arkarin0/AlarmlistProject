@@ -11,4 +11,7 @@
   <data name="Pending"><value>Restore pending</value></data>
   <data name="Unresolved"><value>Unresolved</value></data>
   <data name="Transitive"><value>Transitive</value></data>
+  <data name="BuildFiles"><value>Build files</value></data>
+  <data name="AlarmLibraries"><value>Alarm libraries</value></data>
+  <data name="Documents"><value>Documents</value></data>
 </root>

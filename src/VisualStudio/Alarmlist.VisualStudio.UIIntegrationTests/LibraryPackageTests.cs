@@ -3,6 +3,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -78,6 +79,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 Find("Button_Install").AsButton().Invoke();
                 WaitForVersion("1.0.0");
                 VerifyCompiledPackage("1.0.0");
+                VerifyContents("1.0.0");
                 var transitive = window.FindAllDescendants(cf => cf.ByControlType(ControlType.TreeItem))
                     .Single(item => item.Name.StartsWith(CommonId + " (1.0.0)", StringComparison.Ordinal));
                 transitive.AsTreeItem().Select();
@@ -95,6 +97,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 Find("Project_Button_Update").AsButton().Invoke();
                 WaitForVersion("2.0.0");
                 VerifyCompiledPackage("2.0.0");
+                VerifyContents("2.0.0");
                 Find("Project_Button_Uninstall").AsButton().Invoke();
                 WaitForVersion(null);
                 VerifyPackageTree(null);
@@ -202,6 +205,22 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 File.WriteAllText(Path.Combine(workspace.DirectoryPath, "package-" + version + ".log"), output);
                 Assert.True(process.ExitCode == 0, output);
                 Assert.True(File.Exists(Path.Combine(workspace.DirectoryPath, "feed", id + "." + version + ".nupkg")));
+                if (!common)
+                {
+                    using var archive = ZipFile.Open(Path.Combine(workspace.DirectoryPath, "feed", id + "." + version + ".nupkg"), ZipArchiveMode.Update);
+                    var manifestEntry = archive.Entries.Single(item => item.FullName.EndsWith(".nuspec", StringComparison.Ordinal));
+                    XDocument manifest;
+                    using (var stream = manifestEntry.Open()) manifest = XDocument.Load(stream);
+                    var metadata = manifest.Descendants().Single(item => item.Name.LocalName == "metadata");
+                    metadata.Add(new XElement(metadata.Name.Namespace + "readme", "README.md"));
+                    using (var stream = manifestEntry.Open()) { stream.SetLength(0); manifest.Save(stream); }
+                    void AddText(string path, string text)
+                    { using var writer = new StreamWriter(archive.CreateEntry(path).Open()); writer.Write(text); }
+                    AddText("README.md", "Read-only package README " + version);
+                    AddText("docs/Guide.html", "<html><script>document.title='MUST_NOT_EXECUTE';</script>Guide " + version + "</html>");
+                    AddText("build/" + id + ".props", "<Project><PropertyGroup><PackageContentMarker>" + version + "</PackageContentMarker></PropertyGroup></Project>");
+                    AddText("build/" + id + ".targets", "<Project><Target Name='PackageContentBuildMarker' BeforeTargets='Build' Condition=\"'$(DesignTimeBuild)' != 'true'\"><WriteLinesToFile File='$(MSBuildProjectDirectory)/package-builds.txt' Lines='Build' Overwrite='false'/></Target></Project>");
+                }
             }
 
             void VerifyCompiledPackage(string version)
@@ -211,6 +230,39 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 XElement imported = XDocument.Load(workspace.OutputPath).Root.Elements("Alarm")
                     .Single(alarm => alarm.Element("FullyQualifiedName")?.Value == "Library.Imported");
                 Assert.Equal("Native package " + version, imported.Element("Name").Value);
+            }
+
+            void VerifyContents(string version)
+            {
+                byte[] source = File.ReadAllBytes(workspace.AlarmPath), output = File.ReadAllBytes(workspace.OutputPath);
+                string packageRoot = Path.Combine(workspace.DirectoryPath, ".packages", PackageId.ToLowerInvariant(), version);
+                string marker = Path.Combine(workspace.ProjectDirectory, "package-builds.txt");
+                byte[] builds = File.ReadAllBytes(marker);
+                var files = Directory.GetFiles(packageRoot, "*", SearchOption.AllDirectories).ToDictionary(path => path, File.ReadAllBytes);
+                var readme = PackageContentUi.FindFile(ide, window, PackageId, version, "Documents", "Dokumente", "README.md");
+                var groups = readme.Parent.Parent.FindAllChildren(cf => cf.ByControlType(ControlType.TreeItem))
+                    .Where(item => !item.Name.StartsWith(CommonId + " (", StringComparison.Ordinal)).ToArray();
+                Assert.Equal(3, groups.Length);
+                foreach (var group in groups) { group.AsTreeItem().Expand(); Assert.NotEmpty(group.FindAllChildren(cf => cf.ByControlType(ControlType.TreeItem))); }
+                PackageContentUi.OpenReadOnly(ide, window,
+                    readme, "Read-only package README " + version);
+                PackageContentUi.OpenReadOnly(ide, window,
+                    PackageContentUi.FindFile(ide, window, PackageId, version, "Documents", "Dokumente", "docs/Guide.html"), "<script>document.title='MUST_NOT_EXECUTE';</script>", doubleClick: true);
+                PackageContentUi.OpenReadOnly(ide, window,
+                    PackageContentUi.FindFile(ide, window, PackageId, version, "Build files", "Builddateien", "build/" + PackageId + ".props"), "PackageContentMarker");
+                PackageContentUi.OpenReadOnly(ide, window,
+                    PackageContentUi.FindFile(ide, window, PackageId, version, "Alarm libraries", "Alarmbibliotheken", "alarmlist/" + PackageId + ".almlib"), "Native package " + version);
+                string guidePath = Path.Combine(packageRoot, "docs", "Guide.html");
+                File.Delete(guidePath);
+                PackageContentUi.FindFile(ide, window, PackageId, version, "Documents", "Dokumente", "docs/Guide.html", missing: true);
+                File.WriteAllBytes(guidePath, files[guidePath]);
+                PackageContentUi.FindFile(ide, window, PackageId, version, "Documents", "Dokumente", "docs/Guide.html");
+                foreach (EnvDTE.Window candidate in ide.Automation.Windows)
+                    if (candidate.Caption.Contains("NuGet") && candidate.Caption.Contains("Plant")) { candidate.Activate(); break; }
+                Assert.Equal(builds, File.ReadAllBytes(marker));
+                Assert.Equal(source, File.ReadAllBytes(workspace.AlarmPath));
+                Assert.Equal(output, File.ReadAllBytes(workspace.OutputPath));
+                foreach (var file in files) Assert.Equal(file.Value, File.ReadAllBytes(file.Key));
             }
 
             void VerifyPackageTree(string version, bool unresolved = false)

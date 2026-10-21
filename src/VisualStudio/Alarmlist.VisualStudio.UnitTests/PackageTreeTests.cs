@@ -124,15 +124,54 @@ namespace Alarmlist.VisualStudio.UnitTests
             finally { Directory.Delete(directory, true); }
         }
 
+        [Fact]
+        public void CapturedContentsKeepRecoveryWatchesAndRejectManifestChanges()
+        {
+            string directory = Path.Combine(Path.GetTempPath(), "AlarmlistPackageTree", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try
+            {
+                string assets = Path.Combine(directory, "project.assets.json");
+                string manifest = Path.Combine(directory, "Library.nuspec");
+                string document = Path.Combine(directory, "README.md");
+                File.WriteAllText(assets, "selected graph");
+                File.WriteAllText(manifest, "old manifest");
+                var content = new AnalysisPackageContent(directory, "Library.nuspec", "Manifest",
+                    Alarmlist.ConfigurationInput.PackageContentPath.Hash(File.ReadAllBytes(manifest)));
+                var missing = new AnalysisPackageContent(directory, "README.md", "Document", null);
+                var bridge = new GraphBridge { Response = new PackageGraphResponse(AnalysisAvailability.Available, null,
+                    new[] { new AnalysisPackageNode("Library", "1.0.0", true, Array.Empty<string>(), new[] { content, missing }) },
+                    new[] { manifest, document }) };
+                var project = new AnalysisProject(Path.Combine(directory, "Consumer.almproj"), "Debug", "compiler.dll", Array.Empty<string>(),
+                    packageReferences: new[] { Reference() }, assetsFile: assets);
+                var observed = new List<string>();
+                var graph = CapturedPackageGraph.Capture(project, bridge, observed.Add, CancellationToken.None);
+                Assert.Equal(3, graph.WatchedPaths.Count);
+                Assert.Contains(document, observed);
+                Assert.NotNull(graph.CurrentResponse);
+                File.WriteAllText(document, "recovered");
+                Assert.Null(graph.CurrentResponse);
+                File.Delete(document);
+                File.WriteAllText(manifest, "new manifest");
+                Assert.Null(graph.CurrentResponse);
+                bridge.Response = new PackageGraphResponse(AnalysisAvailability.InvalidInput, "Invalid manifest", watchedPaths: new[] { manifest });
+                var failed = CapturedPackageGraph.Capture(project, bridge, observed.Add, CancellationToken.None);
+                Assert.Contains(manifest, failed.WatchedPaths);
+                Assert.Equal(AnalysisAvailability.InvalidInput, failed.CurrentResponse.Availability);
+            }
+            finally { Directory.Delete(directory, true); }
+        }
+
         private sealed class GraphBridge : ISdkAnalysisBridge, ISdkPackageGraphBridge
         {
+            public PackageGraphResponse Response { get; set; }
             public string CompilerPath => "compiler.dll";
             public string CompilerIdentity => "test";
             public void Dispose() { }
             public AnalysisResponse Analyze(IEnumerable<AnalysisInput> inputs, CancellationToken cancellationToken, AnalysisContext context)
                 => throw new NotSupportedException();
-            public PackageGraphResponse ResolvePackageGraph(string text, string path, string framework, string[] ids, string[] versions, CancellationToken token)
-                => new PackageGraphResponse(AnalysisAvailability.Available, null, new[] { new AnalysisPackageNode(ids.Single(), "1.0.0", true, Array.Empty<string>()) });
+            public PackageGraphResponse ResolvePackageGraph(string text, string path, string framework, string[] ids, string[] versions, CancellationToken token, string[] analyzers = null)
+                => Response ?? new PackageGraphResponse(AnalysisAvailability.Available, null, new[] { new AnalysisPackageNode(ids.Single(), "1.0.0", true, Array.Empty<string>()) });
         }
     }
 }

@@ -12,7 +12,7 @@ using NuGet.Versioning;
 namespace Alarmlist.MSBuild
 {
     // Shared by the build task and the isolated IDE worker; no MSBuild task types in this API.
-    public static class LibraryPackageResolver
+    public static partial class LibraryPackageResolver
     {
         public static IReadOnlyList<ResolvedLibraryPackage> Resolve(string assetsText, string assetsPath, string frameworkMoniker,
             string[] packageIds, string[] packageVersions)
@@ -134,12 +134,15 @@ namespace Alarmlist.MSBuild
 
     public sealed class ResolvedPackageNode
     {
-        internal ResolvedPackageNode(string id, string version, bool isDirect, IEnumerable<string> dependencies)
-        { PackageId = id; PackageVersion = version; IsDirect = isDirect; Dependencies = Array.AsReadOnly(dependencies.ToArray()); }
+        internal ResolvedPackageNode(string id, string version, bool isDirect, IEnumerable<string> dependencies,
+            IEnumerable<ResolvedPackageContent> contents = null)
+        { PackageId = id; PackageVersion = version; IsDirect = isDirect; Dependencies = Array.AsReadOnly(dependencies.ToArray());
+            Contents = Array.AsReadOnly((contents ?? Array.Empty<ResolvedPackageContent>()).ToArray()); }
         public string PackageId { get; }
         public string PackageVersion { get; }
         public bool IsDirect { get; }
         public IReadOnlyList<string> Dependencies { get; }
+        public IReadOnlyList<ResolvedPackageContent> Contents { get; }
     }
 
     public sealed class ResolvedLibraryPackage

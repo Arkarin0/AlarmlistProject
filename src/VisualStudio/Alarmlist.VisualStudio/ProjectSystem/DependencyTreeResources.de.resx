@@ -11,4 +11,7 @@
   <data name="Unresolved"><value>Nicht aufgelöst</value></data>
   <data name="Transitive"><value>Transitiv</value></data>
   <data name="Analyzers"><value>Analysetools</value></data>
+  <data name="BuildFiles"><value>Builddateien</value></data>
+  <data name="AlarmLibraries"><value>Alarmbibliotheken</value></data>
+  <data name="Documents"><value>Dokumente</value></data>
 </root>

@@ -186,6 +186,11 @@ under Solution Explorer's Dependencies / Packages node. It obtains graph metadat
 from this SDK using the same framework/version selection as library consumption;
 failed restore leaves direct nodes visible as unresolved. Browsing does not build
 or pack the project.
+The matching extension groups selected build assets, registered Alarmlist analyzer
+DLLs, alarm libraries and declared documentation beneath each package. Include a
+`readme` in the nuspec or ship `.md`, `.txt` or `.html` files under `docs/` or
+`documentation/` to expose documentation. These entries open as read-only captured
+text (HTML is not rendered); analyzer entries show identity/path information.
 Project and package references consume library artifacts; see
 [milestone nine](../../VisualStudio/MILESTONE-9.md) for acceptance evidence and limitations.
 

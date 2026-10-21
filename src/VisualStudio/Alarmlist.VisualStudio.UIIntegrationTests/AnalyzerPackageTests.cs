@@ -82,6 +82,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             package.AsListBoxItem().Select();
             SelectVersion("1.0.0"); Find("Button_Install").AsButton().Invoke(); WaitInstalled("1.0.0");
             Verify(ide);
+            var packageAnalyzer = PackageContentUi.FindFile(ide, window, Id, "1.0.0", "Analyzers", "Analysetools", "tools/net472/" + Id + ".dll");
+            Assert.Single(packageAnalyzer.Parent.FindAllChildren(cf => cf.ByControlType(ControlType.TreeItem)));
+            PackageContentUi.OpenReadOnly(ide, window, packageAnalyzer, "Assembly: " + Id);
             SelectVersion("2.0.0"); Find("Project_Button_Update").AsButton().Invoke(); WaitInstalled("2.0.0");
             Verify(ide);
             string assetsPath = Path.Combine(workspace.ProjectDirectory, "obj", "project.assets.json");
@@ -250,15 +253,27 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         }
         private static void WaitNoRules(Window window, bool absent)
         {
-            VisualStudioSession.Wait(() =>
+            string observed = "not inspected";
+            try
             {
-                var group = window.FindFirstDescendant(cf => (cf.ByName("Analyzers").Or(cf.ByName("Analysetools"))).And(cf.ByControlType(ControlType.TreeItem)));
-                if (absent) return group == null;
-                group?.AsTreeItem().Expand();
-                var nodes = group?.FindAllChildren(cf => cf.ByControlType(ControlType.TreeItem));
-                return nodes?.Length == 1 && nodes[0].Name != Id
-                    && nodes[0].FindAllDescendants(cf => cf.ByControlType(ControlType.TreeItem)).Length == 0;
-            }, absent ? "empty analyzer group removed" : "unavailable analyzer has no stale rules");
+                VisualStudioSession.Wait(() =>
+                {
+                    var project = window.FindFirstDescendant(cf => cf.ByName("Plant").And(cf.ByControlType(ControlType.TreeItem)));
+                    project?.AsTreeItem().Expand();
+                    var root = project?.FindFirstDescendant(cf => (cf.ByName("Dependencies").Or(cf.ByName("Abhängigkeiten"))).And(cf.ByControlType(ControlType.TreeItem)));
+                    root?.AsTreeItem().Expand();
+                    var group = root?.FindFirstChild(cf => (cf.ByName("Analyzers").Or(cf.ByName("Analysetools"))).And(cf.ByControlType(ControlType.TreeItem)));
+                    if (absent) return group == null;
+                    group?.AsTreeItem().Expand();
+                    var nodes = group?.FindAllChildren(cf => cf.ByControlType(ControlType.TreeItem));
+                    observed = "root=" + root?.Name + "; group=" + group?.Name + "; nodes="
+                        + string.Join(" | ", nodes?.Select(node => node.Name + ":" + node.FindAllDescendants(cf => cf.ByControlType(ControlType.TreeItem)).Length)
+                            ?? Array.Empty<string>());
+                    return nodes?.Length == 1 && nodes[0].Name != Id
+                        && nodes[0].FindAllDescendants(cf => cf.ByControlType(ControlType.TreeItem)).Length == 0;
+                }, absent ? "empty analyzer group removed" : "unavailable analyzer has no stale rules");
+            }
+            catch (TimeoutException exception) { throw new TimeoutException(exception.Message + "; " + observed, exception); }
         }
     }
 }

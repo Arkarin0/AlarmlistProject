@@ -58,19 +58,22 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         private IProjectTree UpdatePackageChildren(IProjectTree parent, IReadOnlyList<PackageTreeEntry> entries)
         {
             string Identity(string id) => "AlarmlistPackageId=" + id.ToUpperInvariant();
-            foreach (var removed in parent.Children.Where(child => !entries.Any(entry => child.Flags.Contains(Identity(entry.Id)))).ToArray())
+            foreach (var removed in parent.Children.Where(child => !child.Flags.Contains("AlarmlistPackageContentGroup")
+                && !entries.Any(entry => child.Flags.Contains(Identity(entry.Id)))).ToArray())
                 parent = parent.Remove(removed);
             foreach (PackageTreeEntry entry in entries)
             {
                 var image = entry.Version == null ? KnownMonikers.ReferenceWarning : KnownMonikers.NuGet;
                 var moniker = new ProjectImageMoniker(image.Guid, image.Id);
                 var flags = ProjectTreeFlags.VirtualFolder | ProjectTreeFlags.Reference | ProjectTreeFlags.Create(Identity(entry.Id))
+                    | ProjectTreeFlags.Create("AlarmlistPackageVersion=" + (entry.Version ?? ""))
                     | ProjectTreeFlags.Create(entry.IsDirect ? "AlarmlistDirectPackage" : "AlarmlistTransitivePackage")
                     | (entry.Version == null ? ProjectTreeFlags.BrokenReference : ProjectTreeFlags.ResolvedReference);
                 var existing = parent.Children.FirstOrDefault(child => child.Flags.Contains(Identity(entry.Id)));
                 IProjectTree node = existing == null ? parent.Add(NewTree(entry.Caption, icon: moniker, flags: flags))
                     : existing.SetProperties(caption: entry.Caption, icon: moniker, flags: flags);
-                parent = UpdatePackageChildren(node, entry.Children).Parent;
+                node = UpdatePackageChildren(node, entry.Children);
+                parent = UpdatePackageContents(node, entry.ContentGroups).Parent;
             }
             return parent;
         }

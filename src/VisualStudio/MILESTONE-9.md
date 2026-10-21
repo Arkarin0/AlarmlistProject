@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–18 complete; iteration 19 remains planned for package-content presentation.
+Status: iterations 1–19 complete, including analyzer packages and package-content presentation.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2856,4 +2856,64 @@ Final implementation and acceptance evidence:
   --verbosity quiet`: **13 passed on each of net472/net8.0**, zero failures/skips.
 - Reviewed the diff, paths, public behavior documentation and repository guidance.
   LineA retains its original SHA-256 and is excluded from this iteration's commit.
-  No iteration-18 blocker remains. Iteration 19 has not started.
+  No iteration-18 blocker remains. Iteration 19 follows below.
+
+### Iteration 19 — selected package content and navigation (complete 2026-10-21)
+
+The SDK-domain resolver projects only restored declared files from selected reachable
+packages. Nonempty localized groups expose selected props/targets, registered
+host-compatible analyzers, alarm libraries, manifest README and docs/documentation
+Markdown, text and HTML. Immutable DTOs retain paths and byte hashes; manifest and
+missing-entry watches survive failed capture. No package-cache enumeration is used.
+
+Enter/double-click/Open route through CPS command handlers to the existing virtual
+read-only editor. HTML and build files remain plain text, `.almlib` uses captured
+artifact XML, and analyzer entries show detached identity/path information without
+loading a DLL. Navigation rechecks selection/configuration, bytes and containment,
+including rejection of reparse points. Native command routing follows the upstream
+[CPS default-action example](https://github.com/dotnet/project-system/blob/main/src/Microsoft.VisualStudio.ProjectSystem.Managed.VS/ProjectSystem/VS/Input/Commands/OpenProjectDesignerOnDefaultActionCommand.cs)
+using the pinned public ExportCommandGroup API. This reuses the existing virtual
+definition editor instead of introducing a second document lifecycle.
+
+Initial implementation checks (superseded by final acceptance below):
+
+- MSBuild unit suite: **91 passed on each of net472/net8.0**, zero failures/skips.
+- Initial focused bridge/tree/content suite: **59 passed net472**.
+- Initial native PackageManagement2022: **1 passed** (run
+  `94b9212ecdad4b3998c4d0507570b0a8`), covering read-only README/HTML/build/library
+  navigation, update/removal and unchanged source/package/output/build-hook bytes.
+- Expanded VS2026 run `680fb9beb8df423db2e57d0fa19a9bca` failed two readiness
+  assertions after tree refresh (unavailable analyzer and missing document).
+  Failure artifacts are retained; final reruns below passed after readiness fixes.
+- LineA retains its original SHA-256 and remains excluded from this iteration.
+
+Final regression checks and acceptance:
+
+- `dotnet test src/MSBuild/AlarmList.MSBuild.UnitTests/AlarmList.MSBuild.UnitTests.csproj
+  --verbosity quiet`: **91 passed per framework**, zero failures/skips.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --verbosity quiet`: **553 passed net472**, zero failures/skips. Includes declared
+  file selection, localization/deduplication, missing-file recovery watches, manifest
+  invalidation, changed-byte refusal, junction and DTD rejection, plain-text HTML,
+  analyzer identity without assembly loading and cross-domain content projection.
+- SDK tests filtered to LibraryPackTests, LibraryProjectReferenceTests,
+  PackageRestoreTests, AnalyzerPackageTests and AnalyzerTests: **28 passed per
+  framework**, zero failures/skips, using rebuilt packages and isolated feeds.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj
+  --verbosity quiet`: **13 passed per framework**, zero failures/skips.
+- Native refresh waits now reacquire and expand current project/package parents;
+  collapsed/recreated nodes must not be mistaken for absent content. The VS2026
+  rerun passed all **4 scenarios**, zero failures/skips: PackageManagement,
+  AnalyzerPackage, DependencyLifecycle and PackageDefinition. TestResults run
+  `201f14b7d7444351afe6102dd3ccbcd3`. The VS2022 equivalent also passed all
+  **4 scenarios**, zero failures/skips, in `f683ec137421495c8b5007abb6d0a5e3`.
+- Native runs use `eng/test-visualstudio.ps1 -VisualStudioPath <host> -Filter`
+  with PackageManagement, AnalyzerPackage, DependencyLifecycle and PackageDefinition
+  filtered to the matching host year. They verify current-host analyzer provenance,
+  all applicable nonempty content groups, Enter/double-click read-only navigation,
+  literal HTML, missing-document recovery, install/update/remove, failed restore,
+  configuration changes, project reload and IDE restart. Source/package/output and
+  build-hook byte comparisons confirm that browsing neither edits files nor builds.
+- Reviewed the diff, documentation links and commands. No iteration-19 blocker
+  remains. LineA's original SHA-256 is unchanged and its edit is not included.
+  Historical manual/vendor/release gates remain separate; nothing was published.

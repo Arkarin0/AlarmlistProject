@@ -100,6 +100,69 @@ namespace AlarmList.MSBuild.UnitTests
             Assert.Empty(task.LibraryReferences);
         }
 
+        [Fact]
+        public void ContentGraphUsesOnlyDeclaredFilesSelectedBuildAssetsAndRegisteredAnalyzers()
+        {
+            string root = Path.GetDirectoryName(Path.GetDirectoryName(Add("Library")));
+            void FileInPackage(string relative, string text = "text")
+            {
+                _assets.Libraries[0].Files.Add(relative);
+                string path = Path.Combine(root, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(path, text);
+            }
+            FileInPackage("library.nuspec", "<package><metadata><id>Library</id><version>1.0.0</version><authors>Test</authors><description>Test</description><readme>README.md</readme></metadata></package>");
+            FileInPackage("README.md");
+            FileInPackage("docs/Guide.html");
+            FileInPackage("documentation/notes.txt");
+            FileInPackage("docs/logo.png");
+            FileInPackage("build/selected.targets");
+            FileInPackage("build/unselected.targets");
+            FileInPackage("tools/net472/Rules.dll");
+            FileInPackage("tools/net8.0/Rules.dll");
+            File.WriteAllText(Path.Combine(root, "docs", "undeclared.md"), "not declared");
+            _target.Libraries[0].Build.Add(new LockFileItem("build/selected.targets"));
+            new LockFileFormat().Write(AssetsPath, _assets);
+            var observed = new List<string>();
+            var node = Assert.Single(LibraryPackageResolver.ResolveContentGraph(File.ReadAllText(AssetsPath), AssetsPath,
+                "native,Version=v0.0", new[] { "Library" }, new[] { "1.0.0" }, new[] { Path.Combine(root, "tools/net472/Rules.dll") }, observed.Add));
+            Assert.Equal("build/selected.targets", Assert.Single(node.Contents.Where(item => item.Kind == "Build")).RelativePath);
+            Assert.Equal("tools/net472/Rules.dll", Assert.Single(node.Contents.Where(item => item.Kind == "Analyzer")).RelativePath);
+            Assert.Equal(new[] { "docs/Guide.html", "documentation/notes.txt", "README.md" },
+                node.Contents.Where(item => item.Kind == "Document").Select(item => item.RelativePath));
+            Assert.Single(node.Contents.Where(item => item.Kind == "Library"));
+            Assert.Single(node.Contents.Where(item => item.Kind == "Manifest"));
+            Assert.All(node.Contents, item => { Assert.NotNull(item.ContentHash); Assert.Contains(item.FilePath, observed); });
+        }
+
+        [Fact]
+        public void MissingContentIsWatchedAndRecoversWithoutCacheDiscovery()
+        {
+            string path = Add("Library");
+            new LockFileFormat().Write(AssetsPath, _assets);
+            File.Delete(path);
+            var observed = new List<string>();
+            ResolvedPackageNode Capture() => Assert.Single(LibraryPackageResolver.ResolveContentGraph(File.ReadAllText(AssetsPath), AssetsPath,
+                "native,Version=v0.0", new[] { "Library" }, new[] { "1.0.0" }, Array.Empty<string>(), observed.Add));
+            Assert.Null(Assert.Single(Capture().Contents).ContentHash);
+            Assert.Contains(Path.GetFullPath(path), observed);
+            File.WriteAllText(path, "recovered");
+            Assert.NotNull(Assert.Single(Capture().Contents).ContentHash);
+        }
+
+        [Theory]
+        [InlineData("docs/../../outside.txt")]
+        [InlineData("docs/file.txt:stream")]
+        [InlineData("/absolute.txt")]
+        public void ContentGraphRejectsEscapingOrAlternateStreamPaths(string relative)
+        {
+            Add("Library");
+            _assets.Libraries[0].Files.Add(relative);
+            new LockFileFormat().Write(AssetsPath, _assets);
+            Assert.Throws<InvalidDataException>(() => LibraryPackageResolver.ResolveContentGraph(File.ReadAllText(AssetsPath), AssetsPath,
+                "native,Version=v0.0", new[] { "Library" }, new[] { "1.0.0" }, Array.Empty<string>(), null));
+        }
+
         private string Add(string id, string dependency = null)
         {
             var selected = new LockFileTargetLibrary { Name = id, Version = NuGetVersion.Parse("1.0"), Type = "package",

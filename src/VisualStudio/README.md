@@ -96,6 +96,15 @@ action on the dependency root to install, update or uninstall packages. Delete
 does not edit package references or transitives. Resolution follows the selected
 SDK's restored assets; invalid/failed restore clears resolved children until
 recovery. An older SDK without the graph projection leaves package nodes unresolved.
+Selected packages also expose nonempty Build files, Analyzers, Alarm libraries and
+Documents groups (localized in German). Entries come from restored declarations:
+selected props/targets, registered host-compatible Alarmlist analyzers, `.almlib`
+artifacts, the manifest's README and `.md`/`.txt`/`.html` files in `docs/` or
+`documentation/`. Enter or double-click opens captured read-only content. HTML and
+build files are plain text; libraries use the virtual XML viewer; DLLs show captured
+identity/path information. Browsing never executes HTML or build files, loads a DLL,
+or edits the package cache. Missing files are marked unresolved and recover when
+restored. Navigation checks current selection, captured bytes and path containment.
 Integrated playground/configuration lifecycle acceptance passed on both supported
 hosts; milestone-nine iteration 12 records the scenarios and retained evidence.
 

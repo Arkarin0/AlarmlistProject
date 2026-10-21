@@ -10,15 +10,17 @@ namespace Alarmlist.VisualStudio.ProjectSystem
     internal sealed class PackageTreeEntry
     {
         internal PackageTreeEntry(string id, string requested, string version, bool direct, bool pending,
-            IEnumerable<PackageTreeEntry> children = null)
+            IEnumerable<PackageTreeEntry> children = null, IEnumerable<AnalysisPackageContent> contents = null)
         { Id = id; Requested = requested; Version = version; IsDirect = direct; Pending = pending;
-            Children = Array.AsReadOnly((children ?? Array.Empty<PackageTreeEntry>()).ToArray()); }
+            Children = Array.AsReadOnly((children ?? Array.Empty<PackageTreeEntry>()).ToArray());
+            ContentGroups = PackageContentGroup.Create(contents ?? Array.Empty<AnalysisPackageContent>()); }
         internal string Id { get; }
         internal string Requested { get; }
         internal string Version { get; }
         internal bool IsDirect { get; }
         internal bool Pending { get; }
         internal IReadOnlyList<PackageTreeEntry> Children { get; }
+        internal IReadOnlyList<PackageContentGroup> ContentGroups { get; }
         internal string Caption => Id + " (" + (Version == null ? Requested :
             !string.IsNullOrEmpty(Requested) && Requested != Version ? Requested + " → " + Version : Version) + ")"
             + (Version == null ? " — " + (Pending ? DependencyTreeLabels.Pending : DependencyTreeLabels.Unresolved)
@@ -36,6 +38,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             && string.Equals(left.ProjectPath, right.ProjectPath, StringComparison.OrdinalIgnoreCase)
             && left.Configuration == right.Configuration && left.CompilerPath == right.CompilerPath
             && left.AssetsFile == right.AssetsFile && left.FrameworkMoniker == right.FrameworkMoniker
+            && left.Analyzers.SequenceEqual(right.Analyzers, StringComparer.OrdinalIgnoreCase)
             && left.PackageReferences.Count == right.PackageReferences.Count
             && left.PackageReferences.Zip(right.PackageReferences, (a, b) =>
                 string.Equals(a.Include, b.Include, StringComparison.OrdinalIgnoreCase) && a.GetMetadata("Version") == b.GetMetadata("Version")).All(equal => equal);
@@ -54,7 +57,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 return new PackageTreeEntry(id, request, package?.Version, direct, pending,
                     package != null && expanded.Add(id) ? package.Dependencies.Where(child => selected.ContainsKey(child) && !next.Contains(child))
                         .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(child => child, StringComparer.OrdinalIgnoreCase)
-                        .Select(child => Build(child, null, false, next, expanded)) : null);
+                        .Select(child => Build(child, null, false, next, expanded)) : null, package?.Contents);
             }
             return references.GroupBy(item => item.Include, StringComparer.OrdinalIgnoreCase)
                 .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)

@@ -1,9 +1,11 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Alarmlist.ConfigurationInput;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
@@ -14,13 +16,26 @@ namespace Alarmlist.VisualStudio.Analysis
         private readonly PackageGraphResponse _response;
 
         private CapturedPackageGraph(string path, string text, PackageGraphResponse response)
-        { _path = path; _text = text; _response = response; }
+        { _path = path; _text = text; _response = response;
+            WatchedPaths = Array.AsReadOnly(response.WatchedPaths.Concat(path == null ? Array.Empty<string>() : new[] { path })
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToArray()); }
+        internal IReadOnlyList<string> WatchedPaths { get; }
 
         internal PackageGraphResponse CurrentResponse
         {
             get
             {
-                try { return _path == null || (File.Exists(_path) ? File.ReadAllText(_path) : null) == _text ? _response : null; }
+                try
+                {
+                    if (_path != null && (File.Exists(_path) ? File.ReadAllText(_path) : null) != _text) return null;
+                    foreach (var content in _response.Packages.SelectMany(package => package.Contents))
+                    {
+                        if (File.Exists(content.FilePath) != (content.ContentHash != null)) return null;
+                        if (content.Kind == "Manifest" && PackageContentPath.Hash(PackageContentPath.Read(content.PackageDirectory, content.RelativePath)) != content.ContentHash)
+                            return null;
+                    }
+                    return _response;
+                }
                 catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception)) { return null; }
             }
         }
@@ -41,8 +56,9 @@ namespace Alarmlist.VisualStudio.Analysis
                 var response = bridge is ISdkPackageGraphBridge packages
                     ? packages.ResolvePackageGraph(text, path, project.FrameworkMoniker,
                         project.PackageReferences.Select(item => item.Include).ToArray(),
-                        project.PackageReferences.Select(item => item.GetMetadata("Version")).ToArray(), token)
+                        project.PackageReferences.Select(item => item.GetMetadata("Version")).ToArray(), token, project.Analyzers.ToArray())
                     : new PackageGraphResponse(AnalysisAvailability.UnsupportedContract, "The selected SDK does not expose package graph data.");
+                foreach (string observed in response.WatchedPaths) observe(observed);
                 return new CapturedPackageGraph(path, text, response);
             }
             catch (OperationCanceledException) { throw; }

@@ -13,6 +13,9 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         public static string Dependencies => s_resources.GetString("Dependencies", CultureInfo.CurrentUICulture);
         public static string Packages => s_resources.GetString("Packages", CultureInfo.CurrentUICulture);
         public static string Analyzers => s_resources.GetString("Analyzers", CultureInfo.CurrentUICulture);
+        public static string BuildFiles => s_resources.GetString("BuildFiles", CultureInfo.CurrentUICulture);
+        public static string AlarmLibraries => s_resources.GetString("AlarmLibraries", CultureInfo.CurrentUICulture);
+        public static string Documents => s_resources.GetString("Documents", CultureInfo.CurrentUICulture);
         public static string Pending => s_resources.GetString("Pending", CultureInfo.CurrentUICulture);
         public static string Unresolved => s_resources.GetString("Unresolved", CultureInfo.CurrentUICulture);
         public static string Transitive => s_resources.GetString("Transitive", CultureInfo.CurrentUICulture);

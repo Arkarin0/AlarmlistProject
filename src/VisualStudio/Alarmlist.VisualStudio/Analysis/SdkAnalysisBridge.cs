@@ -82,7 +82,7 @@ namespace Alarmlist.VisualStudio.Analysis
     internal interface ISdkPackageGraphBridge
     {
         PackageGraphResponse ResolvePackageGraph(string assetsText, string assetsPath, string frameworkMoniker,
-            string[] packageIds, string[] packageVersions, CancellationToken cancellationToken);
+            string[] packageIds, string[] packageVersions, CancellationToken cancellationToken, string[] analyzerPaths = null);
     }
 
     [Export(typeof(ISdkAnalysisBridgeFactory))]
@@ -189,7 +189,7 @@ namespace Alarmlist.VisualStudio.Analysis
         }
 
         public PackageGraphResponse ResolvePackageGraph(string assetsText, string assetsPath, string frameworkMoniker,
-            string[] packageIds, string[] packageVersions, CancellationToken cancellationToken)
+            string[] packageIds, string[] packageVersions, CancellationToken cancellationToken, string[] analyzerPaths = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
             lock (_gate)
@@ -197,7 +197,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (_domain == null) throw new ObjectDisposedException(nameof(SdkAnalysisBridge));
                 PackageGraphResponse response;
                 try { response = WithHostAssemblyResolution(() => _worker.ResolvePackageGraph(assetsText, assetsPath,
-                    frameworkMoniker, (string[])packageIds.Clone(), (string[])packageVersions.Clone())); }
+                    frameworkMoniker, (string[])packageIds.Clone(), (string[])packageVersions.Clone(), (string[])analyzerPaths?.Clone())); }
                 catch (Exception exception) when (IsRecoverable(exception))
                 { response = new PackageGraphResponse(AnalysisAvailability.AnalysisFailed, exception.Message); }
                 cancellationToken.ThrowIfCancellationRequested();

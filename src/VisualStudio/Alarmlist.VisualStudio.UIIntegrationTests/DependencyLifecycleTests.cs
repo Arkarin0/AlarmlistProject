@@ -163,8 +163,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 direct[0].AsTreeItem().Expand();
                 var children = direct[0].FindAllChildren(cf => cf.ByControlType(ControlType.TreeItem));
                 if (unresolved) return (direct[0].Name.Contains("Unresolved") || direct[0].Name.Contains("Nicht aufgelöst")) && children.Length == 0;
-                return direct[0].Name == "Example.Equipment (1.0.0)" && children.Length == 1
-                    && children[0].Name.StartsWith("Example.Common (1.0.0)", StringComparison.Ordinal);
+                var libraries = children.SingleOrDefault(item => item.Name == "Alarm libraries" || item.Name == "Alarmbibliotheken");
+                libraries?.AsTreeItem().Expand();
+                return direct[0].Name == "Example.Equipment (1.0.0)" && children.Length == 2
+                    && children.Any(item => item.Name.StartsWith("Example.Common (1.0.0)", StringComparison.Ordinal))
+                    && libraries?.FindAllChildren(cf => cf.ByControlType(ControlType.TreeItem)).SingleOrDefault()?.Name
+                        == "alarmlist/Example.Equipment.almlib";
             }, "dependency lifecycle tree: packages=" + packages + ", mixed=" + mixed + ", unresolved=" + unresolved);
             // Exercise physical keyboard navigation while the tree owns focus.
             var root = Project(window).FindFirstDescendant(cf => (cf.ByName("Dependencies").Or(cf.ByName("Abhängigkeiten")))
