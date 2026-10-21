@@ -302,6 +302,7 @@ namespace Alarmlist.VisualStudio.UI
                 foreach (ProcedureSectionViewModel section in ProcedureSections)
                     section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasKindChanges)
                         ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry), !HasPending);
+                RefreshProcedureSearch();
                 if (!ReferenceEquals(_choicesState, state) || !ReferenceEquals(_choicesAlarm, alarm))
                 {
                     _choicesState = state;

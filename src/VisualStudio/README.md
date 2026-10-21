@@ -430,6 +430,15 @@ visible, or **Expand all groups** / **Collapse all groups** above the groups.
 These view actions preserve private drafts and never change source. Expansion
 state lasts while the group remains in the open editor; source navigation and
 entry authoring reveal their target group automatically.
+
+**Search procedures** finds case-insensitive literal text in the selected alarm's
+group IDs, raw/resolved titles and local/inherited entries, including cleared
+entries and private drafts. Select a result or use **Next match** / **Previous
+match** to reveal its group and row. Enter advances and Shift+Enter goes back in
+the search box; Escape clears the search without cancelling drafts. Results do
+not filter away editors or change XML. Analysis refresh updates the results;
+unavailable resolved values are not searched as current values.
+
 An absent title inherits; an explicit empty title displays the group ID. The
 title context menu can remove a local title or navigate to its source.
 Move controls reorder newly introduced local groups; inherited order stays fixed.

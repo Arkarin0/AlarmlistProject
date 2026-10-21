@@ -329,6 +329,23 @@
                 <Button Content="Expand all groups" Tag="PreserveDraft" Click="OnExpandProcedureGroups" />
                 <Button Content="Collapse all groups" Tag="PreserveDraft" Click="OnCollapseProcedureGroups" />
               </WrapPanel>
+              <TextBlock Text="Search procedures" />
+              <DockPanel Margin="0,3,0,4">
+                <Button DockPanel.Dock="Right" Content="Next match" Click="OnNextProcedureMatch" Tag="PreserveDraft" />
+                <Button DockPanel.Dock="Right" Content="Previous match" Click="OnPreviousProcedureMatch" Tag="PreserveDraft" />
+                <TextBox x:Name="ProcedureSearchEditor" Text="{Binding ProcedureSearch, UpdateSourceTrigger=PropertyChanged}"
+                         Tag="PreserveDraft" AutomationProperties.Name="Search procedures"
+                         ToolTip="Search IDs, raw/resolved titles and entry text, including cleared entries. Enter: next; Shift+Enter: previous; Escape: clear." />
+              </DockPanel>
+              <TextBlock Text="{Binding ProcedureSearchStatus}" Margin="0,0,0,4" />
+              <ListBox x:Name="ProcedureSearchResults" ItemsSource="{Binding ProcedureMatches}" SelectedItem="{Binding SelectedProcedureMatch}"
+                       Tag="PreserveDraft" MaxHeight="140" Margin="0,0,0,8" SelectionChanged="OnProcedureMatchSelected"
+                       Visibility="{Binding HasProcedureSearch, Converter={StaticResource Visibility}}"
+                       AutomationProperties.Name="Procedure search results" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="Tag" Value="PreserveDraft" />
+                  <Setter Property="AutomationProperties.Name" Value="{Binding Label}" /></Style></ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></DataTemplate></ListBox.ItemTemplate>
+              </ListBox>
               <WrapPanel Margin="0,0,0,8">
                 <TextBox x:Name="NewGroupIdEditor" Text="{Binding NewGroupName, UpdateSourceTrigger=PropertyChanged}" MinWidth="150" Margin="0,0,6,0"
                          AutomationProperties.Name="New procedure group ID" ToolTip="Stable group identity. Titles can be translated; IDs remain unchanged." />

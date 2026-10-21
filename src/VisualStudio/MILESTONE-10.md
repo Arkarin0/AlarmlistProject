@@ -1,12 +1,13 @@
-# Milestone ten: procedure-group presentation and splitter refinement
+# Milestone ten: procedure-group presentation, browsing and splitter refinement
 
-Status: iterations 1–4 complete; follow-up iteration 5 authorized and planned.
-Original scoped acceptance passed on VS2022 and VS2026. Historical gates remain separate.
+Status: iterations 1–5 complete. Scoped follow-up acceptance passed on VS2022
+and VS2026. Additional display checks were excluded by the owner; historical
+gates remain separate.
 
 ## Outcome and confirmed design
 
 Improve the ALMX designer with a GroupBox for each procedure group, one editable
-heading, and a recognizable file/alarm resize handle. The owner selected a
+heading, group collapse/search, and a recognizable file/alarm resize handle. The owner selected a
 title-like heading, an always-visible read-only `Group ID: …` label beneath it,
 and a centered themed splitter grip.
 
@@ -189,3 +190,39 @@ collapse/reopen with a private draft and existing authoring/Undo scenarios.
 TRX run IDs: `2ca70562def84531b9bde9ecf7815ab2` (VS2022),
 `25427de03de943a3aa4fab7129d780da` (VS2026).
 Reviewed diff and whitespace; no blocker remains. No display checks were run.
+
+### Iteration 5 — procedure search (2026-10-21)
+
+Added literal case-insensitive search within the selected alarm, a bounded match
+list and wraparound previous/next navigation. Matches cover group identity,
+raw/current resolved titles, inherited/cleared rows and local entry drafts.
+Selecting a match expands its group and reveals cleared entries without moving
+focus into the editor. Enter/Shift+Enter navigate; Escape clears only the search.
+Search does not filter editors, commit/cancel drafts or change XML. Analysis
+refresh rebuilds match targets, preserves valid selection and rejects stale
+result objects without stealing focus. Added usage documentation.
+
+Validation (all passed, zero failures/skips):
+
+- Focused editor filter `FullyQualifiedName~ProcedureSearch|FullyQualifiedName~ProcedureCollapse`:
+  **3 net472 tests**, including raw/resolved matches, inherited/cleared content,
+  draft updates, wraparound, stale targets, refresh, no matches and WPF keyboard
+  focus/source preservation.
+- Broader editor filter `(FullyQualifiedName~Procedure|FullyQualifiedName~Group|FullyQualifiedName~SourceNavigation)&FullyQualifiedName!~GroupHeadingsWrap`:
+  **46 net472 tests**. Both runs used `dotnet test
+  src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --filter <filter> --verbosity quiet -m:1 -nr:false`. Display-render cases were
+  excluded; no extra display checks were performed.
+- `eng/test-visualstudio.ps1 -VisualStudioPath <host> -Filter 'Area=Procedures'`:
+  **1 passed per host**. Native keyboard search finds a private cleared draft,
+  reopens its collapsed group, retains search focus, and clears search without
+  cancelling the draft. Existing editing/completion/Undo scenarios still pass.
+  TRX runs: `d98fe0f3628344ee96c91a55a5b449e1` (VS2022),
+  `24c9c93cf94945aa8ff630ae4d9889ee` (VS2026).
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj
+  --verbosity quiet -m:1 -nr:false`: **13 net472 + 13 net8.0 tests** against
+  the rebuilt VSIX and template consumers.
+
+Reviewed source/test/documentation diffs and whitespace. No implementation gate
+remains. Compiler/SDK-wide suites were not rerun because their implementation and
+contracts are unchanged. No publication or additional display verification occurred.
