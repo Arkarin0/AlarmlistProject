@@ -1,0 +1,19 @@
+<Project>
+  <PropertyGroup>
+    <!-- Alarm libraries are data, independent of a managed runtime. NuGet requires
+         a framework identity even when the consumer specifies no TargetFramework. -->
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <TargetFrameworkMoniker Condition="'$(TargetFrameworkMoniker)' == ''">native,Version=v0.0</TargetFrameworkMoniker>
+    <RestoreOutputPath Condition="'$(RestoreOutputPath)' == ''">$(MSBuildProjectExtensionsPath)</RestoreOutputPath>
+    <ProjectAssetsFile Condition="'$(ProjectAssetsFile)' == ''">$(MSBuildProjectExtensionsPath)project.assets.json</ProjectAssetsFile>
+    <!-- Follow Microsoft.Common.CurrentVersion.targets' toolset selection without
+         importing its managed compilation and output pipeline. -->
+    <MSBuildUseVisualStudioDirectoryLayout Condition="'$(MSBuildUseVisualStudioDirectoryLayout)' == ''">$([MSBuild]::IsRunningFromVisualStudio())</MSBuildUseVisualStudioDirectoryLayout>
+    <NuGetRestoreTargets Condition="'$(NuGetRestoreTargets)' == '' and '$(MSBuildUseVisualStudioDirectoryLayout)' == 'true'">$([MSBuild]::GetToolsDirectory32())/../../../Common7/IDE/CommonExtensions/Microsoft/NuGet/NuGet.targets</NuGetRestoreTargets>
+    <NuGetRestoreTargets Condition="'$(NuGetRestoreTargets)' == ''">$(MSBuildToolsPath)/NuGet.targets</NuGetRestoreTargets>
+  </PropertyGroup>
+  <Import Project="$(NuGetRestoreTargets)" Condition="'$(IsRestoreTargetsFileLoaded)' != 'true' and Exists('$(NuGetRestoreTargets)')" />
+  <Target Name="EnsureAlarmlistRestoreToolset" BeforeTargets="Restore" Condition="'$(IsRestoreTargetsFileLoaded)' != 'true'">
+    <Error Text="NuGet restore targets were not found for this MSBuild installation: $(NuGetRestoreTargets)." />
+  </Target>
+</Project>

@@ -4,6 +4,17 @@
   <Rule.DataSource>
     <DataSource Persistence="ProjectFile" Label="Configuration" />
   </Rule.DataSource>
+  <EnumProperty Name="OutputType" DisplayName="Output type" Description="Build a final application XML alarm list or reusable library definitions.">
+    <EnumValue Name="Application" DisplayName="Application" />
+    <EnumValue Name="Library" DisplayName="Library" />
+  </EnumProperty>
+  <StringProperty Name="PackageId" DisplayName="Package ID" Description="Library identity used by project references and NuGet packages. Defaults to the project name.">
+    <StringProperty.DataSource><DataSource Persistence="ProjectFile" HasConfigurationCondition="False" /></StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="PackageVersion" DisplayName="Package version" Description="Library and NuGet package version. Defaults to 1.0.0.">
+    <StringProperty.DataSource><DataSource Persistence="ProjectFile" HasConfigurationCondition="False" /></StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="AlarmlistLibraryFileName" DisplayName="Library filename" Description="Filename of the reusable .almlib artifact for library builds." />
   <StringProperty Name="OutputPath" DisplayName="Output directory" Description="Directory for the compiled alarm list." />
   <StringProperty Name="CompiledAlarmlistFileName" DisplayName="Output filename" Description="Filename of the compiled XML alarm list." />
   <StringProperty Name="AlarmlistCultures" DisplayName="Build cultures" Description="Semicolon-separated cultures to build. Empty defaults to keyword." />
@@ -33,4 +44,7 @@
       <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
     </BoolProperty.DataSource>
   </BoolProperty>
+  <StringProperty Name="AlarmlistPreviewColumnLayout" Visible="False">
+    <StringProperty.DataSource><DataSource Persistence="UserFile" HasConfigurationCondition="False" /></StringProperty.DataSource>
+  </StringProperty>
 </Rule>

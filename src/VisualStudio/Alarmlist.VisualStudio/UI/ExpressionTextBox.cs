@@ -8,7 +8,6 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Data;
 using System.Windows.Input;
 using Microsoft.VisualStudio.PlatformUI;
 
@@ -29,6 +28,7 @@ namespace Alarmlist.VisualStudio.UI
         private readonly LiveStatusTextBlock _status;
         private readonly Popup _popup;
         private bool _displayChange;
+        private bool _writingRaw;
         private bool _explicitCompletion;
         private string _dismissedText;
         private int _tokenStart;
@@ -55,11 +55,7 @@ namespace Alarmlist.VisualStudio.UI
             _status = new LiveStatusTextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(6) };
             AutomationProperties.SetHelpText(_status, "Expression suggestions. Use arrows to choose and Enter to insert.");
             _list = new ListBox { Focusable = false, IsTabStop = false, DisplayMemberPath = nameof(PropertyCompletion.Label), MaxHeight = 220, MinWidth = 300 };
-            var itemStyle = new Style(typeof(ListBoxItem));
-            itemStyle.Setters.Add(new Setter(FocusableProperty, false));
-            itemStyle.Setters.Add(new Setter(IsTabStopProperty, false));
-            itemStyle.Setters.Add(new Setter(AutomationProperties.NameProperty, new Binding(nameof(PropertyCompletion.Label))));
-            _list.ItemContainerStyle = itemStyle;
+            _list.ItemContainerStyle = SuggestionListStyle.Create(nameof(PropertyCompletion.Label));
             _list.SetResourceReference(BackgroundProperty, EnvironmentColors.ComboBoxBackgroundBrushKey);
             _list.SetResourceReference(ForegroundProperty, EnvironmentColors.ComboBoxTextBrushKey);
             _list.SelectionChanged += (sender, args) => AnnounceSelection();
@@ -81,6 +77,11 @@ namespace Alarmlist.VisualStudio.UI
 
         private void RefreshDisplay()
         {
+            // A source update can synchronously invalidate resolved analysis.
+            // Replacing Text inside its native insertion changes the caret before
+            // WPF finishes that insertion (notably the first character in an
+            // empty resolved field). The current Text is already the new draft.
+            if (_writingRaw) return;
             string display = !IsKeyboardFocusWithin && HasResolvedValue ? ResolvedText ?? "" : RawText ?? "";
             if (Text == display) return;
             int start = SelectionStart;
@@ -107,7 +108,9 @@ namespace Alarmlist.VisualStudio.UI
         {
             base.OnTextChanged(args);
             if (_displayChange) return;
-            SetCurrentValue(RawTextProperty, Text);
+            _writingRaw = true;
+            try { SetCurrentValue(RawTextProperty, Text); }
+            finally { _writingRaw = false; }
             RefreshCompletion();
         }
 
@@ -214,8 +217,19 @@ namespace Alarmlist.VisualStudio.UI
         }
 
         internal static PropertyCompletion[] FindMatches(IEnumerable suggestions, string prefix)
-            => suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix,
+        {
+            if (prefix.StartsWith("loc:", StringComparison.Ordinal))
+            {
+                string query = prefix.Substring(4);
+                // Match the key, never translated text or template argument names.
+                // Stable ordering retains catalogue order within each match group.
+                return suggestions.OfType<PropertyCompletion>().Where(property => property.IsLocalization
+                    && property.LocalizationKey.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .OrderByDescending(property => property.LocalizationKey.StartsWith(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+            }
+            return suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix,
                 property.RequiresValidation ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)).ToArray();
+        }
 
         private void AnnounceSelection()
         {

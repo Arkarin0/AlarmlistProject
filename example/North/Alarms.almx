@@ -9,10 +9,10 @@
     <Name>$(loc:Panel.Name)</Name>
     <Code>P-002</Code>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Hint>$(loc:Panel.Compare)</Hint>
         <Step>$(loc:Panel.Confirm)</Step>
-      </Instructions>
+      </Group>
     </TestProcedure>
   </Alarm>
   <!-- A standalone alarm for trying scalar and procedure edits. -->
@@ -23,13 +23,13 @@
     <Category>$(loc:Air.Category)</Category>
     <Description>$(loc:Air.Description)</Description>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Step>$(loc:Air.Compressor)</Step>
         <Step>$(loc:Air.Valve)</Step>
-      </Instructions>
-      <Reset>
+      </Group>
+      <Group Name='Reset'>
         <Step>$(loc:Air.Reset)</Step>
-      </Reset>
+      </Group>
     </TestProcedure>
   </Alarm>
   <Alarm>

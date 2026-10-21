@@ -19,6 +19,27 @@ namespace Alarmlist.MSBuild.SDK.Tests
         }
 
         [Fact]
+        public void CustomGroupsCompileAndInvalidIdentityPreservesPreviousOutput()
+        {
+            var app = _fixture.CreateTestApp("MinimalProject");
+            string input = Path.Combine(app.WorkingDirectory, "Groups.almx");
+            File.WriteAllText(input, "<Alarmlist><Alarm><FullyQualifiedName>Groups</FullyQualifiedName><Code>42</Code>"
+                + "<TestProcedure><Group Name='Verify'><Title>Verify $(AlarmlistAlarmCode)</Title>"
+                + "<Step>Check</Step></Group><Group Name='Archive'/></TestProcedure></Alarm></Alarmlist>");
+            app.Build(_output);
+            var alarm = XDocument.Load(app.OutputPath).Root.Elements("Alarm")
+                .Single(item => item.Element("FullyQualifiedName").Value == "Groups");
+            Assert.Equal(new[] { "Verify", "Archive" }, alarm.Element("TestProcedure").Elements("Group").Select(group => (string)group.Attribute("Name")));
+            Assert.Equal("Verify 42", alarm.Element("TestProcedure").Element("Group").Element("Title").Value);
+            string previous = File.ReadAllText(app.OutputPath);
+            File.WriteAllText(input, File.ReadAllText(input).Replace("Name='Verify'", "Name='bad name'"));
+            var failure = app.Run(_output, "/t:Build", "/p:NoWarn=ALM0026");
+            Assert.NotEqual(0, failure.ExitCode);
+            Assert.Contains("ALM0026", failure.Output);
+            Assert.Equal(previous, File.ReadAllText(app.OutputPath));
+        }
+
+        [Fact]
         public void PropertiesTemplatesAndEvaluatedConfigurationReachThePackagedCompiler()
         {
             var app = _fixture.CreateTestApp("Properties");

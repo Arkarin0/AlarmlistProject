@@ -8,6 +8,10 @@ using Alarmlist.VisualStudio.Analysis;
 
 namespace Alarmlist.VisualStudio.UI
 {
+    internal interface IDesignerPreviewSettings
+    {
+        ProjectUserSetting GetPreviewLayout();
+    }
     // Each view chooses its own project context. Host adapters own dispatch,
     // buffer identity, current-input validation and document navigation.
     internal interface IDesignerAnalysis : IDisposable
@@ -20,5 +24,6 @@ namespace Alarmlist.VisualStudio.UI
         Task<bool> IsCurrentAsync(ProjectAnalysisState state, CancellationToken token);
         Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token);
         void Navigate(AnalysisLocation location, string expectedText);
+        void Navigate(AnalysisNavigationTarget target);
     }
 }

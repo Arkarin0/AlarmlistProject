@@ -33,20 +33,97 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
+        public void AlarmListNamesFollowCultureAndFilterResolvedOrRawNames()
+        {
+            using (var session = new SemanticSession(LocalizedSource))
+            {
+                AnalyzeLocalization(session);
+                AlarmViewModel item = Assert.Single(session.View.Alarms);
+                Assert.Equal(session.Field("Name").ResolvedValue, item.Title);
+                Assert.Equal("Inspect 001", item.Title);
+                AnalyzeLocalization(session, "keyword");
+                Assert.Same(item, Assert.Single(session.View.Alarms));
+                Assert.Equal("$(loc:Alarm.Inspect-now)", item.Title);
+                session.View.Filter = "Inspect 001";
+                Assert.Empty(session.View.Alarms);
+                AnalyzeLocalization(session);
+                Assert.Equal("Inspect 001", Assert.Single(session.View.Alarms).Title);
+                Assert.NotNull(session.View.Selected);
+                AnalyzeLocalization(session, "en");
+                Assert.Empty(session.View.Alarms);
+                session.View.Filter = "loc:Alarm";
+                Assert.Equal("$(loc:Alarm.Inspect-now)", Assert.Single(session.View.Alarms).Title);
+                AnalyzeLocalization(session);
+                Assert.Equal("Inspect 001", Assert.Single(session.View.Alarms).Title);
+                Assert.Equal(0, session.Buffer.Edits);
+            }
+        }
+
+        [Fact]
+        public void AlarmListRefreshPreservesFilteredDraftAndRejectsStaleInput()
+        {
+            using (var session = new SemanticSession(LocalizedSource))
+            {
+                AnalyzeLocalization(session);
+                session.View.Filter = "Inspect 001";
+                AlarmViewModel selected = session.View.Selected;
+                session.Field("Name").Value = "private draft";
+                AnalyzeLocalization(session, "keyword");
+                Assert.Same(selected, session.View.Selected);
+                Assert.Same(selected, Assert.Single(session.View.Alarms));
+                Assert.Equal("private draft", session.Field("Name").Value);
+                Assert.True(session.View.HasPending);
+                Assert.Equal(0, session.Buffer.Edits);
+                session.View.CancelPending();
+                session.View.Filter = "";
+                AnalyzeLocalization(session);
+                ProjectAnalysisState stale = session.Analysis.Current;
+                session.Buffer.SetText(LocalizedSource.Replace("Alarm.Inspect-now", "Other"));
+                session.Analysis.Set(stale);
+                Assert.Equal("$(loc:Other)", Assert.Single(session.View.Alarms).Title);
+                Assert.False(session.Field("Name").CanShowResolved);
+            }
+        }
+
+        [Theory]
+        [InlineData("\n")]
+        [InlineData("\r\n")]
+        [InlineData("\r")]
+        public void AlarmListNamesMatchDeclarationsAndInheritedValues(string newline)
+        {
+            string source = "<Alarmlist>" + newline
+                + "<Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName></Alarm>" + newline
+                + "<Alarm><FullyQualifiedName>Other</FullyQualifiedName><Name>$(p)</Name></Alarm>" + newline + "</Alarmlist>";
+            using (var session = new SemanticSession(source))
+            {
+                session.Analyze(context: new AnalysisContext(properties: new[] { new AnalysisPropertyDefinition("p", "Expanded") }));
+                Assert.Equal(new[] { "Inherited", "Expanded" }, session.View.Alarms.Select(item => item.Title));
+                session.View.Selected = session.View.Alarms[1];
+                Assert.Equal(session.Field("Name").ResolvedValue, session.View.Selected.Title);
+                session.Analysis.Set(null);
+                Assert.Equal(new[] { "Child", "$(p)" }, session.View.Alarms.Select(item => item.Title));
+                Assert.Equal(0, session.Buffer.Edits);
+            }
+        }
+
+        [Fact]
         public void LocalizationCompletionUsesCompilerLookupAndPreservesCaseAndTokens()
         {
             using (var session = new SemanticSession(LocalizedSource))
             {
                 AnalyzeLocalization(session);
                 Assert.Equal(new[] { "keyword", "de", "de-DE", "en" }, session.View.PreviewCultures);
-                PropertyCompletion suggestion = Assert.Single(ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:Alarm."));
+                PropertyCompletion[] matches = ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:Alarm.");
+                Assert.Equal(new[] { "loc:Alarm.Inspect-now", "loc:alarm.Inspect-now" }, matches.Select(item => item.Name));
+                PropertyCompletion suggestion = matches[0];
                 Assert.Contains("Inspect 001", suggestion.Detail);
                 Assert.Contains("de-DE from de", suggestion.Detail);
                 Assert.Contains("Operator action", suggestion.Detail);
-                Assert.Single(ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:alarm."));
+                Assert.Equal(matches, ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:alarm."));
+                Assert.Equal(matches, ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:INSPECT"));
                 Assert.Empty(ExpressionTextBox.FindMatches(session.View.CompletionProperties, "LOC:"));
                 AnalyzeLocalization(session, "keyword");
-                Assert.Contains("$(loc:Alarm.Inspect-now)", Assert.Single(ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:Alarm.")).Detail);
+                Assert.Contains("$(loc:Alarm.Inspect-now)", ExpressionTextBox.FindMatches(session.View.CompletionProperties, "loc:Alarm.")[0].Detail);
                 Assert.Equal(0, session.Buffer.Edits);
             }
         }
@@ -101,6 +178,14 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     root.Children.Add(control);
                     host.RootVisual = root;
                     InheritanceAdornerTests.Pump();
+                    var list = (ListBox)control.FindName("AlarmList");
+                    Assert.Contains(VisualChildren(list).OfType<TextBlock>(), text => text.Text == "Inspect 001");
+                    AnalyzeLocalization(session, "keyword");
+                    InheritanceAdornerTests.Pump();
+                    Assert.Contains(VisualChildren(list).OfType<TextBlock>(), text => text.Text == "$(loc:Alarm.Inspect-now)");
+                    AnalyzeLocalization(session);
+                    InheritanceAdornerTests.Pump();
+                    Assert.Contains(VisualChildren(list).OfType<TextBlock>(), text => text.Text == "Inspect 001");
                     ExpressionTextBox box = ExpressionBox(control, "Name");
                     box.BringIntoView();
                     Assert.True(box.Focus());
@@ -208,15 +293,15 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     box.BringIntoView();
                     Assert.True(box.Focus());
                     session.Analysis.Valid = false;
-                    box.Text = "Before $(loc:Alarm.Inspect-";
+                    box.Text = "Before $(loc:INSPECT-";
                     box.CaretIndex = box.Text.Length;
                     Assert.False(box.IsCompletionOpen);
                     session.Analysis.Valid = true;
                     Assert.True(box.HandleCompletionKey(Key.Space, ModifierKeys.Control));
-                    Assert.Equal(1, box.CompletionCount);
+                    Assert.Equal(2, box.CompletionCount);
                     session.Analysis.Valid = false;
                     RaiseExpressionKey(box, host, Key.Enter);
-                    Assert.Equal("Before $(loc:Alarm.Inspect-", box.Text);
+                    Assert.Equal("Before $(loc:INSPECT-", box.Text);
                     Assert.Equal(0, session.Buffer.Edits);
                     session.Analysis.Valid = true;
                     box.HandleCompletionKey(Key.Space, ModifierKeys.Control);

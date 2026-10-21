@@ -7,16 +7,16 @@
     <FullyQualifiedName>Templates.Hmi.Vacuum</FullyQualifiedName>
     <Name>$(loc:Hmi.AlarmName)</Name>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Step>$(loc:Instruction.Set, path=$(path:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster), property=$(property:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster#Ein), value="60")</Step>
         <Step>$(loc:Instruction.Set, path=$(path:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster), property=$(property:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster#Ein), value=$(par1))</Step>
         <!-- Stored Default is used only because this expression selects it. -->
         <Hint>$(loc:Instruction.Set, path=$(path:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster), property=$(property:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster#Ein), value=$(meta:Service.Transport.Auslauf.Parameter1Gegenkontrolle.Nockenfenster#Ein#Default))</Hint>
         <Step>$(loc:Instruction.Press, path=$(path:Service.Transport.Auslauf.Hand1.Vakuum), button=$(button:Service.Transport.Auslauf.Hand1.Vakuum#Ein))</Step>
-      </Instructions>
-      <Reset>
+      </Group>
+      <Group Name='Reset'>
         <Step>$(loc:Instruction.Press, path=$(path:Service.Transport.Auslauf.Hand1.Vakuum), button=$(button:Service.Transport.Auslauf.Hand1.Vakuum#Aus))</Step>
-      </Reset>
+      </Group>
     </TestProcedure>
   </Alarm>
   <Alarm>

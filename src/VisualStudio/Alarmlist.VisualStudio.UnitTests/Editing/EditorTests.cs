@@ -12,6 +12,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
 {
     public partial class EditorTests
     {
+        private static readonly KeyValuePair<string, string>[] TestDefaultGroups = { new KeyValuePair<string, string>("Instructions", null), new KeyValuePair<string, string>("Reset", null) };
         private readonly AlmxEditingService _editing = new AlmxEditingService();
         private const string Source = "<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Name>Old</Name><Code>1</Code></Alarm><Alarm><FullyQualifiedName>B</FullyQualifiedName></Alarm></Alarmlist>";
 
@@ -64,13 +65,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [InlineData("<Alarmlist>\r\n  <!-- keep -->\r\n</Alarmlist>")]
         public void AddSupportsEmptyRootsAndNamespaces(string source)
         {
-            string result = _editing.AddAlarm(_editing.Parse(source)).Apply(source);
+            string result = _editing.AddAlarm(_editing.Parse(source), TestDefaultGroups).Apply(source);
             AlmxProjection parsed = _editing.Parse(result);
             Assert.True(parsed.IsValid, parsed.Error);
             Assert.Equal("NewAlarm", Assert.Single(parsed.Alarms).Identity);
             var document = System.Xml.Linq.XDocument.Parse(result);
             Assert.All(document.Root.Descendants(), child => Assert.Equal(document.Root.Name.Namespace, child.Name.Namespace));
-            result = _editing.AddAlarm(parsed).Apply(result);
+            result = _editing.AddAlarm(parsed, TestDefaultGroups).Apply(result);
             Assert.Equal(new[] { "NewAlarm", "NewAlarm1" }, _editing.Parse(result).Alarms.Select(alarm => alarm.Identity));
             if (source.Contains("<!-- keep -->")) Assert.Contains("<!-- keep -->", result);
         }
@@ -108,7 +109,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             AlmxProjection parsed = _editing.Parse(text);
             Assert.False(parsed.IsValid);
             Assert.NotEmpty(parsed.Error);
-            Assert.Throws<InvalidOperationException>(() => _editing.AddAlarm(parsed));
+            Assert.Throws<InvalidOperationException>(() => _editing.AddAlarm(parsed, TestDefaultGroups));
         }
 
         [Fact]

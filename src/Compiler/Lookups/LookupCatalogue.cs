@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Alarmlist.Diagnostics;
+using Alarmlist.Libraries;
 using Alarmlist.Text;
 
 namespace Alarmlist.Lookups
@@ -17,15 +18,17 @@ namespace Alarmlist.Lookups
         private readonly HashSet<string> _ambiguousEntries = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _ambiguousBindings = new HashSet<string>(StringComparer.Ordinal);
 
-        internal LookupCatalogue(IEnumerable<LookupTextSnapshot> snapshots)
+        internal LookupCatalogue(IEnumerable<LookupTextSnapshot> snapshots, LibraryGraph graph = null)
         {
             var diagnostics = new DiagnosticBag();
             var paths = new List<LookupPath>();
             var lists = new List<LookupList>();
             var bindings = new List<LookupArgumentBinding>();
-            foreach (LookupTextSnapshot snapshot in snapshots)
+            IEnumerable<LookupDocument> documents = graph == null
+                ? snapshots.Select(snapshot => LookupReader.Read(snapshot, diagnostics))
+                : new[] { LibraryLookups.Merge(snapshots, graph, diagnostics) };
+            foreach (LookupDocument document in documents)
             {
-                LookupDocument document = LookupReader.Read(snapshot, diagnostics);
                 lists.AddRange(document.Lists);
                 bindings.AddRange(document.Bindings);
                 foreach (LookupPath path in document.Paths)

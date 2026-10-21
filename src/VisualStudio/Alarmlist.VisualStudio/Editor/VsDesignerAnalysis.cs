@@ -42,9 +42,15 @@ namespace Alarmlist.VisualStudio.Editor
             _documents.TryGetTextDocument(buffer, out ITextDocument document);
             return new VsDesignerAnalysis(_registry, _openDocuments, document, _services, _adapters, ThreadHelper.JoinableTaskContext);
         }
+
+        public IDesignerAnalysis CreateProjectPreview()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            return new VsDesignerAnalysis(_registry, _openDocuments, null, _services, _adapters, ThreadHelper.JoinableTaskContext, projectScope: true);
+        }
     }
 
-    internal sealed class VsDesignerAnalysis : IDesignerAnalysis
+    internal sealed class VsDesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings
     {
         private readonly DesignerAnalysisNotifications _notifications;
         private readonly ProjectAnalysisRegistry _registry;
@@ -52,12 +58,14 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly ITextDocument _document;
         private readonly IServiceProvider _services;
         private readonly IVsEditorAdaptersFactoryService _adapters;
+        private readonly bool _projectScope;
         private bool _disposed;
         private string _selectedProjectPath;
         public event EventHandler Changed;
+        public ProjectUserSetting GetPreviewLayout() => _disposed ? null : _registry.GetPreviewLayout(Current?.Project);
         public string DocumentPath => _document?.FilePath;
-        public IReadOnlyList<AnalysisProject> Projects => Contexts.Select(context => context.Current.Project).ToArray();
-        private IReadOnlyList<ProjectAnalysisService> Contexts => _registry.GetContexts(DocumentPath);
+        public IReadOnlyList<AnalysisProject> Projects => Contexts.Select(context => context.Current.Project).Where(project => project != null).ToArray();
+        private IReadOnlyList<ProjectAnalysisService> Contexts => _projectScope ? _registry.GetProjects() : _registry.GetContexts(DocumentPath);
         public string SelectedProjectPath
         {
             get => _selectedProjectPath;
@@ -67,18 +75,20 @@ namespace Alarmlist.VisualStudio.Editor
         {
             get
             {
+                if (_disposed || (_projectScope && _selectedProjectPath == null)) return null;
                 var contexts = Contexts;
                 ProjectAnalysisService selected = contexts.FirstOrDefault(context => string.Equals(
                     context.Current.Project?.ProjectPath, _selectedProjectPath, StringComparison.OrdinalIgnoreCase));
-                if (selected == null && _selectedProjectPath == null && contexts.Count == 1) selected = contexts[0];
+                if (!_projectScope && selected == null && _selectedProjectPath == null && contexts.Count == 1) selected = contexts[0];
                 return selected?.Current;
             }
         }
 
         public VsDesignerAnalysis(ProjectAnalysisRegistry registry, IOpenAnalysisDocuments openDocuments,
-            ITextDocument document, IServiceProvider services, IVsEditorAdaptersFactoryService adapters, JoinableTaskContext threading)
+            ITextDocument document, IServiceProvider services, IVsEditorAdaptersFactoryService adapters, JoinableTaskContext threading, bool projectScope = false)
         {
             _registry = registry;
+            _projectScope = projectScope;
             _inputs = new ProjectAnalysisInputSource(openDocuments);
             _document = document;
             _services = services;
@@ -101,6 +111,13 @@ namespace Alarmlist.VisualStudio.Editor
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             if (!_disposed) VsSourceNavigation.Navigate(_services, _adapters, location, expectedText);
+        }
+
+        public void Navigate(AnalysisNavigationTarget target)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (_disposed || target == null) return;
+            VsSourceNavigation.Navigate(_services, _adapters, target);
         }
 
         public Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token)

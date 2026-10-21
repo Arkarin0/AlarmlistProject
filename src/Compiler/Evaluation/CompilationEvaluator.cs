@@ -16,6 +16,7 @@ namespace Alarmlist.Evaluation
     {
         internal static readonly string[] Fields = { "Name", "Code", "Category", "Description" };
         private readonly CompilationContext _context;
+        private readonly bool _allowDeferredValues;
         private readonly ResourceCatalogue _resources;
         private readonly LookupCatalogue _lookups;
         private readonly string _culture;
@@ -25,22 +26,28 @@ namespace Alarmlist.Evaluation
         private readonly Dictionary<AlarmSyntaxNode, Dictionary<string, PropertyExpression>> _fields = new Dictionary<AlarmSyntaxNode, Dictionary<string, PropertyExpression>>();
         private readonly Dictionary<TestProcedureStepSyntax, PropertyExpression> _steps = new Dictionary<TestProcedureStepSyntax, PropertyExpression>();
         internal DiagnosticBag Diagnostics { get; } = new DiagnosticBag();
+        internal DiagnosticBag DeferredDiagnostics { get; } = new DiagnosticBag();
         internal Dictionary<AlarmSyntaxNode, AlarmEvaluation> Alarms { get; } = new Dictionary<AlarmSyntaxNode, AlarmEvaluation>();
         internal ResourceCatalogue Resources => _resources;
         internal LookupCatalogue Lookups => _lookups;
         internal string Culture => _culture;
 
-        internal CompilationEvaluator(AlarmSyntaxTree tree, CompilationContext context)
+        internal CompilationEvaluator(AlarmSyntaxTree tree, CompilationContext context, bool allowDeferredValues = false)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
-            _resources = new ResourceCatalogue(context.Resources);
+            _allowDeferredValues = allowDeferredValues;
+            _resources = tree.LibraryGraph == null ? new ResourceCatalogue(context.Resources)
+                : new ResourceCatalogue(context.Resources, tree.LibraryGraph);
             Diagnostics.AddRange(_resources.Diagnostics);
-            _lookups = new LookupCatalogue(context.Lookups);
+            _lookups = new LookupCatalogue(context.Lookups, tree.LibraryGraph);
             Diagnostics.AddRange(_lookups.Diagnostics);
             if (!LocalizationCulture.TryGetSelection(context.Culture, out _culture))
                 Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidLocalizationCulture, context.Culture));
             _order = tree.Alarms.ToList();
             ValidateProperties(context.Properties);
+            foreach (var library in (tree.LibraryGraph?.Artifacts ?? Array.Empty<Alarmlist.Libraries.LibraryArtifact>())
+                .Concat(tree.Files.Where(file => file.Library != null).Select(file => file.Library)).Distinct())
+                ValidateProperties(library.Properties);
             foreach (AlarmSyntaxTree file in tree.Files.Count == 0 ? new[] { tree } : (IEnumerable<AlarmSyntaxTree>)tree.Files)
                 ValidateProperties(file.Properties);
             foreach (AlarmSyntaxNode alarm in tree.Alarms)
@@ -52,7 +59,16 @@ namespace Alarmlist.Evaluation
                 foreach (string field in Fields)
                     fields.Add(field, Parse(alarm, alarm.GetLocalFieldValue(field), alarm.GetFieldLocation(field)));
                 _fields.Add(alarm, fields);
-                foreach (TestProcedureStepSyntax step in alarm.TestProcedure.Instructions.Concat(alarm.TestProcedure.Reset).OfType<TestProcedureStepSyntax>())
+                var groupNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (ProcedureGroupSyntax group in alarm.TestProcedure.Groups)
+                {
+                    if (!ProcedureGroupSyntax.IsValidName(group.Name))
+                        Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidProcedureGroup, group.Name).WithLocation(group.Location));
+                    else if (!groupNames.Add(group.Name))
+                        Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.DuplicateProcedureGroup, group.Name).WithLocation(group.Location));
+                    if (group.Title != null) Parse(alarm, group.Title, group.TitleLocation);
+                }
+                foreach (TestProcedureStepSyntax step in alarm.TestProcedure.Groups.SelectMany(group => group.Entries).OfType<TestProcedureStepSyntax>())
                     _steps[step] = Parse(alarm, step.Text, step.Location);
             }
 
@@ -104,7 +120,18 @@ namespace Alarmlist.Evaluation
         private void Report(DiagnosticDescriptor descriptor, AlarmSyntaxNode alarm, SourceLocation location, string value,
             IEnumerable<SourceLocation> related = null)
         {
-            Diagnostics.Add(new Diagnostic(descriptor, alarm.FullyQualifiedName ?? "<unnamed>", value).WithLocation(location ?? alarm.Location, related));
+            ReportDiagnostic(new Diagnostic(descriptor, alarm.FullyQualifiedName ?? "<unnamed>", value).WithLocation(location ?? alarm.Location, related));
+        }
+
+        private void ReportDiagnostic(Diagnostic diagnostic)
+        {
+            if (_allowDeferredValues && (diagnostic.Id == DiagnosticWellKnownIds.UnknownProperty
+                || diagnostic.Id == DiagnosticWellKnownIds.UnassignedProperty
+                || diagnostic.Id == DiagnosticWellKnownIds.MissingPropertyContext
+                || diagnostic.Id == DiagnosticWellKnownIds.MissingTranslation
+                || diagnostic.Id == DiagnosticWellKnownIds.MissingLookup))
+                DeferredDiagnostics.Add(diagnostic);
+            else Diagnostics.Add(diagnostic);
         }
 
         internal CompilationResult ToCompilationResult()
@@ -128,7 +155,8 @@ namespace Alarmlist.Evaluation
             internal Dictionary<TestProcedureStepSyntax, string> Steps { get; } = new Dictionary<TestProcedureStepSyntax, string>();
             internal List<LocalizationEvaluation> LocalizationUses { get; } = new List<LocalizationEvaluation>();
             internal List<LookupEvaluation> LookupUses { get; } = new List<LookupEvaluation>();
-            internal bool IsAvailable => _failed.Count == 0 && Steps.Values.All(value => value != null);
+            internal Dictionary<string, string> Titles { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            internal bool IsAvailable => _failed.Count == 0 && Steps.Values.All(value => value != null) && Titles.Values.All(value => value != null);
 
             internal AlarmEvaluation(CompilationEvaluator owner, AlarmSyntaxNode alarm)
             {
@@ -143,7 +171,13 @@ namespace Alarmlist.Evaluation
             {
                 foreach (string field in Fields) TryGetField(field, out _);
                 TestProcedureSyntax procedure = _alarm.ResolvedTestProcedures;
-                foreach (TestProcedureStepSyntax step in procedure.Instructions.Concat(procedure.Reset).OfType<TestProcedureStepSyntax>())
+                foreach (ProcedureGroupSyntax group in procedure.Groups)
+                {
+                    if (!ProcedureGroupSyntax.IsValidName(group.Name)) continue;
+                    string title = group.Title == null ? group.Name : EvaluateExpression(PropertyExpression.Parse(group.Title), group.TitleLocation);
+                    Titles[group.Name] = title == string.Empty ? group.Name : title;
+                }
+                foreach (TestProcedureStepSyntax step in procedure.Groups.SelectMany(group => group.Entries).OfType<TestProcedureStepSyntax>())
                     Steps[step] = EvaluateExpression(_owner._steps[step], step.Location);
             }
 
@@ -225,7 +259,7 @@ namespace Alarmlist.Evaluation
                 if (_owner._culture == null) return null; // Invalid culture already has a diagnostic.
                 if (!_owner._resources.TryResolve(key, _owner._culture, out ResourceTranslation translation))
                 {
-                    _owner.Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.MissingTranslation, key, _owner._culture)
+                    _owner.ReportDiagnostic(new Diagnostic(DiagnosticDescriptors.MissingTranslation, key, _owner._culture)
                         .WithLocation(location ?? _alarm.Location, _owner._resources.GetLookupLocations(key, _owner._culture)));
                     return null;
                 }
@@ -310,7 +344,7 @@ namespace Alarmlist.Evaluation
 
             private string MissingLookup(ExpressionToken token, string reason, SourceLocation location, SourceLocation definition)
             {
-                _owner.Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.MissingLookup, token.Raw, reason)
+                _owner.ReportDiagnostic(new Diagnostic(DiagnosticDescriptors.MissingLookup, token.Raw, reason)
                     .WithLocation(location ?? _alarm.Location, new[] { definition }.Concat(_activeResources)));
                 return null;
             }
@@ -320,7 +354,7 @@ namespace Alarmlist.Evaluation
                 if (_owner._culture == null) return null;
                 _owner._resources.TryResolve(label.Key, _owner._culture, out ResourceTranslation translation);
                 if (translation == null)
-                    _owner.Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.MissingTranslation, label.Key, _owner._culture)
+                    _owner.ReportDiagnostic(new Diagnostic(DiagnosticDescriptors.MissingTranslation, label.Key, _owner._culture)
                         .WithLocation(location ?? _alarm.Location, new[] { label.Location }.Concat(_owner._resources.GetLookupLocations(label.Key, _owner._culture))));
                 string value = translation?.Entry.Value;
                 LocalizationUses.Add(new LocalizationEvaluation(label.Key, translation?.Entry, location ?? _alarm.Location, value));
@@ -331,7 +365,8 @@ namespace Alarmlist.Evaluation
             {
                 TestProcedureSyntax procedure = _alarm.ResolvedTestProcedures;
                 return new Alarm(_alarm.FullyQualifiedName, _fields["Category"], _fields["Code"], _fields["Description"], _fields["Name"],
-                    new TestProcedure(Convert(procedure.Instructions), Convert(procedure.Reset)));
+                    new TestProcedure(procedure.Groups.Where(group => ProcedureGroupSyntax.IsValidName(group.Name)).Select(group =>
+                        new ProcedureGroup(group.Name, Titles[group.Name], Convert(group.Entries)))));
             }
 
             private IEnumerable<TestProcedureItem> Convert(IEnumerable<ITestProcedureItem> entries)

@@ -16,10 +16,25 @@ namespace Alarmlist.VisualStudio.UI
         {
             InitializeComponent();
             DataObject.AddCopyingHandler(this, OnCopyingText);
-            DataContextChanged += (sender, args) => UpdateSortArrows();
-            Loaded += (sender, args) => UpdateSortArrows();
+            DataContextChanged += (sender, args) => { UpdateSortArrows(); BindColumnLayout(); };
+            Loaded += (sender, args) => { UpdateSortArrows(); BindColumnLayout(); };
+            Unloaded += (sender, args) => { AlarmTable.ContextMenu.IsOpen = false; DetachColumnLayout(); };
+            AlarmTable.AddHandler(System.Windows.Controls.Primitives.Thumb.DragCompletedEvent,
+                new System.Windows.Controls.Primitives.DragCompletedEventHandler(OnColumnResizeCompleted), handledEventsToo: true);
         }
-        private EditFileControlViewModel View => DataContext as EditFileControlViewModel;
+        private IPreviewView View => DataContext as IPreviewView;
+        internal void ShowAlarmTable() => PreviewTabs.SelectedIndex = 0;
+
+        private void OnPreviewToolbarSizeChanged(object sender, SizeChangedEventArgs args)
+        {
+            // Reposition the existing controls so resizing preserves filter text
+            // and focus while leaving enough room to type in a narrow tool window.
+            bool narrow = args.NewSize.Width < 700;
+            Grid.SetRow(PreviewTableActions, narrow ? 1 : 0);
+            Grid.SetColumn(PreviewTableActions, narrow ? 0 : 1);
+            Grid.SetColumnSpan(PreviewTableActions, narrow ? 2 : 1);
+            PreviewTableActions.Margin = narrow ? new Thickness(0, 6, 0, 0) : new Thickness(8, 0, 0, 0);
+        }
 
         private void OnTableSorting(object sender, DataGridSortingEventArgs args)
         {

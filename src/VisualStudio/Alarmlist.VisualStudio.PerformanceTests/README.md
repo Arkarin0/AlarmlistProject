@@ -8,6 +8,33 @@ contents. Ordinary solution tests skip all measurements and live IDE launches.
 
 ## Isolated benchmarks
 
+`Area=Libraries` uses a saved three-library diamond with 1,000 concrete alarms and
+one shared abstract template. It measures full saved graph/artifact capture,
+recapture plus consumer analysis after a saved template change, analysis of already
+captured libraries, and disposal of a populated consumer SDK bridge. Capture uses
+the production evaluator and opens/disposes the dependencies' SDK AppDomains.
+Source writes, bridge preparation for disposal, and assertions are outside the
+measured intervals. Assertions check deduplication, consumer parameter resolution,
+propagation of the latest saved template, compiler isolation and no build outputs.
+The fixture's initial target fails if any target is accidentally executed.
+
+```powershell
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Libraries'
+```
+
+These timings exclude native CPS debounce, file watchers, editor painting and
+project unload in Visual Studio. Bridge disposal is not a leak-freedom claim.
+
+`Area=LibraryPreview` uses the same diamond and actual WPF project-preview control.
+It measures opening the imported report and publishing a precomputed saved-library
+change, with compilation/capture outside the UI intervals. It verifies 1,000
+concrete rows, current names, library version labels, compiled XML and row
+virtualization. Run it separately from native IDE tests:
+
+```powershell
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=LibraryPreview'
+```
+
 From the repository root on Windows:
 
 ```powershell
@@ -73,6 +100,34 @@ typing or screen paint. Allocated bytes describe benchmark operations, not retai
 objects or the memory of a running Visual Studio. Existing collectibility regression
 tests remain in UnitTests. Old Stopwatch results remain historical evidence in
 MILESTONE-3.md; the new measurement method establishes a new baseline.
+
+`Area=Preview` covers the milestone-seven controls with 1,200 concrete alarms
+across twelve files and long, inherited/cleared procedure text. It measures report
+column resizing/layout, scrolling from the first to the last row, and opening the
+actual searchable reference popup with more than 1,000 choices. A separate
+measurement opens an independent project report from captured analysis, including
+presentation-model creation, row materialization and scope/language header layout.
+Compilation and setup remain outside the measured intervals; correctness checks require resolved
+long procedures, bounded realized report rows, candidate counts and no source
+commits. These isolated WPF measurements do not measure physical input or screen
+paint and have no machine-dependent timing threshold.
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Preview'
+```
+
+`Area=Procedures` adds the milestone-eight workloads: 1,000 alarms for designer
+publication/context/draft/completion/command measurements, and 1,200 alarms for
+preview resize/scroll, reference popup and project-report opening. Every alarm
+resolves fourteen ordered groups with inherited expression titles. The preview
+fixture also expands notes into long procedures. Correct group count, inherited
+title evaluation, source preservation and row virtualization are validated outside
+the measured intervals. These are isolated WPF timings, not native keystroke or
+screen-paint latency; retain raw results and avoid machine-dependent thresholds.
+
+```powershell
+powershell.exe -NoProfile -File eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Procedures'
+```
 
 ## Live Visual Studio wrappers
 
@@ -149,6 +204,20 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/Alarmlist.V
 Set `ALARMLIST_VS_MEASUREMENT_ITERATIONS=100` for the extended lifecycle run. These
 measurements observe the whole IDE without forcing garbage collection. They do
 not establish a timing budget or prove absence of leaks.
+
+`Host=VisualStudio&Area=Libraries` uses the same opt-in settings on both hosts.
+It loads a consumer with an out-of-solution library containing one abstract
+template and 1,000 concrete alarms. Each saved change introduces a unique required
+parameter, and the timer ends only when its consumer diagnostic appears. The
+second interval removes the consumer from the solution and waits for its diagnostic
+to disappear. Re-adding the project and checking the current diagnostic is outside
+timing. Each mode retains two warmups and the requested samples; the workload
+marker, complete modes and zero loaded projects/documents at memory capture are
+required by report validation. `project-unload-memory.csv` observes whole-IDE
+memory after removal, without forced IDE collection or a leak-freedom claim.
+These timings include disk writes, 50 ms polling and shell/COM overhead; they do
+not isolate the extension's disposal cost. No library Build runs; consumer output
+and unchanged inputs are hash-checked, and the changed fixture source is restored.
 
 ## Heap and lifetime investigation
 

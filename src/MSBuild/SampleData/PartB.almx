@@ -7,13 +7,13 @@
     <Code>F-002</Code>
     <Description>Smoke alarm reported by the control panel.</Description>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Hint>Use the referenced smoke detector alarm as the base procedure.</Hint>
         <Step>Confirm the panel zone and detector address.</Step>
-      </Instructions>
-      <Reset>
+      </Group>
+      <Group Name='Reset'>
         <Step>Reset the panel after the detector has returned to normal.</Step>
-      </Reset>
+      </Group>
     </TestProcedure>
   </Alarm>
   <Alarm>
@@ -23,13 +23,13 @@
     <Category>Utility</Category>
     <Description>The compressed air supply pressure is below the configured threshold.</Description>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Step>Check compressor availability.</Step>
         <Step>Inspect the main supply valve.</Step>
-      </Instructions>
-      <Reset>
+      </Group>
+      <Group Name='Reset'>
         <Step>Restore supply pressure and acknowledge the alarm.</Step>
-      </Reset>
+      </Group>
     </TestProcedure>
   </Alarm>
 </Alarmlist>

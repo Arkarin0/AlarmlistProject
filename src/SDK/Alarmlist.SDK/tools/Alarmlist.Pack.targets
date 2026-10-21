@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <PackageOutputPath Condition="'$(PackageOutputPath)' == ''">$(OutputPath)</PackageOutputPath>
+  </PropertyGroup>
+  <UsingTask TaskName="Alarmlist.MSBuild.AlarmlistPackTask" AssemblyFile="$(AlarmlistTasksAssembly)" />
+  <Target Name="_ValidateAlarmlistPack">
+    <Error Condition="'$(IsPackable)' == 'false'" Text="This library has IsPackable=false." />
+    <Error Condition="'$(OutputType)' != 'Library'" Text="Pack requires OutputType=Library." />
+    <Error Condition="'$(NoBuild)' == 'true'" Text="Alarmlist Pack requires a validated library build; NoBuild is not supported." />
+  </Target>
+  <Target Name="Pack" DependsOnTargets="_ValidateAlarmlistPack;Build" Condition="'$(DesignTimeBuild)' != 'true'" Returns="@(AlarmlistPackages)">
+    <ItemGroup><AlarmlistPackages Remove="@(AlarmlistPackages)" /></ItemGroup>
+    <AlarmlistPackTask Artifact="@(CompiledAlarmlistFiles)" OutputDirectory="$(PackageOutputPath)"
+                      Authors="$(Authors)" Description="$(Description)"
+                      LibraryReferences="@(_AlarmlistProjectReferenceInputs);@(_AlarmlistPackageReferenceInputs)"
+                      ProtectedFiles="@(Compile);@(AlarmlistResource);@(AlarmlistLookup);@(AlarmlistAnalyzer);@(ProjectReference);$(MSBuildAllProjects);$(MSBuildProjectFullPath);$(ProjectAssetsFile);$(_AlarmlistOutputManifest)">
+      <Output TaskParameter="Packages" ItemName="AlarmlistPackages" />
+    </AlarmlistPackTask>
+  </Target>
+</Project>

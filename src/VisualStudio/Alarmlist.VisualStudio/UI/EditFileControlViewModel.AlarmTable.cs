@@ -102,9 +102,9 @@ namespace Alarmlist.VisualStudio.UI
             finally { _refreshingTable = false; }
         }
 
-        internal void SortAlarmTable(string column)
+        public void SortAlarmTable(string column)
         {
-            if (!new[] { "Name", "Code", "Category", "Description", "Identity", "Source" }.Contains(column)) return;
+            if (!new[] { "Name", "Code", "Category", "Description", "TestMethod", "Identity", "Source" }.Contains(column)) return;
             AlarmTableSortDescending = column == AlarmTableSortColumn && !AlarmTableSortDescending;
             AlarmTableSortColumn = column;
             InvalidatePreviewActions();
@@ -113,18 +113,15 @@ namespace Alarmlist.VisualStudio.UI
             RefreshPreview(_analysis?.Current, CurrentAlarm());
         }
 
-        internal void CopyPreviewRows(IEnumerable<AlarmPreviewRow> selection, Action<string> copy)
+        public void CopyPreviewRows(IEnumerable<AlarmPreviewRow> selection, Action<string> copy)
         {
             var selected = new HashSet<AlarmPreviewRow>(selection);
             if (selected.Count == 0 || selected.Any(row => !AlarmTableRows.Contains(row))) return;
-            string[] columns = { "Name", "Code", "Category", "Description", "Identity", "Source" };
-            string text = string.Join("\t", columns) + "\r\n" + string.Join("\r\n", AlarmTableRows.Where(selected.Contains)
-                .Select(row => string.Join("\t", columns.Select(column => QuoteTableCell(row.Column(column))))));
+            string[] columns = PreviewColumns.OrderedColumns.Where(column => column.IsVisible).Select(column => column.Id).ToArray();
+            if (columns.Length == 0) return;
+            string text = PreviewContent.CopyRows(AlarmTableRows.Where(selected.Contains), columns);
             StartPreviewAction(() => copy(text));
         }
-
-        private static string QuoteTableCell(string value) => value.IndexOfAny(new[] { '\t', '\r', '\n', '"' }) >= 0
-            ? "\"" + value.Replace("\"", "\"\"") + "\"" : value;
 
         private DelegateCommand TableNavigation(ProjectAnalysisState state, AnalysisLocation location)
         {
@@ -132,7 +129,7 @@ namespace Alarmlist.VisualStudio.UI
             return new DelegateCommand(() => { if (CanNavigate()) StartPreviewAction(() => Navigate(state, location)); }, CanNavigate);
         }
 
-        internal void StartPreviewAction(Action action)
+        public void StartPreviewAction(Action action)
         {
             if (CanUseProjectPreview) PendingAnalysisAction = RunPreviewActionAsync(action);
         }

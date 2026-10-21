@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Input;
 using Microsoft.VisualStudio.PlatformUI;
 
 namespace Alarmlist.VisualStudio.UI
@@ -17,6 +18,10 @@ namespace Alarmlist.VisualStudio.UI
         private readonly FrameworkElement _designer;
         private readonly FrameworkElement _source;
         private readonly GridSplitter _splitter = new GridSplitter { Background = System.Windows.Media.Brushes.Gray };
+        internal bool HandleDesignerReturn(bool execute, ModifierKeys modifiers)
+            => _designer is EditFileControl editor && editor.HandleReturnCommand(execute, modifiers);
+        internal bool NavigateSource(int position, string expectedText)
+            => _designer is EditFileControl editor && editor.NavigateSource(position, expectedText);
         public SplitEditorControl(EditorLayoutViewModel layout, FrameworkElement designer, FrameworkElement source)
         {
             _layout = layout;

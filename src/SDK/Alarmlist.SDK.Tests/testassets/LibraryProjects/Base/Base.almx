@@ -1,0 +1,6 @@
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Base</FullyQualifiedName>
+    <Name>$(ConsumerValue)</Name>
+  </Alarm>
+</Alarmlist>

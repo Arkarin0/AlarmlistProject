@@ -4,6 +4,12 @@ namespace Alarmlist.Diagnostics
 {
     public static class DiagnosticDescriptors
     {
+        public static readonly DiagnosticDescriptor InvalidLibrary = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidLibrary, "Invalid library reference", "Invalid alarm library reference: {0}", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidProcedureGroup = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidProcedureGroup, "Invalid procedure group", "Invalid procedure group identity '{0}'.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor DuplicateProcedureGroup = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.DuplicateProcedureGroup, "Duplicate procedure group", "Procedure group '{0}' is declared more than once in this alarm.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor AnalyzerFailure = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.AnalyzerFailure, "Analyzer failure", "Analyzer '{0}' failed: {1}", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor DuplicateLookupEntry = new DiagnosticDescriptor(

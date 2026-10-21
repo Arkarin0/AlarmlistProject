@@ -5,6 +5,13 @@ templates, Solution Explorer file management, project properties, and
 Build/Rebuild/Clean through `Alarmlist.MSBuild.SDK`. Compiler errors are reported
 through the standard MSBuild logger and Visual Studio Error List.
 
+**Add New Project > Alarmlist Library** creates reusable definitions with an abstract
+template and a concrete derived alarm. In its Alarmlist project properties, choose
+the output type and library filename, and set the package ID/version before sharing
+it through project or NuGet references. Package identity is shared across build
+configurations. The [library playground](../../example/Libraries/README.md) includes
+two consumers, a transitive dependency, local feed preparation and expected output.
+
 **Add > New Item > Alarmlist > Translations (RESX)** creates a resource file and
 opens Visual Studio's resource editor. Keep a culture suffix in its name, such as
 `Translations.en.resx` (the default) or `Translations.de.resx`. It is included as
@@ -59,8 +66,59 @@ Alarm-field properties read resolved values; custom parameter assignments remain
 literal. Explicit-empty assignments stop fallback, while unassigned parameters
 use outer scopes and cause errors only when used unresolved by a concrete alarm.
 Milestone three's remaining release checks stay open. Milestone five localization
-is implemented; see its [iteration results and remaining gates](MILESTONE-5.md). NuGet alarm libraries
-remain for a later milestone.
+is implemented; see its [iteration results and remaining gates](MILESTONE-5.md).
+
+[Milestone nine](MILESTONE-9.md) adds reusable alarm libraries through project and
+NuGet references. Consumer analysis reads saved referenced projects and their
+imports, ALMX, resources, lookups and configuration without running Build or
+writing library artifacts. This also works for unloaded projects and projects
+outside the solution. Save dependency changes to refresh consumers; unsaved
+dependency XML remains private, while the consumer's own open ALMX buffers still
+participate in its analysis. Solution configuration mappings select the referenced
+project configuration. Library analyzers and EditorConfig validate their owning
+library and do not become consumer policy.
+
+Solution Explorer groups direct project references under Dependencies / Projects
+(Abhängigkeiten / Projekte in a German IDE). The tree follows evaluated project
+items in the active configuration, keeps missing references visible with a warning,
+and does not require referenced projects to be loaded. Expanding it does not build
+the project. Use the native Add Reference command with the dependency root selected,
+or remove a selected direct reference with Delete; removal keeps the referenced
+project on disk. Empty Projects groups are hidden.
+
+Dependencies / Packages (Pakete) shows evaluated direct NuGet references. Resolved
+nodes show the selected version; a differing requested version/range appears as
+`requested → resolved`. Restore-pending and unresolved references remain visible.
+Expand a package to inspect its selected transitive dependencies, labelled as
+read-only transitive entries. Shared dependencies expand once per direct root;
+repeated occurrences stay visible as leaves. Use the native Manage NuGet Packages
+action on the dependency root to install, update or uninstall packages. Delete
+does not edit package references or transitives. Resolution follows the selected
+SDK's restored assets; invalid/failed restore clears resolved children until
+recovery. An older SDK without the graph projection leaves package nodes unresolved.
+Selected packages also expose nonempty Build files, Analyzers, Alarm libraries and
+Documents groups (localized in German). Entries come from restored declarations:
+selected props/targets, registered host-compatible Alarmlist analyzers, `.almlib`
+artifacts, the manifest's README and `.md`/`.txt`/`.html` files in `docs/` or
+`documentation/`. Enter or double-click opens captured read-only content. HTML and
+build files are plain text; libraries use the virtual XML viewer; DLLs show captured
+identity/path information. Browsing never executes HTML or build files, loads a DLL,
+or edits the package cache. Missing files are marked unresolved and recover when
+restored. Navigation checks current selection, captured bytes and path containment.
+Integrated playground/configuration lifecycle acceptance passed on both supported
+hosts; milestone-nine iteration 12 records the scenarios and retained evidence.
+
+Package analysis uses the selected SDK and restored NuGet assets. Restore after
+changing package references. Missing or invalid dependencies clear stale results;
+saved-file recovery triggers analysis again. Inputs and package selections are
+revalidated before results are published or used for editor actions. Reference
+choices and preview source labels show library identity/version and can be searched
+by library name. Concrete imported alarms appear in the project preview table;
+deferred values remain unavailable. Navigation into a referenced project opens
+its actual source. Package navigation opens a generated, read-only definition
+with portable origin information; it does not expose the original formatting or
+write to the package cache. Repeated navigation reuses an identical open definition.
+See milestone-nine iteration six for validation evidence.
 
 [Milestone six](MILESTONE-6.md) adds saved EditorConfig settings, diagnostic severity,
 project warning controls and explicit `AlarmlistAnalyzer` DLLs. The SDK owns rule
@@ -75,6 +133,16 @@ compiler and plugin types remain outside the VS host domain. See the
 for precedence, runtime selection and the trusted/cooperative analyzer contract.
 The functional xUnit scenarios have the `Area=Analyzers` trait and the same host
 environment prerequisites as the other UI integration tests.
+
+Milestone nine adds analyzer packages whose ordinary NuGet build targets register
+`AlarmlistAnalyzer` items. Dependencies / Analyzers (Analysetools in German) shows
+assembly names and their declared `ID: Title` rules for both package and DLL items.
+Rules remain visible when they report no violations or ALMX contains errors. Rule
+icons show descriptor **default severity**; the Error List reflects the effective
+per-file configuration. Configure severity through EditorConfig or project warning
+options. Rule nodes do not provide a ruleset editor or delete action. Descriptor
+loading stays in the selected SDK domain; unavailable analyzers have no stale rule
+children. Manage direct analyzer packages through native NuGet commands.
 
 Milestone five also supports reusable named templates such as
 `$(loc:Instruction.Set, path=$(path:Service.Vakuum), value="60")`.
@@ -94,23 +162,44 @@ and the [North/South sample walkthrough](../../example/README.md#try-reusable-in
 
 Open **View > Other Windows > Alarmlist Preview** for the dockable preview window.
 Its **Alarm table**, **Selected alarm** and **Compiled XML** tabs replace the
-designer's embedded preview sections. The window follows the active ALMX document, selected alarm,
-linked-project context and native Preview language toolbar. Moving focus into
-the window preserves unfinished designer edits; preview clears until they are
-committed or cancelled. Compiled XML requires a successful whole-project analysis
-and never writes build output. Source buttons revalidate the captured inputs.
-Closing the document or switching to another document clears its preview; reopening
-the window follows the current document. Visual Studio manages docking and layout.
+designer's embedded preview sections. **Scope** defaults to **Follow active editor**,
+following its selected alarm and linked-project context. Choose a project to keep
+the preview independent of editors, or right-click a loaded Alarmlist project in
+Solution Explorer and choose **Preview alarms**. No editor or Build is required.
+Explicit project scope survives editor switches/closure and window hide; unloading
+that project clears its results and retains the selected identity until reload or
+another choice. The window's language selector works without an editor and uses
+the same CPS preview setting as the native Alarmlist toolbar.
+
+Both scopes include shared unsaved ALMX text. Follow-active mode clears during
+that editor's unapplied field drafts; explicit project mode continues to show the
+analyzed buffers and visibly explains that private drafts are excluded. Moving
+focus into the window never applies those drafts. Compiled XML requires a
+successful whole-project analysis and never writes build output. Source and copy
+actions revalidate inputs and the selected scope. Visual Studio manages docking.
 The alarm table includes every concrete alarm in the selected project context.
-Click column headings to sort; the filter searches resolved fields, identities
+Cells wrap and rows grow to fit their contents. **Test method** combines effective
+ordered group titles and entries with bullet steps and Hint/Warning/Note
+labels; cleared entries and Clear directives are omitted. Multiline text retains
+its line breaks. Click column headings to sort; the filter searches resolved fields, procedures, identities
 and source paths. Select a row to inspect its details, or double-click/press Enter
 to navigate to its source. Source-path tooltips identify linked files. Ctrl+C or
 **Copy selected rows** copies the selection in display order as tab-separated
 text with column headings; tabs, newlines and quotes inside values are quoted.
+Use **Columns** to show/hide columns, enter widths, move columns left/right with
+the keyboard, or reset the layout. Headers also support drag reordering and edge
+resizing. Copy includes visible columns in their display order. The chooser stays
+available even with all columns hidden. Preferences are shared across the project's
+ALMX previews and saved in `<project>.almproj.user`, independently of configuration.
+Unrelated user properties are preserved; save failures leave the session layout
+usable and show an error. Loose files use session preferences.
+In narrow preview windows, the count and row actions wrap below the filter so
+the filter remains usable; resizing keeps its text and keyboard focus.
 Copying revalidates saved resources/lookups and source snapshots first. Errors
-mark unavailable row values and disable compiled XML; drafts clear all previews.
+mark unavailable row values and disable compiled XML. See the scope-specific draft
+behavior above.
 
-The bridge accepts analysis contract 3 and loads the resolved SDK's net472 compiler
+The bridge accepts analysis contract 5 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off
 the UI thread, recreating the bridge after SDK/configuration changes. The project
@@ -122,7 +211,12 @@ keeps linked projects separate; each view can choose its owning project context.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
-Contract 3 requires captured-context analysis and compiled preview support. It
+Contract 5 requires captured-context analysis and compiled preview support. It
+also requires library snapshot analysis. CPS captures `OutputType=Library` and
+uses that mode for the project's own editor: missing consumer values are unavailable
+in previews, without treating those missing values as invalid library definitions.
+Library previews never provide final application XML. Application projects retain
+strict value validation. The bridge
 copies selected culture, saved-resource identities/versions, raw catalogue entries,
 translation origins and alarm-specific localization uses, as well as raw expressions,
 evaluated values, abstract state, availability, and separate
@@ -154,9 +248,14 @@ layout changes, and moving to another designer field still commit it.
 The toolbar uses the SDK's [native combo command pattern](https://github.com/microsoft/VSSDK-Extensibility-Samples/tree/master/Combo_Box)
 and editor command routing, without a global reference to an editor or project.
 
-Type `$(loc:` or use Ctrl+Space in expression fields for case-sensitive key
-completion. Suggestions show saved translation text, parent-culture provenance
-and comments; used translations can show evaluated values outside drafts. Enter
+Type `$(loc:` or use Ctrl+Space in expression fields to search any part of a
+localization key, ignoring case: `$(loc:Conta` finds `Electrical.ContactorTerminal`.
+Keys beginning with the search text appear first. Insertion preserves the exact
+key spelling; compiler key lookup remains case-sensitive. Suggestions show saved
+translation text, parent-culture provenance and comments; used translations can
+show evaluated values outside drafts. All
+expression suggestions use `name (additional information)` labels, with values and
+origin details available without changing the inserted token. Enter
 or Tab inserts the full token into the draft; a subsequent Enter commits it.
 Escape first closes completion, then cancels the draft. Saved inputs are checked
 again before displaying and accepting localization suggestions. RESX diagnostics
@@ -222,46 +321,88 @@ from document contents. **Open With > XML (Text) Editor** remains available.
 
 Filter the alarm list by name or identifier, select an alarm, and edit its local
 `FullyQualifiedName`, `Name`, `Code`, `Category`, `Description`, or `ReferenceName`.
-A checked field is present in the source; clearing its checkbox removes it. An
-empty checked field remains an explicit empty local value and can still inherit.
-The list becomes a
-selector when the designer pane is narrow.
+The list becomes a selector when the designer pane is narrow.
+Both show resolved names in the current preview culture, including inherited
+names. When current values are unavailable, they fall back to raw expressions or
+identifiers. Filtering matches displayed names, local raw expressions and
+identifiers. Analysis refreshes preserve an actively edited alarm and its drafts.
+The Add alarm and Delete buttons expose A/D access keys in their tooltips and
+accessible help: press A or D while the designer has focus outside a text field.
+Inside text fields, letters remain ordinary input and Ctrl+A selects all text.
 
-Inherited Name, Code, Category, and Description values are selectable, read-only
-fields with a chain icon and defining alarm/file text. **Override locally** starts
-a draft copied from the current effective value; **Use inherited value** removes
-the local XML element. Viewing, focusing, or saving an untouched inherited field
-does not create an override. Analysis refreshes preserve active local drafts.
+**File settings** contains the project context, file parameters and live project
+diagnostics. **Alarm settings** contains filtering/navigation, alarm parameters,
+properties and procedures for the selected alarm. Each area scrolls independently.
+In either parameter list, right-click a row or focus a cell and press Shift+F10
+for assignment, explicit-empty, fallback and declaration actions. Cell menus also
+retain normal text-editing commands. Add and Remove remain above each list.
+Use either header to collapse its area; drag the divider or focus it and use
+Up/Down to resize. These actions preserve private drafts. Collapse states and the
+divider position are restored from Visual Studio user settings. A single project
+context is shown as a label; linked files with multiple contexts get a labelled
+selector in File settings.
 
-Choose a project context for a file linked into multiple projects. The reference
-picker lists unambiguous identifiers from that project and excludes self/cyclic
-choices. **Use selected reference** edits only ReferenceName; literal entry remains
-available. **Go to reference** opens the immediate target, while **Go to source**
+The property form aligns labels on the left and editors on the right, with a
+narrow inheritance-icon gutter between them. Edit a field directly to create a
+local value; XML-presence checkboxes are no longer needed. Inherited Name, Code,
+Category and Description show a chain icon and origin tooltip. Focus shows their
+raw expression; typing starts a local draft. **Use inherited value** in the field's
+context menu removes its local XML element. Right-click or Shift+F10 opens this
+menu, including clipboard and source-navigation actions. Viewing, focusing, or
+saving an untouched field does not create an override. Analysis refreshes preserve
+active local drafts. The **Abstract template** checkbox still controls exclusion
+from compiled output and follows the Visual Studio theme.
+
+Choose a project context for a file linked into multiple projects. **ReferenceName**
+combines literal editing with searchable choices: type any part of an identifier
+or alarm name, use arrows to choose and Enter to apply. F4/Alt+Down opens the list;
+Escape closes it without changing the draft. Enter then commits a literal value,
+including unresolved references. Clearing the text and pressing Enter removes the
+reference's value without automatically choosing a candidate. Suggestions show
+their defining file, omit ambiguous/self/cyclic targets and use virtualized rows.
+Selections revalidate the current project inputs before committing. The adjacent
+**Go to reference** action opens the immediate target, while **Go to source**
 opens the actual defining field through multi-hop inheritance. Copy, picker, and
 navigation commands revalidate captured inputs before acting. Pending, incomplete,
 unavailable, and loose-file states retain local editing without stale inheritance.
+
+**Tools > Options > Alarmlist > Navigation > Open ALMX sources in** chooses
+**Designer** (default) or **XML** for Go to, preview and diagnostic links. This
+is a personal Visual Studio preference. Designer navigation selects the exact
+source alarm and field, parameter or procedure entry, even with duplicate names;
+it reveals collapsed groups, filtered alarms and hidden cleared entries as needed.
+Unsupported markup and resource/lookup locations use XML. Find still uses XML.
+Navigation refuses to replace or commit an unapplied destination draft. Build
+diagnostic links require a matching diagnostic in current analysis; stale results
+ask you to wait for analysis or rebuild instead of selecting an outdated position.
 
 Expand **Live project diagnostics** to see compiler IDs, messages, source links,
 and related locations for the chosen project context. These describe shared
 buffer text; commit or cancel control drafts before navigating. The Visual Studio
 Error List publishes the same current errors under **Alarmlist live analysis**
 (the IntelliSense/non-Build source). Use **Build + IntelliSense** to see both.
+**Build** alone hides live entries, so a duplicate such as ALM0001 can appear to
+arrive only after a build. With **IntelliSense** or **Build + IntelliSense**, it
+updates when an XML edit or committed designer edit reaches the shared buffer;
+no build or save is required. Uncommitted field drafts remain private. The
+diagnostics heading's tooltip and accessible help explain this source filter.
 Pending analysis clears obsolete live errors, and project unload removes its rows.
 Input/SDK failures appear separately as analysis-unavailable warnings without ALM
 codes. Neither live analysis nor its navigation saves files or writes compiled output;
 existing Build diagnostics remain owned by MSBuild.
 
-Expand **Resolved alarm preview** to inspect the selected alarm's identity,
-effective scalar values, and surviving Instructions/Reset entries in execution
+Use the preview window's **Selected alarm** tab to inspect the selected alarm's identity,
+effective scalar values, and surviving procedure-group entries in execution
 order. Chain adorners mark inherited values; **Go to source** follows each value's
 SDK origin after revalidating the inputs. Missing values and empty sections are
 labelled. A valid alarm remains inspectable when another alarm has errors.
 
-Expand **Compiled project XML preview** to select or copy the whole project's
+Use the **Compiled XML** tab to select or copy the whole project's
 resolved XML. The SDK generates it in memory using the normal build serializer,
 including unsaved XML buffers. No source or output file is written. All project
-errors block this XML preview, and pending/stale analysis or local drafts clear
-both previews. Each panel identifies the project/configuration. Older SDKs that
+errors block this XML preview; pending/stale analysis clears both previews, as do
+private drafts in Follow active editor mode. Each panel identifies the
+project/configuration. Older SDKs that
 support analysis but lack XML preview show update guidance while keeping the
 resolved-alarm preview available.
 
@@ -272,29 +413,49 @@ draft cancels that draft; subsequent undo uses the document history. A conflicti
 edit in another view is reported instead of overwriting it. Escape reloads the
 current value after a conflict.
 
-Expand **Test procedure** below the alarm fields to edit the local **Instructions**
-and **Reset** sections. Choose Step, Hint, Warning, Note, or Clear and select
+**Add alarm** uses captured saved EditorConfig defaults for the destination file.
+Missing settings create Instructions and Reset; an explicit empty group list
+creates no groups. Invalid settings block creation, and configuration changes
+never rewrite existing alarms. See the [creation settings](../SDK/Alarmlist.SDK/README.md#procedure-groups-and-format-transition).
+
+Expand **Test procedure** below the alarm fields to edit ordered named groups.
+Enter a stable group ID and select **Add group**; IDs compare ignoring case.
+Edit the title with the same expression editor and completion as alarm fields.
+An absent title inherits; an explicit empty title displays the group ID. The
+title context menu can remove a local title or navigate to its source.
+Move controls reorder newly introduced local groups; inherited order stays fixed.
+**Remove local group** removes its local declaration and reveals any inherited
+group. Unsupported content requires XML editing. These actions support Undo.
+Choose Step, Hint, Warning, Note, or Clear and select
 **Add entry**. Each entry has a kind selector, multiline text, move up/down, and
-Remove controls. Clear has no text: it discards all entries preceding it in that
+Remove controls. Add focuses the new entry; moving keeps its text selection, and
+removing focuses the next entry (or the previous entry/group Add button).
+Clear has no text: it discards all entries preceding it in that
 section, including inherited entries. Their order therefore matters.
 
 Procedure drafts use the same Enter/focus-loss, Escape, Save, and Undo behavior
 as alarm fields. Changes in another view to the same section cause a conflict;
-independent Instructions and Reset edits can be combined. Duplicate procedure
+independent group edits can be combined. Duplicate procedure
 containers/sections and entries containing nested markup or comments must be
 edited in XML. Unknown entries and surrounding source remain intact.
 
-Inherited procedure rows have a chain icon, origin text, and **Go to source**.
-**Excluded by Clear** explains omitted inherited and earlier local entries; local
-rows remain editable in the source-order list below it. **Effective sequence**
-shows only surviving entries in execution order. Drafts hide a section's semantic
-view until committed or cancelled; they are never replaced by analysis refreshes.
+Inherited procedure rows stay read-only and have a chain icon and **Go to source**;
+origin/exclusion details are available in tooltips. Cleared rows appear inline with
+muted styling and an explicit Cleared label. Local cleared rows remain editable.
+Each group's eye button hides/shows cleared rows without committing a draft or
+changing XML; Clear boundaries always remain visible. These choices last for the
+editor view, including alarm switches. Moving a focused entry across Clear keeps
+its editor visible until focus leaves. Analysis never replaces private drafts;
+text-only drafts retain structural exclusion information but suppress resolved
+values until committed or cancelled.
 
+Each group's **Inheritance** menu offers whole-section actions. Opening it keeps
+pending drafts private; tooltips explain each action and disabled copy state.
 **Use local entries only** inserts a leading Clear while preserving existing
 entries and directives. **Make local copy** replaces that section with a leading
 Clear and its current effective sequence, each entry once. It captures a snapshot:
-future reference changes stop flowing into that section, while the other section
-continues independently. Commit or cancel drafts before copying. Copies require
+future reference entry changes stop flowing into that group; other groups
+continue independently. Commit or cancel drafts before copying. Copies require
 current resolved analysis and refuse to discard unsupported source content. Each
 section action is one document undo transaction; Undo restores its original source.
 
@@ -339,6 +500,18 @@ mapping, map `Alarmlist.MSBuild.SDK` to that source. Install the VSIX and restar
 Visual Studio. Search for **Alarmlist Project** in New Project; **Alarm List** is
 available in Add New Item. Existing SDK projects can be opened directly or added
 to a solution. Projects do not need `TargetFramework`.
+
+Add New Item uses distinct bell/list and language icons for Alarm List and
+Translations (RESX). The template artwork is maintained as vector drawings in
+`eng/assets/VisualStudio/`; `powershell.exe -NoProfile -Sta -File
+eng/render-template-icons.ps1` regenerates the checked-in transparent ICO frames
+(16–256 pixels). These icons belong to the templates, not generated projects.
+Editor context menus use the VS image service for themed command symbols.
+
+Included project folders named Properties, Resources, Translations or Lookups
+use native VS symbols, regardless of name casing. Other names retain their
+normal folder icon. Linked, excluded, virtual and missing folders retain CPS's
+state indicators; this is a display convention and changes no item membership.
 
 Templates pin the SDK version obtained from the SDK packaging project at build
 time. The VSIX does not install an SDK resolver, modify NuGet settings, or bundle

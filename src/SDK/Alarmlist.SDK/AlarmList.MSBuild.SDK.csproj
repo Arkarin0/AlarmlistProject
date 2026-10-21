@@ -41,7 +41,7 @@
            MSBuild itself supplies Microsoft.Build.* assemblies. -->
       <TfmSpecificPackageFile Include="@(ReferenceCopyLocalPaths)"
                               Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('Microsoft.Build'))"
-                              PackagePath="tasks/$(TargetFramework)/" />
+                              PackagePath="tasks/$(TargetFramework)/%(ReferenceCopyLocalPaths.DestinationSubDirectory)" />
     </ItemGroup>
   </Target>
 </Project>

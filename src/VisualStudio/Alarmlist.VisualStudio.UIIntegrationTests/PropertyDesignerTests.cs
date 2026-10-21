@@ -41,7 +41,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
               <Alarm abstract="true">
                 <FullyQualifiedName>Template</FullyQualifiedName><Name>Alarm $(par1)</Name>
                 <Properties><Property Name="par1" Value="ignored" /></Properties>
-                <TestProcedure><Instructions><Step>Check $(par1) $$(literal)</Step></Instructions></TestProcedure>
+                <TestProcedure><Group Name='Instructions'><Step>Check $(par1) $$(literal)</Step></Group></TestProcedure>
               </Alarm>
             </Alarmlist>
             """;
@@ -105,10 +105,15 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             RequireFocus(ide, value);
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Y);
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == "002", "parameter Redo");
-            ParameterAction(ide, automation, window, "Alarm", "Use file/project value");
+            ParameterAction(ide, automation, window, "Alarm", "Use file/project value", keyboard: false);
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == null && code.Text == "001", "unassign resumes file fallback");
 
             Type(ide, code, "$(par");
+            VisualStudioSession.Wait(() => automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)))
+                .Any(item => item.Name.StartsWith("par1 (value pending; declaration: ", StringComparison.Ordinal)
+                    && item.Name.Contains("; assignment: ") && item.Name.EndsWith(")", StringComparison.Ordinal)), "parenthesized completion metadata");
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "parameter-completion.png"));
             Assert.DoesNotContain("<Code>$(par</Code>", ide.ReadText(workspace.AlarmPath));
             PressFocused(ide, code, VirtualKeyShort.ESCAPE);
             Assert.Equal("$(par", code.Text);
@@ -126,16 +131,30 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Press(ide, abstractBox, VirtualKeyShort.SPACE);
             VisualStudioSession.Wait(() => Child(ide, workspace).Attribute("abstract") == null, "concrete XML synchronization");
 
-            // Copying an inherited expression must leave the tokens editable.
-            AutomationElement copy = null;
-            VisualStudioSession.Wait(() => (copy = window.FindFirstDescendant(cf => cf.ByName("Override Name locally")
-                .And(cf.ByControlType(ControlType.Button))))?.IsEnabled == true, "override available after abstract analysis");
-            Press(ide, copy, VirtualKeyShort.SPACE);
-            TextBox name = null;
-            VisualStudioSession.Wait(() => (name = Box(window, "Name"))?.Properties.HasKeyboardFocus.Value == true, "override focuses raw expression draft");
+            // Focusing an inherited field shows its raw expression without a write.
+            TextBox name = Box(window, "Name");
+            VisualStudioSession.Wait(() => name.Text == "Alarm 001", "inherited Name after abstract analysis");
+            string beforeFocus = ide.ReadText(workspace.AlarmPath);
+            Focus(ide, name);
             Assert.Equal("Alarm $(par1)", name.Text);
+            Assert.Equal(beforeFocus, ide.ReadText(workspace.AlarmPath));
+            Type(ide, name, "Alarm $(par1) edited");
             PressFocused(ide, name, VirtualKeyShort.RETURN);
-            Assert.Equal("Alarm $(par1)", Child(ide, workspace).Element("Name").Value);
+            VisualStudioSession.Wait(() => Child(ide, workspace).Element("Name")?.Value == "Alarm $(par1) edited", "direct inherited edit creates local raw value");
+            RequireFocus(ide, name);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
+            AutomationElement reset = null;
+            VisualStudioSession.Wait(() => (reset = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName("Use inherited Name").And(cf.ByControlType(ControlType.MenuItem))))
+                .SingleOrDefault())?.IsEnabled == true, "keyboard field context menu");
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "direct-property-form.png"));
+            Press(ide, reset, VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => Child(ide, workspace).Element("Name") == null, "context menu restores inheritance");
+            Focus(ide, name);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => Child(ide, workspace).Element("Name")?.Value == "Alarm $(par1) edited", "inheritance reset Undo");
+            VisualStudioSession.Wait(() => name.Text == "Alarm $(par1) edited", "Undo keeps raw local text focused");
+            CheckAlarmAccessKeys(ide, workspace, window);
             Assert.Equal(diskBefore, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(outputBefore, File.ReadAllText(workspace.OutputPath));
             ide.Automation.ExecuteCommand("File.SaveAll", "");
@@ -143,7 +162,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             XElement emitted = XDocument.Load(workspace.OutputPath).Root.Elements("Alarm").Single();
             Assert.Equal("001", emitted.Element("Code").Value);
             Assert.Equal("Inspect 001", emitted.Element("Description").Value);
-            Assert.Equal("Alarm 001", emitted.Element("Name").Value);
+            Assert.Equal("Alarm 001 edited", emitted.Element("Name").Value);
             Assert.Contains("Check 001 $(literal)", emitted.Value);
             Assert.Contains("$(par1)", File.ReadAllText(workspace.AlarmPath));
         }
@@ -227,15 +246,44 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         private static string LocalValue(VisualStudioSession ide, UiTestWorkspace workspace) => (string)Child(ide, workspace).Element("Properties").Element("Property").Attribute("Value");
         private static AutomationElement ParameterGrid(Window window, string name) => window.FindAllDescendants(cf => cf.ByName(name))
             .Single(element => element.Patterns.Grid.IsSupported);
-        private static void ParameterAction(VisualStudioSession ide, UIA3Automation automation, Window window, string scope, string action)
+        private static void ParameterAction(VisualStudioSession ide, UIA3Automation automation, Window window, string scope, string action, bool keyboard = true)
         {
-            AutomationElement button = window.FindFirstDescendant(cf => cf.ByName("Row actions for " + scope + " parameters").And(cf.ByControlType(ControlType.Button)));
-            Press(ide, button, VirtualKeyShort.SPACE);
+            // A restored floating preview can cover this cell even while UIA
+            // focus succeeds. Normalize only the owned IDE before mouse input.
+            if (!keyboard)
+                foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                    if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+            TextBox cell = Box(window, scope + " name of par1");
+            Focus(ide, cell);
+            if (keyboard) Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
+            else cell.RightClick();
             AutomationElement item = null;
             VisualStudioSession.Wait(() => (item = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
                 .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName(action).And(cf.ByControlType(ControlType.MenuItem))))
                 .SingleOrDefault()) != null, "parameter row action menu");
             Press(ide, item, VirtualKeyShort.RETURN);
+        }
+
+        private static void CheckAlarmAccessKeys(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
+        {
+            string before = ide.ReadText(workspace.AlarmPath);
+            int count = XDocument.Parse(before).Root.Elements("Alarm").Count();
+            AutomationElement add = window.FindFirstDescendant(cf => cf.ByName("Add alarm").And(cf.ByControlType(ControlType.Button)));
+            AutomationElement delete = window.FindFirstDescendant(cf => cf.ByName("Delete").And(cf.ByControlType(ControlType.Button)));
+            Assert.Contains("Shortcut: A", add.Properties.HelpText.Value);
+            Assert.Contains("Shortcut: D", delete.Properties.HelpText.Value);
+            Focus(ide, add);
+            Keyboard.Type(VirtualKeyShort.KEY_A);
+            VisualStudioSession.Wait(() => XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Count() == count + 1, "Add alarm access key");
+            Focus(ide, delete);
+            Keyboard.Type(VirtualKeyShort.KEY_D);
+            VisualStudioSession.Wait(() => XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Count() == count, "Delete alarm access key");
+            RequireFocus(ide, delete);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Count() == count + 1, "Undo access-key delete");
+            RequireFocus(ide, delete);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == before, "Undo access-key add");
         }
         private static TextBox Box(Window window, string name) => window.FindAllDescendants(cf => cf.ByName(name).And(cf.ByControlType(ControlType.Edit)))
             .Select(element => element.AsTextBox()).SingleOrDefault(element => !element.IsReadOnly && element.IsEnabled);

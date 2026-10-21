@@ -15,14 +15,24 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Scenario | Observable checks | Area trait |
 | --- | --- | --- |
 | Templates and file lifecycle | Installed project/item templates, build, folder/item creation, rename, solution reload, delete and updated output | `ProjectItems` |
+| Template and folder symbols | Actual Add New Item artwork, native known-folder icons, ordinary/renamed folders and reload | `ProjectItems` |
 | Shared editor | Custom factory/native XML view, New Window/New Tab, shared document data, edit/undo/redo/Save All, XML-first opening and XML survival after designer closure | `SharedEditor` |
 | Designer Save As | Local and linked destinations and back, two views sharing RDT/buffer identity, subsequent saves and preservation of previous files | `SaveAs` |
 | XML Save As | The same Save As contract starting with the XML editor | `SaveAs` |
 | Live diagnostics | Publication before Build, exact navigation position, unload/reload, XML-only unsaved correction, disk/output preservation, discard and deletion | `LiveDiagnostics` |
+| Duplicate before first Build | Unsaved XML/designer ALM0001 publication and correction, shared linked contexts, native source filters and preserved Build rows | `LiveDiagnostics` |
+| Source navigation | Exact duplicate and inherited-procedure selection, Designer/XML preference, native Options persistence/restart, draft/stale guards and unsupported-location fallback | `Navigation` |
 | Configured external analyzer | Live warning/navigation, saved severity and option refresh, promoted build failure preserves output, and source DLL remains unlocked | `Analyzers` |
 | Build failure/Clean/Rebuild | Error List, failure preserves output, updated live errors preserve Build errors, Clean removes output, Rebuild restores it | `Build` |
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
-| Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, raw override and saved build parity | `Properties` |
+| XML keyboard editing | Physical insertion, Backspace/Delete and selections, Enter, multiline replacement, Cut/Paste, Undo/Redo, XML/Split and shell/designer focus transitions, private drafts and save/reopen | `Keyboard` |
+| Native project references | Localized Dependencies / Projects tree, native reference manager from the dependency root, direct-node removal, saved reference/build parity, reopen and source/output preservation during expansion | `LibraryReferences` |
+| Native package references | NuGet management from the dependency root, install/update/uninstall, selected versions and read-only transitive children, invalid-assets recovery and compiled parity | `LibraryPackages` |
+| Dependency lifecycle | Isolated library playground, project/package switching, conditional mixed references, configuration activation, missing-assets recovery, unload/reload and IDE restart, keyboard expansion, duplicate checks and source/output preservation while browsing | `DependencyLifecycle` |
+| Procedure editing | Cleared draft hide/show, Enter commit/shared Undo, add/move/remove focus, Shift+Enter multiline text, and saved source/output preservation | `Procedures` |
+| Properties and completion | Empty/unassigned/local values, parameter Undo/Redo, focused raw and unfocused evaluated text, completion Enter/Escape, Abstract, direct local edits, inheritance context-menu reset/Undo and saved build parity | `Properties` |
+| Searchable references | 1,200 template candidates, case-insensitive name search, keyboard selection, shared Undo, unresolved literal entry, clearing and saved source/output preservation | `References` |
+| File/alarm areas | Labelled single-project context, keyboard divider/collapse, private drafts during wrapped help, editor-reopen layout restoration and saved source/output preservation | `Scopes` |
 | Linked property contexts | North/South project values, configuration reevaluation, shared unsaved file assignment, property diagnostics before Build, discard and unload/reload | `Properties` |
 | Native resource editor | Open RESX in an ALMX project, retain saved disk contents during cell drafts, Undo/Escape drafts, commit a cell, Save, and reopen | `Resources` |
 | Saved localization and linked contexts | Native drafts stay private, save/external changes refresh two project scopes, independent language choices persist after reopening | `Localization` |
@@ -32,7 +42,8 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Lookup and template completion | Saved metadata choices while lookup XML is dirty, named argument slots, expression insertion/Undo, keyword and translated preview, saved catalogue regeneration, unchanged source/output bytes | `Lookups` |
 | Named list completion | Contextual argument choices, saved list inputs, translated descriptions and literal identifiers | `Lists` |
 | Preview window | Docking, active-document/culture changes, private drafts, source navigation, closing and reopening | `Preview` |
-| Alarm table | Concrete alarms, localized values, sorting/filtering, validated copying, keyboard source navigation and draft clearing | `PreviewTable` |
+| Project preview | No-editor project menu/table/details/XML, explicit linked contexts, language and column preferences, shared unsaved buffers/private drafts, hide/show, unload/reload and return to Follow active editor | `Preview` |
+| Alarm table | Wrapped Test method/effective entries, usable filter/focus at narrow widths, sorting/filtering, validated copying/navigation, drafts, keyboard/mouse column controls, CPS user-file preservation and project-reopen layout restoration | `PreviewTable` |
 
 Project and document lifecycle checks retain the former smoke script's shell/API
 operations. They do not simulate clicks through New Project or Save As dialogs.

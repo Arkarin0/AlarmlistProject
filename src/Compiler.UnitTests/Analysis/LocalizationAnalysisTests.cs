@@ -23,7 +23,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
             var compiler = new AlarmCompiler();
             AnalysisResult result = compiler.AnalyzeSnapshots(new[] { source }, context, true);
             Assert.True(result.Success);
-            Assert.Equal(3, result.ContractVersion);
+            Assert.Equal(5, result.ContractVersion);
             Assert.Equal("de-DE", result.Culture);
             Assert.Equal(new[] { 19, 23 }, result.Resources.Select(item => item.Version));
             Assert.Equal(new[] { "de", "de-DE" }, result.Resources.Select(item => item.Culture));
@@ -51,18 +51,18 @@ namespace Alarmlist.Core.UnitTests.Analysis
         public void InheritedUsesEvaluatePerConsumerAndClearRemovesExcludedUses()
         {
             var source = new AlmxTextSnapshot("<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName>"
-                + "<Name>$(loc:Inspection)</Name><TestProcedure><Instructions><Step>$(loc:Missing)</Step></Instructions></TestProcedure></Alarm>"
+                + "<Name>$(loc:Inspection)</Name><TestProcedure><Group Name='Instructions'><Step>$(loc:Missing)</Step></Group></TestProcedure></Alarm>"
                 + "<Alarm><ReferenceName>Base</ReferenceName><Properties><Property Name='p' Value='001'/></Properties>"
-                + "<TestProcedure><Instructions><Clear/><Step>$(loc:Inspection)</Step></Instructions></TestProcedure></Alarm>"
+                + "<TestProcedure><Group Name='Instructions'><Clear/><Step>$(loc:Inspection)</Step></Group></TestProcedure></Alarm>"
                 + "<Alarm><ReferenceName>Base</ReferenceName><Properties><Property Name='p' Value='002'/></Properties>"
-                + "<TestProcedure><Instructions><Clear/></Instructions></TestProcedure></Alarm></Alarmlist>", "Inherited.almx", 8);
+                + "<TestProcedure><Group Name='Instructions'><Clear/></Group></TestProcedure></Alarm></Alarmlist>", "Inherited.almx", 8);
             AnalysisResult result = new AlarmCompiler().AnalyzeSnapshots(new[] { source }, new CompilationContext(new[] { Resource("Inspect $(p)", "en") }, "en"), true);
             Assert.True(result.Success);
             Assert.Empty(result.Alarms[0].LocalizationUses);
             Assert.Equal(new[] { "Inspect 001", "Inspect 001" }, result.Alarms[1].LocalizationUses.Select(use => use.Value));
             Assert.Equal("Inspect 002", Assert.Single(result.Alarms[2].LocalizationUses).Value);
             Assert.All(result.Alarms.SelectMany(alarm => alarm.LocalizationUses), use => Assert.Equal("Inspection", use.Translation.Key));
-            Assert.Single(result.Alarms[1].Instructions.ExcludedEntries);
+            Assert.Single(result.Alarms[1].ProcedureSections.Single(group => group.Name == "Instructions").ExcludedEntries);
         }
 
         [Fact]

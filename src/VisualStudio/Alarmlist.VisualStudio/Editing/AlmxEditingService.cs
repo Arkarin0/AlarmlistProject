@@ -15,7 +15,11 @@ namespace Alarmlist.VisualStudio.Editing
     {
         AlmxProjection Parse(string text);
         SourceEdit SetField(AlmxProjection projection, AlarmSource alarm, string name, string value);
-        SourceEdit AddAlarm(AlmxProjection projection);
+        SourceEdit AddAlarm(AlmxProjection projection, IReadOnlyList<KeyValuePair<string, string>> groups);
+        SourceEdit AddProcedureGroup(AlmxProjection projection, AlarmSource alarm, string name);
+        SourceEdit SetProcedureTitle(AlmxProjection projection, AlarmSource alarm, string name, string value);
+        SourceEdit RemoveProcedureGroup(AlmxProjection projection, AlarmSource alarm, string name);
+        SourceEdit MoveProcedureGroup(AlmxProjection projection, AlarmSource alarm, string name, string otherName);
         SourceEdit DeleteAlarm(AlmxProjection projection, AlarmSource alarm);
         SourceEdit SetAbstract(AlmxProjection projection, AlarmSource alarm, bool value);
         SourceEdit SetProperty(AlmxProjection projection, AlarmSource alarm, PropertyValueChange change);
@@ -84,9 +88,13 @@ namespace Alarmlist.VisualStudio.Editing
             return new SourceEdit(field.StartTagEnd, field.CloseStart - field.StartTagEnd, content);
         }
 
-        public SourceEdit AddAlarm(AlmxProjection projection)
+        public SourceEdit AddAlarm(AlmxProjection projection, IReadOnlyList<KeyValuePair<string, string>> groups)
         {
             RequireValid(projection);
+            if (groups == null) throw new ArgumentNullException(nameof(groups));
+            if (groups.Any(group => !ProcedureSectionSource.IsValidName(group.Key))
+                || groups.Select(group => group.Key).Distinct(StringComparer.OrdinalIgnoreCase).Count() != groups.Count)
+                throw new ArgumentException("Creation requires valid, unique procedure group IDs.", nameof(groups));
             string identity = "NewAlarm";
             int suffix = 1;
             while (projection.Alarms.Any(alarm => alarm.Identity == identity)) identity = "NewAlarm" + suffix++;
@@ -96,9 +104,16 @@ namespace Alarmlist.VisualStudio.Editing
             string alarmName = QualifiedName(projection.Root, "Alarm");
             string idName = QualifiedName(projection.Root, "FullyQualifiedName");
             string name = QualifiedName(projection.Root, "Name");
+            string procedure = QualifiedName(projection.Root, "TestProcedure");
+            string group = QualifiedName(projection.Root, "Group");
+            string title = QualifiedName(projection.Root, "Title");
+            string contents = string.Concat(groups.Select(item => "<" + group + " Name=\"" + item.Key + "\""
+                + (item.Value == null ? "/>" : "><" + title + ">" + Escape(item.Value) + "</" + title + "></" + group + ">")));
             return InsertChild(projection.Text, projection.Root, "<" + alarmName + ">" + newline
                 + fieldIndent + "<" + idName + ">" + identity + "</" + idName + ">" + newline
-                + fieldIndent + "<" + name + ">New alarm</" + name + ">" + newline + alarmIndent + "</" + alarmName + ">");
+                + fieldIndent + "<" + name + ">New alarm</" + name + ">" + newline
+                + fieldIndent + "<" + procedure + ">" + contents + "</" + procedure + ">"
+                + newline + alarmIndent + "</" + alarmName + ">");
         }
 
         public SourceEdit DeleteAlarm(AlmxProjection projection, AlarmSource alarm)

@@ -6,6 +6,7 @@ using System.Windows;
 using Microsoft.VisualStudio.OLE.Interop;
 using Alarmlist.VisualStudio.UI;
 using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Constants = Microsoft.VisualStudio.OLE.Interop.Constants;
@@ -17,8 +18,11 @@ namespace Alarmlist.VisualStudio.Editor
     {
         public const string WindowGuid = "2c7f1b33-66f5-4831-96b1-c11cd1e28769";
         internal const int ShowCommand = 0x0200;
-        private readonly PreviewControl _control = new PreviewControl();
+        internal const int ProjectCommand = 0x0201;
+        private readonly PreviewWindowControl _control = new PreviewWindowControl();
         private readonly PreviewDocumentContext _context = new PreviewDocumentContext();
+        private ProjectPreviewViewModel _project;
+        private string _projectPath;
         private IVsMonitorSelection _selection;
         private uint _cookie;
 
@@ -40,7 +44,35 @@ namespace Alarmlist.VisualStudio.Editor
 
         private void OnLoaded(object sender, RoutedEventArgs args) { ThreadHelper.ThrowIfNotOnUIThread(); StartTracking(); }
         private void OnUnloaded(object sender, RoutedEventArgs args) { ThreadHelper.ThrowIfNotOnUIThread(); StopTracking(); }
-        private void OnContextChanged(object sender, EventArgs args) => _control.DataContext = _context.Source;
+        private void OnContextChanged(object sender, EventArgs args)
+        {
+            if (_project?.IsProjectSelected != true) _control.PreviewView.DataContext = _context.Source;
+        }
+
+        internal void SelectProject(string path)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            _projectPath = path;
+            _project?.SelectProject(path);
+        }
+
+        private void OnScopeChanged(object sender, EventArgs args)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            _projectPath = _project.ProjectPath;
+            if (_project.IsProjectSelected)
+            {
+                _context.Select(null);
+                _control.PreviewView.DataContext = _project;
+                _control.PreviewView.ShowAlarmTable();
+            }
+            else
+            {
+                _control.PreviewView.DataContext = null;
+                _selection.GetCurrentElementValue((uint)VSConstants.VSSELELEMID.SEID_DocumentFrame, out object frame);
+                SelectDocument(frame);
+            }
+        }
 
         private void StartTracking()
         {
@@ -48,6 +80,11 @@ namespace Alarmlist.VisualStudio.Editor
             if (_selection != null) return;
             _selection = GetService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
             if (_selection == null) return;
+            var components = (IComponentModel)GetService(typeof(SComponentModel));
+            _project = new ProjectPreviewViewModel(components.GetService<VsDesignerAnalysisFactory>().CreateProjectPreview());
+            _project.ScopeChanged += OnScopeChanged;
+            _control.DataContext = _project;
+            _project.SelectProject(_projectPath);
             ErrorHandler.ThrowOnFailure(_selection.AdviseSelectionEvents(this, out _cookie));
             ErrorHandler.ThrowOnFailure(_selection.GetCurrentElementValue((uint)VSConstants.VSSELELEMID.SEID_DocumentFrame, out object frame));
             SelectDocument(frame);
@@ -56,6 +93,7 @@ namespace Alarmlist.VisualStudio.Editor
         private void SelectDocument(object value)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            if (_project?.IsProjectSelected == true) return;
             object view = null;
             if (value is IVsWindowFrame frame) frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocView, out view);
             _context.Select(view as IPreviewDocument);
@@ -63,9 +101,10 @@ namespace Alarmlist.VisualStudio.Editor
 
         // The tool window is now on the command route. Resolve the shell's
         // document for each toolbar query; no globally retained editor state.
-        private EditFileControlViewModel CurrentDocument()
+        private IPreviewView CurrentDocument()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            if (_project?.IsProjectSelected == true) return _project;
             object frame = null;
             _selection?.GetCurrentElementValue((uint)VSConstants.VSSELELEMID.SEID_DocumentFrame, out frame);
             if (!(frame is IVsWindowFrame document)) return null;
@@ -78,7 +117,7 @@ namespace Alarmlist.VisualStudio.Editor
             ThreadHelper.ThrowIfNotOnUIThread();
             if (group != PreviewLanguageCommands.CommandSet) return (int)Constants.OLECMDERR_E_NOTSUPPORTED;
             bool supported = false;
-            EditFileControlViewModel source = CurrentDocument();
+            IPreviewView source = CurrentDocument();
             for (int index = 0; index < count; index++)
             {
                 bool known = PreviewLanguageCommands.Contains(commands[index].cmdID);
@@ -102,6 +141,9 @@ namespace Alarmlist.VisualStudio.Editor
             _selection = null;
             _cookie = 0;
             _context.Select(null);
+            _control.PreviewView.DataContext = null;
+            _control.DataContext = null;
+            if (_project != null) { _project.ScopeChanged -= OnScopeChanged; _project.Dispose(); _project = null; }
         }
 
         public int OnElementValueChanged(uint element, object oldValue, object newValue)

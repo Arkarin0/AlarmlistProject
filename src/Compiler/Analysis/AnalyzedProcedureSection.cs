@@ -11,14 +11,23 @@ namespace Alarmlist.Analysis
     public sealed class AnalyzedProcedureSection
     {
         public string Name { get; }
+        public AnalyzedField Title { get; }
+        public AlarmOrigin DefiningAlarm { get; }
+        public SourceLocation Location { get; }
+        public bool IsLocallyDeclared { get; }
         public IReadOnlyList<AnalyzedProcedureEntry> LocalEntries { get; }
         public IReadOnlyList<AnalyzedProcedureEntry> EffectiveEntries { get; }
         public IReadOnlyList<AnalyzedProcedureEntry> ExcludedEntries { get; }
 
         internal AnalyzedProcedureSection(string name, IEnumerable<AnalyzedProcedureEntry> localEntries,
-            IEnumerable<AnalyzedProcedureEntry> effectiveEntries, IEnumerable<AnalyzedProcedureEntry> excludedEntries)
+            IEnumerable<AnalyzedProcedureEntry> effectiveEntries, IEnumerable<AnalyzedProcedureEntry> excludedEntries,
+            AnalyzedField title, AlarmOrigin definingAlarm, SourceLocation location, bool isLocallyDeclared)
         {
             Name = name;
+            Title = title;
+            DefiningAlarm = definingAlarm;
+            Location = location;
+            IsLocallyDeclared = isLocallyDeclared;
             LocalEntries = Array.AsReadOnly(localEntries.ToArray());
             EffectiveEntries = Array.AsReadOnly(effectiveEntries.ToArray());
             ExcludedEntries = Array.AsReadOnly(excludedEntries.ToArray());

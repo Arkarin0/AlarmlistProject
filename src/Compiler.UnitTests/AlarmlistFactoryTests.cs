@@ -27,16 +27,16 @@ namespace Alarmlist.Tests
         public void CreateAlarmFromSyntaxNodeDoesNotEmitClearInstructions()
         {
             var reference = AlarmlistFactory.Alarm("Reference");
-            reference.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Inherited instruction"));
+            reference.TestProcedure.GetOrAddGroup("Instructions").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Inherited instruction"));
             var alarm = AlarmlistFactory.Alarm("Alarm");
-            alarm.TestProcedure.Instructions.Add(new Clear());
-            alarm.TestProcedure.Instructions.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Local warning"));
+            alarm.TestProcedure.GetOrAddGroup("Instructions").Entries.Add(new Clear());
+            alarm.TestProcedure.GetOrAddGroup("Instructions").Entries.Add(new TestProcedureStepSyntax(TestProcedureStepKind.Warning, "Local warning"));
             AlarmSyntaxNode.SetReference(alarm, reference);
 
             var actual = AlarmlistFactory.CreateAlarmFromSyntaxNode(alarm);
 
-            Assert.Single(actual.TestProcedure.Instructions);
-            Assert.Equal("Local warning", actual.TestProcedure.Instructions.Single().Text);
+            Assert.Single(actual.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries);
+            Assert.Equal("Local warning", actual.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries.Single().Text);
         }
 
         

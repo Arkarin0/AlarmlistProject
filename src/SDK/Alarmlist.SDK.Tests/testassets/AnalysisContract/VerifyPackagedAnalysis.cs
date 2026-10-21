@@ -33,15 +33,18 @@ public sealed class VerifyPackagedAnalysis : Task
         string basePath = Path.Combine(ProjectDirectory, "UnsavedBase.almx");
         string childPath = Path.Combine(ProjectDirectory, "UnsavedChild.almx");
         const string baseText = "<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName><Name>Inherited</Name>"
-            + "<TestProcedure><Instructions><Step>Base step</Step></Instructions></TestProcedure></Alarm></Alarmlist>";
+            + "<TestProcedure><Group Name='Instructions'><Step>Base step</Step></Group></TestProcedure></Alarm></Alarmlist>";
         const string childText = "<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><Name/>"
-            + "<TestProcedure><Instructions><Note>Local step</Note></Instructions></TestProcedure></Alarm></Alarmlist>";
+            + "<TestProcedure><Group Name='Instructions'><Note>Local step</Note></Group></TestProcedure></Alarm></Alarmlist>";
         Array snapshots = Array.CreateInstance(snapshotType, 2);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 3, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 5, "Unexpected analysis contract version.");
         Require((bool)Value(result, "Success"), "Valid unsaved inputs did not resolve.");
+        object creation = Value(Items(result, "Sources")[1], "ProcedureCreation");
+        Require(Value(creation, "Error") == null && Items(creation, "Groups").Select(group => (string)Value(group, "Name"))
+            .SequenceEqual(new[] { "Instructions", "Reset" }), "Detached creation defaults were not provided by the packaged compiler.");
         Require(Value(result, "CompiledXml") == null, "Default analysis unexpectedly generated XML.");
         MethodInfo preview = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType, typeof(bool) });
         Require(preview != null, "The packaged compiler has no in-memory preview API.");
@@ -56,16 +59,16 @@ public sealed class VerifyPackagedAnalysis : Task
         object valueLocation = Value(name, "ValueLocation");
         Require((string)Value(valueLocation, "FilePath") == basePath && (int)Value(valueLocation, "SourceVersion") == 17,
             "The inherited field lost its defining source snapshot.");
-        object[] entries = Items(Value(child, "Instructions"), "EffectiveEntries");
+        object[] entries = Items(Items(child, "ProcedureSections").Single(group => (string)Value(group, "Name") == "Instructions"), "EffectiveEntries");
         Require(entries.Length == 2 && (bool)Value(entries[0], "IsInherited") && !(bool)Value(entries[1], "IsInherited"),
             "Inherited and local procedure origins were not preserved.");
 
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText.Replace("<Note>Local step</Note>", "<Clear/>"), childPath, 24), 1);
         object cleared = Items(analyze.Invoke(compiler, new object[] { snapshots }), "Alarms")[1];
-        object section = Value(cleared, "Instructions");
+        object section = Items(cleared, "ProcedureSections").Single(group => (string)Value(group, "Name") == "Instructions");
         Require(Items(section, "EffectiveEntries").Length == 0 && Items(section, "ExcludedEntries").Length == 1,
             "Clear did not exclude the inherited sequence.");
-        Require(Items(Value(child, "Instructions"), "EffectiveEntries").Length == 2, "A later analysis mutated an earlier result.");
+        Require(Items(Items(child, "ProcedureSections").Single(group => (string)Value(group, "Name") == "Instructions"), "EffectiveEntries").Length == 2, "A later analysis mutated an earlier result.");
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText.Replace(">Base<", ">Missing<"), childPath, 25), 1);
         object failed = preview.Invoke(compiler, new object[] { snapshots, true });
         Require(!(bool)Value(failed, "Success") && Value(failed, "CompiledXml") == null, "Failed compilation exposed project XML.");
@@ -77,6 +80,20 @@ public sealed class VerifyPackagedAnalysis : Task
         object context = Activator.CreateInstance(contextType, Path.Combine(ProjectDirectory, "Plant.almproj"), "Release", "AnyCPU", properties);
         MethodInfo contextual = compilerType.GetMethod("AnalyzeSnapshots", new[] { snapshotsType, contextType, typeof(bool) });
         Require(contextual != null, "The packaged compiler has no captured-context analysis API.");
+        MethodInfo libraryAnalysis = compilerType.GetMethod("AnalyzeLibrarySnapshots", new[] { snapshotsType, contextType, typeof(System.Threading.CancellationToken) });
+        Require(libraryAnalysis != null, "The packaged compiler has no library analysis API.");
+        Array deferredSources = Array.CreateInstance(snapshotType, 1);
+        deferredSources.SetValue(Activator.CreateInstance(snapshotType,
+            "<Alarmlist><Alarm><FullyQualifiedName>Deferred</FullyQualifiedName><Properties><Property Name='required'/></Properties><Name>$(required)</Name></Alarm></Alarmlist>",
+            childPath, 29), 0);
+        object deferredResult = libraryAnalysis.Invoke(compiler, new[] { deferredSources, context, (object)System.Threading.CancellationToken.None });
+        Require((bool)Value(deferredResult, "Success") && Value(deferredResult, "CompiledXml") == null,
+            "Library analysis must defer consumer values without generating application XML.");
+        object deferredName = Items(Items(deferredResult, "Alarms").Single(), "Fields").Single(field => (string)Value(field, "Name") == "Name");
+        Require(!(bool)Value(deferredName, "IsValueAvailable") && (string)Value(deferredName, "EffectiveExpression") == "$(required)",
+            "Deferred library values lost availability or their expression.");
+        Require(!(bool)Value(contextual.Invoke(compiler, new[] { deferredSources, context, (object)true }), "Success"),
+            "Application analysis unexpectedly deferred missing values.");
         Array scoped = Array.CreateInstance(snapshotType, 1);
         scoped.SetValue(Activator.CreateInstance(snapshotType, "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName>"
             + "<Properties><Property Name='p' Value='ignored'/></Properties><Code>$(p)</Code>"
@@ -133,7 +150,32 @@ public sealed class VerifyPackagedAnalysis : Task
         Require((int)Value(Value(listEntry, "Location"), "SourceVersion") == 51, "List provenance was lost.");
         Require((bool)Value(Items(lists, "ArgumentBindings").Single(), "IsAvailable"), "Completion binding was lost.");
         Require(((string)Value(lists, "CompiledXml")).Contains("<Name>=EC-120W1</Name>"), "List preview was incorrect.");
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 3 passed: origins, Clear, immutable results, unsaved inputs, and compiled XML preview.");
+        Type identityType = assembly.GetType("Alarmlist.Libraries.LibraryIdentity", true);
+        Type librarySnapshotType = assembly.GetType("Alarmlist.Libraries.LibraryTextSnapshot", true);
+        Type referencesType = assembly.GetType("Alarmlist.Libraries.LibraryReferenceSet", true);
+        object identity = Activator.CreateInstance(identityType, "PackagedLibrary", "1.0.0");
+        Array librarySources = Array.CreateInstance(snapshotType, 1);
+        librarySources.SetValue(Activator.CreateInstance(snapshotType,
+            "<Alarmlist><Alarm><FullyQualifiedName>Imported</FullyQualifiedName><Name>$(p)</Name></Alarm></Alarmlist>", "Library.almx", 1), 0);
+        object emptyContext = contextType.GetProperty("Empty").GetValue(null, null);
+        object builtLibrary = compilerType.GetMethod("CreateLibrary").Invoke(compiler,
+            new object[] { identity, librarySources, emptyContext, System.Threading.CancellationToken.None, null });
+        Require((bool)Value(builtLibrary, "Success") && Items(builtLibrary, "DeferredDiagnostics").Length != 0,
+            "Packaged compiler did not preserve deferred library values.");
+        Array roots = Array.CreateInstance(identityType, 1);
+        roots.SetValue(identity, 0);
+        Array libraryInputs = Array.CreateInstance(librarySnapshotType, 1);
+        libraryInputs.SetValue(Activator.CreateInstance(librarySnapshotType, Value(builtLibrary, "ArtifactText"), "Captured.almlib", 2), 0);
+        object libraryContext = contextType.GetMethod("WithLibraries").Invoke(context,
+            new[] { Activator.CreateInstance(referencesType, roots, libraryInputs) });
+        object imported = contextual.Invoke(compiler, new object[] { Array.CreateInstance(snapshotType, 0), libraryContext, true });
+        Require((bool)Value(imported, "Success") && ((string)Value(imported, "CompiledXml")).Contains("<Name>001</Name>"),
+            "Packaged library consumption did not resolve consumer values.");
+        Require((string)Value(Value(Items(imported, "Libraries").Single(), "Identity"), "Id") == "PackagedLibrary",
+            "Library ownership was not detached into analysis.");
+        Require((string)Value(Value(Value(Items(imported, "Alarms").Single(), "Origin"), "Library"), "Id") == "PackagedLibrary",
+            "Imported alarm ownership was lost.");
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 5 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, and compiled XML preview.");
         return true;
     }
 

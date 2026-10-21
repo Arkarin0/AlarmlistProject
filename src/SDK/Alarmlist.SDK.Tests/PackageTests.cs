@@ -42,7 +42,7 @@ namespace Alarmlist.MSBuild.SDK.Tests
             var app = _fixture.CreateTestApp("AnalysisContract");
             var result = app.Run(_output, "/t:VerifyAnalysis");
             Assert.True(result.ExitCode == 0, result.Output);
-            Assert.Contains("Packaged analysis contract 3 passed", result.Output);
+            Assert.Contains("Packaged analysis contract 5 passed", result.Output);
             Assert.False(File.Exists(app.OutputPath));
         }
 
@@ -57,10 +57,13 @@ namespace Alarmlist.MSBuild.SDK.Tests
                 Assert.True(File.Exists(Path.Combine(taskDirectory, "AlarmList.MSBuild.dll")));
                 Assert.True(File.Exists(Path.Combine(taskDirectory, "Alarmlist.Core.dll")));
                 Assert.True(File.Exists(Path.Combine(taskDirectory, "Microsoft.Extensions.Logging.Abstractions.dll")));
+                Assert.True(File.Exists(Path.Combine(taskDirectory, "NuGet.ProjectModel.dll")));
+                Assert.True(File.Exists(Path.Combine(taskDirectory, "NuGet.Versioning.dll")));
                 Assert.Empty(Directory.GetFiles(taskDirectory, "Microsoft.Build*.dll"));
                 Assert.Empty(Directory.GetFiles(taskDirectory, "EnvDTE*.dll"));
                 Assert.Empty(Directory.GetFiles(taskDirectory, "Microsoft.VisualStudio*.dll"));
             }
+            Assert.True(File.Exists(Path.Combine(app.PackageDirectory, "tasks", "net8.0", "runtimes", "win", "lib", "net8.0", "System.Security.Cryptography.Pkcs.dll")));
             Assert.False(Directory.Exists(Path.Combine(app.PackageDirectory, "lib")));
             var schemas = new XmlSchemaSet { XmlResolver = null };
             schemas.Add("urn:alarmlist:lookup:1", Path.Combine(app.PackageDirectory, "tools", "Schemas", "AlarmlistLookup.xsd"));
@@ -70,6 +73,13 @@ namespace Alarmlist.MSBuild.SDK.Tests
                 "<Lookup xmlns='urn:alarmlist:lookup:1'><Path Key='P'/></Lookup>").Validate(schemas, null));
             var nuspec = XDocument.Load(Path.Combine(app.PackageDirectory, "alarmlist.msbuild.sdk.nuspec"));
             Assert.Empty(nuspec.Descendants().Where(element => element.Name.LocalName == "dependency"));
+            XNamespace ruleNamespace = "http://schemas.microsoft.com/build/2009/properties";
+            var rules = XDocument.Load(Path.Combine(app.PackageDirectory, "tools", "Rules", "General.xaml"));
+            XElement layout = rules.Root.Elements(ruleNamespace + "StringProperty").Single(property => (string)property.Attribute("Name") == "AlarmlistPreviewColumnLayout");
+            Assert.Equal("False", (string)layout.Attribute("Visible"));
+            XElement dataSource = layout.Descendants(ruleNamespace + "DataSource").Single();
+            Assert.Equal("UserFile", (string)dataSource.Attribute("Persistence"));
+            Assert.Equal("False", (string)dataSource.Attribute("HasConfigurationCondition"));
         }
     }
 }

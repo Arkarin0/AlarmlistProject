@@ -1,0 +1,10 @@
+<DrawingImage xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+  <DrawingImage.Drawing>
+    <DrawingGroup>
+      <!-- A transparent extent keeps every frame on the same 16-unit grid. -->
+      <GeometryDrawing Brush="Transparent" Geometry="M0,0 H16 V16 H0 Z" />
+      <GeometryDrawing Brush="#E9A23B" Geometry="M2,10 V6 A3,3 0 0 1 8,6 V10 L9,12 H1 Z M4,13 H6 A1,1 0 0 1 4,13 M4.25,2 V1 H5.75 V2 Z" />
+      <GeometryDrawing Brush="#6FAEE8" Geometry="M10,4 H15 V6 H10 Z M10,8 H15 V10 H10 Z M10,12 H15 V14 H10 Z" />
+    </DrawingGroup>
+  </DrawingImage.Drawing>
+</DrawingImage>

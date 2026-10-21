@@ -92,6 +92,18 @@ namespace Alarmlist.Binding
                     continue;
                 }
 
+                // A library binds only against its own dependency closure. A
+                // consumer or sibling cannot retroactively satisfy its reference.
+                if (alarm.SourceFile?.Library != null
+                    && (reference.SourceFile?.Library == null
+                        || (!alarm.SourceFile.Library.Identity.Equals(reference.SourceFile.Library.Identity)
+                            && alarm.SourceFile.LibraryGraph?.DependsOn(alarm.SourceFile.Library.Identity,
+                                reference.SourceFile.Library.Identity) != true)))
+                {
+                    diagnostics.ReportMissingReference(alarm.FullyQualifiedName, alarm.ReferenceName, GetReferenceLocation(alarm));
+                    continue;
+                }
+
                 AlarmSyntaxNode.SetReference(alarm, reference);
             }
 

@@ -35,7 +35,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         private static WeakReference[] CreateAndCloseDesigner(bool withError)
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm,
-                "<Instructions><Note>Local note</Note></Instructions><Reset><Clear/></Reset>")))
+                "<Group Name='Instructions'><Note>Local note</Note></Group><Group Name='Reset'><Clear/></Group>")))
             {
                 session.Analyze(ProcedureBase);
                 var control = new EditFileControl(session.View) { Width = 950, Height = 900 };

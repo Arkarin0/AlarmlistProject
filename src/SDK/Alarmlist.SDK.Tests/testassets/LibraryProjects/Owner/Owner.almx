@@ -1,0 +1,6 @@
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Derived</FullyQualifiedName>
+    <ReferenceName>Base</ReferenceName>
+  </Alarm>
+</Alarmlist>

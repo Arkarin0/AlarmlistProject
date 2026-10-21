@@ -25,11 +25,20 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             var context = new AnalysisContext(projectPath, EmptyToNull(project.GetPropertyValue("Configuration")),
                 EmptyToNull(project.GetPropertyValue("Platform")), properties, culture: project.GetPropertyValue("AlarmlistCulture"),
                 diagnosticOptions: new AnalysisDiagnosticOptions(bool.TryParse(project.GetPropertyValue("TreatWarningsAsErrors"), out bool promote) && promote,
-                    project.GetPropertyValue("NoWarn"), project.GetPropertyValue("WarningsAsErrors"), project.GetPropertyValue("WarningsNotAsErrors")));
+                    project.GetPropertyValue("NoWarn"), project.GetPropertyValue("WarningsAsErrors"), project.GetPropertyValue("WarningsNotAsErrors")),
+                isLibrary: string.Equals(project.GetPropertyValue("OutputType"), "Library", System.StringComparison.OrdinalIgnoreCase));
             return new AnalysisProject(projectPath, configuration, project.GetPropertyValue(CompilerPathProperty), paths, context,
                 resources, project.GetPropertyValue("AlarmlistCultures"), project.GlobalProperties.ContainsKey("AlarmlistCulture"),
                 project.GetItems("AlarmlistLookup").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))),
-                project.GetItems("AlarmlistAnalyzer").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))));
+                project.GetItems("AlarmlistAnalyzer").Select(item => Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude))),
+                project.GetItems("ProjectReference").Select(item => new AnalysisReferenceItem(
+                    Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude)),
+                    item.Metadata.ToDictionary(metadata => metadata.Name, metadata => metadata.EvaluatedValue))),
+                project.GetItems("PackageReference").Select(item => new AnalysisReferenceItem(item.EvaluatedInclude,
+                    item.Metadata.ToDictionary(metadata => metadata.Name, metadata => metadata.EvaluatedValue))),
+                project.GlobalProperties.ToDictionary(property => property.Key, property => property.Value),
+                project.GetPropertyValue("ProjectAssetsFile"), project.GetPropertyValue("TargetFrameworkMoniker"),
+                project.GetPropertyValue("CurrentSolutionConfigurationContents"));
         }
 
         private static string EmptyToNull(string value) => string.IsNullOrEmpty(value) ? null : value;

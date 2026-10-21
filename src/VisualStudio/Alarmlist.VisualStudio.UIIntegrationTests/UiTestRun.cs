@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Alarmlist.VisualStudio.Testing;
+using FlaUI.Core.AutomationElements;
 using FlaUI.UIA3;
 using Xunit;
 using Xunit.Abstractions;
@@ -28,12 +29,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
     internal static class UiTestRun
     {
         public static Task ExecuteAsync(string version, string scenario, ITestOutputHelper output,
-            Action<VisualStudioSession, UiTestWorkspace> test)
+            Action<VisualStudioSession, UiTestWorkspace> test, Action<VisualStudioSession, UiTestWorkspace> afterRestart = null)
         {
             var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             var thread = new Thread(() =>
             {
-                try { Execute(version, scenario, output, test); completion.SetResult(true); }
+                try { Execute(version, scenario, output, test, afterRestart); completion.SetResult(true); }
                 catch (Exception exception) { completion.SetException(exception); }
             }) { IsBackground = true };
             thread.SetApartmentState(ApartmentState.STA);
@@ -42,7 +43,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         }
 
         private static void Execute(string version, string scenario, ITestOutputHelper output,
-            Action<VisualStudioSession, UiTestWorkspace> test)
+            Action<VisualStudioSession, UiTestWorkspace> test, Action<VisualStudioSession, UiTestWorkspace> afterRestart)
         {
             using var gate = new Mutex(false, "Local\\Alarmlist.LiveVisualStudioTests");
             bool entered;
@@ -61,20 +62,31 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     output.WriteLine(message);
                     File.AppendAllText(Path.Combine(directory, "steps.log"), message + Environment.NewLine);
                 };
-                using var ide = new VisualStudioSession(version, workspace.SolutionPath, directory);
-                try
+                RunPhase(test, directory);
+                if (afterRestart != null)
                 {
-                    test(ide, workspace);
-                    ide.Dispose();
-                    File.WriteAllText(Path.Combine(directory, "passed.txt"), scenario + ": assertions and owned-IDE cleanup passed.\n");
+                    string restartDirectory = Path.Combine(directory, "Restart");
+                    Directory.CreateDirectory(restartDirectory);
+                    RunPhase(afterRestart, restartDirectory);
                 }
-                catch (Exception exception)
+                File.WriteAllText(Path.Combine(directory, "passed.txt"), scenario + ": assertions and owned-IDE cleanup passed.\n");
+
+                void RunPhase(Action<VisualStudioSession, UiTestWorkspace> phase, string phaseDirectory)
                 {
-                    File.WriteAllText(Path.Combine(directory, "failure.txt"), exception.ToString());
-                    try { VisualStudioAutomation.DumpBuildOutput(ide.Automation); }
-                    catch (Exception capture) { output.WriteLine("Build output unavailable: " + capture.Message); }
-                    CaptureFailure(ide, directory, output);
-                    throw;
+                    using var ide = new VisualStudioSession(version, workspace.SolutionPath, phaseDirectory);
+                    try
+                    {
+                        phase(ide, workspace);
+                        ide.Dispose();
+                    }
+                    catch (Exception exception)
+                    {
+                        File.WriteAllText(Path.Combine(phaseDirectory, "failure.txt"), exception.ToString());
+                        CaptureFailure(ide, phaseDirectory, output);
+                        try { VisualStudioAutomation.DumpBuildOutput(ide.Automation); }
+                        catch (Exception capture) { output.WriteLine("Build output unavailable: " + capture.Message); }
+                        throw;
+                    }
                 }
             }
             finally
@@ -89,8 +101,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             try
             {
                 using var automation = new UIA3Automation();
-                using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
-                var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(5));
+                // A visible floating tooltip can be returned as MainWindow by
+                // process discovery. Use the shell HWND captured at startup;
+                // a modal failure can reject further DTE calls.
+                var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
                 if (window == null) return;
                 window.CaptureToFile(Path.Combine(directory, "failure.png"));
                 File.WriteAllLines(Path.Combine(directory, "automation.txt"), window.FindAllDescendants()

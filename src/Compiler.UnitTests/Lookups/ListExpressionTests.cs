@@ -160,8 +160,8 @@ namespace Alarmlist.Core.UnitTests.Lookups
         public void AbstractAndClearedStepsDeferMissingListReferences()
         {
             var source = new AlmxTextSnapshot("<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName>"
-                + "<TestProcedure><Instructions><Step>$(list:Missing#E)</Step></Instructions></TestProcedure></Alarm>"
-                + "<Alarm><ReferenceName>Base</ReferenceName><TestProcedure><Instructions><Clear/><Step>done</Step></Instructions></TestProcedure></Alarm></Alarmlist>", "A.almx", 1);
+                + "<TestProcedure><Group Name='Instructions'><Step>$(list:Missing#E)</Step></Group></TestProcedure></Alarm>"
+                + "<Alarm><ReferenceName>Base</ReferenceName><TestProcedure><Group Name='Instructions'><Clear/><Step>done</Step></Group></TestProcedure></Alarm></Alarmlist>", "A.almx", 1);
             Assert.True(new AlarmCompiler().CompileSnapshots(new[] { source }, Context("en", new[] { Input(Entries) })).Success);
         }
 

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Alarmlist.Text;
+using Alarmlist.Libraries;
 
 namespace Alarmlist.Analysis
 {
@@ -14,12 +15,14 @@ namespace Alarmlist.Analysis
         public int Index { get; }
         public string FullyQualifiedName { get; }
         public SourceLocation Location { get; }
+        public LibraryIdentity Library { get; }
 
-        internal AlarmOrigin(int index, string fullyQualifiedName, SourceLocation location)
+        internal AlarmOrigin(int index, string fullyQualifiedName, SourceLocation location, LibraryIdentity library = null)
         {
             Index = index;
             FullyQualifiedName = fullyQualifiedName;
             Location = location;
+            Library = library;
         }
     }
 
@@ -39,13 +42,11 @@ namespace Alarmlist.Analysis
         /// <summary>Immediate reference first; empty when IsResolved is false.</summary>
         public IReadOnlyList<AlarmOrigin> ReferenceChain { get; }
         public IReadOnlyList<AnalyzedField> Fields { get; }
-        public AnalyzedProcedureSection Instructions { get; }
-        public AnalyzedProcedureSection Reset { get; }
         public IReadOnlyList<AnalyzedProcedureSection> ProcedureSections { get; }
 
         internal AnalyzedAlarm(AlarmOrigin origin, string referenceName, bool isResolved,
             IEnumerable<AlarmOrigin> referenceChain, IEnumerable<AnalyzedField> fields,
-            AnalyzedProcedureSection instructions, AnalyzedProcedureSection reset, bool isAbstract,
+            IEnumerable<AnalyzedProcedureSection> procedureSections, bool isAbstract,
             bool hasEvaluatedValues, IEnumerable<AnalyzedProperty> properties, IEnumerable<AnalyzedLocalizationUse> localizationUses,
             IEnumerable<AnalyzedLookupUse> lookupUses)
         {
@@ -59,9 +60,7 @@ namespace Alarmlist.Analysis
             IsResolved = isResolved;
             ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
             Fields = Array.AsReadOnly(fields.ToArray());
-            Instructions = instructions;
-            Reset = reset;
-            ProcedureSections = Array.AsReadOnly(new[] { instructions, reset });
+            ProcedureSections = Array.AsReadOnly(procedureSections.ToArray());
         }
     }
 

@@ -1,0 +1,330 @@
+# Milestone eight: custom procedure groups
+
+Status: all five authorized implementation iterations are complete (2026-10-13).
+Scoped automated acceptance is verified; the separate manual/vendor/release gates
+listed below remain outside this milestone's implementation acceptance.
+
+## Outcome and confirmed contract
+
+Replace fixed Instructions/Reset sections with ordered named groups across the
+compiler, SDK, designer and previews. Make a clean format/API transition; migrate
+active repository examples, templates and tests together. No legacy adapters or
+automatic migration tool are included.
+
+- Source: `<TestProcedure><Group Name="Instructions"><Title>$(loc:InstructionsTitle)</Title><Step>Text</Step></Group></TestProcedure>`.
+  Title is optional; existing entry kinds and Clear retain their semantics.
+- Output: Group/Name/Title with evaluated titles and existing compiled
+  TestProcedureItem entries. Empty groups remain represented.
+- IDs match `[A-Za-z_][A-Za-z0-9_.-]*`, compare ordinally ignoring case, and
+  preserve authored spelling. Duplicate local IDs are errors.
+- Match inherited groups by identity, retain base order/spelling, append new local
+  groups in declaration order, and merge entries with existing Clear semantics.
+- Absent titles inherit, then fall back to the ID. Explicit empty titles stop
+  inheritance and display the ID. Expression errors do not trigger fallback.
+- Titles support the same expressions as procedure text in the consuming alarm,
+  including inherited titles, keyword culture, literal substitution, provenance
+  and deferred abstract-template evaluation.
+- Removing a local declaration reveals any inherited group. Clear empties entries,
+  not the heading. No whole-group exclusion or identity renaming.
+- Reject legacy Instructions/Reset source elements explicitly; retain unrelated
+  unknown-element skipping and DTD prohibition.
+- Replace fixed properties with ordered collections in syntax, resolved models,
+  analysis and detached host DTOs. Include raw/effective titles, availability,
+  origins and local/effective/excluded entries. Advance analysis contract 3 to 4
+  and analyzer contract 1 to 2 together with adapters and sample analyzer.
+- Dynamic designer groups retain existing entry editing, draft/focus, adorners,
+  Clear visibility, completion and source-preserving Undo behavior. Add group,
+  edit title, remove local declaration, and move newly introduced local groups.
+  Inherited group positions stay fixed. Protect unsupported source content.
+- Preview uses one procedures column with ordered group headings and entries,
+  including empty headings. Preserve column preferences and virtualization.
+
+Creation settings (destination physical file, captured EditorConfig):
+
+```ini
+[*.almx]
+alarmlist_procedure.default_groups = Instructions, Reset, Verification
+alarmlist_procedure.group.instructions.title = $(loc:InstructionsTitle)
+alarmlist_procedure.group.verification.title = Verification
+```
+
+Missing/unset list defaults to Instructions and Reset; an explicit empty list
+creates no groups. Trim list entries, reject invalid/duplicate IDs, and block
+creation with actionable feedback for invalid settings. Missing titles omit Title;
+explicit empty writes an empty Title. Revalidate context/configuration before
+insertion. Configuration changes never rewrite alarms; duplication preserves groups.
+
+## Architecture, migration and exclusions
+
+Keep resolution and configuration interpretation compiler-owned, with immutable
+detached results across the SDK AppDomain boundary. Preserve net472/net8.0 and
+SDK packaging/runtime selection. Follow the existing compiler layers and the
+[Roslyn compiler reference](https://github.com/dotnet/roslyn/tree/main/src/Compilers)
+reviewed during planning; no new generator or build infrastructure is required.
+
+Migration replaces `<Instructions>…</Instructions>` with
+`<Group Name="Instructions">…</Group>` and likewise for Reset. Replace fixed
+public properties with group collection access and rebuild external analyzers
+against contract 2. SDK and VSIX must be updated together for analysis contract 4.
+Old contracts fail explicitly rather than silently dropping groups.
+
+Libraries, project references, Shared Projects, syntax generation, broader XML
+IntelliSense and publication are excluded. Earlier manual accessibility/display,
+vendor and release gates remain separate under their existing milestone plans.
+
+## Numbered iterations and planned acceptance
+
+Each iteration depends on the preceding one. Keep compiler/SDK/extension usable
+together at boundaries; review and commit each successful iteration before the
+next, recording changes, commands, results and limitations separately below.
+
+1. **Record contract:** this plan, AGENTS link and backlog update. Review links,
+   paths and consistency; no build required.
+2. **Coordinated transition:** dynamic parsing/binding/evaluation/output,
+   analysis/analyzer contracts, bridge, source projection, existing entry editing
+   and previews; migrate active fixtures/templates/examples. Require compiler,
+   task, SDK and extension unit/package suites and focused native editor/preview
+   checks on both hosts.
+3. **Group authoring:** add/title/remove/reorder, completion and Undo. Cover source
+   preservation, inherited behavior, focus/private drafts, accessibility metadata
+   and native keyboard workflows on VS2022 and VS2026.
+4. **Creation defaults:** compiler-owned detached settings, destination-scoped
+   creation and stale-context guards. Cover linked consumers, malformed/empty/
+   missing lists and subsequent saved configuration changes.
+5. **Integrated acceptance:** solution build/tests, full native suites on both
+   installed VS hosts, isolated procedure/preview measurements, migration and
+   requirement audit. Keep manual/vendor/release gates explicitly separate.
+
+Regression coverage includes duplicate IDs ignoring case, cross-file/multilevel
+inheritance, ordering, title overrides/fallback, Clear provenance, empty groups,
+localization/lookup errors, abstract templates, legacy rejection, preserved outputs
+on failure, arbitrary group counts, cultures during drafts, stale analysis, linked
+contexts, navigation, reload, Undo/Redo and lifetime collection. Measurements use
+many groups/long procedures without machine-dependent thresholds.
+
+## Actual iteration record
+
+### Iteration 1 — contract documentation
+
+Recorded the approved plan and linked it from repository instructions and backlog.
+The starting working tree was clean. Reviewed documentation paths, scope and
+contract consistency. Tests were not run (documentation only).
+
+Committed as `983cb98`.
+
+### Iteration 2 — coordinated transition
+
+Committed as `f0a110f`.
+
+Implemented ordered syntax/resolved groups, source and output XML, consuming-alarm
+title evaluation, title/group/entry provenance, mandatory ALM0026/ALM0027 identity
+diagnostics, analysis contract 4 and analyzer contract 2. Migrated active fixtures,
+examples, templates, package verification and native scenarios. Designer sections
+now follow compiler groups and source declarations; previews include empty headings.
+New-alarm creation/templates explicitly contain Instructions and Reset until
+iteration 4 supplies captured configuration. No implicit compiler groups remain.
+
+Tests exposed stale detached section presentation and canonical spelling changes
+after analysis publication. Removed sections now clear their data/commands, and
+retained sections adopt compiler identity spelling without replacing draft controls.
+Source copies preserve titles and reject repeated titles. Migration also updated
+old test assumptions about implicit groups and analyzer contract numbers.
+
+Validation (all paths below are under `artifacts/log/Debug/Milestone8/Iteration2/`):
+
+- Compiler tests: 492 net8.0 and 490 net472 passes, zero failures/skips (`Compiler`).
+  Includes custom order, case-insensitive identities, inherited localized titles,
+  explicit empty, provenance, empty output groups and legacy rejection.
+- `dotnet test AlarmlistProject.slnx --no-restore --verbosity minimal --logger trx
+  --results-directory artifacts/log/Debug/Milestone8/Iteration2/Regression`:
+  task unit 68 and integration 4 per framework; SDK 53 and extension package 12
+  per framework; performance infrastructure 47 passes/12 opt-in skips. Ordinary
+  native cases are opt-in skips, not native acceptance. The extension unit run
+  failed two checks (canonical spelling and a report expectation), retained as
+  failed evidence. Compiler counts match above.
+- Subsequent full extension unit run (`FinalUnit`): 458 passed/one failed, zero
+  skips. The remaining expectation incorrectly required a removed Reset group.
+  Corrected that expectation; `FinalCorrections` passed all 13 selected cases,
+  including the report, custom groups, new-alarm defaults and explicit contract-3
+  rejection. Combined evidence covers all 460 current unit cases; no failed run
+  is relabelled as passing. Earlier investigations remain under Initial/Unit2.
+- Packaged custom-group build/failure-preservation test: one pass on each
+  framework (`GroupConsumer`), including NoWarn refusing to suppress ALM0026.
+- Native custom Verification-group editing/Clear/drafts/Undo and AlarmTable:
+  two passes per host, zero skips, using `eng/test-visualstudio.ps1` with
+  `Area=Procedures|FullyQualifiedName~AlarmTable2022` (VS2022/AlarmlistExp) and
+  corresponding 2026 filter (VS2026/AlarmlistM7). Native report IDs:
+  `456ba43a476444a59f7e0f947146addc`, `6a0395bb27b44300a85a6a6b8e9ea847`.
+- Compiler and VSIX builds succeeded. Solution builds retain the two previously
+  documented CA1416 shared-test-helper warnings. Reviewed diff and whitespace.
+
+The sandbox incorrectly reports Git diff/build as outside a work tree; those
+commands succeeded with the ordinary host execution permission. No unrelated
+changes were present. No essential iteration-2 blocker remains; final milestone
+acceptance will rerun the complete suites after authoring/defaults work.
+
+### Iteration 3 — group authoring
+
+Committed as `f092f85`.
+
+Added group creation, expression-capable title editing, inherited-title removal
+and navigation, local declaration removal, and local-only reordering. Group actions
+keep focus on the affected title (or the new-ID field when no group remains).
+Title and entry drafts share one source-preserving Undo transaction. Stale group
+creation is rejected after draft/context changes. Removal refuses unsupported XML,
+comments and attributes; title edits preserve existing attributes. Updated usage
+documentation and accessibility expectations.
+
+Validation:
+
+- VSIX build succeeded. Focused editor tests passed 38 cases.
+- Full editor unit suite: 470 passed, zero failures/skips, using `dotnet test
+  src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --no-restore --verbosity minimal --logger trx --results-directory
+  artifacts/log/Debug/Milestone8/Iteration3/FinalUnit`.
+- `eng/test-visualstudio.ps1 -Filter 'Area=Procedures'` passed one scenario on
+  each installed host (VS2022/AlarmlistExp and VS2026/AlarmlistM7), zero skips.
+  It covers existing Clear/draft/entry operations plus Add group, private title
+  drafts, expression title commit, local reorder/focus, removal and Undo, preserving
+  saved source and output. Reports: `4751bfef7fb84c3f8707d0e4ec9aaf0b` and
+  `544a4af039cc4940a9ac7e0ea3bf4f55`.
+- Initial full units failed two old accessibility expectations; initial native
+  test checked all groups for absence of the second group's draft. Corrected those
+  test expectations and reran successfully; failed reports remain retained.
+- Reviewed diff, source guards, documentation and whitespace. No essential
+  iteration-3 blocker remains. Manual display/accessibility gates remain separate.
+
+### Iteration 4 — captured creation defaults
+
+Committed as `7590088`.
+
+Added immutable compiler-owned creation settings to each analyzed source and the
+contract-4 bridge. The designer inserts the ordered raw defaults in one Undo
+transaction after revalidating captured inputs, selection, source and private draft.
+Missing/unset, explicit empty, invalid/duplicate identities, raw/empty/absent titles
+and linked physical paths have distinct behavior. Invalid defaults block creation
+without changing build validity. Configuration changes affect subsequent additions
+only. Static templates retain explicit baseline groups; no source rewrite or
+template migration hook runs. Updated public settings documentation and AGENTS.
+
+Validation:
+
+- Compiler creation tests: 10 passed on each of net472/net8.0, zero skips/failures
+  (`Iteration4/Compiler`). Existing CA1416 test-helper warning remains.
+- Full editor suite: 476 passed, zero failures/skips (`Iteration4/Unit`). Four
+  subsequent focused cases passed for empty-document creation and linked physical
+  defaults across consumer contexts (`Iteration4/Linked`). Focused creation/source
+  serialization run also passed 10 cases (`Iteration4/Focused`).
+- Restored SDK analysis consumer: one pass per framework (`Iteration4/Package`),
+  verifying detached defaults without a compiler project reference.
+- Native `Area=Procedures` scenario passed on VS2022/AlarmlistExp and
+  VS2026/AlarmlistM7, one each, zero skips. Includes saved configuration changing
+  between additions, retention of earlier groups, raw title insertion and no saved
+  ALMX/output edits. Reports `404b22ab697e4ee98b30cf36227f29b8` and
+  `a166905dd70c4f2a94a918a4467efe38`.
+- Commands use the existing `dotnet test` project entry points with `--no-restore
+  --verbosity minimal --logger trx`; result root is
+  `artifacts/log/Debug/Milestone8/`. Native commands use
+  `eng/test-visualstudio.ps1 -Filter 'Area=Procedures'` and the selected host/profile.
+- Reviewed diff, links, guards and whitespace. No essential iteration-4 blocker.
+
+### Iteration 5 — integrated acceptance
+
+Added explicit multilevel title/group provenance, literal title lookup/error,
+inherited-group removal and title-navigation regressions. Added isolated workloads
+with fourteen groups per alarm (1,000-alarm designer and 1,200-alarm long-procedure
+preview), including title-draft layout, compiler-owned headings and virtualization
+checks outside measured intervals.
+
+Full native acceptance found an Add-alarm timing issue after Undo: creation could
+arrive while fresh analysis was pending. Creation now waits for that publication,
+then validates saved inputs and the original source/selection/context. Later edits,
+drafts and disposal cancel the wait; event subscriptions are released. Added
+regressions for successful publication, intervening drafts and disposal.
+
+Validation evidence:
+
+- `dotnet test AlarmlistProject.slnx --no-restore --verbosity minimal --logger trx
+  --results-directory artifacts/log/Debug/Milestone8/Iteration5/Regression` passed:
+  compiler 502 net8.0/500 net472, task unit 68 and integration 4 per framework,
+  SDK 54 and VS package 12 per framework, editor 477, performance infrastructure
+  47. The 52 native cases and 12 opt-in performance cases skipped in this ordinary
+  run are not acceptance evidence for those gates.
+- Additional compiler group regressions: 10 passed on each framework
+  (`GroupRegressionsFinal`); the first lookup fixture incorrectly expected real
+  values in keyword mode and was corrected to request a real culture.
+- Final editor suite after the timing fix: 481 passed, zero failures/skips
+  (`SequentialUnit`). Eleven focused creation cases and inherited-removal/navigation
+  also passed. An overlapping native/WPF run failed one context-menu check (480
+  passes/one failure); the complete sequential rerun passed. Documented sequential
+  desktop testing in AGENTS; no failed report is relabelled as passing.
+- Full VS2022 native run: 25 passes/one Add-shortcut timing failure, zero skips
+  (`ee3f1aaf64164a79b3f8056cef3d9fff`). After repair, both affected property/shortcut
+  and procedure/default scenarios passed (`3a2a48c1009f4f308ae742fc063b7abd`). This
+  combined evidence covers all 26 native scenarios; the initial failure is retained.
+- Final `dotnet build AlarmlistProject.slnx --no-restore --verbosity minimal`
+  succeeded with zero warnings/errors. The earlier regression rebuild retained
+  the known shared-test-helper CA1416 warnings.
+- Full VS2026 native run: all 26 passed, zero failures/skips
+  (`d401c7c0d5f840bcb73cc698e53ecc1b`). Native suites used
+  `eng/test-visualstudio.ps1` with the installed 2022/AlarmlistExp and
+  2026/AlarmlistM7 hosts; the repaired 2022 filter was
+  `Area=Procedures|FullyQualifiedName~PropertiesAndCompletion`.
+- Isolated Release/x64 Short measurements: six designer and four preview methods
+  passed correctness/measurement validation with two warmups and five measured
+  samples, using `eng/measure-visualstudio-analysis.ps1 -Job Short -Filter
+  'Category=Performance&Host=Isolated&Area=Procedures'`. The first preview fixture
+  incorrectly assumed the last sorted row was the final source alarm; changed
+  its correctness check to select by identity and reran using
+  `Category=Performance&Host=Isolated&FullyQualifiedName~GroupPreview`.
+  Designer results are under
+  `artifacts/log/Release/AnalysisPerformance/9a31355743b545748e18516e2cf7115d/`;
+  corrected preview results are under
+  `artifacts/log/Release/AnalysisPerformance/469ea8d673234c1e9bd49584225cd0b4/`.
+  Retained raw CSV/JSON, reports and TRX; the initial preview failure remains
+  recorded and has no usable timing samples.
+
+Representative means on the measured Windows 11/i7-11700K/.NET Framework 4.8.1
+host (net472 target), without machine-dependent acceptance thresholds:
+
+| Workload | Mean elapsed |
+| --- | ---: |
+| 1,000 alarms, fourteen groups: publish/layout | 156.53 ms |
+| Unchanged refresh/layout | 56.57 ms |
+| Context change/layout | 153.73 ms |
+| 100 completion queries / 100 command queries | 0.094 / 0.096 ms |
+| Title draft/layout | 91.92 ms |
+| 1,200 long-procedure rows: resize/layout | 78.91 ms |
+| Scroll/layout | 45.31 ms |
+| Reference popup/layout | 17.41 ms |
+| Project report open/layout | 535.16 ms |
+
+These isolated timings exclude compilation from UI measurement intervals and do
+not establish keystroke/screen-paint latency or leak freedom. The project-report
+operation allocated 260.55 MB in this deliberately large long-procedure workload;
+this is per-operation allocation, not measured retained memory. Raw distributions
+and allocation data are preserved in the reports. Virtualization and no-source-write
+assertions passed.
+
+Final requirement audit:
+
+- Dynamic source/resolved/analysis/bridge groups, case-insensitive identity and
+  stable order: compiler group tests, packaged contract consumer and full suites.
+- Consuming-alarm title expressions, empty/inherited behavior, literal lookup
+  substitutions, errors and provenance: compiler title/group regressions.
+- Add/title/remove/local ordering, source preservation, Undo, focus, navigation,
+  drafts and lifecycle: editor suite plus both native hosts; pending creation is
+  explicitly guarded and its subscriptions are tested on disposal.
+- Destination-scoped saved configuration, invalid/empty/missing defaults, linked
+  sources and subsequent changes: compiler, bridge/editor and native creation tests.
+- Preview headings/empty groups, cultures, report columns/preferences and row
+  virtualization: unit/native preview scenarios and isolated group measurements.
+- Active source/examples/templates/tests and API consumers migrated; audit found
+  no legacy Instructions/Reset source elements or stale contract-1/3 references
+  in active production assets. Historical plans/reference templates remain history.
+- Reviewed the final diff, paths/links and whitespace. No essential implementation
+  or scoped automated acceptance blocker remains.
+
+Earlier manual display/accessibility, vendor interoperability and release/publication
+gates remain outside this scope. This work does not publish an SDK or VSIX, certify
+vendor XLIFF interoperability, or replace those historical manual acceptance gates.

@@ -20,6 +20,7 @@ namespace Alarmlist.Analyzers
     {
         private readonly List<Scope> _scopes = new List<Scope>();
         private readonly List<IAlarmAnalyzer> _instances = new List<IAlarmAnalyzer>();
+        private readonly List<MetadataSource> _metadataSources = new List<MetadataSource>();
         private IReadOnlyList<IAlarmAnalyzer> _analyzers;
         public IReadOnlyList<IAlarmAnalyzer> Analyzers => _analyzers ?? throw new ObjectDisposedException(nameof(AnalyzerAssemblyLoader));
 
@@ -30,12 +31,14 @@ namespace Alarmlist.Analyzers
             foreach (AnalyzerAssemblyReference reference in references.ToArray())
             {
                 string path = reference?.FilePath ?? "<null>";
+                string identity = null;
                 try
                 {
                     if (reference == null) throw new ArgumentException("An analyzer reference must not be null.");
                     var scope = new Scope(reference);
                     _scopes.Add(scope);
                     Assembly assembly = scope.LoadRoot(reference.FilePath);
+                    identity = assembly.FullName;
                     Type[] types = assembly.GetExportedTypes().Where(type => !type.IsAbstract && !type.ContainsGenericParameters
                         && typeof(IAlarmAnalyzer).IsAssignableFrom(type)).OrderBy(type => type.FullName, StringComparer.Ordinal).ToArray();
                     if (types.Length == 0) throw new NotSupportedException("No public IAlarmAnalyzer implementation was found.");
@@ -47,14 +50,25 @@ namespace Alarmlist.Analyzers
                         created.Add(instance);
                     }
                     analyzers.AddRange(created);
+                    _metadataSources.Add(new MetadataSource(path, identity, created, null));
                 }
                 catch (Exception exception) when (IsRecoverable(exception))
                 {
                     while (exception is TargetInvocationException && exception.InnerException != null) exception = exception.InnerException;
                     analyzers.Add(new UnavailableAnalyzer(path + ": " + exception.Message));
+                    _metadataSources.Add(new MetadataSource(path, identity, Array.Empty<IAlarmAnalyzer>(), exception.Message));
                 }
             }
             _analyzers = analyzers.AsReadOnly();
+        }
+
+        /// <summary>Reads declarations without calling Analyze. Returned data remains usable after disposal.</summary>
+        public IReadOnlyList<AnalyzerAssemblyMetadata> GetMetadata()
+        {
+            if (_analyzers == null) throw new ObjectDisposedException(nameof(AnalyzerAssemblyLoader));
+            var owners = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            return Array.AsReadOnly(_metadataSources.Select(source => AnalyzerAssemblyMetadata.Capture(
+                source.Path, source.Identity, source.Analyzers, owners, source.Failure)).ToArray());
         }
 
         public void Dispose()
@@ -84,13 +98,22 @@ namespace Alarmlist.Analyzers
                 {
                     _scopes.Clear();
                     _instances.Clear();
+                    _metadataSources.Clear();
                 }
             }
             if (failure != null) throw new InvalidOperationException("Analyzer disposal failed: " + failure.Message, failure);
         }
 
-        private static bool IsRecoverable(Exception exception) => !(exception is OutOfMemoryException) && !(exception is StackOverflowException)
+        internal static bool IsRecoverable(Exception exception) => !(exception is OutOfMemoryException) && !(exception is StackOverflowException)
             && !(exception is AccessViolationException) && !(exception is AppDomainUnloadedException) && !(exception is ThreadAbortException);
+
+        private sealed class MetadataSource
+        {
+            internal readonly string Path, Identity, Failure;
+            internal readonly IReadOnlyList<IAlarmAnalyzer> Analyzers;
+            internal MetadataSource(string path, string identity, IReadOnlyList<IAlarmAnalyzer> analyzers, string failure)
+            { Path = path; Identity = identity; Analyzers = analyzers; Failure = failure; }
+        }
 
         private sealed class UnavailableAnalyzer : IAlarmAnalyzer
         {

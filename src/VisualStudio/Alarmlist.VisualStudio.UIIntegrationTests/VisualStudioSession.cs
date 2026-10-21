@@ -57,6 +57,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 {
                     _dte.SuppressUI = true;
                     _dte.MainWindow.Visible = true;
+                    MainWindowHandle = new IntPtr(_dte.MainWindow.HWnd);
                     return true;
                 }, "IDE automation readiness");
             }
@@ -69,6 +70,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         }
 
         public int ProcessId => _process.Id;
+        public IntPtr MainWindowHandle { get; private set; }
         public DTE Automation => _dte;
 
         private void StopTimedOutIde(object state)

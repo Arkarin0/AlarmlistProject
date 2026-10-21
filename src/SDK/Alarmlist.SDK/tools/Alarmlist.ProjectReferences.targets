@@ -1,0 +1,79 @@
+<Project>
+  <PropertyGroup>
+    <BuildProjectReferences Condition="'$(BuildProjectReferences)' == '' and '$(BuildingInsideVisualStudio)' == 'true'">false</BuildProjectReferences>
+    <BuildProjectReferences Condition="'$(BuildProjectReferences)' == ''">true</BuildProjectReferences>
+    <_AlarmlistReferenceRemoveProperties>TargetFramework;RuntimeIdentifier;OutputType;PackageId;PackageVersion;AlarmlistLibraryFileName;CompiledAlarmlistFileName</_AlarmlistReferenceRemoveProperties>
+  </PropertyGroup>
+
+  <!-- Use MSBuild's solution configuration assignment without importing managed compilation. -->
+  <Target Name="AssignProjectConfiguration" Condition="'@(ProjectReference)' != ''">
+    <AssignProjectConfiguration ProjectReferences="@(ProjectReference)"
+        CurrentProject="$(MSBuildProjectFullPath)" CurrentProjectConfiguration="$(Configuration)"
+        CurrentProjectPlatform="$(Platform)" SolutionConfigurationContents="$(CurrentSolutionConfigurationContents)"
+        ResolveConfigurationPlatformUsingMappings="false" AddSyntheticProjectReferencesForSolutionDependencies="false"
+        OnlyReferenceAndBuildProjectsEnabledInSolutionConfiguration="true" ShouldUnsetParentConfigurationAndPlatform="false">
+      <Output TaskParameter="AssignedProjects" ItemName="ProjectReferenceWithConfiguration" />
+      <Output TaskParameter="UnassignedProjects" ItemName="ProjectReferenceWithConfiguration" />
+    </AssignProjectConfiguration>
+    <ItemGroup>
+      <ProjectReferenceWithConfiguration>
+        <BuildReference Condition="'%(ProjectReferenceWithConfiguration.BuildReference)' == ''">true</BuildReference>
+        <ReferenceOutputAssembly Condition="'%(ProjectReferenceWithConfiguration.ReferenceOutputAssembly)' == ''">true</ReferenceOutputAssembly>
+      </ProjectReferenceWithConfiguration>
+    </ItemGroup>
+    <Error Condition="!Exists('%(ProjectReferenceWithConfiguration.Identity)')"
+           Text="Referenced Alarmlist project does not exist: %(ProjectReferenceWithConfiguration.Identity)" />
+  </Target>
+
+  <Target Name="_BuildAlarmlistProjectReferences" DependsOnTargets="AssignProjectConfiguration"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(BuildProjectReferences)' == 'true' and '$(BuildingInsideVisualStudio)' != 'true'">
+    <MSBuild Projects="@(ProjectReferenceWithConfiguration)" Targets="Build"
+             Condition="'%(ProjectReferenceWithConfiguration.BuildReference)' == 'true'"
+             Properties="%(ProjectReferenceWithConfiguration.SetConfiguration);%(ProjectReferenceWithConfiguration.SetPlatform)"
+             RemoveProperties="$(_AlarmlistReferenceRemoveProperties);%(ProjectReferenceWithConfiguration.GlobalPropertiesToRemove)" />
+  </Target>
+
+  <Target Name="_GetAlarmlistProjectReferenceInputs" DependsOnTargets="AssignProjectConfiguration">
+    <ItemGroup><_AlarmlistProjectReferenceInputs Remove="@(_AlarmlistProjectReferenceInputs)" /></ItemGroup>
+    <MSBuild Projects="@(ProjectReferenceWithConfiguration)" Targets="GetAlarmlistReferenceClosure"
+             Condition="'%(ProjectReferenceWithConfiguration.ReferenceOutputAssembly)' == 'true'"
+             Properties="%(ProjectReferenceWithConfiguration.SetConfiguration);%(ProjectReferenceWithConfiguration.SetPlatform)"
+             RemoveProperties="$(_AlarmlistReferenceRemoveProperties);%(ProjectReferenceWithConfiguration.GlobalPropertiesToRemove)">
+      <Output TaskParameter="TargetOutputs" ItemName="_AlarmlistProjectReferenceInputs" />
+    </MSBuild>
+  </Target>
+
+  <Target Name="_ResolveAlarmlistPackageReferences">
+    <ItemGroup><_AlarmlistPackageReferenceInputs Remove="@(_AlarmlistPackageReferenceInputs)" /></ItemGroup>
+    <AlarmlistResolvePackageLibrariesTask AssetsFile="$(ProjectAssetsFile)" FrameworkMoniker="$(TargetFrameworkMoniker)"
+                                         PackageReferences="@(PackageReference)">
+      <Output TaskParameter="LibraryReferences" ItemName="_AlarmlistPackageReferenceInputs" />
+    </AlarmlistResolvePackageLibrariesTask>
+  </Target>
+
+  <Target Name="ResolveProjectReferences" DependsOnTargets="_BuildAlarmlistProjectReferences;_GetAlarmlistProjectReferenceInputs;_ResolveAlarmlistPackageReferences"
+          Returns="@(_AlarmlistProjectReferenceInputs)" />
+
+  <Target Name="CleanReferencedProjects" AfterTargets="CoreClean" DependsOnTargets="AssignProjectConfiguration"
+          Condition="'$(BuildProjectReferences)' == 'true' and '$(BuildingInsideVisualStudio)' != 'true' and '$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="@(ProjectReferenceWithConfiguration)" Targets="Clean"
+             Condition="'%(ProjectReferenceWithConfiguration.BuildReference)' == 'true'"
+             Properties="%(ProjectReferenceWithConfiguration.SetConfiguration);%(ProjectReferenceWithConfiguration.SetPlatform)"
+             RemoveProperties="$(_AlarmlistReferenceRemoveProperties);%(ProjectReferenceWithConfiguration.GlobalPropertiesToRemove)" />
+  </Target>
+
+  <!-- Discovery never invokes Build and returns the complete captured-artifact path set. -->
+  <Target Name="GetAlarmlistReferenceClosure" DependsOnTargets="GetTargetPath;_GetAlarmlistProjectReferenceInputs;_ResolveAlarmlistPackageReferences"
+          Returns="@(_AlarmlistReferenceClosure)">
+    <Error Condition="'$(OutputType)' != 'Library'" Text="An Alarmlist project reference must use OutputType=Library: $(MSBuildProjectFullPath)" />
+    <ItemGroup>
+      <_AlarmlistReferenceClosure Remove="@(_AlarmlistReferenceClosure)" />
+      <_AlarmlistReferenceClosure Include="@(_AlarmlistProjectReferenceInputs);@(_AlarmlistPackageReferenceInputs)"><Direct>false</Direct></_AlarmlistReferenceClosure>
+      <_AlarmlistReferenceClosure Include="@(CompiledAlarmlistFiles)">
+        <Direct>true</Direct>
+        <SourceProject>$(MSBuildProjectFullPath)</SourceProject>
+        <IsPackable>$(IsPackable)</IsPackable>
+      </_AlarmlistReferenceClosure>
+    </ItemGroup>
+  </Target>
+</Project>

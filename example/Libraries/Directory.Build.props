@@ -1,0 +1,6 @@
+<Project>
+  <Import Project="LibraryExample.local.props" Condition="Exists('LibraryExample.local.props')" />
+  <PropertyGroup>
+    <UseLibraryPackages Condition="'$(UseLibraryPackages)' == ''">false</UseLibraryPackages>
+  </PropertyGroup>
+</Project>

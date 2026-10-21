@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Input;
@@ -22,8 +23,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         private static readonly string ProcedureBase = WithProcedure(BaseAlarm,
-            "<Instructions><Step>Open</Step><Hint>Check</Hint><Warning>Voltage</Warning><Note>Record</Note></Instructions>"
-            + "<Reset><Step>Reset panel</Step></Reset>");
+            "<Group Name='Instructions'><Step>Open</Step><Hint>Check</Hint><Warning>Voltage</Warning><Note>Record</Note></Group>"
+            + "<Group Name='Reset'><Step>Reset panel</Step></Group>");
 
         private static string WithProcedure(string alarm, string sections)
             => alarm.Replace("</Alarm>", "<TestProcedure>" + sections + "</TestProcedure></Alarm>");
@@ -32,7 +33,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public async Task ProcedureRowsUseCompilerOriginsAcrossMultipleReferencesAsync()
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm.Replace(">Base<", ">Middle<"),
-                "<Instructions><Step>Open</Step></Instructions>")))
+                "<Group Name='Instructions'><Step>Open</Step></Group>")))
             {
                 session.Analyze(ProcedureBase.Replace("</Alarmlist>",
                     "<Alarm><FullyQualifiedName>Middle</FullyQualifiedName><ReferenceName>Base</ReferenceName></Alarm></Alarmlist>"));
@@ -55,7 +56,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public void MultipleClearsExplainInheritedAndEarlierLocalExclusions()
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm,
-                "<Instructions><Step>Earlier local</Step><Clear/><Warning>Also excluded</Warning><Clear/><Note>Survivor</Note></Instructions>")))
+                "<Group Name='Instructions'><Step>Earlier local</Step><Clear/><Warning>Also excluded</Warning><Clear/><Note>Survivor</Note></Group>")))
             {
                 session.Analyze(ProcedureBase);
                 ProcedureSectionViewModel section = session.View.ProcedureSections[0];
@@ -79,7 +80,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [InlineData(1, "Reset")]
         public async Task MakeLocalCopyPreservesEffectiveSequenceAndFreezesOnlyChosenSectionAsync(int index, string name)
         {
-            string child = WithProcedure(ChildAlarm, "<" + name + "><Note>Local</Note></" + name + ">");
+            string child = WithProcedure(ChildAlarm, "<Group Name='" + name + "'><Note>Local</Note></Group>");
             using (var session = new SemanticSession(child))
             {
                 session.Analyze(ProcedureBase);
@@ -109,7 +110,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public async Task CopyAfterClearIncludesEachSurvivorOnceAndNoExcludedRowsAsync()
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm,
-                "<Instructions><Step>Before</Step><Clear/><Note>After</Note></Instructions>")))
+                "<Group Name='Instructions'><Step>Before</Step><Clear/><Note>After</Note></Group>")))
             {
                 session.Analyze(ProcedureBase);
                 ProcedureSectionViewModel section = session.View.ProcedureSections[0];
@@ -125,11 +126,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Theory]
         [InlineData("")]
         [InlineData("<TestProcedure/>")]
-        [InlineData("<TestProcedure><Instructions/></TestProcedure>")]
+        [InlineData("<TestProcedure><Group Name='Instructions'/></TestProcedure>")]
         public async Task CopyEmptySequenceCreatesOnlyLeadingClearAsync(string procedure)
         {
             using (var session = new SemanticSession(ChildAlarm.Replace("</Alarm>", procedure + "</Alarm>")))
             {
+                session.Analyze(WithProcedure(BaseAlarm, "<Group Name='Instructions'/>"));
                 ProcedureSectionViewModel section = session.View.ProcedureSections[0];
                 section.MakeLocalCopyCommand.Execute(null);
                 await session.View.PendingAnalysisAction;
@@ -147,7 +149,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             {
                 ProcedureSectionViewModel section = view.ProcedureSections[0];
                 section.UseLocalEntriesCommand.Execute(null);
-                Assert.Equal(ProcedureSource.Replace("<Instructions>", "<Instructions>\n<Clear/>"), buffer.Current.Text);
+                Assert.Equal(ProcedureSource.Replace("<Group Name='Instructions'>", "<Group Name='Instructions'>\n<Clear/>"), buffer.Current.Text);
                 Assert.Equal(new[] { "Clear", "Step", "Clear", "Warning" }, section.Items.Select(item => item.Kind));
                 Assert.Equal(1, buffer.Edits);
                 section.UseLocalEntriesCommand.Execute(null);
@@ -167,7 +169,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [InlineData("<Clear>unexpected text</Clear>")]
         public async Task UnsafeSectionCopyLeavesTheExactSourceIntactAsync(string contents)
         {
-            string child = WithProcedure(ChildAlarm, "<Instructions>" + contents + "</Instructions>");
+            string child = WithProcedure(ChildAlarm, "<Group Name='Instructions'>" + contents + "</Group>");
             using (var session = new SemanticSession(child))
             {
                 session.Analyze(ProcedureBase);
@@ -185,7 +187,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Theory]
-        [InlineData("<TestProcedure><Instructions/><Instructions/></TestProcedure>")]
+        [InlineData("<TestProcedure><Group Name='Instructions'/><Group Name='Instructions'/></TestProcedure>")]
         [InlineData("<TestProcedure/><TestProcedure/>")]
         public void SectionTransformationsRejectDuplicateContainers(string procedure)
         {
@@ -198,15 +200,15 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         public void CopyPreservesContainerAttributesNamespacesOtherSectionAndLineEndings()
         {
             const string source = "<a:Alarmlist xmlns:a='urn:alarms'>\r\n  <a:Alarm><a:TestProcedure keep='yes'>"
-                + "<a:Instructions keep='also'><a:Step>Old</a:Step></a:Instructions>"
-                + "<!-- outside --><a:Reset><a:Note id='stay'>Reset</a:Note></a:Reset></a:TestProcedure></a:Alarm>\r\n</a:Alarmlist>";
+                + "<a:Group Name='Instructions' keep='also'><a:Step>Old</a:Step></a:Group>"
+                + "<!-- outside --><a:Group Name='Reset'><a:Note id='stay'>Reset</a:Note></a:Group></a:TestProcedure></a:Alarm>\r\n</a:Alarmlist>";
             AlmxProjection projection = _editing.Parse(source);
             SourceEdit edit = _editing.MakeProcedureLocalCopy(projection, projection.Alarms[0], "Instructions",
                 new[] { new ProcedureValueChange("Instructions", 0, "Warning", "<&> 😀\r\nNext") });
             string result = edit.Apply(source);
             Assert.StartsWith(source.Substring(0, edit.Start), result);
             Assert.EndsWith(source.Substring(edit.Start + edit.Length), result);
-            Assert.Contains("<a:Instructions keep='also'>", result);
+            Assert.Contains("<a:Group Name='Instructions' keep='also'>", result);
             Assert.Contains("<a:Clear/>", result);
             Assert.Contains("<a:Warning>&lt;&amp;&gt; 😀&#xD;\nNext</a:Warning>", result);
             Assert.Equal("<&> 😀\r\nNext", _editing.Parse(result).Alarms[0].GetProcedureSection("Instructions").Items[1].Text);
@@ -236,7 +238,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [InlineData(true)]
         public async Task ChangesDuringCopyValidationPreventLateWritesAsync(bool changeDraft)
         {
-            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Note>Local</Note></Instructions>")))
+            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Note>Local</Note></Group>")))
             {
                 session.Analyze(ProcedureBase);
                 var validation = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -256,7 +258,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Fact]
         public void ProcedureDraftsSurviveAnalysisWhileUnaffectedSectionsRefresh()
         {
-            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Note>Local</Note></Instructions>")))
+            using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Note>Local</Note></Group>")))
             {
                 session.Analyze(ProcedureBase);
                 ProcedureSectionViewModel section = session.View.ProcedureSections[0];
@@ -318,7 +320,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 session.Analyze(ProcedureBase);
                 Assert.False(section.MakeLocalCopyCommand.CanExecute(null));
                 Assert.Empty(section.EffectiveItems);
-                Assert.True(section.UseLocalEntriesCommand.CanExecute(null));
+                Assert.False(section.UseLocalEntriesCommand.CanExecute(null));
+                Assert.Empty(session.View.ProcedureSections);
             }
         }
 
@@ -327,7 +330,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
-                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Instructions><Clear/><Note>Local</Note></Instructions>")))
+                using (var session = new SemanticSession(WithProcedure(ChildAlarm, "<Group Name='Instructions'><Clear/><Note>Local</Note></Group>")))
                 using (var host = new HwndSource(new HwndSourceParameters("ALMX procedure binding test")
                 { Width = 950, Height = 850, WindowStyle = unchecked((int)0x80000000) }))
                 {
@@ -335,9 +338,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     var control = new EditFileControl(session.View) { Width = 900, Height = 800 };
                     host.RootVisual = control;
                     InheritanceAdornerTests.Pump();
-                    Expander excluded = VisualChildren(control).OfType<Expander>().First(item => Equals(item.Header, "Excluded by Clear"));
+                    ToggleButton excluded = VisualChildren(control).OfType<ToggleButton>().First(item =>
+                        AutomationProperties.GetName(item) == "Show cleared Instructions entries");
                     Assert.Equal(Visibility.Visible, excluded.Visibility);
-                    excluded.IsExpanded = true;
+                    Assert.True(excluded.IsChecked);
                     InheritanceAdornerTests.Pump();
                     ContentControl inherited = VisualChildren(control).OfType<ContentControl>().First(item =>
                         item.DataContext is ProcedureAnalysisRow row && row.IsInherited && InheritedValueBehavior.GetIsInherited(item));
@@ -345,12 +349,108 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Single(AdornerLayer.GetAdornerLayer(inherited).GetAdorners(inherited));
                     Assert.True(Assert.Single(VisualChildren(inherited).OfType<TextBox>()).IsReadOnly);
                     Assert.Contains(VisualChildren(control).OfType<TextBlock>(), item => item.Text == "Clear preceding entries" && item.Visibility == Visibility.Visible);
-                    Button command = VisualChildren(control).OfType<Button>().First(item => Equals(item.Content, "Make local copy"));
+                    Button command = VisualChildren(control).OfType<Button>().First(item => Equals(item.Content, "Inheritance ▾"));
                     var enter = new KeyEventArgs(Keyboard.PrimaryDevice, host, 0, Key.Enter) { RoutedEvent = Keyboard.PreviewKeyDownEvent };
                     command.RaiseEvent(enter);
                     Assert.False(enter.Handled); // Enter must reach Button's command handling.
                     Assert.Equal(0, session.Buffer.Edits);
                     Assert.False(session.View.HasPending);
+                }
+            });
+        }
+
+        [Fact]
+        public void ClearedVisibilityPreservesLocalDraftsBoundariesAndIndependentSections()
+        {
+            string source = WithProcedure(ChildAlarm,
+                "<Group Name='Instructions'><Step>Earlier local</Step><Clear/><Warning>Also excluded</Warning><Clear/><Note>Survivor</Note></Group>"
+                + "<Group Name='Reset'><Clear/><Step>Reset locally</Step></Group>");
+            using (var session = new SemanticSession(source))
+            {
+                session.Analyze(ProcedureBase);
+                ProcedureSectionViewModel section = session.View.ProcedureSections[0];
+                ProcedureItemViewModel local = section.Items[0];
+                local.Text = "Private cleared draft";
+                Assert.True(local.IsExcluded);
+                Assert.True(local.CanEdit);
+                Assert.False(section.HasAnalysis);
+                section.ShowCleared = false;
+                Assert.False(local.IsVisible);
+                Assert.All(section.InheritedSequence, row => Assert.False(row.IsVisible));
+                Assert.Equal(new[] { "Clear", "Clear", "Note" }, section.Items.Where(item => item.IsVisible).Select(item => item.Kind));
+                Assert.True(session.View.ProcedureSections[1].ShowCleared);
+                Assert.True(Assert.Single(session.View.ProcedureSections[1].InheritedSequence).IsVisible);
+                Assert.True(session.View.HasPending);
+                Assert.Equal(source, session.Buffer.Current.Text);
+                Assert.Equal(0, session.Buffer.Edits);
+                section.ShowCleared = true;
+                Assert.Same(local, section.Items[0]);
+                Assert.Equal("Private cleared draft", local.Text);
+                Assert.True(local.IsVisible);
+                Assert.True(session.View.CommitPending());
+                Assert.Equal(1, session.Buffer.Edits);
+                Assert.Contains("<Step>Private cleared draft</Step><Clear/>", session.Buffer.Current.Text);
+                session.Buffer.Undo();
+                Assert.Equal(source, session.Buffer.Current.Text);
+            }
+        }
+
+        [Fact]
+        public void InlineInheritedOrderIncludesAncestorExclusionsWithoutDuplicatingLocalRows()
+        {
+            string ancestors = "<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName><TestProcedure><Group Name='Instructions'>"
+                + "<Step>B0</Step><Clear/><Step>B1</Step></Group></TestProcedure></Alarm>"
+                + "<Alarm><FullyQualifiedName>Middle</FullyQualifiedName><ReferenceName>Base</ReferenceName><TestProcedure><Group Name='Instructions'>"
+                + "<Step>M0</Step><Clear/><Note>M1</Note></Group></TestProcedure></Alarm></Alarmlist>";
+            using (var session = new SemanticSession(WithProcedure(ChildAlarm.Replace(">Base<", ">Middle<"),
+                "<Group Name='Instructions'><Step>C0</Step></Group>")))
+            {
+                session.Analyze(ancestors);
+                ProcedureSectionViewModel section = session.View.ProcedureSections[0];
+                Assert.Equal(new[] { "B0", "B1", "M0", "M1" }, section.InheritedSequence.Select(row => row.Text));
+                Assert.Equal(new[] { true, true, true, false }, section.InheritedSequence.Select(row => row.IsExcluded));
+                Assert.All(section.InheritedSequence, row => Assert.True(row.IsInherited));
+                Assert.Equal("C0", Assert.Single(section.Items).Text);
+                section.ShowCleared = false;
+                Assert.Equal("M1", Assert.Single(section.InheritedSequence.Where(row => row.IsVisible)).Text);
+                Assert.Equal(0, session.Buffer.Edits);
+            }
+        }
+
+        [Fact]
+        public void ClearedToggleTakesFocusWithoutCommittingAndRestoresTheSameEditor()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                string source = WithProcedure(ChildAlarm, "<Group Name='Instructions'><Step>Earlier</Step><Clear/><Step>After</Step></Group>");
+                using (var session = new SemanticSession(source))
+                using (var host = ExpressionHost())
+                {
+                    session.Analyze(ProcedureBase);
+                    var control = new EditFileControl(session.View) { Width = 900, Height = 850 };
+                    host.RootVisual = control;
+                    InheritanceAdornerTests.Pump();
+                    ProcedureItemViewModel local = session.View.ProcedureSections[0].Items[0];
+                    ExpressionTextBox editor = VisualChildren(control).OfType<ExpressionTextBox>().Single(item => ReferenceEquals(item.DataContext, local));
+                    editor.BringIntoView();
+                    Assert.True(editor.Focus());
+                    editor.Text = "Uncommitted cleared entry";
+                    ToggleButton toggle = VisualChildren(control).OfType<ToggleButton>().Single(item =>
+                        AutomationProperties.GetName(item) == "Show cleared Instructions entries");
+                    toggle.BringIntoView();
+                    Assert.True(toggle.Focus());
+                    toggle.IsChecked = false;
+                    InheritanceAdornerTests.Pump();
+                    Assert.False(editor.IsVisible);
+                    Assert.Same(toggle, Keyboard.FocusedElement);
+                    Assert.True(session.View.HasPending);
+                    Assert.Equal(0, session.Buffer.Edits);
+                    toggle.IsChecked = true;
+                    InheritanceAdornerTests.Pump();
+                    Assert.True(editor.IsVisible);
+                    Assert.Equal("Uncommitted cleared entry", editor.Text);
+                    Assert.Same(editor, VisualChildren(control).OfType<ExpressionTextBox>().Single(item => ReferenceEquals(item.DataContext, local)));
+                    Assert.Equal(source, session.Buffer.Current.Text);
                 }
             });
         }

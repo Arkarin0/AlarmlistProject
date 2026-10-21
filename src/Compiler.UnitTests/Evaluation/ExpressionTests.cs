@@ -107,16 +107,16 @@ namespace Alarmlist.Core.UnitTests.Evaluation
         public void OverrideCanBreakATemplateCycleAndClearedProcedureValuesAreNotEvaluated()
         {
             CompilationResult result = Compile("<Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName><Name>$(AlarmlistAlarmCode)</Name>"
-                + "<Code>$(AlarmlistAlarmName)</Code><TestProcedure><Instructions><Step>$(missing)</Step></Instructions></TestProcedure></Alarm>"
+                + "<Code>$(AlarmlistAlarmName)</Code><TestProcedure><Group Name='Instructions'><Step>$(missing)</Step></Group></TestProcedure></Alarm>"
                 + "<Alarm><FullyQualifiedName>B</FullyQualifiedName><ReferenceName>A</ReferenceName><Code>001</Code>"
-                + "<TestProcedure><Instructions><Clear/><Hint>Inspect $(AlarmlistAlarmName)</Hint><Warning>$$</Warning></Instructions>"
-                + "<Reset><Note>$(AlarmlistAlarmCode)</Note><Step>Reset</Step></Reset></TestProcedure></Alarm>");
+                + "<TestProcedure><Group Name='Instructions'><Clear/><Hint>Inspect $(AlarmlistAlarmName)</Hint><Warning>$$</Warning></Group>"
+                + "<Group Name='Reset'><Note>$(AlarmlistAlarmCode)</Note><Step>Reset</Step></Group></TestProcedure></Alarm>");
             Assert.True(result.Success);
             Alarm alarm = Assert.Single(result.AlarmList);
             Assert.Equal("001", alarm.Name);
-            Assert.Equal(new[] { "Inspect 001", "$" }, alarm.TestProcedure.Instructions.Select(step => step.Text));
-            Assert.Equal(new[] { TestProcedureItemKind.Hint, TestProcedureItemKind.Warning }, alarm.TestProcedure.Instructions.Select(step => step.Kind));
-            Assert.Equal(new[] { "001", "Reset" }, alarm.TestProcedure.Reset.Select(step => step.Text));
+            Assert.Equal(new[] { "Inspect 001", "$" }, alarm.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries.Select(step => step.Text));
+            Assert.Equal(new[] { TestProcedureItemKind.Hint, TestProcedureItemKind.Warning }, alarm.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries.Select(step => step.Kind));
+            Assert.Equal(new[] { "001", "Reset" }, alarm.TestProcedure.Groups.Single(group => group.Name == "Reset").Entries.Select(step => step.Text));
         }
 
         [Fact]

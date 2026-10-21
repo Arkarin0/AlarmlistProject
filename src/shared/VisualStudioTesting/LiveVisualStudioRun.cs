@@ -31,14 +31,14 @@ namespace Alarmlist.VisualStudio.Testing
 
     internal static class LiveVisualStudioRun
     {
-        public static Task ExecuteAsync(string version, ITestOutputHelper output, bool analyzers = false)
+        public static Task ExecuteAsync(string version, ITestOutputHelper output, bool analyzers = false, bool libraries = false)
         {
             // .NET Framework process pipe readers must not inherit xUnit's bounded
             // synchronization context while this caller waits for process completion.
-            return Task.Run(() => ExecuteCore(version, output, analyzers));
+            return Task.Run(() => ExecuteCore(version, output, analyzers, libraries));
         }
 
-        private static void ExecuteCore(string version, ITestOutputHelper output, bool analyzers)
+        private static void ExecuteCore(string version, ITestOutputHelper output, bool analyzers, bool libraries)
         {
             // Serialize across both test assemblies, not just within an xUnit collection.
             using (var gate = new Mutex(false, "Local\\Alarmlist.LiveVisualStudioTests"))
@@ -47,12 +47,12 @@ namespace Alarmlist.VisualStudio.Testing
                 try { entered = gate.WaitOne(0); }
                 catch (AbandonedMutexException) { entered = true; }
                 Require(entered, "Another live Visual Studio test is running. Run live test projects sequentially.");
-                try { Run(version, output, analyzers); }
+                try { Run(version, output, analyzers, libraries); }
                 finally { gate.ReleaseMutex(); }
             }
         }
 
-        private static void Run(string version, ITestOutputHelper output, bool analyzers)
+        private static void Run(string version, ITestOutputHelper output, bool analyzers, bool libraries)
         {
             string repository = Metadata("RepositoryRoot");
             string configuration = Metadata("BuildConfiguration");
@@ -80,6 +80,7 @@ namespace Alarmlist.VisualStudio.Testing
                 + " -OwnedProcessFile " + Quote(ownershipPath);
             arguments += " -MeasureAnalysis -MeasurementIterations " + iterations + " -MeasurementAlarmCount " + alarms;
             if (analyzers) arguments += " -AnalyzerWorkload";
+            if (libraries) arguments += " -LibraryWorkload";
             output.WriteLine("Live VS" + version + " artifacts: " + directory);
             string systemDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),
                 Environment.Is64BitProcess ? "System32" : "Sysnative");
@@ -118,12 +119,12 @@ namespace Alarmlist.VisualStudio.Testing
             XElement report;
             using (XmlReader reader = XmlReader.Create(reportPath, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit }))
                 report = XDocument.Load(reader).Root;
-            Validate(report, major, iterations, alarms, analyzers);
+            Validate(report, major, iterations, alarms, analyzers, libraries);
             Require(Text(report, "Configuration") == configuration && Text(report, "RootSuffix") == suffix, "The report belongs to another configuration/profile.");
             string runDirectory = Path.GetFullPath(Text(report, "RunDirectory"));
             Require(runDirectory.StartsWith(fixtureRoot, StringComparison.OrdinalIgnoreCase), "Unexpected measurement artifacts directory.");
             Require(File.Exists(Path.Combine(runDirectory, "ActivityLog.xml")), "The IDE activity log is missing.");
-            foreach (string file in new[] { "analysis-latency.csv", "designer-close-memory.csv", "measurement-environment.json", "measurement-commit.txt" })
+            foreach (string file in new[] { "analysis-latency.csv", libraries ? "project-unload-memory.csv" : "designer-close-memory.csv", "measurement-environment.json", "measurement-commit.txt" })
                 Require(File.Exists(Path.Combine(runDirectory, file)), "Missing measurement artifact: " + file);
             output.WriteLine("Validated measurement artifacts: " + runDirectory);
         }
@@ -166,7 +167,7 @@ namespace Alarmlist.VisualStudio.Testing
         }
 
         // Also exercised by ordinary tests, without launching an IDE.
-        internal static void Validate(XElement report, int major, int iterations, int alarms, bool analyzers = false)
+        internal static void Validate(XElement report, int major, int iterations, int alarms, bool analyzers = false, bool libraries = false)
         {
             Require(report?.Name == "LiveVisualStudioRun" && Text(report, "SchemaVersion") == "1", "Invalid live test report schema.");
             Require(Boolean(report, "Succeeded"), "Live IDE checks failed: " + Text(report, "Failure"));
@@ -175,10 +176,12 @@ namespace Alarmlist.VisualStudio.Testing
             Require(Version.TryParse(Text(report, "HostVersion"), out Version host) && host.Major == major, "Wrong Visual Studio host in report.");
             Require(Boolean(report, "Measurements"), "The requested measurement mode did not run.");
             Require(Boolean(report, "AnalyzerWorkload") == analyzers, "The report belongs to another analyzer workload.");
+            Require(Boolean(report, "LibraryWorkload") == libraries && !(analyzers && libraries), "The report belongs to another library workload.");
             Require(Integer(report, "Iterations") == iterations && Integer(report, "AdditionalAlarms") == alarms, "The measurement scenario does not match the request.");
             Require(Boolean(report, "SourcesPreserved"), "Unsaved measurements did not preserve source/output hashes.");
             XElement[] latencies = report.Element("Latencies")?.Elements("Sample").ToArray() ?? Array.Empty<XElement>();
-            string[] modes = analyzers ? new[] { "XmlBuffer", "DesignerReopen", "SavedConfiguration" } : new[] { "XmlBuffer", "DesignerReopen" };
+            string[] modes = libraries ? new[] { "SavedLibrary", "ProjectUnload" }
+                : analyzers ? new[] { "XmlBuffer", "DesignerReopen", "SavedConfiguration" } : new[] { "XmlBuffer", "DesignerReopen" };
             Require(latencies.Length == modes.Length * (iterations + 2), "Incomplete latency samples.");
             foreach (string mode in modes)
             {
@@ -191,6 +194,7 @@ namespace Alarmlist.VisualStudio.Testing
             foreach (XElement row in memory)
             {
                 Require(Integer(row, "OpenDocuments") == 0, "A measured close left documents open.");
+                if (libraries) Require(Integer(row, "LoadedProjects") == 0, "A measured unload left a project loaded.");
                 Require(Number(row, "PrivateBytes") > 0 && Number(row, "WorkingSetBytes") > 0 && Integer(row, "Handles") > 0, "Invalid IDE memory sample.");
                 Require(DateTime.TryParse(Text(row, "CapturedUtc"), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out _), "Invalid capture timestamp.");
                 foreach (string counter in new[] { "ManagedHeapBytes", "Gen2Collections" })

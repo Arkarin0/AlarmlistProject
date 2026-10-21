@@ -8,16 +8,23 @@ namespace Alarmlist.Text
     public sealed class LookupTextSnapshot
     {
         public LookupTextSnapshot(string text, string filePath, int version)
+            : this(text, filePath, version, null)
+        {
+        }
+
+        internal LookupTextSnapshot(string text, string filePath, int version, XmlOriginMap origins)
         {
             Text = text ?? throw new ArgumentNullException(nameof(text));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A lookup path is required.", nameof(filePath));
             if (version < 0) throw new ArgumentOutOfRangeException(nameof(version));
             FilePath = filePath;
             Version = version;
+            Origins = origins;
         }
 
         public string Text { get; }
         public string FilePath { get; }
         public int Version { get; }
+        internal XmlOriginMap Origins { get; }
     }
 }

@@ -1,16 +1,18 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using Alarmlist.Text;
+using Alarmlist.Libraries;
 
 namespace Alarmlist.Analysis
 {
     public sealed class PropertyOrigin
     {
-        internal PropertyOrigin(string scope, AlarmOrigin alarm, SourceLocation location)
-        { Scope = scope; Alarm = alarm; Location = location; }
+        internal PropertyOrigin(string scope, AlarmOrigin alarm, SourceLocation location, LibraryIdentity library = null)
+        { Scope = scope; Alarm = alarm; Location = location; Library = library; }
         public string Scope { get; }
         public AlarmOrigin Alarm { get; }
         public SourceLocation Location { get; }
+        public LibraryIdentity Library { get; }
     }
 
     /// <summary>A visible custom or well-known property, with declaration and assignment provenance.</summary>

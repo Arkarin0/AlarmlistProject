@@ -6,5 +6,9 @@
     <Code>A-001</Code>
     <Category>General</Category>
     <Description>Replace this alarm with your own definition.</Description>
+    <TestProcedure>
+      <Group Name="Instructions"/>
+      <Group Name="Reset"/>
+    </TestProcedure>
   </Alarm>
 </Alarmlist>

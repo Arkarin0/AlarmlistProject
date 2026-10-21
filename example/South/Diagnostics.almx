@@ -18,9 +18,9 @@
     <Name>Inherited code warning</Name>
     <Description>Intentionally inherits LEGACY-SOUTH. Set a local Code to S-002 to clear SAMPLE001, then Undo.</Description>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Note>Change the project warning controls to promote or suppress SAMPLE001.</Note>
-      </Instructions>
+      </Group>
     </TestProcedure>
   </Alarm>
 </Alarmlist>

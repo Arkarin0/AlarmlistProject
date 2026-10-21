@@ -10,6 +10,7 @@ using Alarmlist.Compiler;
 using Alarmlist.Diagnostics;
 using Alarmlist.Evaluation;
 using Alarmlist.Localization;
+using Alarmlist.Libraries;
 using Alarmlist.Output;
 using Alarmlist.Syntax;
 using Alarmlist.Text;
@@ -21,17 +22,16 @@ namespace Alarmlist.Analysis
         private static readonly string[] s_fields = { "Name", "Code", "Category", "Description" };
         private readonly Dictionary<AlarmSyntaxNode, AlarmOrigin> _alarms = new Dictionary<AlarmSyntaxNode, AlarmOrigin>();
         private readonly Dictionary<ITestProcedureItem, ProcedureEntryOrigin> _entries = new Dictionary<ITestProcedureItem, ProcedureEntryOrigin>();
-        private readonly Dictionary<AlarmSyntaxNode, SectionResolution> _instructions = new Dictionary<AlarmSyntaxNode, SectionResolution>();
-        private readonly Dictionary<AlarmSyntaxNode, SectionResolution> _reset = new Dictionary<AlarmSyntaxNode, SectionResolution>();
+        private readonly Dictionary<string, Dictionary<AlarmSyntaxNode, SectionResolution>> _sections = new Dictionary<string, Dictionary<AlarmSyntaxNode, SectionResolution>>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _ambiguousNames;
         private readonly CompilationContext _context;
         private readonly CompilationEvaluator _evaluation;
         private AnalyzedAlarm[] _analyzedAlarms;
 
-        private SnapshotAnalyzer(BindingResult binding, CompilationContext context)
+        private SnapshotAnalyzer(BindingResult binding, CompilationContext context, bool allowDeferredValues = false)
         {
             _context = context;
-            _evaluation = new CompilationEvaluator(binding.SyntaxTree, context);
+            _evaluation = new CompilationEvaluator(binding.SyntaxTree, context, allowDeferredValues);
             _ambiguousNames = new HashSet<string>(binding.SyntaxTree.Alarms
                 .Where(alarm => !string.IsNullOrWhiteSpace(alarm.FullyQualifiedName))
                 .GroupBy(alarm => alarm.FullyQualifiedName, StringComparer.Ordinal)
@@ -40,19 +40,18 @@ namespace Alarmlist.Analysis
             int index = 0;
             foreach (AlarmSyntaxNode alarm in binding.SyntaxTree.Alarms)
             {
-                var origin = new AlarmOrigin(index++, alarm.FullyQualifiedName, alarm.Location);
+                var origin = new AlarmOrigin(index++, alarm.FullyQualifiedName, alarm.Location, alarm.SourceFile?.Library?.Identity);
                 _alarms.Add(alarm, origin);
-                AddEntryOrigins(alarm.TestProcedure.Instructions, origin, "Instructions");
-                AddEntryOrigins(alarm.TestProcedure.Reset, origin, "Reset");
+                foreach (ProcedureGroupSyntax group in alarm.TestProcedure.Groups) AddEntryOrigins(group.Entries, origin, group.Name);
             }
         }
 
-        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots, CompilationContext context, bool includeCompiledXml, CancellationToken token = default)
+        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots, CompilationContext context, bool includeCompiledXml, CancellationToken token = default, bool allowDeferredValues = false)
         {
             var binder = new Binder();
             binder.AddSourceTexts(snapshots.Select(snapshot => snapshot.CreateSourceText()));
-            BindingResult binding = binder.Bind();
-            var analyzer = new SnapshotAnalyzer(binding, context);
+            BindingResult binding = LibraryCompilation.Include(binder.Bind(), context);
+            var analyzer = new SnapshotAnalyzer(binding, context, allowDeferredValues);
             CompilationResult compilation = analyzer.CompleteCompilation(binding, token);
             IReadOnlyList<Diagnostic> diagnostics = compilation.Diagnostics;
             string xml = null;
@@ -63,7 +62,7 @@ namespace Alarmlist.Analysis
                 if (compilation.Success) xml = new XmlAlarmlistOutputWriter().WriteToString(compilation.AlarmList);
             }
             IEnumerable<AnalyzedSource> sources = snapshots.Select((snapshot, index) => new AnalyzedSource(snapshot,
-                analyzer.AnalyzeProperties(null, binding.SyntaxTree.Files[index], true, snapshot.FilePath)));
+                analyzer.AnalyzeProperties(null, binding.SyntaxTree.Files[binding.SyntaxTree.Files.Count - snapshots.Length + index], true, snapshot.FilePath), context.DiagnosticOptions.Configuration));
             ResourceCatalogue catalogue = analyzer._evaluation.Resources;
             return new AnalysisResult(sources, analyzer.GetAnalyzedAlarms(binding), diagnostics,
                 analyzer._evaluation.Culture, context.Resources.Select(resource => new AnalyzedResource(resource)),
@@ -76,8 +75,15 @@ namespace Alarmlist.Analysis
                 analyzer._evaluation.Lookups.Paths.Select(path => new AnalyzedLookupPath(path,
                     analyzer._evaluation.Lookups.IsAmbiguous(path), catalogue, analyzer._evaluation.Culture)),
                 analyzer._evaluation.Lookups.Lists.Select(list => new AnalyzedLookupList(list, analyzer._evaluation.Lookups, catalogue, analyzer._evaluation.Culture)),
-                analyzer._evaluation.Lookups.Bindings.Select(binding => new AnalyzedArgumentBinding(binding, analyzer._evaluation.Lookups.IsAvailable(binding))), xml);
+                analyzer._evaluation.Lookups.Bindings.Select(binding => new AnalyzedArgumentBinding(binding, analyzer._evaluation.Lookups.IsAvailable(binding))), xml,
+                analyzer.GetAnalyzedLibraries(binding));
         }
+
+        private IEnumerable<AnalyzedLibrary> GetAnalyzedLibraries(BindingResult binding)
+            => (binding.SyntaxTree.LibraryGraph?.Artifacts ?? Array.Empty<LibraryArtifact>()).Select(library => new AnalyzedLibrary(library,
+                library.Sources.Select(source => new AnalyzedLibrarySource(library.Identity, source,
+                    AnalyzeProperties(null, binding.SyntaxTree.Files.First(file => ReferenceEquals(file.Library, library)
+                        && file.LibrarySourceName == source.Name), true)))));
 
         internal static CompilationResult Compile(BindingResult binding, CompilationContext context, CancellationToken token = default)
         {
@@ -90,6 +96,15 @@ namespace Alarmlist.Analysis
                 DiagnosticPolicy.Apply(binding.Diagnostics.Concat(compilation.Diagnostics), context.DiagnosticOptions));
         }
 
+        internal static CompilationResult ValidateLibrary(BindingResult binding, CompilationContext context,
+            CancellationToken token, out IReadOnlyList<Diagnostic> deferred)
+        {
+            var analyzer = new SnapshotAnalyzer(binding, context, allowDeferredValues: true);
+            CompilationResult result = analyzer.CompleteCompilation(binding, token);
+            deferred = analyzer._evaluation.DeferredDiagnostics.AsReadOnly();
+            return result;
+        }
+
         private AnalyzedAlarm[] GetAnalyzedAlarms(BindingResult binding)
             => _analyzedAlarms ?? (_analyzedAlarms = binding.SyntaxTree.Alarms.Select(AnalyzeAlarm).ToArray());
 
@@ -100,7 +115,7 @@ namespace Alarmlist.Analysis
             var diagnostics = binding.Diagnostics.Concat(compilation.Diagnostics).ToList();
             if (_context.Analyzers.Count != 0 && !diagnostics.Any(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
                 diagnostics.AddRange(AnalyzerDriver.Run(_context.Analyzers,
-                    new AlarmAnalyzerContext(GetAnalyzedAlarms(binding), _context, _evaluation.Culture), token));
+                    new AlarmAnalyzerContext(GetAnalyzedAlarms(binding), _context, _evaluation.Culture, GetAnalyzedLibraries(binding)), token));
             return new CompilationResult(compilation.AlarmList, DiagnosticPolicy.Apply(diagnostics, _context.DiagnosticOptions));
         }
 
@@ -128,7 +143,8 @@ namespace Alarmlist.Analysis
             });
 
             return new AnalyzedAlarm(_alarms[alarm], alarm.ReferenceName, resolved, chain, fields,
-                AnalyzeSection(alarm, "Instructions", resolved), AnalyzeSection(alarm, "Reset", resolved),
+                (resolved ? alarm.ResolvedTestProcedures : alarm.TestProcedure).Groups
+                    .Where(group => ProcedureGroupSyntax.IsValidName(group.Name)).Select(group => AnalyzeSection(alarm, group, resolved)),
                 alarm.IsAbstract, evaluation?.IsAvailable == true, AnalyzeProperties(alarm, alarm.SourceFile, resolved),
                 (evaluation?.LocalizationUses ?? Enumerable.Empty<LocalizationEvaluation>()).Select(use =>
                     new AnalyzedLocalizationUse(new AnalyzedTranslation(use.Key, _evaluation.Culture, use.Entry), use.Location, use.Value)),
@@ -140,8 +156,8 @@ namespace Alarmlist.Analysis
             foreach (PropertyBinding property in PropertyResolver.Resolve(alarm, file, _context, resolved))
                 yield return new AnalyzedProperty(property.Declaration.Definition.Name, false, property.Local != null,
                     property.Local?.Definition.Value, property.Local?.Definition.Location, property.Assignment?.Definition.Value,
-                    property.Assignment != null, PropertyOrigin(property.Declaration), PropertyOrigin(property.Assignment));
-            foreach (KeyValuePair<string, string> property in WellKnownProperties.Capture(_context, alarm, filePath))
+                    property.Assignment != null, PropertyOrigin(property.Declaration, file), PropertyOrigin(property.Assignment, file));
+            foreach (KeyValuePair<string, string> property in WellKnownProperties.Capture(_context, alarm, filePath, file))
             {
                 if (alarm == null && property.Key.StartsWith("AlarmlistAlarm", StringComparison.Ordinal)) continue;
                 yield return new AnalyzedProperty(property.Key, true, false, null, null, property.Value,
@@ -158,9 +174,11 @@ namespace Alarmlist.Analysis
             }
         }
 
-        private PropertyOrigin PropertyOrigin(PropertyDeclaration declaration)
+        private PropertyOrigin PropertyOrigin(PropertyDeclaration declaration, AlarmSyntaxTree file)
             => declaration == null ? null : new PropertyOrigin(declaration.Scope,
-                declaration.Alarm == null ? null : _alarms[declaration.Alarm], declaration.Definition.Location);
+                declaration.Alarm == null ? null : _alarms[declaration.Alarm], declaration.Definition.Location,
+                declaration.Alarm?.SourceFile?.Library?.Identity
+                    ?? (declaration.Scope == "File" || declaration.Scope == "LibraryProject" ? file?.Library?.Identity : null));
 
         private bool TryGetReferenceChain(AlarmSyntaxNode alarm, out IReadOnlyList<AlarmOrigin> chain)
         {
@@ -183,24 +201,43 @@ namespace Alarmlist.Analysis
             return false;
         }
 
-        private AnalyzedProcedureSection AnalyzeSection(AlarmSyntaxNode alarm, string section, bool resolved)
+        private AnalyzedProcedureSection AnalyzeSection(AlarmSyntaxNode alarm, ProcedureGroupSyntax group, bool resolved)
         {
+            string section = group.Name;
+            ProcedureGroupSyntax localGroup = alarm.TestProcedure.GetGroup(section);
             ReferenceableCollection<ITestProcedureItem> local = GetSection(alarm, section);
+            AlarmSyntaxNode titleAlarm = alarm;
+            while (titleAlarm != null && titleAlarm.TestProcedure.GetGroup(section)?.Title == null)
+                titleAlarm = resolved ? titleAlarm.Reference : null;
+            ProcedureGroupSyntax titleGroup = titleAlarm?.TestProcedure.GetGroup(section);
+            AlarmSyntaxNode definingAlarm = alarm;
+            if (resolved)
+                for (AlarmSyntaxNode current = alarm.Reference; current != null; current = current.Reference)
+                    if (current.TestProcedure.GetGroup(section) != null) definingAlarm = current;
+            string titleValue = null;
+            bool titleAvailable = resolved && _evaluation.Alarms.TryGetValue(alarm, out CompilationEvaluator.AlarmEvaluation evaluation)
+                && evaluation.Titles.TryGetValue(section, out titleValue) && titleValue != null;
+            var title = new AnalyzedField("Title", localGroup?.Title, localGroup?.TitleLocation, titleValue,
+                titleAlarm == null ? null : _alarms[titleAlarm], titleGroup?.TitleLocation,
+                titleAlarm != null && titleAlarm != alarm, titleGroup?.Title, titleAvailable);
             if (!resolved)
                 return new AnalyzedProcedureSection(section, local.Select(item => CreateEntry(alarm, item)),
-                    Array.Empty<AnalyzedProcedureEntry>(), Array.Empty<AnalyzedProcedureEntry>());
+                    Array.Empty<AnalyzedProcedureEntry>(), Array.Empty<AnalyzedProcedureEntry>(), title,
+                    _alarms[definingAlarm], group.Location, localGroup != null);
 
             SectionResolution resolution = ResolveSection(alarm, section);
             Dictionary<ITestProcedureItem, ITestProcedureItem> excluded = resolution.Excluded.ToDictionary(pair => pair.Key, pair => pair.Value);
             return new AnalyzedProcedureSection(section,
                 local.Select(item => CreateEntry(alarm, item, excluded.TryGetValue(item, out ITestProcedureItem clear) ? clear : null)),
                 resolution.Effective.Select(item => CreateEntry(alarm, item, effective: true)),
-                resolution.Excluded.Select(pair => CreateEntry(alarm, pair.Key, pair.Value)));
+                resolution.Excluded.Select(pair => CreateEntry(alarm, pair.Key, pair.Value)), title,
+                _alarms[definingAlarm], group.Location, localGroup != null);
         }
 
         private SectionResolution ResolveSection(AlarmSyntaxNode alarm, string section)
         {
-            Dictionary<AlarmSyntaxNode, SectionResolution> cache = section == "Instructions" ? _instructions : _reset;
+            if (!_sections.TryGetValue(section, out Dictionary<AlarmSyntaxNode, SectionResolution> cache))
+                _sections.Add(section, cache = new Dictionary<AlarmSyntaxNode, SectionResolution>());
             if (cache.TryGetValue(alarm, out SectionResolution result)) return result;
 
             SectionResolution inherited = alarm.Reference == null ? null : ResolveSection(alarm.Reference, section);
@@ -229,7 +266,7 @@ namespace Alarmlist.Analysis
 
         private static ReferenceableCollection<ITestProcedureItem> GetSection(AlarmSyntaxNode alarm, string section)
         {
-            return section == "Instructions" ? alarm.TestProcedure.Instructions : alarm.TestProcedure.Reset;
+            return alarm.TestProcedure.GetGroup(section)?.Entries ?? new ReferenceableCollection<ITestProcedureItem>();
         }
 
         private sealed class SectionResolution

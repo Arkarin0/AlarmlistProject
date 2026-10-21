@@ -27,6 +27,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         public bool HasProperties { get; private set; }
         public bool HasLocalization { get; private set; }
         public bool HasAnalyzers { get; private set; }
+        public bool HasGroups { get; private set; }
         private IReadOnlyList<CapturedAnalyzerReference> _analyzers;
         private bool _hasAnalyzerRanges;
 
@@ -46,6 +47,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                 HasProperties = size.Length == 3 && size[2] == "properties";
                 HasLocalization = size.Length == 3 && size[2] == "localization";
                 HasAnalyzers = size.Length >= 3 && size[2] == "analyzers";
+                HasGroups = size.Length == 3 && size[2] == "groups";
                 _hasAnalyzerRanges = HasAnalyzers && size.Length == 4 && size[3] == "ranges";
                 if (HasAnalyzers)
                 {
@@ -56,7 +58,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                 }
                 Context = CreateContext("Performance");
                 AlternateContext = CreateContext("Changed");
-                Inputs = CreateInputs(_directory, AlarmCount, int.Parse(size[1]), HasProperties, HasLocalization);
+                Inputs = CreateInputs(_directory, AlarmCount, int.Parse(size[1]), HasProperties, HasLocalization, HasGroups);
             }
             catch { Dispose(); throw; }
         }
@@ -109,6 +111,14 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                     || !last.LocalizationUses.Any(use => use.Translation.SupplyingCulture == parent && use.IsValueAvailable))
                     throw new InvalidOperationException("The localization workload did not resolve the catalogue, named arguments and parent-culture provenance.");
             }
+            if (HasGroups)
+            {
+                AnalysisAlarm last = response.Snapshot.Alarms.Last();
+                if (last.ProcedureSections.Count != 14 || last.ProcedureSections.Last().Name != "Verify11"
+                    || last.ProcedureSections.Last().Title.EffectiveValue != "Check 11 C" + (AlarmCount - 1)
+                    || !last.ProcedureSections.Last().Title.IsInherited)
+                    throw new InvalidOperationException("The group workload must preserve fourteen ordered groups and inherited consuming-alarm titles.");
+            }
         }
 
         public void Dispose()
@@ -129,7 +139,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                 throw new InvalidOperationException("The analyzer workload did not apply captured options or preserve host isolation.");
         }
 
-        private static AnalysisInput[] CreateInputs(string directory, int count, int perFile, bool properties, bool localization)
+        private static AnalysisInput[] CreateInputs(string directory, int count, int perFile, bool properties, bool localization, bool groups)
         {
             var inputs = new List<AnalysisInput>();
             for (int first = 0; first < count; first += perFile)
@@ -144,12 +154,16 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
                     else if (!localization) text.Append("    <Name>Base alarm ").Append(index).Append("</Name><Category>Fire</Category><Description>Inspect equipment &amp; record result.</Description>\r\n");
                     if (localization) text.Append("<Name>$(loc:Alarm.Name").Append(index).Append(")</Name><Description>$(loc:Instruction.Inspect, item=\"")
                         .Append(index).Append("\")</Description>");
-                    text.Append(properties ? "<Code>$(p0)-$(AlarmlistConfiguration)-" : "    <Code>C").Append(index).Append("</Code>\r\n    <TestProcedure><Instructions>");
+                    text.Append(properties ? "<Code>$(p0)-$(AlarmlistConfiguration)-" : "    <Code>C").Append(index).Append("</Code>\r\n    <TestProcedure><Group Name='Instructions'>");
                     if (index % 4 == 3) text.Append("<Clear/>");
                     if (localization) text.Append("<Step>$(loc:Instruction.Inspect, item=\"").Append(index).Append("\")</Step>");
                     else text.Append(properties ? "<Step>Inspect $(AlarmlistAlarmCode) " : "<Step>Inspect ").Append(index).Append("</Step>");
-                    text.Append("<Note>Record</Note></Instructions>");
-                    if (index % 4 == 0) text.Append("<Reset><Hint>Reset panel</Hint></Reset>");
+                    text.Append("<Note>Record</Note></Group>");
+                    if (index % 4 == 0) text.Append("<Group Name='Reset'><Hint>Reset panel</Hint></Group>");
+                    if (groups && index % 4 == 0)
+                        for (int group = 0; group < 12; group++)
+                            text.Append("<Group Name='Verify").Append(group).Append("'><Title>Check ").Append(group)
+                                .Append(" $(AlarmlistAlarmCode)</Title><Step>Inspect the safety interlock</Step><Note>Record</Note></Group>");
                     text.Append("</TestProcedure>\r\n  </Alarm>\r\n");
                 }
                 text.Append("</Alarmlist>");

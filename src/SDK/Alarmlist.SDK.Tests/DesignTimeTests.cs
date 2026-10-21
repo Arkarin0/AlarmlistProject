@@ -32,11 +32,16 @@ namespace Alarmlist.MSBuild.SDK.Tests
             Assert.Contains("Alarmlist", capabilities);
             Assert.Contains("UseFileGlobs", capabilities);
             Assert.Contains("SourceItemsFromImports", capabilities);
+            Assert.Contains("ProjectReferences", capabilities);
+            Assert.Contains("ReferenceManagerProjects", capabilities);
+            Assert.Contains("PackageReferences", capabilities);
             Assert.DoesNotContain("Managed", capabilities);
             Assert.Equal(new[] { "Debug|AnyCPU", "Release|AnyCPU" }, File.ReadAllLines(Path.Combine(app.WorkingDirectory, "configurations.txt")));
             Assert.Equal(3, File.ReadAllLines(Path.Combine(app.WorkingDirectory, "sources.txt")).Length);
             string[] schemas = File.ReadAllLines(Path.Combine(app.WorkingDirectory, "schemas.txt"));
-            Assert.Equal(10, schemas.Length);
+            Assert.Equal(12, schemas.Length);
+            Assert.Contains(schemas, schema => Path.GetFileName(schema) == "ProjectReference.xaml");
+            Assert.Contains(schemas, schema => Path.GetFileName(schema) == "PackageReference.xaml");
             Assert.Contains(schemas, schema => Path.GetFileName(schema) == "AlarmlistLookup.xaml");
             Assert.Contains(schemas, schema => Path.GetFileName(schema) == "AlarmlistAnalyzer.xaml");
             foreach (string schema in schemas)

@@ -50,20 +50,20 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     host.RootVisual = control;
                     InheritanceAdornerTests.Pump();
                     TextBox inherited = VisualChildren(control).OfType<TextBox>().Single(box =>
-                        box.IsReadOnly && AutomationProperties.GetName(box) == "Name");
+                        AutomationProperties.GetName(box) == "Name");
+                    Assert.False(inherited.IsReadOnly);
                     Assert.Equal("Inherited", inherited.Text);
                     Assert.Contains("Inherited from Base", AutomationProperties.GetHelpText(inherited));
                     Assert.False(session.View.HasPending);
                     Assert.Equal(0, session.Buffer.Edits);
-                    Button button = VisualChildren(control).OfType<Button>().Single(item =>
-                        Equals(item.Content, "Override locally") && item.DataContext == session.Field("Name"));
-                    Assert.True(button.Command.CanExecute(null));
-                    button.Command.Execute(null);
+                    Assert.True(inherited.Focus());
+                    Assert.False(session.View.HasPending);
+                    inherited.Text = "Local draft";
                     InheritanceAdornerTests.Pump();
                     TextBox local = VisualChildren(control).OfType<TextBox>().Single(box =>
                         !box.IsReadOnly && AutomationProperties.GetName(box) == "Name");
                     Assert.Equal(Visibility.Visible, local.Visibility);
-                    Assert.Equal("Inherited", local.Text);
+                    Assert.Equal("Local draft", local.Text);
                     Assert.True(session.View.HasPending);
                     Assert.Equal(0, session.Buffer.Edits);
                     session.View.CancelPending();
@@ -315,7 +315,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             public AlmxDocumentModel Model { get; }
             public EditFileControlViewModel View { get; }
             public DesignerAnalysis Analysis { get; } = new DesignerAnalysis();
-            public SemanticSession(string child = ChildAlarm, bool previewTable = false)
+            public SemanticSession(string child = ChildAlarm, bool previewTable = false, IEditorLayoutSettings settings = null)
             {
                 ZipFile.ExtractToDirectory(Path.Combine(AppContext.BaseDirectory, "testassets", "analysis-sdk.nupkg"), _directory);
                 BridgeOpenResult opened = new SdkAnalysisBridgeFactory().Open(Path.Combine(_directory, "tasks", "net472", "Alarmlist.Core.dll"));
@@ -324,19 +324,19 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 Analysis.DocumentPath = Path.Combine(_directory, "Child.almx");
                 Buffer = new TestBuffer(child);
                 Model = new AlmxDocumentModel(Buffer, new AlmxEditingService());
-                View = new EditFileControlViewModel(Model, new AlarmViewModelFactory(), Analysis);
+                View = new EditFileControlViewModel(Model, new AlarmViewModelFactory(), Analysis, settings);
                 Analyze();
                 if (previewTable) View.SetPreviewTableActive(true);
             }
             public AlarmFieldViewModel Field(string name) => View.Fields.Single(field => field.Name == name);
-            public void Analyze(string source = BaseAlarm)
+            public void Analyze(string source = BaseAlarm, AnalysisContext context = null)
             {
                 var inputs = new[] { new AnalysisInput(source, Path.Combine(_directory, "Base.almx"), 1),
                     new AnalysisInput(Buffer.Current.Text, Analysis.DocumentPath, Buffer.Current.Version) };
                 var project = new AnalysisProject(Path.Combine(_directory, "Plant.almproj"), "Debug", null, inputs.Select(input => input.FilePath));
                 Analysis.Projects = new[] { project };
                 Analysis.Set(new ProjectAnalysisState((Analysis.Current?.Generation ?? 0) + 1, project, ProjectAnalysisStatus.Available, null,
-                    _bridge.Analyze(inputs), inputs.Select(input => new CapturedAnalysisInput(input)).ToArray()));
+                    _bridge.Analyze(inputs, context: context), inputs.Select(input => new CapturedAnalysisInput(input)).ToArray()));
             }
             public void Dispose()
             {
@@ -347,8 +347,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             }
         }
 
-        private sealed class DesignerAnalysis : IDesignerAnalysis
+        private sealed class DesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings
         {
+            public Func<ProjectUserSetting> PreviewLayout { get; set; }
+            public ProjectUserSetting GetPreviewLayout() => PreviewLayout?.Invoke();
             public event EventHandler Changed;
             public int Subscribers => Changed?.GetInvocationList().Length ?? 0;
             public string DocumentPath { get; set; }
@@ -367,6 +369,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             public Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token)
                 => CultureWriter?.Invoke(project, culture) ?? Task.CompletedTask;
             public void Navigate(AnalysisLocation location, string text) { Navigation = location; NavigationText = text; }
+            public AnalysisNavigationTarget NavigationTarget { get; private set; }
+            public void Navigate(AnalysisNavigationTarget target)
+            { NavigationTarget = target; Navigate(target.Location, target.Text); }
             public void Set(ProjectAnalysisState state) { _current = state; Changed?.Invoke(this, EventArgs.Empty); }
             public void Dispose() { Disposed = true; }
         }

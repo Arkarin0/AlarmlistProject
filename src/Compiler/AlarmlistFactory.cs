@@ -33,9 +33,8 @@ namespace Alarmlist.Core
 
         private static Compiler.TestProcedure CreateTestProcedureFromSyntaxNode(TestProcedureSyntax testProcedure)
         {
-            return new Compiler.TestProcedure(
-                instructions: testProcedure?.Instructions.Select(CreateTestProcedureItemFromSyntaxNode),
-                reset: testProcedure?.Reset.Select(CreateTestProcedureItemFromSyntaxNode));
+            return new Compiler.TestProcedure(testProcedure?.Groups.Select(group =>
+                new Compiler.ProcedureGroup(group.Name, group.Title, group.Entries.Select(CreateTestProcedureItemFromSyntaxNode))));
         }
 
         private static Compiler.TestProcedureItem CreateTestProcedureItemFromSyntaxNode(ITestProcedureItem item)

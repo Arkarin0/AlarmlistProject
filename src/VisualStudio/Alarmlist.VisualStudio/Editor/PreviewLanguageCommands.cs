@@ -19,14 +19,14 @@ namespace Alarmlist.VisualStudio.Editor
 
         internal static bool Contains(uint command) => command == Language || command == Languages;
 
-        internal static uint Status(EditFileControlViewModel view) => (uint)(OLECMDF.OLECMDF_SUPPORTED
+        internal static uint Status(IPreviewView view) => (uint)(OLECMDF.OLECMDF_SUPPORTED
             | (view?.CanChangePreviewCulture == true ? OLECMDF.OLECMDF_ENABLED : 0));
 
-        internal static object Value(EditFileControlViewModel view, uint command) => command == Languages
+        internal static object Value(IPreviewView view, uint command) => command == Languages
             ? (object)(view?.PreviewCultures.ToArray() ?? Array.Empty<string>())
             : view?.SelectedPreviewCulture ?? string.Empty;
 
-        internal static int Select(EditFileControlViewModel view, string culture)
+        internal static int Select(IPreviewView view, string culture)
         {
             if (view?.CanChangePreviewCulture != true) return (int)Constants.OLECMDERR_E_DISABLED;
             if (culture == null || !view.PreviewCultures.Contains(culture)) return VSConstants.E_INVALIDARG;
@@ -34,7 +34,7 @@ namespace Alarmlist.VisualStudio.Editor
             return VSConstants.S_OK;
         }
 
-        internal static int Execute(EditFileControlViewModel view, uint command, IntPtr input, IntPtr output)
+        internal static int Execute(IPreviewView view, uint command, IntPtr input, IntPtr output)
         {
             if (output != IntPtr.Zero)
             {

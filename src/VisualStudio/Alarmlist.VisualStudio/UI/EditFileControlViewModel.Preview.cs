@@ -33,23 +33,24 @@ namespace Alarmlist.VisualStudio.UI
 
         public ResolvedSectionViewModel(AnalysisSection section, Func<AnalysisEntry, DelegateCommand> navigation)
         {
-            Name = section.Name;
+            Name = section.Title.IsValueAvailable ? section.Title.EffectiveValue : "(unavailable)";
             Items = BindingCollection.Create(section.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry))));
         }
     }
 
-    internal sealed partial class EditFileControlViewModel
+    internal sealed partial class EditFileControlViewModel : IPreviewView
     {
         private ProjectAnalysisState _previewState;
         private AnalysisAlarm _previewAlarm;
         private int _previewActionVersion;
-        internal void InvalidatePreviewActions() => _previewActionVersion++;
+        public void InvalidatePreviewActions() => _previewActionVersion++;
         public IReadOnlyList<ResolvedFieldViewModel> ResolvedFields { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
         public IReadOnlyList<ResolvedSectionViewModel> ResolvedSections { get; private set; } = Array.Empty<ResolvedSectionViewModel>();
         public string ResolvedPreviewMessage { get; private set; }
         public string CompiledXml { get; private set; }
         public string XmlPreviewMessage { get; private set; }
         public string PreviewContext { get; private set; }
+        public string BufferGuidance => "Includes shared unsaved ALMX text. Commit or cancel this editor's drafts to see current preview values.";
 
         private void RefreshPreview(ProjectAnalysisState state, AnalysisAlarm alarm)
         {
@@ -88,12 +89,8 @@ namespace Alarmlist.VisualStudio.UI
                     : "This alarm is resolved. Other project errors prevent compiled XML preview.";
                 if (alarm?.HasEvaluatedValues == true && !alarm.IsAbstract)
                 {
-                    ResolvedFields = BindingCollection.Create(new[] { new ResolvedFieldViewModel("FullyQualifiedName", alarm.Origin.FullyQualifiedName,
-                        false, alarm.Origin, alarm.Origin.Location, PreviewNavigation(state, alarm, alarm.Origin.Location)) }
-                        .Concat(alarm.Fields.Select(field => new ResolvedFieldViewModel(field.Name, field.EffectiveValue,
-                            field.IsInherited, field.DefiningAlarm, field.ValueLocation, PreviewNavigation(state, alarm, field.ValueLocation)))));
-                    ResolvedSections = BindingCollection.Create(new[] { alarm.Instructions, alarm.Reset }.Select(section => new ResolvedSectionViewModel(section,
-                        entry => PreviewNavigation(state, alarm, entry.Origin.Location))));
+                    ResolvedFields = PreviewContent.Fields(alarm, location => PreviewNavigation(state, alarm, location));
+                    ResolvedSections = PreviewContent.Sections(alarm, location => PreviewNavigation(state, alarm, location));
                 }
                 CompiledXml = snapshot.Success ? state.Response.CompiledXml : null;
                 XmlPreviewMessage = !snapshot.Success ? "Compiled XML is unavailable until all project errors are resolved."

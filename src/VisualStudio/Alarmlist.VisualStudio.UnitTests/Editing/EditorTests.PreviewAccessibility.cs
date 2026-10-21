@@ -47,7 +47,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     InheritanceAdornerTests.Pump();
                     ItemsControl owner = selector.IsVisible ? (ItemsControl)selector : list;
                     var peer = (ItemsControlAutomationPeer)UIElementAutomationPeer.CreatePeerForElement(owner);
-                    Assert.Equal("Child", Assert.Single(peer.GetChildren().Where(item => item.GetAutomationControlType()
+                    Assert.Equal("Inherited", Assert.Single(peer.GetChildren().Where(item => item.GetAutomationControlType()
                         == AutomationControlType.ListItem)).GetName());
                     selector.IsDropDownOpen = false;
 
@@ -81,22 +81,25 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     host.RootVisual = control;
                     InheritanceAdornerTests.Pump();
                     Button[] buttons = VisualChildren(control).OfType<Button>().ToArray();
-                    string[] scalarActions = buttons.Where(button => button.DataContext is AlarmFieldViewModel field
-                        && field.IsScalar && button.Visibility == Visibility.Visible)
-                        .Select(button => new ButtonAutomationPeer(button).GetName()).ToArray();
+                    var scalarEditors = VisualChildren(control).OfType<ExpressionTextBox>().Where(editor => editor.DataContext is AlarmFieldViewModel field && field.IsScalar);
+                    string[] scalarActions = scalarEditors.SelectMany(editor =>
+                    {
+                        editor.ContextMenu.DataContext = editor.DataContext;
+                        return editor.ContextMenu.Items.OfType<MenuItem>().Where(item => item.Command is DelegateCommand)
+                            .Select(item => new MenuItemAutomationPeer(item).GetName());
+                    }).ToArray();
                     Assert.Equal(new[]
                     {
-                        "Override Name locally", "Go to source for Name", "Use inherited Name",
-                        "Use inherited Code", "Override Category locally", "Go to source for Category",
-                        "Override Description locally", "Go to source for Description"
+                        "Use inherited Name", "Go to source for Name", "Use inherited Code", "Go to source for Code",
+                        "Use inherited Category", "Go to source for Category", "Use inherited Description", "Go to source for Description",
+                        "Use inherited title", "Go to title source", "Use inherited title", "Go to title source"
                     }, scalarActions);
                     string[] sectionActions = buttons.Where(button => button.DataContext is ProcedureSectionViewModel
-                        && (Equals(button.Content, "Use local entries only") || Equals(button.Content, "Make local copy")))
+                        && button.ContextMenu != null)
                         .Select(button => new ButtonAutomationPeer(button).GetName()).ToArray();
                     Assert.Equal(new[]
                     {
-                        "Use local Instructions entries only", "Make local copy of Instructions",
-                        "Use local Reset entries only", "Make local copy of Reset"
+                        "Inheritance actions for Instructions", "Inheritance actions for Reset"
                     }, sectionActions);
                     Assert.Equal(0, session.Buffer.Edits);
                 }

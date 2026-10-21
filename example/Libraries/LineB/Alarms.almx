@@ -1,0 +1,7 @@
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>LineB.Local</FullyQualifiedName>
+    <ReferenceName>Equipment.Template</ReferenceName>
+    <Name>Local at $(Site)</Name>
+  </Alarm>
+</Alarmlist>

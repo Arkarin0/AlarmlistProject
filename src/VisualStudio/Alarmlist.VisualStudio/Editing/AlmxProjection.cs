@@ -39,11 +39,16 @@ namespace Alarmlist.VisualStudio.Editing
         public PropertyScopeSource Properties => new PropertyScopeSource(Source);
         public bool IsAbstract => new[] { "true", "1" }.Contains(((string)Source.Element.Attribute("abstract"))?.Trim());
 
+        public IEnumerable<string> ProcedureNames => Source.Children.Where(element => element.Element.Name.LocalName == "TestProcedure")
+            .SelectMany(element => element.Children).Where(element => element.Element.Name.LocalName == "Group")
+            .Select(element => (string)element.Element.Attribute("Name")).Where(name => !string.IsNullOrEmpty(name)).Distinct(StringComparer.OrdinalIgnoreCase);
+
         public ProcedureSectionSource GetProcedureSection(string name)
         {
-            if (name != "Instructions" && name != "Reset") throw new ArgumentException("Unknown procedure section.", nameof(name));
+            if (string.IsNullOrEmpty(name)) throw new ArgumentException("A group identity is required.", nameof(name));
             XmlSourceElement[] procedures = Source.Children.Where(element => element.Element.Name.LocalName == "TestProcedure").ToArray();
-            XmlSourceElement[] sections = procedures.SelectMany(element => element.Children).Where(element => element.Element.Name.LocalName == name).ToArray();
+            XmlSourceElement[] sections = procedures.SelectMany(element => element.Children).Where(element => element.Element.Name.LocalName == "Group"
+                && string.Equals((string)element.Element.Attribute("Name"), name, StringComparison.OrdinalIgnoreCase)).ToArray();
             string error = procedures.Length > 1 || sections.Length > 1
                 ? "Repeated TestProcedure or section elements must be edited in XML." : null;
             return new ProcedureSectionSource(name, procedures.FirstOrDefault(), sections.FirstOrDefault(), error);
@@ -68,6 +73,13 @@ namespace Alarmlist.VisualStudio.Editing
                 .Where(element => ProcedureItemSource.Kinds.Contains(element.Element.Name.LocalName))
                 .Select(element => new ProcedureItemSource(element)).ToArray();
         }
+
+        internal XmlSourceElement TitleSource => Source?.Children.FirstOrDefault(child => child.Element.Name.LocalName == "Title");
+        public string Title => TitleSource?.Element.Value;
+        public bool CanEditTitle => Error == null && (Source == null || Source.Children.Count(child => child.Element.Name.LocalName == "Title") <= 1)
+            && (TitleSource == null || !TitleSource.Element.Nodes().Any(node => !(node is XText)));
+        public static bool IsValidName(string name) => !string.IsNullOrEmpty(name)
+            && System.Text.RegularExpressions.Regex.IsMatch(name, @"\A[A-Za-z_][A-Za-z0-9_.-]*\z");
 
         public string GetText(AlmxProjection projection) => Source == null ? null
             : projection.Text.Substring(Source.Start, Source.End - Source.Start);

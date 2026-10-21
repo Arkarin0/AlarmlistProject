@@ -2,12 +2,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -17,18 +17,32 @@ namespace Alarmlist.VisualStudio.UI
     public partial class ParameterListControl : UserControl
     {
         private int _inputVersion;
+        private ParameterListViewModel _menuOwner;
+        private ParameterViewModel _menuRow;
         public ParameterListControl()
         {
             InitializeComponent();
             Unloaded += (sender, args) =>
             {
                 _inputVersion++;
-                RowActionsButton.ContextMenu.IsOpen = false;
-                RowActionsButton.ContextMenu.DataContext = null;
-                RowActionsButton.ContextMenu.PlacementTarget = null;
+                var menu = (ContextMenu)Resources["ParameterRowMenu"];
+                menu.IsOpen = false;
+                menu.DataContext = null;
+                menu.PlacementTarget = null;
             };
         }
         private ParameterListViewModel ViewModel => DataContext as ParameterListViewModel;
+        internal bool NavigateTo(ParameterViewModel row)
+        {
+            Section.IsExpanded = true;
+            ParameterList.ScrollIntoView(row);
+            ParameterList.UpdateLayout();
+            TextBox editor = Children(ParameterList).OfType<TextBox>().FirstOrDefault(box =>
+                ReferenceEquals(box.DataContext, row) && AutomationProperties.GetName(box) == row.NameAutomationName);
+            if (editor == null) return false;
+            editor.BringIntoView(); editor.SelectAll(); editor.Focus();
+            return true;
+        }
         private void OnListSizeChanged(object sender, SizeChangedEventArgs args) => SizeColumns();
         private void OnListScrollChanged(object sender, ScrollChangedEventArgs args)
         {
@@ -47,13 +61,34 @@ namespace Alarmlist.VisualStudio.UI
             if (((FrameworkElement)sender).DataContext is ParameterViewModel row && ViewModel != null)
                 ViewModel.Selected = row;
         }
-        private void OnRowActions(object sender, RoutedEventArgs args)
+        private void OnRowMenuOpened(object sender, RoutedEventArgs args)
         {
-            var button = (Button)sender;
-            button.ContextMenu.DataContext = ViewModel;
-            button.ContextMenu.PlacementTarget = button;
-            button.ContextMenu.Placement = PlacementMode.Bottom;
-            button.ContextMenu.IsOpen = true;
+            var menu = (ContextMenu)sender;
+            if (!((menu.PlacementTarget as FrameworkElement)?.DataContext is ParameterViewModel row)
+                || ViewModel == null || !ViewModel.Rows.Contains(row))
+            { menu.IsOpen = false; return; }
+            // Right-click can target an unselected row. Use the ordinary selection
+            // guard so a conflicting draft cannot redirect an action elsewhere.
+            ViewModel.Selected = row;
+            if (!ReferenceEquals(ViewModel.Selected, row)) { menu.IsOpen = false; return; }
+            menu.DataContext = ViewModel;
+            _menuOwner = ViewModel;
+            _menuRow = row;
+            _menuOwner.PropertyChanged += OnMenuSelectionChanged;
+            foreach (FrameworkElement item in menu.Items.OfType<FrameworkElement>().Where(item => Equals(item.Tag, "TextEditing")))
+                item.Visibility = menu.PlacementTarget is TextBox ? Visibility.Visible : Visibility.Collapsed;
+        }
+        private void OnMenuSelectionChanged(object sender, PropertyChangedEventArgs args)
+        {
+            if (ReferenceEquals(sender, _menuOwner) && args.PropertyName == nameof(ParameterListViewModel.Selected)
+                && !ReferenceEquals(_menuOwner.Selected, _menuRow))
+                ((ContextMenu)Resources["ParameterRowMenu"]).IsOpen = false;
+        }
+        private void OnRowMenuClosed(object sender, RoutedEventArgs args)
+        {
+            if (_menuOwner != null) _menuOwner.PropertyChanged -= OnMenuSelectionChanged;
+            _menuOwner = null;
+            _menuRow = null;
         }
         // These WPF event handlers only await the dispatcher after bound commands.
 #pragma warning disable VSTHRD100

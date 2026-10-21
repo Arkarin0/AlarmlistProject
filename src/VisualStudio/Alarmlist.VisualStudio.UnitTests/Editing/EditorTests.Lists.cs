@@ -62,7 +62,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
-                string source = procedure ? WithProcedure(ListTestData.Source, "<Instructions><Step>" + ListTestData.Expression + "</Step></Instructions>") : ListTestData.Source;
+                string source = procedure ? WithProcedure(ListTestData.Source, "<Group Name='Instructions'><Step>" + ListTestData.Expression + "</Step></Group>") : ListTestData.Source;
                 using (var session = new SemanticSession(source))
                 using (var host = ExpressionHost())
                 {

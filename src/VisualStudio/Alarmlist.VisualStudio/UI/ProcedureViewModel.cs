@@ -11,12 +11,29 @@ namespace Alarmlist.VisualStudio.UI
 {
     internal enum ProcedureAction { Add, Delete, MoveUp, MoveDown }
 
+    internal sealed class ProcedureFocusRequest
+    {
+        public AlarmSource Alarm { get; }
+        public ProcedureSectionViewModel Section { get; }
+        public int Index { get; }
+        public ProcedureFocusRequest(AlarmSource alarm, ProcedureSectionViewModel section, int index)
+        { Alarm = alarm; Section = section; Index = index; }
+    }
+
     internal sealed class ProcedureSectionViewModel : ObservableObject
     {
         private readonly Action _changed;
         private readonly Action<string, int, ProcedureAction, string> _edit;
         private string _error;
-        public string Name { get; }
+        private bool _showCleared = true;
+        private int _clearedCount;
+        public string Name { get; private set; }
+        public string Title { get; private set; }
+        public AlarmFieldViewModel TitleField { get; }
+        public bool CanEditTitle { get; private set; }
+        public DelegateCommand RemoveGroupCommand { get; internal set; }
+        public DelegateCommand MoveGroupUpCommand { get; internal set; }
+        public DelegateCommand MoveGroupDownCommand { get; internal set; }
         public string Error => _error;
         public string NewKind { get; set; } = "Step";
         public string[] Kinds => ProcedureItemSource.Kinds;
@@ -27,7 +44,23 @@ namespace Alarmlist.VisualStudio.UI
         public IReadOnlyList<ProcedureAnalysisRow> InheritedItems { get; private set; } = Array.Empty<ProcedureAnalysisRow>();
         public IReadOnlyList<ProcedureAnalysisRow> ExcludedItems { get; private set; } = Array.Empty<ProcedureAnalysisRow>();
         public IReadOnlyList<ProcedureAnalysisRow> EffectiveItems { get; private set; } = Array.Empty<ProcedureAnalysisRow>();
-        public bool HasExcluded => ExcludedItems.Count != 0;
+        public IReadOnlyList<ProcedureAnalysisRow> InheritedSequence { get; private set; } = Array.Empty<ProcedureAnalysisRow>();
+        public bool HasExcluded => _clearedCount != 0;
+        public bool ShowCleared
+        {
+            get => _showCleared;
+            set
+            {
+                if (_showCleared == value) return;
+                _showCleared = value;
+                foreach (ProcedureAnalysisRow row in InheritedSequence) row.ShowCleared = value;
+                foreach (ProcedureItemViewModel item in Items) item.ShowCleared = value;
+                Notify(); Notify(nameof(ClearedToggleText)); Notify(nameof(ClearedHelp));
+            }
+        }
+        public string ClearedToggleText => (ShowCleared ? "Hide" : "Show") + " cleared (" + _clearedCount + ")";
+        public string ClearedHelp => HasExcluded ? ClearedToggleText + ". This only changes what is shown; local cleared entries remain editable."
+            : "No cleared entries in this section.";
         public bool HasAnalysis { get; private set; }
         public string AnalysisGuidance => HasAnalysis ? "Effective sequence reflects the current project sources."
             : "Effective sequence is unavailable. Commit or cancel procedure/reference drafts and wait for current project analysis.";
@@ -35,15 +68,34 @@ namespace Alarmlist.VisualStudio.UI
         public ProcedureSectionViewModel(string name, Action changed, Action<string, int, ProcedureAction, string> edit)
         {
             Name = name;
+            Title = name;
+            TitleField = new AlarmFieldViewModel("Title", changed);
             _changed = changed;
             _edit = edit;
             AddCommand = new DelegateCommand(() => _edit(Name, -1, ProcedureAction.Add, NewKind), () => _error == null);
+        }
+
+        internal void SetIdentitySpelling(string name)
+        {
+            if (Name == name) return;
+            Name = name;
+            Notify(nameof(Name));
+        }
+
+        internal void Deactivate()
+        {
+            _error = "This group is no longer available in the selected alarm.";
+            SetAnalysis(null, entry => null, false);
+            AddCommand.Refresh();
         }
 
         public void Load(AlarmSource alarm)
         {
             ProcedureSectionSource section = alarm?.GetProcedureSection(Name);
             _error = section?.Error;
+            CanEditTitle = section?.CanEditTitle ?? false;
+            TitleField.Load(section?.Title, section?.TitleSource != null);
+            Notify(nameof(CanEditTitle));
             // Keep controls alive during a text commit so a focus change does not
             // remove the button that is about to receive the user's click.
             int count = section?.Items.Count ?? 0;
@@ -64,30 +116,52 @@ namespace Alarmlist.VisualStudio.UI
 
         public void SetAnalysis(AnalysisSection section, Func<AnalysisEntry, DelegateCommand> navigation, bool valuesCurrent = true)
         {
-            HasAnalysis = section != null && _error == null;
-            if (!HasAnalysis) section = null;
-            InheritedItems = BindingCollection.Create(section?.EffectiveEntries.Where(entry => entry.IsInherited)
+            Title = valuesCurrent && section?.Title.IsValueAvailable == true ? section.Title.EffectiveValue : section?.Title.EffectiveExpression ?? Name;
+            TitleField.SetAnalysis(section?.Title, valuesCurrent);
+            Notify(nameof(Title));
+            if (_error != null) section = null;
+            HasAnalysis = section != null && !Items.Any(item => item.HasChanges);
+            // Text-only drafts do not change compiler-owned ordering/exclusions.
+            // Retain that presentation, but never expose draft values as resolved.
+            AnalysisSection effective = HasAnalysis ? section : null;
+            InheritedItems = BindingCollection.Create(effective?.EffectiveEntries.Where(entry => entry.IsInherited)
                 .Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry), valuesCurrent)));
             ExcludedItems = BindingCollection.Create(section?.ExcludedEntries.Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry))));
-            EffectiveItems = BindingCollection.Create(section?.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry), valuesCurrent)));
+            EffectiveItems = BindingCollection.Create(effective?.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry), valuesCurrent)));
+            // The compiler records exclusions in Clear execution order. All
+            // inherited entries precede this alarm's local source entries.
+            InheritedSequence = BindingCollection.Create(section?.ExcludedEntries.Concat(section.EffectiveEntries)
+                .Where(entry => entry.IsInherited)
+                .Select(entry => new ProcedureAnalysisRow(entry, null, navigation(entry), valuesCurrent) { ShowCleared = ShowCleared }));
+            _clearedCount = section?.ExcludedEntries.Count ?? 0;
             foreach (ProcedureItemViewModel item in Items)
             {
+                item.ShowCleared = ShowCleared;
                 item.SetExclusion(section?.LocalEntries.FirstOrDefault(entry => entry.Origin.Index == item.Index)?.ExcludedBy);
                 item.SetAnalysis(valuesCurrent ? section?.EffectiveEntries.FirstOrDefault(entry => !entry.IsInherited && entry.Origin.Index == item.Index) : null);
             }
             Notify(nameof(InheritedItems)); Notify(nameof(ExcludedItems)); Notify(nameof(EffectiveItems));
+            Notify(nameof(InheritedSequence)); Notify(nameof(ClearedToggleText)); Notify(nameof(ClearedHelp));
             Notify(nameof(HasAnalysis)); Notify(nameof(HasExcluded)); Notify(nameof(AnalysisGuidance));
             UseLocalEntriesCommand?.Refresh(); MakeLocalCopyCommand?.Refresh();
+            RemoveGroupCommand?.Refresh(); MoveGroupUpCommand?.Refresh(); MoveGroupDownCommand?.Refresh();
         }
     }
 
     internal sealed class ProcedureAnalysisRow : ObservableObject
     {
         private readonly bool _valuesCurrent;
+        private bool _showCleared = true;
         public AnalysisEntry Entry { get; }
         public string Kind => Entry.Kind == AnalysisStepKind.Instruction ? "Step" : Entry.Kind.ToString();
         public string Text => _valuesCurrent && Entry.IsValueAvailable ? Entry.Text : Entry.RawText;
         public bool IsInherited => Entry.IsInherited;
+        public bool IsExcluded => Entry.ExcludedBy != null;
+        public bool IsVisible => !IsExcluded || ShowCleared;
+        public bool ShowCleared { get => _showCleared; set { _showCleared = value; Notify(nameof(IsVisible)); } }
+        public string State => IsExcluded ? "Inherited · Cleared" : "Inherited";
+        public string HelpText => OriginText + (IsExcluded ? ". " + ExclusionText : "")
+            + ". Read-only inherited entry. Use the group's Inheritance menu to copy its complete effective sequence.";
         public string Label { get; }
         public string OriginText => (IsInherited ? "Inherited from " : "Local entry from ") + OriginLabel(Entry.Origin);
         public string ExclusionText => Entry.ExcludedBy == null ? string.Empty : "Excluded by Clear in " + OriginLabel(Entry.ExcludedBy);
@@ -115,17 +189,26 @@ namespace Alarmlist.VisualStudio.UI
         private string _text;
         private AnalysisEntryOrigin _excludedBy;
         private AnalysisEntry _analysis;
+        private bool _showCleared = true;
         public int Index { get; }
         public int Number => Index + 1;
         public string[] Kinds => ProcedureItemSource.Kinds;
         public bool CanEdit => _sectionEditable && _original.CanEdit;
         public bool IsTextEnabled => CanEdit && _kind != "Clear";
         public bool IsClear => _kind == "Clear";
+        public bool IsExcluded => !IsClear && _excludedBy != null;
+        public bool IsVisible => !IsExcluded || ShowCleared;
+        public bool ShowCleared { get => _showCleared; set { _showCleared = value; Notify(nameof(IsVisible)); } }
+        public string State => IsExcluded ? "Local · Cleared" : "Local";
+        public string HelpText => IsExcluded ? ExclusionText + (CanEdit ? ". This local entry is still editable. " + EditingHelp : ". Edit this entry in XML.")
+            : string.IsNullOrEmpty(Guidance) ? EditingHelp : Guidance;
+        private const string EditingHelp = "Focus to edit the raw text or expression; resolved text is shown after leaving. Enter commits, Shift+Enter adds a line, Escape cancels. Suggestions handle Enter/Escape first.";
         public bool ShowText => !IsClear;
         public string ExclusionText => _excludedBy == null ? string.Empty : "Excluded by Clear in " + ProcedureAnalysisRow.OriginLabel(_excludedBy);
         public string Guidance => !CanEdit ? "Edit this entry in XML to preserve its markup or resolve repeated sections."
             : _kind == "Clear" ? "Clears all preceding inherited and local entries in this section." : string.Empty;
         public bool HasChanges => _kind != _original.Kind || (_kind != "Clear" && _text != _original.Text);
+        public bool HasKindChanges => _kind != _original.Kind;
         public string ResolvedText => _analysis?.Text;
         public bool CanShowResolved => !HasChanges && _analysis?.IsValueAvailable == true;
         public string Kind
@@ -136,6 +219,7 @@ namespace Alarmlist.VisualStudio.UI
                 if (_kind == value) return;
                 _kind = value;
                 Notify(); Notify(nameof(IsTextEnabled)); Notify(nameof(Guidance)); Notify(nameof(IsClear)); Notify(nameof(ShowText));
+                Notify(nameof(IsExcluded)); Notify(nameof(IsVisible)); Notify(nameof(State)); Notify(nameof(HelpText));
                 _changed();
             }
         }
@@ -180,6 +264,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             _excludedBy = excludedBy;
             Notify(nameof(ExclusionText));
+            Notify(nameof(IsExcluded)); Notify(nameof(IsVisible)); Notify(nameof(State)); Notify(nameof(HelpText));
         }
 
         public void SetAnalysis(AnalysisEntry entry)

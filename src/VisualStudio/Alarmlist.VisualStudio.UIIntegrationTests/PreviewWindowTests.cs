@@ -47,7 +47,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal("View.AlarmlistPreview", previewCommand.Name);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "$(loc:Inspection)", "dockable keyword preview");
-            SelectCulture(window, "en");
+            SelectCulture(ide, window, "en");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Inspect 001", "tool window follows preview culture");
             ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").IsFloating = false;
             VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Alarmlist Preview").And(cf.ByControlType(ControlType.Window))) == null, "preview docking animation");
@@ -77,10 +77,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Inspect 001", "original active-document preview");
             window.FindFirstDescendant(cf => cf.ByName("Go to source for resolved Name").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
             VisualStudioSession.Wait(() => string.Equals(ide.Automation.ActiveDocument?.FullName, basePath, StringComparison.OrdinalIgnoreCase), "inherited value source navigation");
+            bool designerNavigation = Convert.ToInt32(ide.Automation.Properties["Alarmlist", "Navigation"].Item("SourceView").Value) == 0;
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName(designerNavigation ? "Designer" : "XML").And(cf.ByControlType(ControlType.RadioButton)))
+                ?.Patterns.SelectionItem.Pattern.IsSelected == true && (!designerNavigation || Box(window, "FullyQualifiedName")?.Text == "Base"),
+                "preview navigation follows the personal source preference");
             Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllBytes(workspace.OutputPath));
             ide.Automation.Documents.CloseAll(vsSaveChanges.vsSaveChangesNo);
-            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Open an ALMX document to preview its project.")) != null, "closed-document preview clears");
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Open an ALMX document or choose a project in Preview scope.")) != null, "closed-document preview clears");
             ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").Visible = false;
             ide.OpenDesigner(otherPath);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");

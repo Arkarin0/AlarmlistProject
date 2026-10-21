@@ -16,7 +16,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         private const string PropertyChild = "<Alarmlist><Properties><Property Name='par1' Value='001'/></Properties><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName></Alarm></Alarmlist>";
-        private const string PropertyBase = "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><Properties><Property Name='par1' Value='ignored'/></Properties><Code>$(par1)</Code><Description>Inspect $(AlarmlistAlarmCode)</Description><TestProcedure><Instructions><Step>Check $(par1) $$(escaped)</Step></Instructions></TestProcedure></Alarm></Alarmlist>";
+        private const string PropertyBase = "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><Properties><Property Name='par1' Value='ignored'/></Properties><Code>$(par1)</Code><Description>Inspect $(AlarmlistAlarmCode)</Description><TestProcedure><Group Name='Instructions'><Step>Check $(par1) $$(escaped)</Step></Group></TestProcedure></Alarm></Alarmlist>";
 
         [Theory]
         [InlineData(null)]

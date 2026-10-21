@@ -23,6 +23,86 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
     public partial class ProjectAnalysisInputTests
     {
         [Fact]
+        public async Task SavedGlobsDiscoverMissingDirectoriesAndPreserveExcludesAndRemovesAsync()
+        {
+            using (var directory = new TempDirectory())
+            {
+                string project = Path.Combine(directory.Path, "Library.almproj");
+                File.WriteAllText(project, "<Project><ItemGroup><Compile Include='future/**/*.almx' Exclude='future/**/excluded.almx'/>"
+                    + "<Compile Remove='future/**/removed.almx'/></ItemGroup></Project>");
+                var evaluation = SavedProjectEvaluation.Capture(project, null, CancellationToken.None);
+                string folder = Path.Combine(directory.Path, "future", "nested");
+                string added = Path.Combine(folder, "added.almx");
+                var glob = Assert.Single(evaluation.DiscoveryGlobs.Where(candidate => candidate.Matches(added)));
+                Assert.True(glob.Matches(added));
+                Assert.False(glob.Matches(Path.Combine(folder, "excluded.almx")));
+                Assert.False(glob.Matches(Path.Combine(folder, "removed.almx")));
+                using (var source = new ProjectAnalysisInputSource(new Documents()))
+                {
+                    source.Watch(new AnalysisProject(Path.Combine(directory.Path, "Consumer.almproj"), "Debug", null, Array.Empty<string>()));
+                    source.WatchDependencies(new[] { project }, evaluation.DiscoveryGlobs);
+                    await ExpectChangeAsync(source, null, () => Directory.CreateDirectory(folder));
+                    await ExpectChangeAsync(source, null, () => File.WriteAllText(added, "<Alarmlist/>"));
+                }
+                Assert.Equal(added, Assert.Single(SavedProjectEvaluation.Capture(project, null, CancellationToken.None).Project.Inputs));
+            }
+        }
+
+        [Fact]
+        public async Task MissingConditionalImportIsObservedBeforeItParticipatesInEvaluationAsync()
+        {
+            using (var directory = new TempDirectory())
+            {
+                string project = Path.Combine(directory.Path, "Library.almproj");
+                string imported = Path.Combine(directory.Path, "optional.props");
+                File.WriteAllText(project, "<Project><Import Project='$(MSBuildThisFileDirectory)optional.props' Condition=\"Exists('optional.props')\"/></Project>");
+                var evaluation = SavedProjectEvaluation.Capture(project, null, CancellationToken.None);
+                Assert.DoesNotContain(imported, evaluation.Imports);
+                Assert.Contains(evaluation.DiscoveryGlobs, glob => glob.Matches(imported));
+                Assert.All(evaluation.DiscoveryGlobs.Where(glob => glob.Matches(imported)), glob =>
+                    Assert.False(glob.IntersectsDirectory(Path.Combine(directory.Path, "unrelated-child"))));
+                using (var source = new ProjectAnalysisInputSource(new Documents()))
+                {
+                    source.Watch(new AnalysisProject(Path.Combine(directory.Path, "Consumer.almproj"), "Debug", null, Array.Empty<string>()));
+                    source.WatchDependencies(new[] { project }, evaluation.DiscoveryGlobs);
+                    await ExpectChangeAsync(source, null, () => File.WriteAllText(imported,
+                        "<Project><ItemGroup><Compile Include='Added.almx'/></ItemGroup></Project>"));
+                }
+                var changed = SavedProjectEvaluation.Capture(project, null, CancellationToken.None);
+                Assert.Contains(imported, changed.Imports);
+                Assert.Equal("Added.almx", Path.GetFileName(Assert.Single(changed.Project.Inputs)));
+            }
+        }
+
+        [Fact]
+        public async Task DependencyWatchesIgnoreOpenBuffersAndRecoverSavedDeletionAsync()
+        {
+            using (var directory = new TempDirectory())
+            {
+                string consumer = Path.Combine(directory.Path, "Consumer.almx");
+                string dependency = Path.Combine(directory.Path, "Dependency.almx");
+                File.WriteAllText(consumer, "<Alarmlist/>");
+                File.WriteAllText(dependency, "<Alarmlist/>");
+                var documents = new Documents();
+                using (var source = new ProjectAnalysisInputSource(documents))
+                {
+                    source.Watch(new AnalysisProject(Path.Combine(directory.Path, "Consumer.almproj"), "Debug", null, new[] { consumer }));
+                    source.WatchDependencies(new[] { dependency });
+                    int notifications = 0;
+                    source.Changed += (sender, args) => Interlocked.Increment(ref notifications);
+                    documents.Notify(dependency);
+                    Assert.Equal(0, notifications);
+                    await ExpectChangeAsync(source, null, () => File.Delete(dependency));
+                    await ExpectChangeAsync(source, null, () => File.WriteAllText(dependency, "<Alarmlist/>"));
+                    source.WatchDependencies(Array.Empty<string>());
+                    documents.Notify(consumer);
+                    Assert.True(notifications > 0);
+                }
+                Assert.Equal(0, documents.Subscribers);
+            }
+        }
+
+        [Fact]
         public async Task ProjectServiceUsesThePackagedCompilerForUnsavedCrossFileInheritanceAsync()
         {
             using (var directory = new TempDirectory())
@@ -110,6 +190,30 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 Assert.Equal(new[] { "001", "", null, "release", "duplicate" }, snapshot.Context.Properties.Select(property => property.Value));
                 instance.GetItems("AlarmlistProperty").First().SetMetadata("Value", "changed");
                 Assert.Equal("001", snapshot.Context.Properties[0].Value);
+            }
+        }
+
+        [Theory]
+        [InlineData("Library", true)]
+        [InlineData("library", true)]
+        [InlineData("Application", false)]
+        [InlineData("", false)]
+        public void EvaluationCapturesLibraryAnalysisMode(string outputType, bool expected)
+        {
+            using (var directory = new TempDirectory())
+            using (var projects = new ProjectCollection())
+            using (var reader = XmlReader.Create(new StringReader("<Project><PropertyGroup><OutputType>"
+                + outputType + "</OutputType></PropertyGroup></Project>")))
+            {
+                ProjectRootElement root = ProjectRootElement.Create(reader, projects);
+                root.FullPath = Path.Combine(directory.Path, "Plant.almproj");
+                var instance = new ProjectInstance(root, null, null, projects);
+                AnalysisProject snapshot = AlarmlistProjectSnapshot.Capture(instance, root.FullPath, "Debug");
+                Assert.Equal(expected, snapshot.Context.IsLibrary);
+                instance.SetProperty("OutputType", expected ? "Application" : "Library");
+                AnalysisProject changed = AlarmlistProjectSnapshot.Capture(instance, root.FullPath, "Debug");
+                Assert.False(snapshot.Context.Matches(changed.Context));
+                Assert.Equal(expected, snapshot.Context.IsLibrary);
             }
         }
 

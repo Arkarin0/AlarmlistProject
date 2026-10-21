@@ -27,6 +27,12 @@
                HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.interop/17.9.37000/lib/net472/Microsoft.VisualStudio.Interop.dll" />
     <Content Include="$(NuGetPackageRoot)/microsoft.visualstudio.shell.15.0/17.9.37000/lib/net472/Microsoft.VisualStudio.Shell.15.0.dll"
              Link="Microsoft.VisualStudio.Shell.15.0.dll" CopyToOutputDirectory="PreserveNewest" />
+    <PackageDownload Include="Microsoft.VisualStudio.Imaging" Version="[17.9.37000]" />
+    <Reference Include="Microsoft.VisualStudio.Imaging"
+               HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.imaging/17.9.37000/lib/net472/Microsoft.VisualStudio.Imaging.dll" />
+    <PackageDownload Include="Microsoft.VisualStudio.ImageCatalog" Version="[17.9.37000]" />
+    <Reference Include="Microsoft.VisualStudio.ImageCatalog"
+               HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.imagecatalog/17.9.37000/lib/net472/Microsoft.VisualStudio.ImageCatalog.dll" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />

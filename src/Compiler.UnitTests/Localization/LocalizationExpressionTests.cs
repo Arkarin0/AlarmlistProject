@@ -24,16 +24,16 @@ namespace Alarmlist.Core.UnitTests.Localization
             const string expression = "$(loc:Unknown.Key-1)";
             CompilationResult result = Compile("<Alarm><Name>" + expression + "</Name><Code>" + expression
                 + "</Code><Description>" + expression + "</Description><Category>" + expression + "</Category>"
-                + "<TestProcedure><Instructions><Step>" + expression + "</Step><Hint>" + expression
-                + "</Hint><Warning>" + expression + "</Warning><Note>" + expression + "</Note></Instructions>"
-                + "<Reset><Step>" + expression + "</Step></Reset></TestProcedure></Alarm>");
+                + "<TestProcedure><Group Name='Instructions'><Step>" + expression + "</Step><Hint>" + expression
+                + "</Hint><Warning>" + expression + "</Warning><Note>" + expression + "</Note></Group>"
+                + "<Group Name='Reset'><Step>" + expression + "</Step></Group></TestProcedure></Alarm>");
             Assert.True(result.Success);
             Alarm alarm = Assert.Single(result.AlarmList);
             Assert.Equal(expression, alarm.Name);
             Assert.Equal(expression, alarm.Code);
             Assert.Equal(expression, alarm.Description);
             Assert.Equal(expression, alarm.Category);
-            Assert.All(alarm.TestProcedure.Instructions.Concat(alarm.TestProcedure.Reset), step => Assert.Equal(expression, step.Text));
+            Assert.All(alarm.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries.Concat(alarm.TestProcedure.Groups.Single(group => group.Name == "Reset").Entries), step => Assert.Equal(expression, step.Text));
             Assert.Contains(expression, new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList));
         }
 
@@ -233,19 +233,19 @@ namespace Alarmlist.Core.UnitTests.Localization
         public void UnusedAndExcludedTranslationsDoNotRequireParametersOrTranslationValues()
         {
             const string template = "<Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName><Name>$(loc:Missing)</Name>"
-                + "<TestProcedure><Instructions><Step>$(loc:Nested)</Step><Hint>$(loc:Malformed)</Hint></Instructions>"
-                + "<Reset><Note>$(loc:Reset)</Note></Reset></TestProcedure></Alarm>";
+                + "<TestProcedure><Group Name='Instructions'><Step>$(loc:Nested)</Step><Hint>$(loc:Malformed)</Hint></Group>"
+                + "<Group Name='Reset'><Note>$(loc:Reset)</Note></Group></TestProcedure></Alarm>";
             var context = Context("de", Resource("de", "Nested", "$(loc:Another)"), Resource("de", "Malformed", "$(bad.name)"),
                 Resource("de", "Reset", "Reset"), Resource("de", "Step", "Inspect $(AlarmlistAlarmCode)"));
             Assert.True(Compile(template, context).Success);
             CompilationResult result = Compile(template + "<Alarm><ReferenceName>A</ReferenceName><Name>Local</Name><Code>001</Code>"
-                + "<TestProcedure><Instructions><Clear/><Warning>$(loc:Step)</Warning><Step>$(loc:Step)</Step></Instructions>"
+                + "<TestProcedure><Group Name='Instructions'><Clear/><Warning>$(loc:Step)</Warning><Step>$(loc:Step)</Step></Group>"
                 + "</TestProcedure></Alarm>", context);
             Assert.True(result.Success);
             Alarm alarm = Assert.Single(result.AlarmList);
-            Assert.Equal(new[] { "Inspect 001", "Inspect 001" }, alarm.TestProcedure.Instructions.Select(step => step.Text));
-            Assert.Equal(new[] { TestProcedureItemKind.Warning, TestProcedureItemKind.Instruction }, alarm.TestProcedure.Instructions.Select(step => step.Kind));
-            Assert.Equal("Reset", Assert.Single(alarm.TestProcedure.Reset).Text);
+            Assert.Equal(new[] { "Inspect 001", "Inspect 001" }, alarm.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries.Select(step => step.Text));
+            Assert.Equal(new[] { TestProcedureItemKind.Warning, TestProcedureItemKind.Instruction }, alarm.TestProcedure.Groups.Single(group => group.Name == "Instructions").Entries.Select(step => step.Kind));
+            Assert.Equal("Reset", Assert.Single(alarm.TestProcedure.Groups.Single(group => group.Name == "Reset").Entries).Text);
         }
 
         [Fact]

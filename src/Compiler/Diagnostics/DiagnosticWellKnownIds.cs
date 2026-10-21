@@ -32,5 +32,8 @@ namespace Alarmlist.Diagnostics
         public const string DuplicateLookupEntry = "ALM0023";
         public const string InvalidCompletionBinding = "ALM0024";
         public const string AnalyzerFailure = "ALM0025";
+        public const string InvalidProcedureGroup = "ALM0026";
+        public const string DuplicateProcedureGroup = "ALM0027";
+        public const string InvalidLibrary = "ALM0028";
     }
 }

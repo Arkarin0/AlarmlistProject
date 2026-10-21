@@ -12,9 +12,10 @@ namespace Alarmlist.VisualStudio.UI
     {
         public IReadOnlyList<DiagnosticViewModel> Diagnostics { get; private set; } = Array.Empty<DiagnosticViewModel>();
         public string DiagnosticsHeading => "Live project diagnostics (" + Diagnostics.Count + ")";
+        public string DiagnosticsHelp => "Live diagnostics update from shared buffer text without building. In the Error List, choose Build + IntelliSense or IntelliSense. Build-only hides live results.";
         public string DiagnosticsGuidance => HasPending ? "Diagnostics reflect shared buffer text. Commit or cancel drafts before navigating."
             : _analysis?.Current?.Status == ProjectAnalysisStatus.Available && DiagnosticDocumentMatches(_analysis.Current)
-                ? "Current project analysis. Build diagnostics remain in the Error List separately."
+                ? "Current project analysis. Choose Build + IntelliSense in the Error List to include live results. Build-only shows results from the last build."
             : "Waiting for current project analysis. Previous live compiler errors have been cleared.";
 
         private void RefreshDiagnostics(ProjectAnalysisState state)
@@ -30,7 +31,7 @@ namespace Alarmlist.VisualStudio.UI
 
         private bool CanNavigateDiagnostic(LiveDiagnostic diagnostic, AnalysisLocation location)
             => !_disposed && !_analysisBusy && !HasPending && ReferenceEquals(_analysis?.Current, diagnostic.State)
-                && DiagnosticDocumentMatches(diagnostic.State) && diagnostic.TryGetSourceText(location, out _);
+                && DiagnosticDocumentMatches(diagnostic.State) && diagnostic.TryGetNavigationTarget(location, out _);
 
         private bool DiagnosticDocumentMatches(ProjectAnalysisState state)
             => state.Inputs.Any(input => string.Equals(input.Input.FilePath, _analysis?.DocumentPath, StringComparison.OrdinalIgnoreCase)
@@ -49,7 +50,7 @@ namespace Alarmlist.VisualStudio.UI
                     if (!_disposed) { _error = "The source or draft changed. Wait for current analysis and try again."; Notify(nameof(Error)); }
                     return;
                 }
-                if (diagnostic.TryGetSourceText(location, out string text)) _analysis.Navigate(location, text);
+                if (diagnostic.TryGetNavigationTarget(location, out AnalysisNavigationTarget target)) _analysis.Navigate(target);
                 _error = null;
                 Notify(nameof(Error));
             }

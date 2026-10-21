@@ -15,6 +15,7 @@ namespace Alarmlist.VisualStudio.UI
     {
         public string ProjectPath { get; }
         public string Configuration { get; }
+        public string Label => Path.GetFileName(ProjectPath) + " (" + Configuration + ")";
         public AnalysisProjectChoice(AnalysisProject project)
         {
             ProjectPath = project.ProjectPath;
@@ -26,8 +27,18 @@ namespace Alarmlist.VisualStudio.UI
     {
         public AnalysisAlarm Alarm { get; }
         public string Identifier => Alarm.Origin.FullyQualifiedName;
-        public string Label => (Alarm.Fields.FirstOrDefault(field => field.Name == "Name")?.EffectiveValue ?? Identifier)
-            + " — " + Identifier + " — " + Alarm.Origin.Location?.FilePath;
+        public string Name
+        {
+            get
+            {
+                AnalysisField name = Alarm.Fields.FirstOrDefault(field => field.Name == "Name");
+                return name?.IsValueAvailable == true ? name.EffectiveValue ?? Identifier : name?.EffectiveExpression ?? Identifier;
+            }
+        }
+        public string OriginLabel => AlarmOriginPresentation.Library(Alarm.Origin);
+        public string Label => Name
+            + " — " + Identifier + " — " + AlarmOriginPresentation.Source(Alarm.Origin);
+        public string HelpText => Name + " — " + Identifier + " — " + AlarmOriginPresentation.Source(Alarm.Origin, fullPath: true);
         public ReferenceChoice(AnalysisAlarm alarm) { Alarm = alarm; }
     }
 
@@ -48,6 +59,10 @@ namespace Alarmlist.VisualStudio.UI
         private ProjectAnalysisState _choicesState;
         private AnalysisAlarm _choicesAlarm;
         public IReadOnlyList<AnalysisProjectChoice> Projects { get; private set; } = BindingCollection.Create(Array.Empty<AnalysisProjectChoice>());
+        public bool HasMultipleProjects => Projects.Count > 1;
+        public bool HasSingleProjectContext => !HasMultipleProjects;
+        public string ProjectContextLabel => Projects.FirstOrDefault(project => string.Equals(project.ProjectPath, SelectedProjectPath, StringComparison.OrdinalIgnoreCase))?.Label
+            ?? (Projects.Count == 1 ? Projects[0].Label : "No project context selected");
         public IReadOnlyList<ReferenceChoice> ReferenceChoices { get; private set; } = Array.Empty<ReferenceChoice>();
         public ReferenceChoice SelectedReferenceChoice
         {
@@ -69,10 +84,12 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand ApplyReferenceCommand { get; private set; }
         public DelegateCommand GoToReferenceCommand { get; private set; }
         public Task PendingAnalysisAction { get; private set; } = Task.CompletedTask;
+        public Func<string, Func<bool>, Task<bool>> AcceptReference { get; private set; }
 
         private void InitializeAnalysis(IDesignerAnalysis analysis)
         {
             _analysis = analysis;
+            AcceptReference = ApplyReferenceSelectionAsync;
             ValidateCompletion = ValidateCompletionAsync;
             ApplyReferenceCommand = new DelegateCommand(() => StartAnalysisAction(ApplyReference),
                 () => CanUseAnalysis && _referenceChoice != null && ReferenceChoices.Contains(_referenceChoice));
@@ -96,29 +113,33 @@ namespace Alarmlist.VisualStudio.UI
                     Navigate(state, alarm.Fields.Single(item => item.Name == field.Name).ValueLocation)),
                     () => CanUseAnalysis && field.IsInherited);
             }
-            foreach (ProcedureSectionViewModel section in ProcedureSections)
-            {
-                section.UseLocalEntriesCommand = new DelegateCommand(() =>
-                {
-                    if (_disposed || _analysisBusy || !CommitPending() || !CanEdit) return;
-                    _model.UseLocalProcedureEntries(_original, section.Name, out _error);
-                    Notify(nameof(Error));
-                }, () => !_disposed && !_analysisBusy && CanEdit && section.Error == null);
-                section.MakeLocalCopyCommand = new DelegateCommand(() => StartAnalysisAction((state, alarm) =>
-                {
-                    AnalysisSection source = GetSection(alarm, section.Name);
-                    if (!alarm.IsResolved || source == null) return;
-                    ProcedureValueChange[] entries = source.EffectiveEntries.Select((entry, index) =>
-                        new ProcedureValueChange(section.Name, index,
-                            entry.Kind == AnalysisStepKind.Instruction ? "Step" : entry.Kind.ToString(), entry.RawText)).ToArray();
-                    _model.MakeProcedureLocalCopy(_original, section.Name, entries, out _error);
-                    Notify(nameof(Error));
-                }), () => CanUseAnalysis && CurrentAlarm()?.IsResolved == true && section.HasAnalysis);
-            }
             if (_analysis != null) _analysis.Changed += OnAnalysisChanged;
         }
 
-        private static AnalysisSection GetSection(AnalysisAlarm alarm, string name) => name == "Instructions" ? alarm?.Instructions : alarm?.Reset;
+        private ProcedureSectionViewModel CreateProcedureSection(string name)
+        {
+            ProcedureSectionViewModel section = _factory.CreateProcedureSection(name, OnDraftChanged, EditProcedure);
+            section.UseLocalEntriesCommand = new DelegateCommand(() =>
+            {
+                if (_disposed || _analysisBusy || !ProcedureSections.Contains(section) || !CommitPending() || !CanEdit) return;
+                _model.UseLocalProcedureEntries(_original, section.Name, out _error);
+                Notify(nameof(Error));
+            }, () => !_disposed && !_analysisBusy && CanEdit && section.Error == null);
+            section.MakeLocalCopyCommand = new DelegateCommand(() => StartAnalysisAction((state, alarm) =>
+            {
+                AnalysisSection source = GetSection(alarm, section.Name);
+                if (!alarm.IsResolved || source == null) return;
+                ProcedureValueChange[] entries = source.EffectiveEntries.Select((entry, index) =>
+                    new ProcedureValueChange(section.Name, index,
+                        entry.Kind == AnalysisStepKind.Instruction ? "Step" : entry.Kind.ToString(), entry.RawText)).ToArray();
+                _model.MakeProcedureLocalCopy(_original, section.Name, entries, out _error);
+                Notify(nameof(Error));
+            }), () => ProcedureSections.Contains(section) && CanUseAnalysis && CurrentAlarm()?.IsResolved == true && section.HasAnalysis);
+            InitializeGroupCommands(section);
+            return section;
+        }
+
+        private static AnalysisSection GetSection(AnalysisAlarm alarm, string name) => alarm?.ProcedureSections.FirstOrDefault(section => string.Equals(section.Name, name, StringComparison.OrdinalIgnoreCase));
 
         private DelegateCommand ProcedureNavigation(string section, AnalysisEntry entry)
         {
@@ -184,6 +205,72 @@ namespace Alarmlist.VisualStudio.UI
             }
         }
 
+        private void UpdateAlarmNames(ProjectAnalysisState state)
+        {
+            bool current = !HasPending && state?.Status == ProjectAnalysisStatus.Available
+                && state.Response?.Snapshot != null && DiagnosticDocumentMatches(state);
+            var names = current ? state.Response.Snapshot.Alarms
+                .Where(alarm => alarm.Origin.Location != null && string.Equals(alarm.Origin.Location.FilePath,
+                    _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase))
+                .GroupBy(alarm => Tuple.Create(alarm.Origin.Location.LineNumber, alarm.Origin.Location.ColumnNumber))
+                .Where(group => group.Count() == 1)
+                .ToDictionary(group => group.Key, group => group.Single()) : null;
+            // Source declarations are ordered. Scan text once, including CRLF,
+            // rather than rescanning the entire prefix for every list item.
+            int offset = 0, line = 1, column = 1;
+            string text = _model.Projection.Text;
+            foreach (AlarmViewModel view in _allAlarms)
+            {
+                AnalysisField name = null;
+                if (current)
+                {
+                    int end = view.Source.Start + 1;
+                    while (offset < end)
+                    {
+                        char character = text[offset++];
+                        if (character == '\r' || character == '\n')
+                        {
+                            if (character == '\r' && offset < end && text[offset] == '\n') offset++;
+                            line++; column = 1;
+                        }
+                        else column++;
+                    }
+                    if (names.TryGetValue(Tuple.Create(line, column), out AnalysisAlarm alarm) && alarm.IsResolved)
+                        name = alarm.Fields.FirstOrDefault(field => field.Name == "Name");
+                }
+                view.SetName(name);
+            }
+        }
+
+        private void RefreshAlarmNames(ProjectAnalysisState state)
+        {
+            UpdateAlarmNames(state);
+            if (_refreshing) return;
+            _refreshing = true;
+            try
+            {
+                bool wasEmpty = Alarms.Count == 0;
+                // Keep an actively edited item visible even if fallback text no
+                // longer matches the filter. Never reload its fields on refresh.
+                var visible = _allAlarms.Where(view => view.Matches(_filter)
+                    || (HasPending && ReferenceEquals(view, _selected))).ToArray();
+                var visibleSet = new HashSet<AlarmViewModel>(visible);
+                for (int index = Alarms.Count - 1; index >= 0; index--)
+                    if (!visibleSet.Contains(Alarms[index])) Alarms.RemoveAt(index);
+                for (int index = 0; index < visible.Length; index++)
+                    if (index >= Alarms.Count || !ReferenceEquals(Alarms[index], visible[index]))
+                        Alarms.Insert(index, visible[index]);
+                if ((_selected != null && !Alarms.Contains(_selected))
+                    || (_selected == null && wasEmpty && Alarms.Count > 0))
+                {
+                    _selected = Alarms.FirstOrDefault();
+                    LoadFields();
+                    Notify(nameof(Selected)); Notify(nameof(CanEdit)); DeleteCommand.Refresh();
+                }
+            }
+            finally { _refreshing = false; }
+        }
+
         private void OnAnalysisChanged(object sender, EventArgs args) => RefreshAnalysis();
         private void RefreshAnalysis()
         {
@@ -192,16 +279,20 @@ namespace Alarmlist.VisualStudio.UI
             try
             {
                 ProjectAnalysisState state = _analysis?.Current;
+                RefreshAlarmNames(state);
+                PreviewColumns.SetStore((_analysis as IDesignerPreviewSettings)?.GetPreviewLayout());
                 var projects = _analysis?.Projects ?? Array.Empty<AnalysisProject>();
                 if (Projects.Count != projects.Count || Projects.Where((choice, index) => choice.ProjectPath != projects[index].ProjectPath
                     || choice.Configuration != projects[index].Configuration).Any())
                 {
                     Projects = BindingCollection.Create(projects.Select(project => new AnalysisProjectChoice(project)));
-                    Notify(nameof(Projects));
+                    Notify(nameof(Projects)); Notify(nameof(HasMultipleProjects)); Notify(nameof(HasSingleProjectContext));
                 }
                 RefreshLocalization(state);
                 RefreshDiagnostics(state);
                 AnalysisAlarm alarm = CurrentAlarm(state);
+                RefreshProcedureSections();
+                AddGroupCommand?.Refresh();
                 RefreshProperties(state, alarm);
                 RefreshPreview(state, alarm);
                 bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
@@ -209,7 +300,7 @@ namespace Alarmlist.VisualStudio.UI
                     field.SetAnalysis(!identityDraft && alarm?.IsResolved == true
                         ? alarm.Fields.FirstOrDefault(item => item.Name == field.Name) : null, !HasPending);
                 foreach (ProcedureSectionViewModel section in ProcedureSections)
-                    section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasChanges)
+                    section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasKindChanges)
                         ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry), !HasPending);
                 if (!ReferenceEquals(_choicesState, state) || !ReferenceEquals(_choicesAlarm, alarm))
                 {
@@ -233,7 +324,7 @@ namespace Alarmlist.VisualStudio.UI
                     : alarm == null ? "Waiting for analysis of the current document."
                     : !alarm.IsResolved ? "This alarm's reference could not be resolved. Check ReferenceName."
                     : "Values from " + Path.GetFileName(state.Project.ProjectPath) + " (" + state.Project.Configuration + ").";
-                Notify(nameof(SelectedProjectPath)); Notify(nameof(AnalysisMessage));
+                Notify(nameof(SelectedProjectPath)); Notify(nameof(ProjectContextLabel)); Notify(nameof(AnalysisMessage));
                 ApplyReferenceCommand?.Refresh(); GoToReferenceCommand?.Refresh();
             }
             finally { _refreshingAnalysis = false; }
@@ -283,14 +374,45 @@ namespace Alarmlist.VisualStudio.UI
             CommitPending();
         }
 
+        private async Task<bool> ApplyReferenceSelectionAsync(string identifier, Func<bool> canApply)
+        {
+            if (_disposed || _analysisBusy || !CanEdit || _analysis?.Current?.Status != ProjectAnalysisStatus.Available) return false;
+            ProjectAnalysisState state = _analysis.Current;
+            AlarmSource original = _original;
+            int version = _draftVersion;
+            ReferenceChoice choice = ReferenceChoices.FirstOrDefault(item => item.Identifier == identifier);
+            if (choice == null) return false;
+            _analysisBusy = true;
+            RefreshAnalysis();
+            try
+            {
+                bool current = await _analysis.IsCurrentAsync(state, _analysisLifetime.Token);
+                if (!canApply() || _disposed) return false;
+                if (!current || version != _draftVersion || !ReferenceEquals(original, _original)
+                    || !ReferenceEquals(state, _analysis.Current) || !ReferenceChoices.Contains(choice))
+                {
+                    _error = "The source or reference draft changed. Wait for current analysis and choose the reference again.";
+                    Notify(nameof(Error));
+                    return false;
+                }
+                Fields.Single(field => field.IsReference).EditValue = identifier;
+                return CommitPending();
+            }
+            catch (OperationCanceledException) when (_analysisLifetime.IsCancellationRequested) { return false; }
+            catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception))
+            { if (!_disposed) { _error = exception.Message; Notify(nameof(Error)); } return false; }
+            finally { _analysisBusy = false; RefreshAnalysis(); }
+        }
+
         private void GoToReference(ProjectAnalysisState state, AnalysisAlarm alarm)
             => Navigate(state, alarm.ReferenceChain.FirstOrDefault()?.Location);
 
         private void Navigate(ProjectAnalysisState state, AnalysisLocation location)
         {
             if (location == null) return;
-            string text = state.Inputs.First(item => string.Equals(item.Input.FilePath, location.FilePath, StringComparison.OrdinalIgnoreCase)).Input.Text;
-            _analysis.Navigate(location, text);
+            AnalysisNavigationTarget target = AnalysisNavigationTarget.Resolve(state, location);
+            if (target == null) throw new InvalidOperationException("The source definition is unavailable. Wait for current analysis and try again.");
+            _analysis.Navigate(target);
         }
 
         private void DisposeAnalysis()

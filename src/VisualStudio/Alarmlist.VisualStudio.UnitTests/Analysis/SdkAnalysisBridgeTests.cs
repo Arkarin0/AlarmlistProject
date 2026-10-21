@@ -94,7 +94,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Contains("$(loc:Inspection)", keyword.CompiledXml);
                 }
                 AnalysisSnapshot snapshot = response.Snapshot;
-                Assert.Equal(3, snapshot.ContractVersion);
+                Assert.Equal(5, snapshot.ContractVersion);
                 Assert.Equal("de-DE", snapshot.Culture);
                 Assert.Equal("de", Assert.Single(snapshot.Resources).Culture);
                 Assert.Equal(31, snapshot.Resources[0].Version);
@@ -248,7 +248,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     response = bridge.Analyze(new[] { new AnalysisInput("<Alarmlist>"
                         + "<Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName><Properties><Property Name='p' Value='ignored'/></Properties>"
                         + "<Code>$(p)</Code><Description>Inspect $(AlarmlistAlarmCode):$(AlarmlistConfiguration)[$(empty)]</Description>"
-                        + "<TestProcedure><Instructions><Step>$(AlarmlistAlarmCode) $$(p)</Step></Instructions></TestProcedure></Alarm>"
+                        + "<TestProcedure><Group Name='Instructions'><Step>$(AlarmlistAlarmCode) $$(p)</Step></Group></TestProcedure></Alarm>"
                         + "<Alarm><ReferenceName>A</ReferenceName></Alarm></Alarmlist>", "Unsaved.almx", 9) }, context: context);
                     Assert.True(response.Snapshot?.Success == true, response.Message);
                 }
@@ -263,8 +263,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 Assert.Equal("A", parameter.DeclarationOrigin.Alarm.FullyQualifiedName);
                 Assert.Equal("Project", parameter.ValueOrigin.Scope);
                 Assert.Equal("001", parameter.EffectiveValue);
-                Assert.Equal("$(AlarmlistAlarmCode) $$(p)", child.Instructions.EffectiveEntries[0].RawText);
-                Assert.Equal("001 $(p)", child.Instructions.EffectiveEntries[0].Text);
+                Assert.Equal("$(AlarmlistAlarmCode) $$(p)", child.ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries[0].RawText);
+                Assert.Equal("001 $(p)", child.ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries[0].Text);
                 Assert.Contains("Inspect 001:Release[]", response.CompiledXml);
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
             }
@@ -284,11 +284,11 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     var inputs = new[]
                     {
                         Input("<FullyQualifiedName>Base</FullyQualifiedName><Name>Inherited</Name><Code>B</Code>"
-                            + "<TestProcedure><Instructions><Step>Old</Step><Clear/><Hint>Ready</Hint></Instructions>"
-                            + "<Reset><Warning>Reset warning</Warning></Reset></TestProcedure>", basePath, 4),
+                            + "<TestProcedure><Group Name='Instructions'><Step>Old</Step><Clear/><Hint>Ready</Hint></Group>"
+                            + "<Group Name='Reset'><Warning>Reset warning</Warning></Group></TestProcedure>", basePath, 4),
                         Input("<FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><Name/>"
-                            + "<Code>B</Code><TestProcedure><Instructions><Note>Local</Note></Instructions>"
-                            + "<Reset><Clear/><Step>Reset locally</Step></Reset></TestProcedure>", childPath, 9)
+                            + "<Code>B</Code><TestProcedure><Group Name='Instructions'><Note>Local</Note></Group>"
+                            + "<Group Name='Reset'><Clear/><Step>Reset locally</Step></Group></TestProcedure>", childPath, 9)
                     };
                     AnalysisResponse response = bridge.Analyze(inputs);
                     Assert.Equal(AnalysisAvailability.Available, response.Availability);
@@ -299,7 +299,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.DoesNotContain("<ReferenceName>", xml);
                     Assert.DoesNotContain("<Clear", xml);
                     Assert.True(snapshot.Success);
-                    Assert.Equal(3, snapshot.ContractVersion);
+                    Assert.Equal(5, snapshot.ContractVersion);
                     Assert.Equal(new[] { 4, 9 }, snapshot.Sources.Select(source => source.Version));
                     AnalysisAlarm child = snapshot.Alarms[1];
                     Assert.Equal("Base", Assert.Single(child.ReferenceChain).FullyQualifiedName);
@@ -313,16 +313,16 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Equal(childPath, name.LocalLocation.FilePath);
                     Assert.Equal(9, name.LocalLocation.SourceVersion);
                     Assert.False(child.Fields.Single(field => field.Name == "Code").IsInherited);
-                    Assert.Equal(new[] { AnalysisStepKind.Hint, AnalysisStepKind.Note }, child.Instructions.EffectiveEntries.Select(entry => entry.Kind.Value));
-                    Assert.Equal(new[] { true, false }, child.Instructions.EffectiveEntries.Select(entry => entry.IsInherited));
-                    AnalysisEntry excluded = Assert.Single(child.Instructions.ExcludedEntries);
+                    Assert.Equal(new[] { AnalysisStepKind.Hint, AnalysisStepKind.Note }, child.ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries.Select(entry => entry.Kind.Value));
+                    Assert.Equal(new[] { true, false }, child.ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries.Select(entry => entry.IsInherited));
+                    AnalysisEntry excluded = Assert.Single(child.ProcedureSections.Single(group => group.Name == "Instructions").ExcludedEntries);
                     Assert.Equal("Old", excluded.Text);
                     Assert.Equal(1, excluded.ExcludedBy.Index);
                     Assert.Equal("Base", excluded.ExcludedBy.Alarm.FullyQualifiedName);
-                    Assert.True(child.Reset.LocalEntries[0].IsClear);
-                    Assert.Null(child.Reset.LocalEntries[0].Kind);
-                    Assert.Equal("Reset locally", Assert.Single(child.Reset.EffectiveEntries).Text);
-                    Assert.Equal(AnalysisStepKind.Warning, Assert.Single(child.Reset.ExcludedEntries).Kind);
+                    Assert.True(child.ProcedureSections.Single(group => group.Name == "Reset").LocalEntries[0].IsClear);
+                    Assert.Null(child.ProcedureSections.Single(group => group.Name == "Reset").LocalEntries[0].Kind);
+                    Assert.Equal("Reset locally", Assert.Single(child.ProcedureSections.Single(group => group.Name == "Reset").EffectiveEntries).Text);
+                    Assert.Equal(AnalysisStepKind.Warning, Assert.Single(child.ProcedureSections.Single(group => group.Name == "Reset").ExcludedEntries).Kind);
                     Assert.False(File.Exists(basePath));
                     Assert.False(File.Exists(childPath));
                     Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
@@ -330,7 +330,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 Assert.Equal("Inherited", snapshot.Alarms[1].Fields.Single(field => field.Name == "Name").EffectiveValue);
                 Assert.Contains("<Name>Inherited</Name>", xml);
                 Assert.Throws<NotSupportedException>(() => ((IList<AnalysisAlarm>)snapshot.Alarms).Clear());
-                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisEntry>)snapshot.Alarms[1].Instructions.EffectiveEntries).Clear());
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisEntry>)snapshot.Alarms[1].ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries).Clear());
                 // Unloading must release the SDK image as well as preserve copied results.
                 using (File.Open(sdk.CompilerPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
             }
@@ -449,6 +449,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         [InlineData(99)]
         [InlineData(1)]
         [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
         public void IncompatibleSdkVersionsDoNotInterfereWithACompatibleProject(int contract)
         {
             using (var sdk = new SdkAsset())
@@ -458,7 +460,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 incompatible.ReplaceWithIncompatibleCompiler(contract);
                 BridgeOpenResult result = new SdkAnalysisBridgeFactory().Open(incompatible.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, result.Availability);
-                Assert.Contains("contract 3", result.Message);
+                Assert.Contains("contract 5", result.Message);
                 Assert.Contains(incompatible.CompilerPath, result.Message);
                 Assert.Null(result.Bridge);
                 Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
@@ -486,7 +488,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
-                Assert.Contains("contract 3", response.Message);
+                Assert.Contains("contract 5", response.Message);
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
             }
         }

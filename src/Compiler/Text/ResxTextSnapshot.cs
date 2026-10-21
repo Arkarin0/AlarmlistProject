@@ -8,6 +8,11 @@ namespace Alarmlist.Text
     public sealed class ResxTextSnapshot
     {
         public ResxTextSnapshot(string text, string filePath, int version, string culture)
+            : this(text, filePath, version, culture, null)
+        {
+        }
+
+        internal ResxTextSnapshot(string text, string filePath, int version, string culture, XmlOriginMap origins)
         {
             Text = text ?? throw new ArgumentNullException(nameof(text));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A resource path is required.", nameof(filePath));
@@ -15,6 +20,7 @@ namespace Alarmlist.Text
             Culture = culture ?? throw new ArgumentNullException(nameof(culture));
             FilePath = filePath;
             Version = version;
+            Origins = origins;
         }
 
         public string Text { get; }
@@ -22,5 +28,6 @@ namespace Alarmlist.Text
         public int Version { get; }
         /// <summary>Explicit culture identity. Empty identifies an optional, non-fallback key catalogue.</summary>
         public string Culture { get; }
+        internal XmlOriginMap Origins { get; }
     }
 }

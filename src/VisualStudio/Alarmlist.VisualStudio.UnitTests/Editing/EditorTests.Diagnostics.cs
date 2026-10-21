@@ -33,6 +33,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 session.Analyze(source);
                 AnalysisDiagnostic[] expected = session.Analysis.Current.Response.Snapshot.Diagnostics.ToArray();
                 Assert.Contains(expected, diagnostic => diagnostic.Id == id);
+                Assert.Contains("Build + IntelliSense", session.View.DiagnosticsGuidance);
+                Assert.Contains("without building", session.View.DiagnosticsHelp);
+                Assert.Contains("Build-only hides live results", session.View.DiagnosticsHelp);
                 Assert.Equal(expected.Select(diagnostic => diagnostic.Id), session.View.Diagnostics.Select(row => row.Diagnostic.Id));
                 foreach (DiagnosticViewModel row in session.View.Diagnostics)
                 {

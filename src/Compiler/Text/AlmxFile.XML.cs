@@ -20,9 +20,8 @@ namespace Alarmlist.Text
             public const string Alarmlist = "Alarmlist";
             public const string Clear = "Clear";
             public const string TestProcedureHint = "Hint";
-            public const string TestProcedureInstructions = "Instructions";
+            public const string ProcedureGroup = "Group";
             public const string TestProcedureNote = "Note";
-            public const string TestProcedureReset = "Reset";
             public const string TestProcedureStep = "Step";
             public const string TestProcedure = "TestProcedure";
             public const string TestProcedureWarning = "Warning";
@@ -47,17 +46,18 @@ namespace Alarmlist.Text
         public static bool WriteTestProcedureNode(TestProcedureSyntax testProcedure, XmlWriter writer)
         {
             writer.WriteStartElement(WellKnownNodeNames.TestProcedure);
-            WriteTestProcedureSectionNode(WellKnownNodeNames.TestProcedureInstructions, testProcedure.Instructions, writer);
-            WriteTestProcedureSectionNode(WellKnownNodeNames.TestProcedureReset, testProcedure.Reset, writer);
+            foreach (ProcedureGroupSyntax group in testProcedure.Groups) WriteTestProcedureSectionNode(group, writer);
             writer.WriteEndElement();
             return true;
         }
 
-        private static void WriteTestProcedureSectionNode(string sectionName, IEnumerable<ITestProcedureItem> items, XmlWriter writer)
+        private static void WriteTestProcedureSectionNode(ProcedureGroupSyntax group, XmlWriter writer)
         {
-            writer.WriteStartElement(sectionName);
+            writer.WriteStartElement(WellKnownNodeNames.ProcedureGroup);
+            writer.WriteAttributeString("Name", group.Name);
+            if (group.Title != null) writer.WriteElementString("Title", group.Title);
 
-            foreach (var item in items)
+            foreach (var item in group.Entries)
             {
                 if (item is Clear)
                 {
@@ -220,13 +220,15 @@ namespace Alarmlist.Text
 
                 switch (reader.LocalName)
                 {
-                    case WellKnownNodeNames.TestProcedureInstructions:
-                        ReadTestProcedureSectionNode(reader, testProcedure.Instructions, filePath, version);
+                    case WellKnownNodeNames.ProcedureGroup:
+                        var group = new ProcedureGroupSyntax(reader.GetAttribute("Name")) { Location = GetLocation(reader, filePath, version) };
+                        testProcedure.Groups.Add(group);
+                        ReadTestProcedureSectionNode(reader, group, filePath, version);
                         break;
 
-                    case WellKnownNodeNames.TestProcedureReset:
-                        ReadTestProcedureSectionNode(reader, testProcedure.Reset, filePath, version);
-                        break;
+                    case "Instructions":
+                    case "Reset":
+                        throw new XmlException("Legacy procedure sections are unsupported. Replace this element with Group Name=\"" + reader.LocalName + "\".");
 
                     default:
                         reader.Skip();
@@ -238,7 +240,7 @@ namespace Alarmlist.Text
             return true;
         }
 
-        private static bool ReadTestProcedureSectionNode(XmlReader reader, ReferenceableCollection<ITestProcedureItem> items, string filePath, int? version)
+        private static bool ReadTestProcedureSectionNode(XmlReader reader, ProcedureGroupSyntax group, string filePath, int? version)
         {
             reader.MoveToContent();
 
@@ -260,9 +262,17 @@ namespace Alarmlist.Text
                     continue;
                 }
 
+                if (reader.LocalName == "Title")
+                {
+                    if (group.Title != null) throw new XmlException("A procedure group may contain only one Title.");
+                    group.TitleLocation = GetLocation(reader, filePath, version);
+                    group.Title = reader.ReadElementContentAsString();
+                    continue;
+                }
+
                 if (reader.LocalName == WellKnownNodeNames.Clear)
                 {
-                    items.Add(new Clear { Location = GetLocation(reader, filePath, version) });
+                    group.Entries.Add(new Clear { Location = GetLocation(reader, filePath, version) });
                     reader.Skip();
                     continue;
                 }
@@ -270,7 +280,7 @@ namespace Alarmlist.Text
                 if (TryGetStepKind(reader.LocalName, out var kind))
                 {
                     SourceLocation location = GetLocation(reader, filePath, version);
-                    items.Add(new TestProcedureStepSyntax(kind, reader.ReadElementContentAsString()) { Location = location });
+                    group.Entries.Add(new TestProcedureStepSyntax(kind, reader.ReadElementContentAsString()) { Location = location });
                     continue;
                 }
 

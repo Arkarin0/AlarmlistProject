@@ -1,3 +1,4 @@
+using System.Linq;
 using Alarmlist.Syntax;
 using Xunit;
 
@@ -10,8 +11,7 @@ namespace Alarmlist.Syntax.Tests
         {
             var expectedType = typeof(ReferenceableCollection<ITestProcedureItem>);
 
-            Assert.Equal(expectedType, typeof(TestProcedureSyntax).GetProperty(nameof(TestProcedureSyntax.Instructions)).PropertyType);
-            Assert.Equal(expectedType, typeof(TestProcedureSyntax).GetProperty(nameof(TestProcedureSyntax.Reset)).PropertyType);
+            Assert.Equal(expectedType, typeof(ProcedureGroupSyntax).GetProperty(nameof(ProcedureGroupSyntax.Entries)).PropertyType);
         }
 
         [Fact]
@@ -21,10 +21,10 @@ namespace Alarmlist.Syntax.Tests
             var step = new TestProcedureStepSyntax(TestProcedureStepKind.Instruction, "Do something.");
             var clear = new Clear();
 
-            testProcedure.Instructions.Add(step);
-            testProcedure.Instructions.Add(clear);
+            testProcedure.GetOrAddGroup("Instructions").Entries.Add(step);
+            testProcedure.GetOrAddGroup("Instructions").Entries.Add(clear);
 
-            Assert.Equal(new ITestProcedureItem[] { step, clear }, testProcedure.Instructions);
+            Assert.Equal(new ITestProcedureItem[] { step, clear }, testProcedure.GetOrAddGroup("Instructions").Entries);
         }
     }
 }

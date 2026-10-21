@@ -1,0 +1,230 @@
+// Created/modified by Arkarin0 under one ore more license(s).
+
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using Alarmlist.VisualStudio.Testing;
+using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Definitions;
+using FlaUI.Core.Input;
+using FlaUI.Core.WindowsAPI;
+using FlaUI.UIA3;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace Alarmlist.VisualStudio.UIIntegrationTests
+{
+    [Trait("Category", "UIIntegration"), Trait("Host", "VisualStudio"), Trait("Area", "Procedures")]
+    public sealed class ProcedureDesignerTests
+    {
+        private readonly ITestOutputHelper _output;
+        public ProcedureDesignerTests(ITestOutputHelper output) { _output = output; }
+        [UiFact("2022"), Trait("VSVersion", "2022")]
+        public Task ClearedDraftAndUndo2022() => UiTestRun.ExecuteAsync("2022", "ClearedDraftAndUndo", _output, CheckClearedDraft);
+        [UiFact("2026"), Trait("VSVersion", "2026")]
+        public Task ClearedDraftAndUndo2026() => UiTestRun.ExecuteAsync("2026", "ClearedDraftAndUndo", _output, CheckClearedDraft);
+
+        private static void CheckClearedDraft(VisualStudioSession ide, UiTestWorkspace workspace)
+        {
+            workspace.CreateProject(ide);
+            File.WriteAllText(Path.Combine(workspace.ProjectDirectory, ".editorconfig"),
+                "root=true\n[*.almx]\nalarmlist_procedure.default_groups=Configured\nalarmlist_procedure.group.configured.title=Check $(AlarmlistAlarmFullyQualifiedName)");
+            const string source = "<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><TestProcedure><Group Name='Verification'><Step>Earlier local</Step><Clear/><Note>Surviving local</Note></Group></TestProcedure></Alarm><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><TestProcedure><Group Name='Verification'><Title>Verify $(AlarmlistAlarmFullyQualifiedName)</Title><Step>Inherited step</Step></Group></TestProcedure></Alarm></Alarmlist>";
+            string disk = File.ReadAllText(workspace.AlarmPath);
+            string output = File.ReadAllText(workspace.OutputPath);
+            VisualStudioSession.Wait(() => VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, workspace.AlarmPath, source), "procedure fixture");
+            ide.OpenDesigner(workspace.AlarmPath);
+            using var automation = new UIA3Automation();
+            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
+            Window window = null;
+            AutomationElement designer = null;
+            VisualStudioSession.Wait(() =>
+            {
+                window = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.Window)))
+                    .Select(element => element.AsWindow()).SingleOrDefault(candidate =>
+                        candidate.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))) != null);
+                designer = window?.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)));
+                // First-profile release notes can activate after OpenDesigner.
+                if (designer == null) VisualStudioAutomation.OpenMeasurementDesigner(ide.Automation, workspace.AlarmPath);
+                return designer != null;
+            }, "procedure designer window");
+            window.SetForeground();
+            designer.Patterns.SelectionItem.Pattern.Select();
+            AutomationElement toggle = null;
+            VisualStudioSession.Wait(() => (toggle = window.FindFirstDescendant(cf => cf.ByName("Show cleared Verification entries")))?.IsEnabled == true, "compiler cleared rows");
+            TextBox editor = null;
+            VisualStudioSession.Wait(() => (editor = window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
+                .Select(element => element.AsTextBox()).SingleOrDefault(element => element.Text == "Earlier local")) != null, "editable cleared local row");
+            Assert.False(editor.IsReadOnly);
+            editor.Focus();
+            VisualStudioSession.Wait(() => editor.Properties.HasKeyboardFocus.Value, "cleared editor focus");
+            ide.RequireForeground();
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A);
+            Keyboard.Type("Private cleared draft");
+            VisualStudioSession.Wait(() => editor.Text == "Private cleared draft", "cleared draft typing");
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            toggle.Focus();
+            VisualStudioSession.Wait(() => toggle.Properties.HasKeyboardFocus.Value, "cleared toggle focus");
+            ide.RequireForeground();
+            Keyboard.Type(VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => editor.IsOffscreen, "hide cleared local row");
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            ide.RequireForeground();
+            Assert.True(toggle.Properties.HasKeyboardFocus.Value);
+            Keyboard.Type(VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => editor.Text == "Private cleared draft", "show restores draft");
+            editor.Focus();
+            VisualStudioSession.Wait(() => editor.Properties.HasKeyboardFocus.Value, "restored draft focus");
+            ide.RequireForeground();
+            Keyboard.Type(VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == source.Replace("Earlier local", "Private cleared draft"), "cleared draft commit");
+            ide.RequireForeground();
+            Assert.True(editor.Properties.HasKeyboardFocus.Value);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == source && editor.Text == "Earlier local", "cleared edit Undo");
+            VisualStudioSession.Wait(() => toggle.IsEnabled, "cleared provenance after Undo");
+            toggle.Focus();
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "cleared-procedures.png"));
+
+            AutomationElement add = window.FindFirstDescendant(cf => cf.ByName("Add Verification entry"));
+            Press(ide, add, VirtualKeyShort.SPACE);
+            TextBox added = null;
+            VisualStudioSession.Wait(() => (added = window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
+                .Select(element => element.AsTextBox()).SingleOrDefault(element => element.Properties.HasKeyboardFocus.Value)) != null, "Add focuses new procedure entry");
+            Assert.Equal("", added.Text);
+            ide.RequireForeground();
+            Keyboard.Type("Added procedure");
+            VisualStudioSession.Wait(() => added.Text == "Added procedure", "typing after Add keeps the caret");
+            ide.RequireForeground();
+            Assert.True(added.Properties.HasKeyboardFocus.Value);
+            Keyboard.Press(VirtualKeyShort.SHIFT);
+            try
+            {
+                Keyboard.Type(VirtualKeyShort.RETURN);
+                VisualStudioSession.Wait(() => added.Text.Replace("\r", "") == "Added procedure\n", "Shift Enter inserts newline");
+            }
+            finally
+            {
+                Keyboard.Release(VirtualKeyShort.SHIFT);
+                File.WriteAllText(Path.Combine(workspace.DirectoryPath, "procedure-keyboard-state.txt"),
+                    "Editor: " + added.Text.Replace("\r", "\\r").Replace("\n", "\\n") + "\nXML: " + ide.ReadText(workspace.AlarmPath));
+            }
+            ide.RequireForeground();
+            Assert.True(added.Properties.HasKeyboardFocus.Value);
+            Keyboard.Type("Second line");
+            VisualStudioSession.Wait(() => added.Text.Replace("\r", "") == "Added procedure\nSecond line", "multiline draft typing");
+            Assert.DoesNotContain("Added procedure", ide.ReadText(workspace.AlarmPath));
+            Press(ide, added, VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => Entries(ide, workspace).Last().Value.Replace("\r", "") == "Added procedure\nSecond line", "multiline entry commit");
+            Press(ide, window.FindAllDescendants(cf => cf.ByName("Move procedure entry up")).Last(), VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => Entries(ide, workspace)[2].Value.StartsWith("Added procedure", StringComparison.Ordinal), "move source order");
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
+                .Select(element => element.AsTextBox()).Any(element => element.Properties.HasKeyboardFocus.Value && element.Text.StartsWith("Added procedure", StringComparison.Ordinal)), "move follows entry focus");
+            Press(ide, window.FindAllDescendants(cf => cf.ByName("Remove procedure entry"))[2], VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => XNode.DeepEquals(XDocument.Parse(source), XDocument.Parse(ide.ReadText(workspace.AlarmPath))), "remove restores original procedure content");
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByName("Procedure entry text").And(cf.ByControlType(ControlType.Edit)))
+                .Select(element => element.AsTextBox()).Any(element => element.Properties.HasKeyboardFocus.Value && element.Text == "Surviving local"), "remove focuses next entry");
+            string beforeCopy = ide.ReadText(workspace.AlarmPath);
+            AutomationElement inheritance = window.FindFirstDescendant(cf => cf.ByName("Inheritance actions for Verification"));
+            Press(ide, inheritance, VirtualKeyShort.SPACE);
+            AutomationElement copy = null;
+            VisualStudioSession.Wait(() => (copy = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName("Make local copy").And(cf.ByControlType(ControlType.MenuItem))))
+                .SingleOrDefault())?.IsEnabled == true, "procedure inheritance menu");
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "procedure-inheritance-menu.png"));
+            Press(ide, copy, VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => Entries(ide, workspace).Select(entry => entry.Name.LocalName).SequenceEqual(new[] { "Clear", "Note" }), "section copy excludes cleared entries");
+            inheritance.Focus();
+            VisualStudioSession.Wait(() => inheritance.Properties.HasKeyboardFocus.Value, "inheritance menu focus after copy");
+            ide.RequireForeground();
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == beforeCopy, "section copy Undo restores source exactly");
+            CheckGroupAuthoring(ide, workspace, window);
+            CheckCreationDefaults(ide, workspace, window);
+            Assert.Equal(disk, File.ReadAllText(workspace.AlarmPath));
+            Assert.Equal(output, File.ReadAllText(workspace.OutputPath));
+        }
+
+        private static void CheckGroupAuthoring(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
+        {
+            string original = ide.ReadText(workspace.AlarmPath);
+            foreach (string name in new[] { "Startup", "Shutdown" })
+            {
+                TextBox id = window.FindFirstDescendant(cf => cf.ByName("New procedure group ID")).AsTextBox();
+                id.Focus();
+                VisualStudioSession.Wait(() => id.Properties.HasKeyboardFocus.Value, "group ID focus");
+                ide.RequireForeground();
+                Keyboard.Type(name);
+                AutomationElement add = null;
+                VisualStudioSession.Wait(() => (add = window.FindFirstDescendant(cf => cf.ByName("Add procedure group")))?.IsEnabled == true, "group creation enabled");
+                Press(ide, add, VirtualKeyShort.SPACE);
+                TextBox title = null;
+                VisualStudioSession.Wait(() => (title = window.FindAllDescendants(cf => cf.ByName("Procedure group title").And(cf.ByControlType(ControlType.Edit)))
+                    .Select(element => element.AsTextBox()).SingleOrDefault(element => element.Properties.HasKeyboardFocus.Value)) != null, "new group title focus");
+                ide.RequireForeground();
+                Keyboard.Type("Check $(AlarmlistAlarmFullyQualifiedName)");
+                Assert.Null(Groups(ide, workspace).Last().Element("Title"));
+                Press(ide, title, VirtualKeyShort.RETURN);
+                VisualStudioSession.Wait(() => Groups(ide, workspace).Last().Element("Title")?.Value == "Check $(AlarmlistAlarmFullyQualifiedName)", "group title commit");
+            }
+            AutomationElement up = null;
+            VisualStudioSession.Wait(() => (up = window.FindAllDescendants(cf => cf.ByName("Move procedure group up")).LastOrDefault())?.IsEnabled == true, "local group movement enabled");
+            Press(ide, up, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => Groups(ide, workspace).Select(group => (string)group.Attribute("Name")).SequenceEqual(new[] { "Verification", "Shutdown", "Startup" }), "local group order");
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByName("Procedure group title").And(cf.ByControlType(ControlType.Edit)))[1].Properties.HasKeyboardFocus.Value, "move retains group focus");
+            Press(ide, window.FindAllDescendants(cf => cf.ByName("Remove local procedure group"))[1], VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => Groups(ide, workspace).Length == 2, "remove local group");
+            ide.RequireForeground();
+            Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => Groups(ide, workspace).Length == 3, "group removal Undo");
+            window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "procedure-groups.png"));
+            Assert.Contains("Group Name='Verification'", original);
+        }
+
+        private static XElement[] Groups(VisualStudioSession ide, UiTestWorkspace workspace) => XDocument.Parse(ide.ReadText(workspace.AlarmPath))
+            .Root.Elements("Alarm").First().Element("TestProcedure").Elements("Group").ToArray();
+
+        private static void CheckCreationDefaults(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
+        {
+            string original = ide.ReadText(workspace.AlarmPath);
+            int count = XDocument.Parse(original).Root.Elements("Alarm").Count();
+            AddAndWait("Configured");
+            var created = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Last();
+            Assert.Equal("Check $(AlarmlistAlarmFullyQualifiedName)", created.Element("TestProcedure").Element("Group").Element("Title").Value);
+            File.WriteAllText(Path.Combine(workspace.ProjectDirectory, ".editorconfig"),
+                "root=true\n[*.almx]\nalarmlist_procedure.default_groups=NextDefault");
+            AddAndWait("NextDefault");
+            var alarms = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").ToArray();
+            Assert.Equal("Configured", (string)alarms[alarms.Length - 2].Element("TestProcedure").Element("Group").Attribute("Name"));
+            Assert.True(XNode.DeepEquals(XDocument.Parse(original).Root.Elements("Alarm").First(), alarms[0]));
+
+            void AddAndWait(string name)
+            {
+                VisualStudioSession.Wait(() =>
+                {
+                    var current = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").ToArray();
+                    if (current.Length > count) return true;
+                    AutomationElement add = window.FindFirstDescendant(cf => cf.ByName("Add alarm").And(cf.ByControlType(ControlType.Button)));
+                    if (add?.IsEnabled == true) Press(ide, add, VirtualKeyShort.SPACE);
+                    return false;
+                }, "alarm creation with captured saved defaults");
+                count++;
+                var group = XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").Last().Element("TestProcedure").Elements("Group").Single();
+                Assert.Equal(name, (string)group.Attribute("Name"));
+            }
+        }
+
+        private static XElement[] Entries(VisualStudioSession ide, UiTestWorkspace workspace) => XDocument.Parse(ide.ReadText(workspace.AlarmPath))
+            .Root.Elements("Alarm").First().Element("TestProcedure").Elements("Group").Single(group => (string)group.Attribute("Name") == "Verification").Elements().ToArray();
+        private static void Press(VisualStudioSession ide, AutomationElement target, VirtualKeyShort key)
+        {
+            Assert.NotNull(target);
+            target.Focus();
+            VisualStudioSession.Wait(() => target.Properties.HasKeyboardFocus.Value, "procedure action focus");
+            ide.RequireForeground();
+            Keyboard.Type(key);
+        }
+    }
+}

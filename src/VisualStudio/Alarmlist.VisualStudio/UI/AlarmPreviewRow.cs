@@ -1,7 +1,6 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
-using System.IO;
 using System.Linq;
 using Alarmlist.VisualStudio.Analysis;
 
@@ -14,8 +13,10 @@ namespace Alarmlist.VisualStudio.UI
         public string Code { get; }
         public string Category { get; }
         public string Description { get; }
+        public string TestMethod { get; }
         public string Identity => Alarm.Origin.FullyQualifiedName ?? "";
-        public string Source => Alarm.Origin.Location == null ? "" : Path.GetFileName(Alarm.Origin.Location.FilePath) + ":" + Alarm.Origin.Location.LineNumber;
+        public string Source => AlarmOriginPresentation.Source(Alarm.Origin)
+            + (Alarm.Origin.Location == null ? "" : ":" + Alarm.Origin.Location.LineNumber);
         public string SourcePath => Alarm.Origin.Location?.FilePath;
         public string Status => Alarm.HasEvaluatedValues ? "Resolved" : "Values unavailable; see live project diagnostics.";
         public string AutomationName => Identity + " — " + Name;
@@ -26,6 +27,16 @@ namespace Alarmlist.VisualStudio.UI
             Alarm = alarm;
             GoToSourceCommand = navigation;
             Name = Value("Name"); Code = Value("Code"); Category = Value("Category"); Description = Value("Description");
+            TestMethod = !alarm.HasEvaluatedValues ? "(unavailable)" : string.Join("\r\n\r\n", alarm.ProcedureSections.Select(section =>
+                ProcedureText((section.Title.IsValueAvailable ? section.Title.EffectiveValue : "(unavailable)") + ":", section)));
+        }
+
+        private static string ProcedureText(string heading, AnalysisSection section)
+        {
+            // The compiler owns inheritance, ordering and Clear exclusions.
+            var entries = section?.EffectiveEntries.Where(entry => !entry.IsClear && entry.ExcludedBy == null).ToArray();
+            return entries == null ? "" : heading + "\r\n" + string.Join("\r\n", entries.Select(entry =>
+                (entry.Kind == AnalysisStepKind.Instruction ? "• " : entry.Kind + ": ") + (entry.IsValueAvailable ? entry.Text : "(unavailable)")));
         }
 
         private string Value(string name) => !Alarm.HasEvaluatedValues ? "(unavailable)"
@@ -39,13 +50,14 @@ namespace Alarmlist.VisualStudio.UI
                 case nameof(Code): return Code;
                 case nameof(Category): return Category;
                 case nameof(Description): return Description;
+                case nameof(TestMethod): return TestMethod;
                 case nameof(Identity): return Identity;
                 case nameof(Source): return Source;
                 default: throw new ArgumentException("Unknown preview column.", nameof(column));
             }
         }
 
-        internal bool Matches(string filter) => new[] { Name, Code, Category, Description, Identity, SourcePath }
+        internal bool Matches(string filter) => new[] { Name, Code, Category, Description, TestMethod, Identity, SourcePath, Source }
             .Any(value => value?.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0);
     }
 }

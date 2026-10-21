@@ -79,18 +79,19 @@ namespace Alarmlist.Output
 
             if (testProcedure != null)
             {
-                WriteProcedureSection(writer, nameof(testProcedure.Instructions), testProcedure.Instructions);
-                WriteProcedureSection(writer, nameof(testProcedure.Reset), testProcedure.Reset);
+                foreach (ProcedureGroup group in testProcedure.Groups) WriteProcedureSection(writer, group);
             }
 
             writer.WriteEndElement();
         }
 
-        private static void WriteProcedureSection(XmlWriter writer, string sectionName, System.Collections.Generic.IEnumerable<TestProcedureItem> items)
+        private static void WriteProcedureSection(XmlWriter writer, ProcedureGroup group)
         {
-            writer.WriteStartElement(sectionName);
+            writer.WriteStartElement("Group");
+            writer.WriteAttributeString("Name", group.Name);
+            writer.WriteElementString("Title", group.Title);
 
-            foreach (var item in items)
+            foreach (var item in group.Entries)
             {
                 writer.WriteStartElement(nameof(TestProcedureItem));
                 writer.WriteAttributeString(nameof(item.Kind), item.Kind.ToString());

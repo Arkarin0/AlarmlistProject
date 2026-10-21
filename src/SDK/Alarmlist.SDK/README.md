@@ -7,6 +7,71 @@ assemblies, and their runtime dependencies.
 
 ## Use the SDK
 
+### Procedure groups and format transition
+
+Procedure sections are ordered named groups. Source entries retain Step, Hint,
+Warning, Note and Clear; a group may have an optional expression-capable Title:
+
+```xml
+<TestProcedure>
+  <Group Name="Verification">
+    <Title>$(loc:VerificationTitle)</Title>
+    <Step>Check $(AlarmlistAlarmCode)</Step>
+  </Group>
+</TestProcedure>
+```
+
+Group identities use ASCII letters, digits, underscores, dots and hyphens, starting
+with a letter or underscore. They compare ordinally ignoring case. A referenced
+alarm supplies group order and spelling; matching local groups append entries
+with the existing Clear behavior. New local groups follow inherited groups.
+An absent title inherits and then falls back to the ID. An explicitly empty title
+stops inheritance and displays the ID. Titles use the consuming alarm's expression
+context. Empty groups retain their headings in compiled output and previews.
+
+This is a breaking transition: replace old Instructions/Reset elements with
+`<Group Name="Instructions">` / `<Group Name="Reset">`. Legacy elements are
+rejected. Compiled XML uses Group/Name/Title and TestProcedureItem children.
+The compiler's TestProcedure exposes Groups; detached alarm analysis exposes
+ProcedureSections with title provenance. Analysis contract 5 requires the matching
+extension; external analyzers must be rebuilt for analyzer contract 3. No migration
+tool or compatibility aliases are supplied. See the
+[milestone-eight contract](../../VisualStudio/MILESTONE-8.md).
+
+Milestone nine advances the detached analysis contract to 5 and the analyzer
+contract to 3. Captured library inputs use `CompilationContext.WithLibraries`;
+`AlarmCompiler.CreateLibrary` produces validated in-memory artifacts. Library alarm
+origins expose ownership, and analysis includes dependency identities, portable
+definitions and original-to-generated source span maps. Hosts supply portable
+relative source/resource/lookup names when creating libraries, or provide the
+`portablePaths` mapping to keep physical captured paths for owning-project
+EditorConfig/analyzer validation while exporting portable names. Standalone SDK
+library Build and project-reference consumption are available; Pack and saved-project graph
+integration remain under implementation in
+[Milestone nine](../../VisualStudio/MILESTONE-9.md).
+
+The designer's **Add alarm** command resolves creation defaults from saved
+EditorConfig files for the destination ALMX file's physical path, including linked
+files. For example:
+
+```ini
+[*.almx]
+alarmlist_procedure.default_groups = Instructions, Reset, Verification
+alarmlist_procedure.group.instructions.title = $(loc:InstructionsTitle)
+alarmlist_procedure.group.verification.title = Verification
+```
+
+Missing or `unset` lists create Instructions and Reset; an explicit empty list
+creates no groups. IDs are trimmed, ordered and unique ignoring case. Invalid
+lists block creation with an actionable message. Title keys ignore case; missing
+or `unset` omits Title, while an empty value writes an explicit empty Title.
+Titles are inserted as raw text with XML escaping, not evaluated during creation.
+Saved configuration changes affect subsequent creation only. Existing or copied
+alarms keep their groups, and builds do not inject defaults. Static file/project
+templates contain explicit Instructions/Reset declarations. Detached analysis
+exposes the resolved settings and any creation error on each source's
+`ProcedureCreation` property; the compiler never discovers configuration files.
+
 For published releases, enable nuget.org in your NuGet sources, then create
 `Plant.almproj`. A project-specific `NuGet.Config` is not necessary when that
 source is already enabled. Unpublished development packages require a local
@@ -53,7 +118,10 @@ capability, file schemas, and project properties under `tools/Rules/`.
 Configurations default to `Debug|AnyCPU` and `Release|AnyCPU`. A consumer can
 replace these defaults by declaring its own `ProjectConfiguration` items with
 `Configuration` and `Platform` metadata. The `.almproj.user` file is imported
-for CPS user settings such as Show All Files. Design-time builds do not compile
+for CPS user settings such as Show All Files and the hidden, configuration-independent
+`AlarmlistPreviewColumnLayout`. The Preview window writes column visibility/order/width
+through CPS to this user file; these preferences do not change source or compiler
+output. Design-time builds do not compile
 or write output. Normal IDE builds always invoke MSBuild to reflect removed or
 conditional inputs. ALMX files open in the XML editor in this first milestone.
 
@@ -107,6 +175,82 @@ Each build recompiles the selected inputs so changes to conditional items and
 removed files are reflected. Compiler diagnostics fail the build. Clean removes
 the configured and tracked compiled outputs and preserves unrelated files.
 
+Restore uses the installed MSBuild toolset's NuGet targets and supports
+`PackageReference` dependency restore. Consumer projects still need no
+`TargetFramework`: data packages use the `native,Version=v0.0` restore identity by
+default. Restore writes NuGet assets under `MSBuildProjectExtensionsPath` without
+compiling alarms. Visual Studio's Project > Add Reference and Manage NuGet Packages
+commands can edit project/package references; save the project to persist edits.
+The matching extension displays direct packages and selected transitive dependencies
+under Solution Explorer's Dependencies / Packages node. It obtains graph metadata
+from this SDK using the same framework/version selection as library consumption;
+failed restore leaves direct nodes visible as unresolved. Browsing does not build
+or pack the project.
+The matching extension groups selected build assets, registered Alarmlist analyzer
+DLLs, alarm libraries and declared documentation beneath each package. Include a
+`readme` in the nuspec or ship `.md`, `.txt` or `.html` files under `docs/` or
+`documentation/` to expose documentation. These entries open as read-only captured
+text (HTML is not rendered); analyzer entries show identity/path information.
+Project and package references consume library artifacts; see
+[milestone nine](../../VisualStudio/MILESTONE-9.md) for acceptance evidence and limitations.
+
+To build a standalone library, set `OutputType` to `Library`. `PackageId` defaults
+to the project name and `PackageVersion` to `1.0.0`. Versions use NuGet normalization
+(for example, `1.0` becomes `1.0.0`). Build writes one
+`$(OutputPath)/$(AlarmlistLibraryFileName)` artifact; the filename defaults to
+`$(PackageId).almlib`. `GetTargetPath` discovers this path without building, and
+Clean/Rebuild use the same ownership tracking as application outputs. The default
+`OutputType=Application` retains culture-specific XML output. Library validation
+permits missing consumer-supplied values but rejects structural/reference errors.
+Exported input names are project-relative; linked inputs should specify portable
+`Link` metadata.
+
+The Visual Studio **Alarmlist Library** project template starts with an abstract
+template and a concrete derived alarm. The Alarmlist project property page exposes
+Output type, Library filename, Package ID and Package version. Package identity
+settings are shared across configurations; output settings can vary by configuration.
+For an executable example with two consumers, transitive references and
+parameter/resource/lookup overrides, see the
+[library playground](../../../example/Libraries/README.md).
+
+Add `<ProjectReference Include="../Library/Library.almproj" />` to consume another
+project whose `OutputType` is `Library`. CLI builds build references first and
+capture their transitive artifacts; an application can contain only references.
+`BuildProjectReferences=false` and IDE-scheduled builds consume existing artifacts
+without rebuilding dependencies. Missing or invalid artifacts fail the consuming
+build and preserve its previous outputs. Configuration assignments, including
+`SetConfiguration`/`SetPlatform` reference metadata, select dependency outputs.
+CLI Clean/Rebuild traverse references when reference building is enabled.
+`GetTargetPath` returns only the current project's outputs without building;
+`GetAlarmlistReferenceClosure` discovers transitive library paths and identities
+without compiling. Project output paths need no prior build; package paths require
+a valid restore and existing artifacts in the selected package folders.
+
+Add `<PackageReference Include="Plant.Alarms" Version="1.0.0" />` to consume a
+library package. Build with `dotnet msbuild Plant.almproj /restore`; subsequent
+builds can reuse restored assets. Each library package contains one `.almlib`
+under `alarmlist/`, with dependency packages carrying their own artifacts. The SDK
+uses the selected graph in `project.assets.json`, including mixed project/package
+references, rather than searching the package cache. Library dependency identities
+must match the versions selected by NuGet. Missing artifacts, restore errors and
+conflicting identities fail before installing new compiled outputs. Removing a
+reference and restoring removes its imports even when package bytes remain cached.
+A warm cache supports restore/build against an empty local feed.
+
+Run `dotnet msbuild Library.almproj /restore /t:Pack` to create a library package.
+Pack builds and validates the library first, then writes
+`$(PackageOutputPath)/<PackageId>.<normalized PackageVersion>.nupkg`;
+`PackageOutputPath` defaults to `OutputPath`. `Authors` and `Description` supply
+package metadata, with library-identity defaults when omitted. The package contains
+one `alarmlist/<PackageId>.almlib`; direct library references become exact NuGet
+dependencies, including project references. Dependencies are not embedded.
+`IsPackable=false` prevents packing that project and prevents consumers from
+packing a library graph that requires it. Pack rejects applications and output/input
+collisions; validation or packaging failures preserve an existing package.
+`@(AlarmlistPackages)` returns the installed package path. Pack currently requires
+Build (`NoBuild=true` is rejected), and does not publish packages. Clean owns the
+compiled artifacts, not packages prepared for distribution.
+
 Reference errors ALM0001-ALM0004 include the source file and declaration line/column
 when read from ALMX files. Missing, self, and circular references point to the
 `ReferenceName` element; duplicate names point to `FullyQualifiedName`. A failed
@@ -147,8 +291,17 @@ The order is rule default, file severity, `NoWarn`, then warning promotion.
 ALM0001–ALM0025 cannot be suppressed or demoted. Any effective error prevents all
 culture outputs and their ownership manifest from being replaced.
 
-External analyzers are explicit items; no DLL glob or NuGet analyzer discovery
-runs automatically. See the [sample analyzer](../../Analyzers/Alarmlist.SampleAnalyzer/README.md).
+External analyzers are explicit `AlarmlistAnalyzer` items. A NuGet analyzer package
+can register these through its ordinary `build` targets, so consumers need only a
+direct `PackageReference` and restore. Use `PrivateAssets="all"` for project-local
+tooling; analyzer configuration does not propagate through alarm libraries.
+The sample package includes both runtime assemblies and selects the correct one
+automatically. There is no DLL glob, cache scan or discovery of ordinary Roslyn
+analyzers. See the [sample analyzer](../../Analyzers/Alarmlist.SampleAnalyzer/README.md)
+for package consumption and authoring. Direct DLL registration also remains supported.
+Repeated registration of the same normalized DLL path is captured once, including
+when a package and an explicit item select it. Distinct analyzer implementations
+still require unique diagnostic IDs; duplicate or invalid declarations report ALM0025.
 For a multi-targeted analyzer, select the assembly matching the build host:
 
 ```xml
@@ -388,7 +541,7 @@ The XSD and [complete format specification](../../VisualStudio/HMI-LOOKUPS.md)
 describe these rules. No built-in DeviceTag field, relationship validation, or
 multi-selection formatting is introduced.
 
-Analysis contract 3 adds read-only LookupLists and ArgumentBindings. Entries expose
+Analysis contract 5 adds read-only LookupLists and ArgumentBindings. Entries expose
 their literal Value, Expression, Location, ambiguity, optional DescriptionTranslation,
 and metadata; bindings expose TemplateKey, ArgumentName, ListKey and availability.
 Hosts use these detached compiler answers and revalidate saved inputs for completion.
@@ -539,14 +692,19 @@ autosave a committed cell; that saved value is then eligible for capture.
 The compiler in each SDK task-runtime directory exposes
 `AlarmCompiler.AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot>)` for host adapters.
 It returns a detached, read-only `Alarmlist.Analysis.AnalysisResult` with contract
-version 3, input versions, local/effective fields, defining alarms and locations,
+version 5, input versions, local/effective fields, defining alarms and locations,
 reference chains, procedure origins, Clear exclusions, and located diagnostics.
 It shares the compiler's resolution rules and never reads or writes snapshot paths.
 
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and returns contract 3.
+The original overload keeps its analysis-only behavior and returns contract 5.
+`AnalyzeLibrarySnapshots(snapshots, context, cancellationToken)` analyzes library
+definitions with the same deferred-value rules as library validation. Missing
+consumer values remain unavailable; syntax, structure and reference errors remain
+diagnostics. This mode never returns compiled XML. Application analysis and
+compilation remain strict about missing values.
 `AnalyzeSnapshots(snapshots, context, includeCompiledXml)` captures the same
 CompilationContext as compilation. EffectiveExpression and procedure RawText retain
 source tokens; EffectiveValue and surviving procedure Text carry evaluated results.
@@ -554,7 +712,7 @@ Check IsValueAvailable and HasEvaluatedValues independently of IsResolved: an ab
 alarm or a field-dependency error can have a valid reference chain. IsAbstract marks
 templates. Alarm and source Properties contain visible custom and well-known values,
 local declaration/assignment presence, and separate declaration/value origins.
-Contract 3 adds selected `Culture`, captured `Resources` (path, version and input
+Contract 5 adds selected `Culture`, captured `Resources` (path, version and input
 culture), raw `ResourceEntries` with comments/locations/validity/ambiguity, and
 compiler-resolved `Translations` for catalogue keys. Requested and supplying
 cultures are separate. Translation `IsAvailable` means lookup succeeded, not that
@@ -567,7 +725,7 @@ ALMX usage location, evaluated Value and IsValueAvailable. Abstract or excluded
 content does not invent uses. A missing or invalid expression can retain lookup
 provenance while its evaluated value is unavailable. Results are detached and
 read-only; changing resource/culture inputs cannot mutate earlier results.
-The bridge requires contract 3 and copies this data into host-owned serializable
+The bridge requires contract 5 and copies this data into host-owned serializable
 objects. Resource filename inference is delegated to the SDK's
 `LocalizationCulture.InferResourceCulture`; explicit empty culture stays distinct.
 CPS saved-resource capture and designer localization follow in iterations six/seven.
@@ -590,7 +748,7 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 3 and a CPS
+The extension now has an isolated AppDomain bridge for contract 5 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear

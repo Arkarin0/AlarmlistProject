@@ -12,8 +12,8 @@ $repoRoot = Split-Path $PSScriptRoot -Parent
 $vsixPath = Join-Path $repoRoot "artifacts/bin/Alarmlist.VisualStudio/$Configuration/net472/Alarmlist.VisualStudio.vsix"
 $archive = [IO.Compression.ZipFile]::OpenRead($vsixPath)
 try {
-  $templates = @($archive.Entries | Where-Object { $_.FullName.StartsWith('ProjectTemplates/') -and $_.FullName.EndsWith('.almproj') })
-  if ($templates.Count -ne 1) { throw 'Expected exactly one ALMX project template in the built VSIX.' }
+  $templates = @($archive.Entries | Where-Object { $_.FullName.StartsWith('ProjectTemplates/') -and $_.FullName.EndsWith('/Alarmlist.almproj') })
+  if ($templates.Count -ne 1) { throw 'Expected exactly one Alarmlist application template in the built VSIX.' }
   $reader = [IO.StreamReader]::new($templates[0].Open())
   try { [xml]$template = $reader.ReadToEnd() } finally { $reader.Dispose() }
   $sdk = $template.Project.Sdk
@@ -43,8 +43,8 @@ Copy-Item -LiteralPath $packagePath -Destination (Join-Path $runDirectory 'feed'
     <Name />
     <Code>LOCAL</Code>
     <TestProcedure>
-      <Instructions><Note>Shared local note</Note></Instructions>
-      <Reset><Step>Excluded local reset</Step><Clear /><Step>Shared reset only</Step></Reset>
+      <Group Name='Instructions'><Note>Shared local note</Note></Group>
+      <Group Name='Reset'><Step>Excluded local reset</Step><Clear /><Step>Shared reset only</Step></Group>
     </TestProcedure>
   </Alarm>
 </Alarmlist>
@@ -61,7 +61,7 @@ Copy-Item -LiteralPath $packagePath -Destination (Join-Path $runDirectory 'feed'
     <Properties><Property Name="par1" Value="ignored template value" /></Properties>
     <Name>$(Region) $(par1)</Name><Code>$(par1)</Code>
     <Description>Inspect $(AlarmlistAlarmCode) - $(Unit)</Description>
-    <TestProcedure><Instructions><Step>Check $(par1) $$(literal)</Step></Instructions></TestProcedure>
+    <TestProcedure><Group Name='Instructions'><Step>Check $(par1) $$(literal)</Step></Group></TestProcedure>
   </Alarm>
 </Alarmlist>
 '@ | Set-Content (Join-Path $runDirectory 'Shared/Properties.almx') -Encoding UTF8
@@ -93,8 +93,8 @@ foreach ($name in @('North', 'South')) {
     <Category>$name category</Category>
     <Description>$name description &amp; Unicode: &#937;</Description>
     <TestProcedure>
-      <Instructions><Step>$name inspect</Step><Warning>$name caution</Warning></Instructions>
-      <Reset><Step>$name excluded reset</Step></Reset>
+      <Group Name='Instructions'><Step>$name inspect</Step><Warning>$name caution</Warning></Group>
+      <Group Name='Reset'><Step>$name excluded reset</Step></Group>
     </TestProcedure>
   </Alarm>
 </Alarmlist>

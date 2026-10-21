@@ -16,30 +16,43 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         private readonly object _gate = new object();
         private readonly HashSet<ProjectAnalysisService> _projects = new HashSet<ProjectAnalysisService>();
+        private readonly Dictionary<ProjectAnalysisService, ProjectUserSetting> _previewLayouts = new Dictionary<ProjectAnalysisService, ProjectUserSetting>();
         private readonly Dictionary<ProjectAnalysisService, Func<AnalysisProject, string, CancellationToken, Task>> _cultureWriters
             = new Dictionary<ProjectAnalysisService, Func<AnalysisProject, string, CancellationToken, Task>>();
 
         public event EventHandler Changed;
 
-        public void Add(ProjectAnalysisService project, Func<AnalysisProject, string, CancellationToken, Task> cultureWriter = null)
+        public void Add(ProjectAnalysisService project, Func<AnalysisProject, string, CancellationToken, Task> cultureWriter = null, ProjectUserSetting previewLayout = null)
         {
             lock (_gate)
             {
                 if (!_projects.Add(project)) return;
                 if (cultureWriter != null) _cultureWriters.Add(project, cultureWriter);
+                if (previewLayout != null) _previewLayouts.Add(project, previewLayout);
                 project.Changed += OnChanged;
             }
             OnChanged(this, EventArgs.Empty);
         }
         public void Remove(ProjectAnalysisService project)
         {
+            ProjectUserSetting layout = null;
             lock (_gate)
             {
                 if (!_projects.Remove(project)) return;
                 _cultureWriters.Remove(project);
+                _previewLayouts.TryGetValue(project, out layout); _previewLayouts.Remove(project);
                 project.Changed -= OnChanged;
             }
+            layout?.Dispose();
             OnChanged(this, EventArgs.Empty);
+        }
+        public ProjectUserSetting GetPreviewLayout(AnalysisProject project)
+        {
+            lock (_gate)
+            {
+                ProjectAnalysisService owner = _projects.FirstOrDefault(service => project != null && ReferenceEquals(service.Current.Project, project));
+                return owner != null && _previewLayouts.TryGetValue(owner, out ProjectUserSetting layout) ? layout : null;
+            }
         }
         private void OnChanged(object sender, EventArgs args) => Changed?.Invoke(this, EventArgs.Empty);
 
@@ -59,6 +72,11 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             lock (_gate)
                 return _projects.Where(project => project.Current.Project?.Inputs.Contains(documentPath, System.StringComparer.OrdinalIgnoreCase) == true).ToArray();
+        }
+
+        public IReadOnlyList<ProjectAnalysisService> GetProjects()
+        {
+            lock (_gate) return _projects.Where(project => project.Current.Project != null).ToArray();
         }
     }
 }

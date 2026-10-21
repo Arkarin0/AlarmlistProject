@@ -145,11 +145,14 @@ namespace Alarmlist.VisualStudio.Diagnostics
         { _source = source; Project = project; Diagnostic = diagnostic; }
 
         public async Task<bool> TryNavigateAsync(IProjectAnalysisInputSource inputs, Action<AnalysisLocation, string> navigate, CancellationToken token)
+            => await TryNavigateAsync(inputs, target => navigate(target.Location, target.Text), token);
+
+        public async Task<bool> TryNavigateAsync(IProjectAnalysisInputSource inputs, Action<AnalysisNavigationTarget> navigate, CancellationToken token)
         {
-            if (!_source.IsCurrent(this) || !Diagnostic.TryGetSourceText(Diagnostic.Location, out string text)) return false;
+            if (!_source.IsCurrent(this) || !Diagnostic.TryGetNavigationTarget(Diagnostic.Location, out AnalysisNavigationTarget target)) return false;
             if (!await ProjectAnalysisValidation.InputsMatchAsync(inputs, Diagnostic.State, token) || !_source.IsCurrent(this)) return false;
             token.ThrowIfCancellationRequested();
-            navigate(Diagnostic.Location, text);
+            navigate(target);
             return true;
         }
     }

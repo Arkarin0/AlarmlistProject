@@ -21,11 +21,11 @@ namespace Alarmlist.Analysis.Tests
             var inputs = new[]
             {
                 new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName><Name>Ü &amp; 😀</Name>"
-                    + "<Category>Fire</Category><TestProcedure><Instructions><Step>Old</Step></Instructions>"
-                    + "<Reset><Hint>Reset</Hint></Reset></TestProcedure></Alarm></Alarmlist>", Path.Combine(directory, "Base.almx"), 4),
+                    + "<Category>Fire</Category><TestProcedure><Group Name='Instructions'><Step>Old</Step></Group>"
+                    + "<Group Name='Reset'><Hint>Reset</Hint></Group></TestProcedure></Alarm></Alarmlist>", Path.Combine(directory, "Base.almx"), 4),
                 new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><Name/>"
-                    + "<Code>Local</Code><TestProcedure><Instructions><Note>Discarded</Note><Clear/><Warning>Voltage &lt; 5</Warning>"
-                    + "<Step>Finish</Step></Instructions><Reset><Note>Again</Note></Reset></TestProcedure></Alarm></Alarmlist>",
+                    + "<Code>Local</Code><TestProcedure><Group Name='Instructions'><Note>Discarded</Note><Clear/><Warning>Voltage &lt; 5</Warning>"
+                    + "<Step>Finish</Step></Group><Group Name='Reset'><Note>Again</Note></Group></TestProcedure></Alarm></Alarmlist>",
                     Path.Combine(directory, "Child.almx"), 7)
             };
             var compiler = new AlarmCompiler();
@@ -43,9 +43,9 @@ namespace Alarmlist.Analysis.Tests
             Assert.Null(child.Element("ReferenceName"));
             Assert.Empty(document.Descendants("Clear"));
             XElement procedure = child.Element("TestProcedure");
-            Assert.Equal(new[] { "Voltage < 5", "Finish" }, procedure.Element("Instructions").Elements().Select(item => item.Value));
-            Assert.Equal(new[] { "Warning", "Instruction" }, procedure.Element("Instructions").Elements().Select(item => (string)item.Attribute("Kind")));
-            Assert.Equal(new[] { "Reset", "Again" }, procedure.Element("Reset").Elements().Select(item => item.Value));
+            Assert.Equal(new[] { "Voltage < 5", "Finish" }, procedure.Elements("Group").Single(group => (string)group.Attribute("Name") == "Instructions").Elements("TestProcedureItem").Select(item => item.Value));
+            Assert.Equal(new[] { "Warning", "Instruction" }, procedure.Elements("Group").Single(group => (string)group.Attribute("Name") == "Instructions").Elements("TestProcedureItem").Select(item => (string)item.Attribute("Kind")));
+            Assert.Equal(new[] { "Reset", "Again" }, procedure.Elements("Group").Single(group => (string)group.Attribute("Name") == "Reset").Elements("TestProcedureItem").Select(item => item.Value));
             Assert.Equal(new[] { 4, 7 }, preview.Sources.Select(source => source.Version));
             Assert.False(Directory.Exists(directory));
         }

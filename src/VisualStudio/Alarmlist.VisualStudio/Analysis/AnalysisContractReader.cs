@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
-    /// <summary>Contract 3 adapter. Copies compiler answers without reimplementing resolution.</summary>
+    /// <summary>Contract 5 adapter. Copies compiler answers without reimplementing resolution.</summary>
     internal sealed class AnalysisContractReader
     {
         private readonly Dictionary<Type, Type> _types = new Dictionary<Type, Type>();
@@ -17,9 +17,14 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             Add<AnalysisSnapshot>(assembly, "Alarmlist.Analysis.AnalysisResult");
             FieldInfo version = _types[typeof(AnalysisSnapshot)].GetField("CurrentContractVersion", BindingFlags.Public | BindingFlags.Static);
-            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 3))
-                throw new NotSupportedException("Only analysis contract 3 is supported by this extension.");
+            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 5))
+                throw new NotSupportedException("Only analysis contract 5 is supported by this extension.");
             Add<AnalysisResource>(assembly, "Alarmlist.Analysis.AnalyzedResource");
+            Add<AnalysisLibrary>(assembly, "Alarmlist.Analysis.AnalyzedLibrary");
+            Add<AnalysisLibraryIdentity>(assembly, "Alarmlist.Libraries.LibraryIdentity");
+            Add<AnalysisLibrarySource>(assembly, "Alarmlist.Analysis.AnalyzedLibrarySource");
+            Add<AnalysisLibraryLocation>(assembly, "Alarmlist.Analysis.AnalyzedLibraryLocation");
+            Add<AnalysisLibraryDocument>(assembly, "Alarmlist.Analysis.AnalyzedLibraryDocument");
             Add<AnalysisResourceEntry>(assembly, "Alarmlist.Analysis.AnalyzedResourceEntry");
             Add<AnalysisTranslation>(assembly, "Alarmlist.Analysis.AnalyzedTranslation");
             Add<AnalysisLocalizationUse>(assembly, "Alarmlist.Analysis.AnalyzedLocalizationUse");
@@ -33,6 +38,8 @@ namespace Alarmlist.VisualStudio.Analysis
             Add<AnalysisListMetadata>(assembly, "Alarmlist.Analysis.AnalyzedListMetadata");
             Add<AnalysisArgumentBinding>(assembly, "Alarmlist.Analysis.AnalyzedArgumentBinding");
             Add<AnalysisSource>(assembly, "Alarmlist.Analysis.AnalyzedSource");
+            Add<AnalysisProcedureCreation>(assembly, "Alarmlist.Configuration.ProcedureCreationSettings");
+            Add<AnalysisGroupDefault>(assembly, "Alarmlist.Configuration.ProcedureGroupDefault");
             Add<AnalysisAlarm>(assembly, "Alarmlist.Analysis.AnalyzedAlarm");
             Add<AnalysisAlarmOrigin>(assembly, "Alarmlist.Analysis.AlarmOrigin");
             Add<AnalysisField>(assembly, "Alarmlist.Analysis.AnalyzedField");
@@ -78,10 +85,11 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public AnalysisSnapshot Read(object result)
         {
-            if (result == null || Value<int>(result, "ContractVersion") != 3)
+            if (result == null || Value<int>(result, "ContractVersion") != 5)
                 throw new NotSupportedException("The SDK returned an unsupported analysis contract.");
-            return new AnalysisSnapshot(3, Value<bool>(result, "Success"), List(result, "Sources", source =>
-                new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"), List(source, "Properties", Property))),
+            return new AnalysisSnapshot(5, Value<bool>(result, "Success"), List(result, "Sources", source =>
+                new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"), List(source, "Properties", Property),
+                    ProcedureCreation(Value<object>(source, "ProcedureCreation")))),
                 List(result, "Alarms", Alarm), List(result, "Diagnostics", diagnostic => new AnalysisDiagnostic(
                     Value<string>(diagnostic, "Id"), EnumValue<AnalysisSeverity>(diagnostic, "Severity"), Value<string>(diagnostic, "Message"),
                     Location(Value<object>(diagnostic, "Location")), List(diagnostic, "RelatedLocations", Location))),
@@ -96,8 +104,26 @@ namespace Alarmlist.VisualStudio.Analysis
                 List(result, "LookupLists", list => new AnalysisLookupList(Value<string>(list, "Key"), List(list, "Entries", ListEntry))),
                 List(result, "ArgumentBindings", binding => new AnalysisArgumentBinding(Value<string>(binding, "TemplateKey"),
                     Value<string>(binding, "ArgumentName"), Value<string>(binding, "ListKey"), Location(Value<object>(binding, "Location")),
-                    Value<bool>(binding, "IsAvailable"))));
+                    Value<bool>(binding, "IsAvailable"))), List(result, "Libraries", Library));
         }
+
+        private static AnalysisLibraryIdentity LibraryIdentity(object identity) => identity == null ? null
+            : new AnalysisLibraryIdentity(Value<string>(identity, "Id"), Value<string>(identity, "Version"));
+
+        private static AnalysisLibrary Library(object library) => new AnalysisLibrary(LibraryIdentity(Value<object>(library, "Identity")),
+            List(library, "Dependencies", LibraryIdentity), List(library, "Sources", source => new AnalysisLibrarySource(
+                Value<string>(source, "Name"), Value<string>(source, "FilePath"), Value<string>(source, "Definition"),
+                List(source, "Properties", Property), List(source, "Origins", origin => new AnalysisLibraryLocation(
+                    Value<string>(origin, "Key"), Location(Value<object>(origin, "OriginalLocation")), Location(Value<object>(origin, "DefinitionLocation")))))),
+            List(library, "Resources", resource => new AnalysisResource(Value<string>(resource, "FilePath"), Value<int>(resource, "Version"), Value<string>(resource, "Culture"))),
+            List(library, "LookupFiles", lookup => new AnalysisLookupFile(Value<string>(lookup, "FilePath"), Value<int>(lookup, "Version"))),
+            List(library, "Documents", document => new AnalysisLibraryDocument(Value<string>(document, "Name"), Value<string>(document, "FilePath"),
+                Value<string>(document, "Kind"), Value<string>(document, "Culture"), Value<string>(document, "Definition"),
+                List(document, "Origins", origin => new AnalysisLibraryLocation(Value<string>(origin, "Key"),
+                    Location(Value<object>(origin, "OriginalLocation")), Location(Value<object>(origin, "DefinitionLocation")))))));
+
+        private static AnalysisProcedureCreation ProcedureCreation(object settings) => new AnalysisProcedureCreation(
+            List(settings, "Groups", group => new AnalysisGroupDefault(Value<string>(group, "Name"), Value<string>(group, "Title"))), Value<string>(settings, "Error"));
 
         private static AnalysisAlarm Alarm(object alarm)
         {
@@ -107,7 +133,7 @@ namespace Alarmlist.VisualStudio.Analysis
                         Location(Value<object>(field, "LocalLocation")), Value<string>(field, "EffectiveValue"),
                         AlarmOrigin(Value<object>(field, "DefiningAlarm")), Location(Value<object>(field, "ValueLocation")), Value<bool>(field, "IsInherited"),
                         Value<string>(field, "EffectiveExpression"), Value<bool>(field, "IsValueAvailable"))),
-                Section(Value<object>(alarm, "Instructions")), Section(Value<object>(alarm, "Reset")), Value<bool>(alarm, "IsAbstract"),
+                List(alarm, "ProcedureSections", Section), Value<bool>(alarm, "IsAbstract"),
                 Value<bool>(alarm, "HasEvaluatedValues"), List(alarm, "Properties", Property), List(alarm, "LocalizationUses", use =>
                     new AnalysisLocalizationUse(Translation(Value<object>(use, "Translation")), Location(Value<object>(use, "UsageLocation")),
                         Value<string>(use, "Value"), Value<bool>(use, "IsValueAvailable"))), List(alarm, "LookupUses", use =>
@@ -140,8 +166,16 @@ namespace Alarmlist.VisualStudio.Analysis
         private static AnalysisSection Section(object section)
         {
             return new AnalysisSection(Value<string>(section, "Name"), List(section, "LocalEntries", Entry),
-                List(section, "EffectiveEntries", Entry), List(section, "ExcludedEntries", Entry));
+                List(section, "EffectiveEntries", Entry), List(section, "ExcludedEntries", Entry),
+                Field(Value<object>(section, "Title")), AlarmOrigin(Value<object>(section, "DefiningAlarm")),
+                Location(Value<object>(section, "Location")), Value<bool>(section, "IsLocallyDeclared"));
         }
+
+        private static AnalysisField Field(object field) => new AnalysisField(Value<string>(field, "Name"),
+            Value<bool>(field, "IsPresent"), Value<string>(field, "LocalValue"), Location(Value<object>(field, "LocalLocation")),
+            Value<string>(field, "EffectiveValue"), AlarmOrigin(Value<object>(field, "DefiningAlarm")),
+            Location(Value<object>(field, "ValueLocation")), Value<bool>(field, "IsInherited"),
+            Value<string>(field, "EffectiveExpression"), Value<bool>(field, "IsValueAvailable"));
 
         private static AnalysisEntry Entry(object entry)
         {
@@ -157,7 +191,8 @@ namespace Alarmlist.VisualStudio.Analysis
                 Value<bool>(property, "IsValueAvailable"), PropertyOrigin(Value<object>(property, "DeclarationOrigin")), PropertyOrigin(Value<object>(property, "ValueOrigin")));
 
         private static AnalysisPropertyOrigin PropertyOrigin(object origin)
-            => origin == null ? null : new AnalysisPropertyOrigin(Value<string>(origin, "Scope"), AlarmOrigin(Value<object>(origin, "Alarm")), Location(Value<object>(origin, "Location")));
+            => origin == null ? null : new AnalysisPropertyOrigin(Value<string>(origin, "Scope"), AlarmOrigin(Value<object>(origin, "Alarm")),
+                Location(Value<object>(origin, "Location")), LibraryIdentity(Value<object>(origin, "Library")));
 
         private static AnalysisEntryOrigin EntryOrigin(object origin)
         {
@@ -168,7 +203,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private static AnalysisAlarmOrigin AlarmOrigin(object origin)
         {
             return origin == null ? null : new AnalysisAlarmOrigin(Value<int>(origin, "Index"),
-                Value<string>(origin, "FullyQualifiedName"), Location(Value<object>(origin, "Location")));
+                Value<string>(origin, "FullyQualifiedName"), Location(Value<object>(origin, "Location")), LibraryIdentity(Value<object>(origin, "Library")));
         }
 
         private static AnalysisLocation Location(object location)

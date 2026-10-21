@@ -1,8 +1,30 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>Alarmlist.SampleAnalyzer</PackageId>
+    <Description>Opt-in sample Alarmlist analyzer for alarm-code prefixes.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackageAnalyzerAssembly</TargetsForTfmSpecificContentInPackage>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../Compiler/Alarmlist.Core.csproj" />
+    <ProjectReference Include="../../Compiler/Alarmlist.Core.csproj" PrivateAssets="all" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <None Include="build/Alarmlist.SampleAnalyzer.targets" Pack="true" PackagePath="build/" />
   </ItemGroup>
+  <Target Name="PackageAnalyzerAssembly">
+    <ItemGroup>
+      <!-- The selected SDK supplies the compiler contract; do not ship a second copy. -->
+      <TfmSpecificPackageFile Include="$(TargetPath)" PackagePath="tools/$(TargetFramework)/" />
+    </ItemGroup>
+  </Target>
+  <Target Name="GetSampleAnalyzerPackagePath" Returns="@(_SampleAnalyzerPackage)">
+    <ItemGroup>
+      <_SampleAnalyzerPackage Include="$(PackageOutputPath)$(PackageId).$(PackageVersion).nupkg" PackageVersion="$(PackageVersion)" />
+    </ItemGroup>
+  </Target>
 </Project>

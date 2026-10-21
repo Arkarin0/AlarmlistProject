@@ -18,16 +18,32 @@ and [TestApp](https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Ar
   Each invocation receives a separate log, including expected failures.
 - Tests cover package contents, compilation, conditional inputs, diagnostics,
   framework selection, and Clean/Rebuild behavior.
+- `LibraryPackTests` and `PackageRestoreTests` build real library artifacts and
+  packages in isolated local feeds. They cover exact project/package dependency
+  mapping, mixed graphs, equivalent compiled XML, warm-cache restore against an
+  empty feed, updates/removal, missing artifacts, version conflicts, non-packable
+  dependencies and prior-output preservation. The same tests can use desktop
+  MSBuild through `ALARMLIST_TEST_MSBUILD_PATH` below.
 - `ExamplePlaygroundTests` builds isolated copies of the example's current source
   inputs with the packaged SDK and both prepared sample-analyzer runtimes. It
   checks project/shared configuration scope, warning controls, source preservation,
   output preservation on promotion, and the missing-preparation message. It does
   not build or modify the persistent playground's outputs.
+- `LibraryExampleTests` builds an isolated copy of `example/Libraries/Libraries.sln`,
+  checks both consumers' transitive parameter/resource/lookup overrides, packs
+  the libraries and verifies equivalent output after switching one consumer to
+  PackageReference. It never changes the persistent example sources.
 - `AnalyzerLifecycle` builds a disposable analyzer against the restored SDK's
   compiler for the selected MSBuild runtime. It checks one disposal after a
   multi-culture batch, output/manifest preservation on disposal failure, and
   recovery on the following build. Desktop coverage requires the matching .NET
   Framework developer pack, as well as desktop MSBuild.
+- `AnalyzerPackageTests` consumes the real sample analyzer NuGet package using
+  a direct PackageReference. It verifies both runtime payloads, host selection,
+  diagnostics/configuration, version update, missing-version restore failure,
+  invalid-image output preservation/recovery, uninstall and owner-only tooling
+  across project/package library consumption. Run with desktop MSBuild as well
+  as the default .NET MSBuild to exercise both analyzer binaries.
 - `AnalysisContract` loads the compiler from the restored SDK's selected task
   runtime and calls its public snapshot analysis API through reflection. It checks
   contract version, field/procedure origins, Clear, result isolation, opt-in XML

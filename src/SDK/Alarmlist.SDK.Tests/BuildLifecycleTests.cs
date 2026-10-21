@@ -19,6 +19,30 @@ namespace Alarmlist.MSBuild.SDK.Tests
         }
 
         [Fact]
+        public void LibraryOutputBuildDiscoveryAndCleanUseOneCultureIndependentArtifact()
+        {
+            var app = _fixture.CreateTestApp("MinimalProject");
+            string output = Path.Combine(app.WorkingDirectory, "bin", "Debug", "Plant.almlib");
+            var discovery = app.Run(_output, "/t:GetTargetPath", "/p:OutputType=Library");
+            Assert.True(discovery.ExitCode == 0, discovery.Output);
+            Assert.False(File.Exists(output));
+            app.Build(_output, "/p:OutputType=Library");
+            Assert.True(File.Exists(output));
+            Assert.False(File.Exists(app.OutputPath));
+            var artifact = XDocument.Load(output);
+            Assert.Equal("AlarmLibrary", artifact.Root.Name.LocalName);
+            Assert.Equal("Plant", (string)artifact.Root.Attribute("Id"));
+            Assert.Equal("1.0.0", (string)artifact.Root.Attribute("Version"));
+            Assert.DoesNotContain(app.WorkingDirectory, artifact.ToString());
+            var clean = app.Run(_output, "/t:Clean", "/p:OutputType=Library");
+            Assert.True(clean.ExitCode == 0, clean.Output);
+            Assert.False(File.Exists(output));
+            var rebuild = app.Run(_output, "/t:Rebuild", "/p:OutputType=Library");
+            Assert.True(rebuild.ExitCode == 0, rebuild.Output);
+            Assert.True(File.Exists(output));
+        }
+
+        [Fact]
         public void CleanAndRebuildOnlyReplaceTheCompiledOutput()
         {
             var app = _fixture.CreateTestApp("MinimalProject");

@@ -5,6 +5,7 @@
     <Description>An ALMX file containing an alarm definition.</Description>
     <ProjectType>Alarmlist</ProjectType>
     <DefaultName>Alarms.almx</DefaultName>
+    <Icon>AlarmList.ico</Icon>
     <SortOrder>100</SortOrder>
   </TemplateData>
   <TemplateContent>

@@ -175,24 +175,22 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     InheritanceAdornerTests.Pump();
                     Assert.Equal("par2", session.View.FileParameters.Selected.Name);
                     Assert.True(ParameterCell(control, "File name of par2", false).IsKeyboardFocused);
-                    Button actions = (Button)file.FindName("RowActionsButton");
-                    Assert.True(actions.Focus());
-                    ((IInvokeProvider)new ButtonAutomationPeer(actions).GetPattern(PatternInterface.Invoke)).Invoke();
-                    InheritanceAdornerTests.Pump();
-                    Assert.True(actions.ContextMenu.IsOpen);
-                    var assign = actions.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Assign value…"));
+                    TextBox cell = ParameterCell(control, "File name of par2", false);
+                    ContextMenu menu = OpenParameterMenu(cell);
+                    Assert.True(menu.IsOpen);
+                    var assign = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Assign value…"));
                     ((IInvokeProvider)new MenuItemAutomationPeer(assign).GetPattern(PatternInterface.Invoke)).Invoke();
                     InheritanceAdornerTests.Pump();
                     Assert.True(session.View.FileParameters.Selected.HasValue);
                     Assert.True(ParameterCell(control, "File value of par2", false).IsKeyboardFocused);
-                    Assert.False(actions.ContextMenu.IsOpen);
-                    actions.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                    InheritanceAdornerTests.Pump();
-                    Assert.True(actions.ContextMenu.IsOpen);
+                    Assert.False(menu.IsOpen);
+                    OpenParameterMenu(ParameterCell(control, "File value of par2", false));
+                    Assert.True(menu.IsOpen);
                     host.RootVisual = null;
                     InheritanceAdornerTests.Pump();
-                    Assert.False(actions.ContextMenu.IsOpen);
-                    Assert.Null(actions.ContextMenu.DataContext);
+                    Assert.False(menu.IsOpen);
+                    Assert.Null(menu.DataContext);
+                    Assert.Null(menu.PlacementTarget);
                 }
             });
         }

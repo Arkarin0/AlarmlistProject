@@ -19,9 +19,9 @@
     <Name>Inherited code warning</Name>
     <Description>Intentionally inherits LEGACY-NORTH. Set a local Code to N-002 to clear SAMPLE001, then Undo.</Description>
     <TestProcedure>
-      <Instructions>
+      <Group Name='Instructions'>
         <Note>Follow SAMPLE001 to this consuming alarm; the template supplies the related code location.</Note>
-      </Instructions>
+      </Group>
     </TestProcedure>
   </Alarm>
 </Alarmlist>
