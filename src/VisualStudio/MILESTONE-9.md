@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–15 complete, including integrated Solution Explorer dependency acceptance.
+Status: iterations 1–15 complete; follow-up iterations 16–19 planned for direct mixed-reference builds, NuGet analyzers and package-content presentation.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2669,3 +2669,76 @@ Implementation and final validation (2026-10-18):
 
 All iteration-15 gates passed. Dependency-tree iterations 10–12 remain outstanding;
 this repair does not implement or claim their behavior.
+
+## Confirmed follow-up — mixed references and analyzer packages (2026-10-21)
+
+The owner requested a build test with direct project and package references,
+NuGet-distributed analyzers, package-content nodes and C#-style analyzer/rule
+presentation. Extend this milestone; preserve completed iteration records.
+Implement and validate each numbered iteration separately, commit it, then report
+its result. These planned gates are not implementation evidence.
+
+| Iteration | Deliverable | Validation and completion criteria |
+| --- | --- | --- |
+| 16 | Add DirectProjectAndPackageReferencesContributeToCompiledOutput in SDK tests. Use an isolated LibraryProjects fixture: pack Base 1.0.0, make Owner an independent concrete library, and have Plant directly reference Owner as a project and Base as a package. | Restore/build without TargetFramework; assert exactly the two expected alarm identities, Base's consumer-resolved name Final value, and Owner's distinct name. Delete output and rebuild to prove fresh generation. Run the new test plus LibraryPackTests, LibraryProjectReferenceTests and PackageRestoreTests on net472/net8.0. Record results and commit. |
+| 17 | Package the sample analyzer with net472/net8.0 payloads and ordinary build assets registering the host-appropriate AlarmlistAnalyzer. A direct PackageReference suffices; reuse NuGet-generated imports and existing captured-byte loading. Document authoring and PrivateAssets=all consumption. | Isolated feed/cache tests for restore, runtime selection, diagnostics, severity configuration, updates/removal and invalid analyzer failure preserving prior output. Validate .NET and desktop MSBuild. No automatic transitive activation or buildTransitive registration. Record results and commit. |
+| 18 | Integrate analyzer-package live lifecycle and C#-style Dependencies / Analyzers (Analysetools) presentation, as specified below. | Native VS2022/VS2026 install/update/uninstall, restore recovery, configuration changes and reload/restart; live diagnostics and descriptor-tree refresh, isolation, no stale or duplicate entries. Run affected editor/bridge/package regressions. Record results and commit. |
+| 19 | Extend selected package nodes with localized, nonempty Build files, Analyzers, Alarm libraries and Documents groups alongside transitive packages. Use restored graph/manifests and declared files, never cache scans. | Test classification, deterministic/stable identity, duplicates, containment, missing files and restore/update/removal recovery. Native both-host expansion and read-only navigation; verify browsing does not write source/package/output files or build/pack. Record results and commit. |
+
+### Analyzer presentation contract — accepted C#-style behavior
+
+The owner's second screenshot shows a top-level Analysetools group with analyzer
+assembly children and diagnostic IDs/titles below each assembly. This supersedes
+any interpretation that analyzers should appear only inside a package node.
+
+- Show Dependencies / Analyzers (localized Analysetools in German) for all active
+  Alarmlist analyzers, whether registered by a package or an explicit DLL item.
+  Hide the empty group. Assembly nodes use their actual assembly identities;
+  deduplicate the same captured assembly rather than displaying one node per rule.
+- Expand each assembly to show its declared SupportedDiagnostics, formatted
+  `ID: Title`, sorted by diagnostic ID. Show supported rules even when they have
+  reported no violations. These are rule definitions, not Error List occurrences.
+  Multiple analyzer types in one assembly contribute to that assembly's rule list;
+  preserve existing duplicate/invalid descriptor validation rather than silently
+  masking conflicts.
+- Obtain descriptor metadata through the selected SDK's existing isolated loader
+  and copy immutable assembly/rule data across the bridge. IAlarmAnalyzer already
+  exposes SupportedDiagnostics; add detached presentation data as needed without
+  loading analyzer or compiler implementations into the VS host. Metadata capture
+  must remain available when ALMX compilation has errors, without executing Analyze
+  merely to populate the tree. Descriptor getter/load failures yield an unavailable
+  analyzer node and existing failure reporting, never stale rule children.
+- Use native analyzer/rule and severity icons where available, localized state
+  labels, keyboard expansion/selection and stable captured assembly/rule identities.
+  Present descriptor default severity as default: per-file EditorConfig can vary,
+  so do not claim one project-wide effective severity. Keep severity editing in the
+  existing diagnostic configuration workflow; this increment adds no ruleset editor.
+- Package install/update/removal, DLL changes, restore failure/recovery and project
+  configuration/unload must invalidate and republish the current tree. Expanding
+  nodes never builds, packs or writes source/configuration. Direct package removal
+  stays in native NuGet management; rules and transitive entries are not deletable.
+- Validate rules with no emitted diagnostics, multiple rules/analyzer types,
+  descriptor failures, package plus explicit-DLL registration, localization,
+  assembly isolation and disposal. Native cases must prove ID/title children,
+  update/removal refresh and parity with the live Error List on both hosts.
+
+### Package-content presentation contract
+
+Build files are selected package .props/.targets; analyzer entries are registered
+Alarmlist assemblies selected for the current host; alarm libraries are declared
+.almlib artifacts. Documents include the package README and declared .md/.txt/.html
+files under docs/ or documentation/. Keep transitive package dependencies alongside
+these content groups. Package analyzer entries describe provenance; the top-level
+Analyzers group provides the assembly/rule overview.
+
+Text opens read-only without executing HTML; alarm libraries use the generated
+read-only definition viewer. DLL entries show identity/path information without
+loading assemblies through browsing. Validate package-relative containment and
+clear stale content after selection/restore changes. No package-file edit/delete
+commands, public package publishing, arbitrary file discovery or automatic analyzer
+propagation through alarm-library references are included.
+
+Planning validation: inspected current NuGet-generated props/targets imports,
+explicit AlarmlistAnalyzer selection, sample packaging and IAlarmAnalyzer's
+SupportedDiagnostics contract. Reviewed plan consistency and paths. Implementation
+and new acceptance tests have not run; the owner's LineA.almproj edit is preserved.
