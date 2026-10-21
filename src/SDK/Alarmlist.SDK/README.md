@@ -286,8 +286,14 @@ The order is rule default, file severity, `NoWarn`, then warning promotion.
 ALM0001–ALM0025 cannot be suppressed or demoted. Any effective error prevents all
 culture outputs and their ownership manifest from being replaced.
 
-External analyzers are explicit items; no DLL glob or NuGet analyzer discovery
-runs automatically. See the [sample analyzer](../../Analyzers/Alarmlist.SampleAnalyzer/README.md).
+External analyzers are explicit `AlarmlistAnalyzer` items. A NuGet analyzer package
+can register these through its ordinary `build` targets, so consumers need only a
+direct `PackageReference` and restore. Use `PrivateAssets="all"` for project-local
+tooling; analyzer configuration does not propagate through alarm libraries.
+The sample package includes both runtime assemblies and selects the correct one
+automatically. There is no DLL glob, cache scan or discovery of ordinary Roslyn
+analyzers. See the [sample analyzer](../../Analyzers/Alarmlist.SampleAnalyzer/README.md)
+for package consumption and authoring. Direct DLL registration also remains supported.
 For a multi-targeted analyzer, select the assembly matching the build host:
 
 ```xml

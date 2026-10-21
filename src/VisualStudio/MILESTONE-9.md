@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–16 complete; follow-up iterations 17–19 planned for direct mixed-reference builds, NuGet analyzers and package-content presentation.
+Status: iterations 1–17 complete; follow-up iterations 18–19 planned for direct mixed-reference builds, NuGet analyzers and package-content presentation.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2761,3 +2761,37 @@ Validation: `dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests
 --verbosity quiet` passed **19 tests per framework**, net472 and net8.0, zero
 failures/skips. Reviewed the focused diff and whitespace; LineA's pre-existing
 edit retains its original SHA-256. No iteration-16 blocker remains.
+
+### Iteration 17 — analyzer-package build support (complete 2026-10-21)
+
+Implemented a packable opt-in sample analyzer with tools/net472 and tools/net8.0
+payloads and an ordinary build registration target. Reused the SDK packaging
+project's TFM-specific content/GetPackagePath pattern; consumer imports already
+support NuGet-generated targets. No new runtime dependency, compiler copy, managed
+lib asset or buildTransitive activation is introduced. Direct DLL items remain
+supported. SDK test preparation now copies the real analyzer package to isolated
+feeds alongside the SDK.
+
+Tests cover package layout, host-specific selection from a plain PackageReference,
+diagnostics/suppression/promotion, version update and missing-version restore,
+invalid-image output preservation and recovery, uninstall, and analyzer ownership
+across project/package alarm-library consumers. The initial packaging probe failed
+because implicit None items did not include README.md; explicit package inputs now
+follow the existing SDK project pattern. Initial lifecycle tests passed once per
+framework; expanded regression and actual desktop-MSBuild checks are running.
+
+Final iteration-17 validation:
+
+- `dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj
+  --filter 'FullyQualifiedName~AnalyzerPackageTests|FullyQualifiedName~AnalyzerTests|FullyQualifiedName~ProjectReferenceTests|FullyQualifiedName~PackageTests'
+  --verbosity quiet`: **26 passed net472 and 26 passed net8.0**, zero failures/skips.
+- The same project with `--framework net472 --no-build --no-restore
+  --filter 'FullyQualifiedName~AnalyzerPackageTests|FullyQualifiedName~AnalyzerTests'
+  --verbosity quiet`, using VS2022 desktop MSBuild through
+  `ALARMLIST_TEST_MSBUILD_PATH`: **9 passed**, zero failures/skips. The environment
+  override was restored afterward. Test assets were freshly built by the preceding
+  run; runtime-path assertions prove the desktop run selected tools/net472.
+- Reviewed package inputs, test assertions, docs and whitespace. The owner's LineA
+  file retains its original hash and remains unstaged. No implementation blocker
+  remains for iteration 17. Native analyzer-package lifecycle and the top-level
+  analyzer/rule tree remain iteration 18; package-content nodes remain iteration 19.

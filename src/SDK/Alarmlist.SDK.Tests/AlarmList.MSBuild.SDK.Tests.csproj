@@ -60,5 +60,10 @@
     </MSBuild>
     <Copy SourceFiles="@(_DesktopSampleAnalyzer)" DestinationFolder="$(TargetDir)testassets/boilerplate/analyzers/net472" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_CoreSampleAnalyzer)" DestinationFolder="$(TargetDir)testassets/boilerplate/analyzers/net8.0" SkipUnchangedFiles="true" />
+    <MSBuild Projects="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" Targets="GetSampleAnalyzerPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzerPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_SampleAnalyzerPackage)" DestinationFolder="$(TargetDir)testassets/boilerplate/feed" SkipUnchangedFiles="true" />
   </Target>
 </Project>

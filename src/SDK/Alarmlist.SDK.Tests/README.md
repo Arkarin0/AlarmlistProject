@@ -38,6 +38,12 @@ and [TestApp](https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Ar
   multi-culture batch, output/manifest preservation on disposal failure, and
   recovery on the following build. Desktop coverage requires the matching .NET
   Framework developer pack, as well as desktop MSBuild.
+- `AnalyzerPackageTests` consumes the real sample analyzer NuGet package using
+  a direct PackageReference. It verifies both runtime payloads, host selection,
+  diagnostics/configuration, version update, missing-version restore failure,
+  invalid-image output preservation/recovery, uninstall and owner-only tooling
+  across project/package library consumption. Run with desktop MSBuild as well
+  as the default .NET MSBuild to exercise both analyzer binaries.
 - `AnalysisContract` loads the compiler from the restored SDK's selected task
   runtime and calls its public snapshot analysis API through reflection. It checks
   contract version, field/procedure origins, Clear, result isolation, opt-in XML

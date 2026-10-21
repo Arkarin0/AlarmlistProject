@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <AlarmlistAnalyzer Include="$(MSBuildThisFileDirectory)../tools/net472/Alarmlist.SampleAnalyzer.dll"
+                      Condition="'$(MSBuildRuntimeType)' != 'Core'" />
+    <AlarmlistAnalyzer Include="$(MSBuildThisFileDirectory)../tools/net8.0/Alarmlist.SampleAnalyzer.dll"
+                      Condition="'$(MSBuildRuntimeType)' == 'Core'" />
+  </ItemGroup>
+</Project>

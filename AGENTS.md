@@ -367,7 +367,12 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   evidence and remaining editor integration.
 
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
-  saved dependency-byte capture, contract-3 detached inputs, cooperative cancellation,
+  package registration through ordinary build assets selecting net472 for desktop
+  MSBuild/Visual Studio and net8.0 for .NET MSBuild. The sample analyzer package is
+  opt-in project-local tooling; do not bundle Alarmlist.Core, add buildTransitive
+  activation or discover arbitrary Roslyn analyzer/cache DLLs. Direct DLL items
+  remain supported. See milestone-nine iterations 17–19 for package/tree scope.
+  Preserve saved dependency-byte capture, contract-3 detached inputs, cooperative cancellation,
   ALM0025 failure reporting, and diagnostic policy before output installation. The
   net472 loader must reject changed/conflicting images in an existing AppDomain;
   VS replaces the domain on payload changes, while desktop builds need a new process.
