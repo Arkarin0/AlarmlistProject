@@ -247,6 +247,26 @@ Open questions:
   procedures and other collection-valued properties be displayed?
 - Which sorting, filtering, column arrangement, and copy operations are useful?
 
+## Procedure groups and splitter UI refinements
+
+Proposed on 2026-10-21; no milestone assigned.
+
+- Enclose each procedure group in its own GroupBox so the boundaries between
+  groups are clear.
+- Give the divider between file and alarm settings a visible drag handle so users
+  can recognize that it resizes the two areas. Use the previously supplied splitter
+  image as the visual reference once available; the exact appearance remains open.
+- Combine the repeated display title and separate title/localization input into
+  one editable GroupBox heading. Show the resolved title normally and the raw
+  expression, such as `$(loc:GroupTitle)`, when focused. Preserve existing title
+  inheritance, ID fallback, expression completion, and draft/commit behavior.
+
+The stable group ID remains distinct from the editable title; editing the heading
+does not rename the group. Its presentation remains an open UX question: consider
+a tooltip or details area to avoid repeating the group name as a heading, ID, and
+separate title field. These notes propose presentation changes without changing
+the existing group or localization semantics.
+
 ## External alarm analyzers
 
 Proposed on 2026-10-08; no milestone assigned.
