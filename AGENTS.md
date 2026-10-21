@@ -68,7 +68,9 @@ Existing plans and iteration records:
 Read the selected plan's current status and remaining gates before resuming it.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter
-grip. Preserve existing title semantics, draft lifecycle and source navigation;
+grip, plus collapsible group bodies and procedure search in follow-up iterations.
+Keep search/collapse state out of source and preserve drafts during view actions.
+Preserve existing title semantics, draft lifecycle and source navigation;
 these are presentation changes, not compiler or source-format changes.
 [Milestone 9](src/VisualStudio/MILESTONE-9.md) authorizes reusable alarm libraries,
 ProjectReference/NuGet and native reference management; its

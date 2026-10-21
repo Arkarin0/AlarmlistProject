@@ -66,6 +66,28 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.Type("Private cleared draft");
             VisualStudioSession.Wait(() => editor.Text == "Private cleared draft", "cleared draft typing");
             Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            AutomationElement collapseGroup = window.FindFirstDescendant(cf => cf.ByName("Expand procedure group Verification"));
+            Press(ide, collapseGroup, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => editor.IsOffscreen, "collapse preserves procedure draft");
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            Press(ide, collapseGroup, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => !editor.IsOffscreen && editor.Text == "Private cleared draft", "expand restores procedure draft");
+            TextBox search = window.FindFirstDescendant(cf => cf.ByName("Search procedures").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
+            search.Focus();
+            VisualStudioSession.Wait(() => search.Properties.HasKeyboardFocus.Value, "procedure search focus");
+            ide.RequireForeground(); Keyboard.Type("private");
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
+                .Any(item => item.Name.Contains("Private cleared draft")), "search finds private cleared draft");
+            Press(ide, window.FindFirstDescendant(cf => cf.ByName("Collapse all groups")), VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => editor.IsOffscreen, "collapse all before search navigation");
+            Press(ide, search, VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => !editor.IsOffscreen && editor.Text == "Private cleared draft", "search reveals collapsed match");
+            Assert.True(search.Properties.HasKeyboardFocus.Value);
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            Press(ide, search, VirtualKeyShort.ESCAPE);
+            VisualStudioSession.Wait(() => search.Text == "", "Escape clears procedure search");
+            Assert.Equal("Private cleared draft", editor.Text);
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
             toggle.Focus();
             VisualStudioSession.Wait(() => toggle.Properties.HasKeyboardFocus.Value, "cleared toggle focus");
             ide.RequireForeground();

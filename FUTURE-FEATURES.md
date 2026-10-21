@@ -215,6 +215,24 @@ Open questions:
   duplicate names? Missing localization keywords must still fail final compilation
   as described above; define when unresolved custom properties become errors.
 
+## Visual Studio Code support
+
+Proposed on 2026-10-21; no milestone assigned.
+
+Add Visual Studio Code support for authoring `.almx` files and working with
+`.almproj` projects. Reuse the Alarmlist compiler and SDK semantics for consistent
+results across command-line builds, Visual Studio, and Visual Studio Code.
+
+Open questions:
+
+- Which capabilities belong in the first version: syntax highlighting,
+  IntelliSense, live diagnostics, reference navigation, and build commands?
+- Should designer editing and resolved/table previews be included or follow later?
+- How should project loading, dependencies, localization, and analyzer settings
+  integrate with the workspace and shared compiler analysis?
+- Which operating systems and remote workspaces should be supported, and how
+  should required tooling be discovered and the extension distributed?
+
 ## Separate preview view
 
 Proposed on 2026-10-08; no milestone assigned.
