@@ -66,6 +66,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.Type("Private cleared draft");
             VisualStudioSession.Wait(() => editor.Text == "Private cleared draft", "cleared draft typing");
             Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            AutomationElement collapseGroup = window.FindFirstDescendant(cf => cf.ByName("Expand procedure group Verification"));
+            Press(ide, collapseGroup, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => editor.IsOffscreen, "collapse preserves procedure draft");
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            Press(ide, collapseGroup, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => !editor.IsOffscreen && editor.Text == "Private cleared draft", "expand restores procedure draft");
             toggle.Focus();
             VisualStudioSession.Wait(() => toggle.Properties.HasKeyboardFocus.Value, "cleared toggle focus");
             ide.RequireForeground();

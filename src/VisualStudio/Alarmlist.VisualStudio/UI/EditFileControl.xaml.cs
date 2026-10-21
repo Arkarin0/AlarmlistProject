@@ -56,6 +56,14 @@ namespace Alarmlist.VisualStudio
             if (IsKeyboardFocusWithin && !Equals((args.NewFocus as FrameworkElement)?.Tag, "PreserveDraft")) ViewModel.CommitPending();
         }
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
+        private void OnExpandProcedureGroups(object sender, RoutedEventArgs args)
+        {
+            foreach (ProcedureSectionViewModel section in ViewModel.ProcedureSections) section.IsExpanded = true;
+        }
+        private void OnCollapseProcedureGroups(object sender, RoutedEventArgs args)
+        {
+            foreach (ProcedureSectionViewModel section in ViewModel.ProcedureSections) section.IsExpanded = false;
+        }
         private void OnUnloaded(object sender, RoutedEventArgs args)
         {
             _inputVersion++;
@@ -115,6 +123,8 @@ namespace Alarmlist.VisualStudio
                 // input anywhere in the shell still cancels this focus request.
                 || (button.IsLoaded && Keyboard.FocusedElement != null && !IsKeyboardFocusWithin)) return;
 
+            if (request.Section != null) request.Section.IsExpanded = true;
+            UpdateLayout();
             if (request.Index == -2)
             {
                 FrameworkElement groupTarget = request.Section == null ? NewGroupIdEditor : Children(this).OfType<ExpressionTextBox>()

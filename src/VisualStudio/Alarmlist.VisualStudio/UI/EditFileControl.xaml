@@ -326,6 +326,10 @@
                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
             <StackPanel Margin="0,8,0,0">
               <WrapPanel Margin="0,0,0,8">
+                <Button Content="Expand all groups" Tag="PreserveDraft" Click="OnExpandProcedureGroups" />
+                <Button Content="Collapse all groups" Tag="PreserveDraft" Click="OnCollapseProcedureGroups" />
+              </WrapPanel>
+              <WrapPanel Margin="0,0,0,8">
                 <TextBox x:Name="NewGroupIdEditor" Text="{Binding NewGroupName, UpdateSourceTrigger=PropertyChanged}" MinWidth="150" Margin="0,0,6,0"
                          AutomationProperties.Name="New procedure group ID" ToolTip="Stable group identity. Titles can be translated; IDs remain unchanged." />
                 <Button Content="+ Add group" Command="{Binding AddGroupCommand}" Click="OnProcedureAction"
@@ -359,6 +363,11 @@
                       </GroupBox.Header>
                       <StackPanel>
                         <TextBlock Text="{Binding Name, StringFormat=Group ID: {0}}" TextWrapping="Wrap" Margin="0,0,0,6" />
+                        <ToggleButton Content="{Binding ExpansionText}" IsChecked="{Binding IsExpanded}" Tag="PreserveDraft"
+                                      HorizontalAlignment="Left" Margin="0,0,0,6" Padding="6,3"
+                                      AutomationProperties.Name="{Binding Name, StringFormat=Expand procedure group {0}}"
+                                      ToolTip="Show or hide this group's entries. Private drafts are preserved." />
+                        <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource Visibility}}">
                         <WrapPanel Margin="0,0,0,6">
                           <ToggleButton IsChecked="{Binding ShowCleared}" IsEnabled="{Binding HasExcluded}"
                                         Tag="PreserveDraft" ToolTip="{Binding ClearedHelp}" ToolTipService.ShowOnDisabled="True"
@@ -437,6 +446,7 @@
                             </DataTemplate>
                           </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                      </StackPanel>
                       </StackPanel>
                     </GroupBox>
                   </DataTemplate>

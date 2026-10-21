@@ -1,7 +1,7 @@
 # Milestone ten: procedure-group presentation and splitter refinement
 
-Status: all three authorized iterations complete. Scoped automated acceptance
-passed on VS2022 and VS2026; historical manual/vendor/release gates remain separate.
+Status: iterations 1–4 complete; follow-up iteration 5 authorized and planned.
+Original scoped acceptance passed on VS2022 and VS2026. Historical gates remain separate.
 
 ## Outcome and confirmed design
 
@@ -17,7 +17,8 @@ and a centered themed splitter grip.
   available width without overlapping actions; retain controls during refresh.
 - Remove the duplicated heading and separate title-input row. Keep the authored
   group ID visible and read-only. Place existing actions in a wrapping toolbar
-  below the ID. Groups remain expanded, with existing entry and Clear operations.
+  below the ID. Groups initially expand, with existing entry and Clear operations.
+  Follow-up iteration 4 adds individual collapse and Expand/Collapse all.
 - Preserve absent-title inheritance/ID fallback, explicit-empty inheritance stop
   with ID display, and unavailable/error expression behavior. Never rename IDs
   through title editing. Preserve private drafts, commit/cancel, Undo/Redo,
@@ -27,9 +28,23 @@ and a centered themed splitter grip.
   entire divider remains draggable, with no extra tab stop. Keep collapse rules.
 
 This changes presentation only: no compiler/source/public API/analysis contract,
-preview-table, XML IntelliSense, group-renaming, individual group collapse or
+preview-table, XML IntelliSense, group-renaming or
 publication changes. Historical manual/vendor/release gates remain separate.
 No product decisions remain open.
+
+The owner authorized collapsible groups and procedure search after iteration 3,
+explicitly excluding additional display checks. This supersedes the original
+always-expanded decision. Retain headings and IDs when collapsed, preserve private
+drafts and controls, and reopen a group for source navigation or authoring focus.
+Expansion is transient per open editor/group identity, survives refresh while the
+group exists, and is not written to source or persisted settings.
+Search is case-insensitive literal substring matching within the selected alarm:
+group IDs, raw/resolved titles and local/inherited entry text (including cleared
+entries). Show a match list and previous/next navigation, without filtering away
+editors. Searching and navigating results preserve drafts; reveal a matched group
+and cleared row without moving focus into its editor. Refresh results with current
+draft/analysis state and discard stale result targets. No OS theme, DPI-switching,
+or additional palette/render display checks are part of these follow-ups.
 
 ## Architecture
 
@@ -52,6 +67,8 @@ or unavailable native check blocks completion, not merely documentation.
 | 1 | Record confirmed contract, boundaries and gates; link repository guidance and assign the future-feature proposal. | Review diff, paths, links and consistency. Documentation only; no build/tests required. |
 | 2 | GroupBox presentation and editable headings, retaining all authoring behavior; WPF and native regression coverage. | Editor unit suite and native procedure scenarios on VS2022 and VS2026: keyboard editing/completion, title-source navigation, group operations, Undo/Redo and unchanged source for presentation actions. |
 | 3 | Themed splitter grip, scope tests, usage documentation and integrated acceptance. | Editor unit suite, packaged VSIX integration tests on both frameworks, native procedure/scope scenarios on both hosts; rendered light/dark/high-contrast narrow/wide and enlarged-scale layouts. |
+| 4 | Collapsible group bodies, Expand/Collapse all, draft-safe controls and automatic source/authoring expansion; usage documentation. | Focused model/WPF tests for independent/all toggles, unchanged source, draft preservation, refresh and source navigation; native Procedures scenario on both supported hosts. Depends on iteration 3. |
+| 5 | Procedure search, match list and previous/next navigation with current raw/resolved local/inherited text; documentation. | Focused search/WPF regressions covering case-insensitive matches, cleared/inherited entries, drafts, refresh and no matches; native Procedures on both hosts and packaged VSIX integration on both frameworks. Depends on iteration 4. |
 
 Acceptance covers local/inherited/empty/missing/localized/erroneous/long titles,
 multiple/empty groups, drafts during analysis refresh and splitter interaction,
@@ -155,3 +172,20 @@ Final native acceptance:
   No implementation gate remains. Compiler/SDK-wide suites were not rerun because
   their implementation/contracts were unchanged; package-consumer validation was
   included. No publication occurred. Existing release/vendor gates are unaffected.
+
+### Iteration 4 — collapsible groups (2026-10-21)
+
+Added draft-preserving individual and all-group toggles. Headers and IDs remain
+visible; bodies retain their controls. Expansion survives analysis refresh while
+the group exists. Source navigation and authoring focus expand the target group.
+Updated usage documentation and repository guidance for the approved follow-ups.
+
+Validation: `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+--filter FullyQualifiedName~ProcedureCollapse --verbosity quiet -m:1 -nr:false`
+passed **1 net472 test**, covering drafts, refresh, independent/all toggles,
+navigation and unchanged source. Native `eng/test-visualstudio.ps1
+-VisualStudioPath <host> -Filter 'Area=Procedures'` passed **1 per host**, including
+collapse/reopen with a private draft and existing authoring/Undo scenarios.
+TRX run IDs: `2ca70562def84531b9bde9ecf7815ab2` (VS2022),
+`25427de03de943a3aa4fab7129d780da` (VS2026).
+Reviewed diff and whitespace; no blocker remains. No display checks were run.

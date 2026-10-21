@@ -425,6 +425,11 @@ Each group has its own bordered area. Edit its heading with the same expression
 editor and completion as alarm fields: it shows resolved text normally and the
 raw expression when focused. The read-only **Group ID** remains visible beneath
 the heading; editing the title never renames the group. Long headings wrap.
+Use **Collapse entries** to hide a group body while keeping its title and ID
+visible, or **Expand all groups** / **Collapse all groups** above the groups.
+These view actions preserve private drafts and never change source. Expansion
+state lasts while the group remains in the open editor; source navigation and
+entry authoring reveal their target group automatically.
 An absent title inherits; an explicit empty title displays the group ID. The
 title context menu can remove a local title or navigate to its source.
 Move controls reorder newly introduced local groups; inherited order stays fixed.
