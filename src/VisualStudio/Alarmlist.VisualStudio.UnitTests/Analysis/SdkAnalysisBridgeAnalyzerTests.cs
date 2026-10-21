@@ -15,10 +15,54 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
 {
     public partial class SdkAnalysisBridgeTests
     {
+        [Fact]
+        public void MultipleRegisteredAssembliesRetainRulesWithAndWithoutViolations()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                string silent = CompileAnalyzer(sdk, "return new Alarmlist.Diagnostics.Diagnostic[0];");
+                string explicitDll = CompileLifecycleAnalyzers(sdk, 2, "none", "Explicit");
+                // Repeated package/DLL registration of the same captured path must
+                // not execute the same assembly twice or create duplicate rule nodes.
+                var captured = SavedAnalyzerCapture.Capture(new[] { silent, explicitDll, silent }, CancellationToken.None);
+                Assert.Equal(2, captured.Count);
+                var context = new AnalysisContext(analyzers: captured);
+                AnalysisResponse response;
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath)) response = bridge.Analyze(Array.Empty<AnalysisInput>(), context: context);
+                Assert.Equal(2, response.Analyzers.Count);
+                Assert.Equal("TEST001", Assert.Single(response.Analyzers.Single(item => item.FilePath == silent).Rules).Id);
+                Assert.Equal(new[] { "TEST0", "TEST1" }, response.Analyzers.Single(item => item.FilePath == explicitDll).Rules.Select(rule => rule.Id));
+                Assert.Equal(2, response.Snapshot.Diagnostics.Count);
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Rules" || assembly.GetName().Name == "Explicit");
+            }
+        }
+
+        [Fact]
+        public void AnalyzerDeclarationsSurviveMalformedAlmxWithoutRunningAnalyze()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                string marker = Path.Combine(sdk.DirectoryPath, "analyzed.txt");
+                string path = CompileAnalyzer(sdk, "System.IO.File.WriteAllText(@\"" + marker + "\", \"executed\"); return new Alarmlist.Diagnostics.Diagnostic[0];");
+                var context = new AnalysisContext(analyzers: SavedAnalyzerCapture.Capture(new[] { path }, CancellationToken.None));
+                AnalysisResponse response;
+                using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
+                    response = bridge.Analyze(new[] { new AnalysisInput("<Alarmlist>", Path.Combine(sdk.DirectoryPath, "Broken.almx"), 0) }, context: context);
+                var assembly = Assert.Single(response.Analyzers);
+                Assert.Null(assembly.Failure);
+                Assert.StartsWith("Rules, Version=", assembly.AssemblyIdentity);
+                Assert.Equal("TEST001", Assert.Single(assembly.Rules).Id);
+                Assert.Equal("Warning", Assert.Single(assembly.Rules).DefaultSeverity);
+                Assert.False(File.Exists(marker));
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), candidate => candidate.GetName().Name == "Rules" || candidate.GetName().Name == "Alarmlist.Core");
+            }
+        }
+
         [Theory]
         [InlineData("none", 3)]
         [InlineData("constructor", 2)]
         [InlineData("analysis", 3)]
+        [InlineData("descriptor", 3)]
         [InlineData("disposal", 3)]
         public void AnalyzerCleanupCoversPartialConstructionAndFailures(string failure, int disposedCount)
         {
@@ -30,6 +74,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
                 {
                     AnalysisResponse response = bridge.Analyze(Array.Empty<AnalysisInput>(), context: context);
+                    var metadata = Assert.Single(response.Analyzers);
+                    if (failure == "constructor" || failure == "descriptor")
+                    {
+                        Assert.Contains(failure + " failure", metadata.Failure);
+                        Assert.Empty(metadata.Rules);
+                    }
+                    else Assert.Equal(3, metadata.Rules.Count);
                     Assert.Equal(Enumerable.Range(0, disposedCount).Select(index => "Rule" + index), File.ReadAllLines(log));
                     if (failure == "disposal")
                     {
@@ -76,6 +127,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Equal(count * iterations, File.ReadAllLines(Path.Combine(sdk.DirectoryPath, "disposed.txt")).Length);
                 }
                 Assert.Equal(count, first.Snapshot.Diagnostics.Select(diagnostic => diagnostic.Id).Distinct().Count());
+                Assert.Equal(count, Assert.Single(first.Analyzers).Rules.Count);
                 Assert.All(first.Snapshot.Diagnostics, diagnostic => Assert.Equal("reported", diagnostic.Message));
                 Assert.NotNull(first.CompiledXml);
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Rules" || assembly.GetName().Name == "Alarmlist.Core");
@@ -113,6 +165,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     using (File.Open(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
                 }
                 Assert.Equal("reported", Assert.Single(result.Snapshot.Diagnostics).Message);
+                Assert.Equal("Warning", Assert.Single(Assert.Single(result.Analyzers).Rules).DefaultSeverity);
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Rules" || assembly.GetName().Name == "Alarmlist.Core");
             }
         }
@@ -191,18 +244,19 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             return path;
         }
 
-        private static string CompileLifecycleAnalyzers(SdkAsset sdk, int count, string failure)
+        private static string CompileLifecycleAnalyzers(SdkAsset sdk, int count, string failure, string assemblyName = "Rules")
         {
             string directory = Path.Combine(sdk.DirectoryPath, "analyzers");
             Directory.CreateDirectory(directory);
-            string path = Path.Combine(directory, "Rules.dll");
+            string path = Path.Combine(directory, assemblyName + ".dll");
             string log = Path.Combine(sdk.DirectoryPath, "disposed.txt").Replace("\"", "\"\"");
             string source = string.Join(Environment.NewLine, Enumerable.Range(0, count).Select(index =>
                 "public sealed class Rule" + index + " : Alarmlist.Analyzers.IAlarmAnalyzer, System.IDisposable {"
                 + " public Rule" + index + "() { " + (failure == "constructor" && index == 2 ? "throw new System.InvalidOperationException(\"constructor failure\");" : "") + " }"
                 + " private static readonly Alarmlist.Diagnostics.DiagnosticDescriptor Rule = new Alarmlist.Diagnostics.DiagnosticDescriptor(\"TEST" + index + "\", \"Test\", \"{0}\", Alarmlist.Diagnostics.DiagnosticSeverity.Warning);"
                 + " public int ContractVersion { get { return 3; } }"
-                + " public System.Collections.Generic.IReadOnlyList<Alarmlist.Diagnostics.DiagnosticDescriptor> SupportedDiagnostics { get { return new[] { Rule }; } }"
+                + " public System.Collections.Generic.IReadOnlyList<Alarmlist.Diagnostics.DiagnosticDescriptor> SupportedDiagnostics { get { "
+                + (failure == "descriptor" && index == 0 ? "throw new System.InvalidOperationException(\"descriptor failure\");" : "return new[] { Rule };") + " } }"
                 + " public System.Collections.Generic.IEnumerable<Alarmlist.Diagnostics.Diagnostic> Analyze(Alarmlist.Analyzers.AlarmAnalyzerContext context, System.Threading.CancellationToken cancellationToken) {"
                 + (failure == "analysis" && index == 0 ? "throw new System.InvalidOperationException(\"analysis failure\");" : "return new[] { new Alarmlist.Diagnostics.Diagnostic(Rule, \"reported\") };") + " }"
                 + " public void Dispose() { System.IO.File.AppendAllText(@\"" + log + "\", \"Rule" + index + "\" + System.Environment.NewLine); "

@@ -27,10 +27,17 @@ namespace Alarmlist.Core.UnitTests.Configuration
             Array.Clear(returned, 0, returned.Length);
             Assert.False(File.Exists(absentPath));
             var loader = new AnalyzerAssemblyLoader(new[] { new AnalyzerAssemblyReference(absentPath, new[] { image }) });
+            var metadata = Assert.Single(loader.GetMetadata());
+            Assert.Equal(absentPath, metadata.FilePath);
+            Assert.StartsWith("Alarmlist.SampleAnalyzer, Version=", metadata.AssemblyIdentity);
+            Assert.Null(metadata.Failure);
+            Assert.Equal("SAMPLE001", Assert.Single(metadata.Rules).Id);
             try { Assert.Equal("SAMPLE001", Assert.Single(Compile(loader).Diagnostics).Id); }
             finally { loader.Dispose(); }
             loader.Dispose();
             Assert.Throws<ObjectDisposedException>(() => loader.Analyzers);
+            Assert.Throws<ObjectDisposedException>(() => loader.GetMetadata());
+            Assert.Equal("SAMPLE001", Assert.Single(metadata.Rules).Id);
             Assert.False(File.Exists(absentPath));
         }
 
@@ -43,6 +50,9 @@ namespace Alarmlist.Core.UnitTests.Configuration
             var images = invalid ? new[] { new AnalyzerAssemblyImage(path, new byte[] { 1, 2, 3 }) } : Array.Empty<AnalyzerAssemblyImage>();
             using (var loader = new AnalyzerAssemblyLoader(new[] { new AnalyzerAssemblyReference(path, images) }))
             {
+                var metadata = Assert.Single(loader.GetMetadata());
+                Assert.NotNull(metadata.Failure);
+                Assert.Empty(metadata.Rules);
                 CompilationResult result = Compile(loader);
                 Assert.False(result.Success);
                 Assert.Equal("ALM0025", Assert.Single(result.Diagnostics).Id);
@@ -109,13 +119,14 @@ namespace Alarmlist.Core.UnitTests.Configuration
                 Assert.False(run.Context.IsAlive);
                 Assert.True(run.Result.Success);
                 Assert.Contains("AL-", Assert.Single(run.Result.Diagnostics).Message);
+                Assert.Equal("SAMPLE001", Assert.Single(run.Metadata.Rules).Id);
                 Assert.Throws<ObjectDisposedException>(() => run.Loader.Analyzers);
             });
             Assert.DoesNotContain(AssemblyLoadContext.Default.Assemblies, assembly => assembly.GetName().Name == "Alarmlist.SampleAnalyzer");
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static (WeakReference Context, CompilationResult Result, AnalyzerAssemblyLoader Loader) LoadAndRelease()
+        private static (WeakReference Context, CompilationResult Result, AnalyzerAssemblyLoader Loader, AnalyzerAssemblyMetadata Metadata) LoadAndRelease()
         {
             var image = new AnalyzerAssemblyImage(SamplePath, File.ReadAllBytes(SamplePath));
             var loader = new AnalyzerAssemblyLoader(new[] { new AnalyzerAssemblyReference(SamplePath, new[] { image }) });
@@ -124,7 +135,7 @@ namespace Alarmlist.Core.UnitTests.Configuration
                 AssemblyLoadContext context = AssemblyLoadContext.GetLoadContext(Assert.Single(loader.Analyzers).GetType().Assembly);
                 Assert.True(context.IsCollectible);
                 Assert.NotSame(AssemblyLoadContext.Default, context);
-                return (new WeakReference(context), Compile(loader), loader);
+                return (new WeakReference(context), Compile(loader), loader, Assert.Single(loader.GetMetadata()));
             }
         }
 #endif

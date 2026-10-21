@@ -7,6 +7,7 @@
   <data name="Dependencies" xml:space="preserve"><value>Dependencies</value></data>
   <data name="Projects" xml:space="preserve"><value>Projects</value></data>
   <data name="Packages"><value>Packages</value></data>
+  <data name="Analyzers"><value>Analyzers</value></data>
   <data name="Pending"><value>Restore pending</value></data>
   <data name="Unresolved"><value>Unresolved</value></data>
   <data name="Transitive"><value>Transitive</value></data>

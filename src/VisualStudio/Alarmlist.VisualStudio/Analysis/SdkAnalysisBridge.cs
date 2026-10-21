@@ -37,13 +37,15 @@ namespace Alarmlist.VisualStudio.Analysis
         public AnalysisSnapshot Snapshot { get; }
         public string CompiledXml { get; }
         public string XmlPreviewMessage { get; }
+        public IReadOnlyList<AnalysisAnalyzerMetadata> Analyzers { get; }
 
         public AnalysisResponse(AnalysisAvailability availability, string message, AnalysisSnapshot snapshot = null,
-            string compiledXml = null, string xmlPreviewMessage = null)
+            string compiledXml = null, string xmlPreviewMessage = null, IEnumerable<AnalysisAnalyzerMetadata> analyzers = null)
         {
             Availability = availability; Message = message; Snapshot = snapshot;
             CompiledXml = availability == AnalysisAvailability.Available && snapshot?.Success == true ? compiledXml : null;
             XmlPreviewMessage = xmlPreviewMessage;
+            Analyzers = Array.AsReadOnly((analyzers ?? Array.Empty<AnalysisAnalyzerMetadata>()).ToArray());
         }
     }
 

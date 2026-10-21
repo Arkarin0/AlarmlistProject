@@ -377,6 +377,12 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   net472 loader must reject changed/conflicting images in an existing AppDomain;
   VS replaces the domain on payload changes, while desktop builds need a new process.
   Do not claim silent reload or load compiler/plugin types into the VS host domain.
+  Analyzer tree children are SupportedDiagnostics declarations, including rules
+  without violations. Capture them through the selected SDK loader without calling
+  Analyze, share descriptor validation with execution, and copy detached metadata
+  before disposal. Preserve declarations for invalid ALMX, clear stale children on
+  load/descriptor failure, and label rule severity as the descriptor default rather
+  than one effective project-wide setting. Nodes never edit policy or delete rules.
 
 - Keep consumer `.almproj` projects usable without a `TargetFramework`.
   Task assembly selection depends on `MSBuildRuntimeType`: .NET MSBuild loads

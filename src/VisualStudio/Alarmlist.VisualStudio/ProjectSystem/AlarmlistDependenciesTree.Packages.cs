@@ -45,6 +45,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 .FirstOrDefault(candidate => string.Equals(candidate.Project?.ProjectPath, _treeProject.ProjectPath, StringComparison.OrdinalIgnoreCase));
             if (!ReferenceEquals(_treeConfigured, _active.ActiveConfiguredProject) || _active.ConfigurationActiveCancellationToken.IsCancellationRequested)
                 state = null;
+            root = UpdateAnalyzers(root, state);
             IReadOnlyList<PackageTreeEntry> entries = PackageTreeEntry.Create(_treeProject, state);
             IProjectTree group = root.Children.FirstOrDefault(child => child.Flags.Contains("AlarmlistPackages"));
             if (entries.Count == 0) return group == null ? root : root.Remove(group);

@@ -4,6 +4,9 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Definitions;
+using FlaUI.UIA3;
 using Alarmlist.VisualStudio.Testing;
 using EnvDTE80;
 using Xunit;
@@ -41,6 +44,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             const string message = "Alarm 'Pump' has code 'P-001'; expected prefix 'AL-'.";
             VisualStudioSession.Wait(() => HasDiagnostic(ide, message, vsBuildErrorLevel.vsBuildErrorLevelMedium), "external analyzer live warning before Build");
             Assert.True(VisualStudioAutomation.TryNavigateError(ide.Automation, message));
+            VerifyRuleTree(ide);
 
             WriteConfiguration(config, "none", "AL-");
             VisualStudioSession.Wait(() => !HasDiagnostic(ide, message, null), "saved configuration suppresses the live analyzer rule");
@@ -53,6 +57,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
             WriteConfiguration(config, "error", "P-");
             VisualStudioSession.Wait(() => !HasDiagnostic(ide, changed, null), "valid alarm clears the rule");
+            VerifyRuleTree(ide); // Declarations remain even when no violations are emitted.
             workspace.Build(ide, 1);
             byte[] previousOutput = File.ReadAllBytes(workspace.OutputPath);
             WriteConfiguration(config, "error", "AL-");
@@ -64,6 +69,30 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
             // Capturing assemblies must not keep the user's analyzer file locked.
             using (File.Open(analyzerPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+        }
+
+        internal static void VerifyRuleTree(VisualStudioSession ide)
+        {
+            ide.Automation.ExecuteCommand("View.SolutionExplorer");
+            using var automation = new UIA3Automation();
+            var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
+            AutomationElement Find(AutomationElement parent, string first, string second = null)
+            {
+                AutomationElement result = null;
+                VisualStudioSession.Wait(() => (result = parent.FindFirstDescendant(cf =>
+                    (cf.ByName(first).Or(cf.ByName(second ?? first))).And(cf.ByControlType(ControlType.TreeItem)))) != null, first);
+                return result;
+            }
+            var project = Find(window, "Plant");
+            project.AsTreeItem().Expand();
+            var dependencies = Find(project, "Dependencies", "Abhängigkeiten");
+            dependencies.AsTreeItem().Expand();
+            var analyzers = Find(dependencies, "Analyzers", "Analysetools");
+            analyzers.AsTreeItem().Expand();
+            var assembly = Find(analyzers, "Alarmlist.SampleAnalyzer");
+            assembly.AsTreeItem().Expand();
+            var rule = Find(assembly, "SAMPLE001: Alarm code prefix");
+            Assert.True(rule.IsEnabled);
         }
 
         private static void WriteConfiguration(string path, string severity, string prefix)

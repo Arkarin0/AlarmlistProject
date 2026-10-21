@@ -43,5 +43,10 @@
       <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzer" />
     </MSBuild>
     <Copy SourceFiles="@(_SampleAnalyzer)" DestinationFolder="$(TargetDir)testassets" SkipUnchangedFiles="true" />
+    <MSBuild Projects="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" Targets="GetSampleAnalyzerPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzerPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_SampleAnalyzerPackage)" DestinationFolder="$(TargetDir)testassets" SkipUnchangedFiles="true" />
   </Target>
 </Project>

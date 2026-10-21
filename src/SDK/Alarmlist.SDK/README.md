@@ -294,6 +294,9 @@ The sample package includes both runtime assemblies and selects the correct one
 automatically. There is no DLL glob, cache scan or discovery of ordinary Roslyn
 analyzers. See the [sample analyzer](../../Analyzers/Alarmlist.SampleAnalyzer/README.md)
 for package consumption and authoring. Direct DLL registration also remains supported.
+Repeated registration of the same normalized DLL path is captured once, including
+when a package and an explicit item select it. Distinct analyzer implementations
+still require unique diagnostic IDs; duplicate or invalid declarations report ALM0025.
 For a multi-targeted analyzer, select the assembly matching the build host:
 
 ```xml

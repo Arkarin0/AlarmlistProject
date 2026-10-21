@@ -10,4 +10,5 @@
   <data name="Pending"><value>Wiederherstellung ausstehend</value></data>
   <data name="Unresolved"><value>Nicht aufgelöst</value></data>
   <data name="Transitive"><value>Transitiv</value></data>
+  <data name="Analyzers"><value>Analysetools</value></data>
 </root>

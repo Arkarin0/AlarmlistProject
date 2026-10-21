@@ -57,6 +57,16 @@ namespace Alarmlist.MSBuild.SDK.Tests
             Assert.Contains("SAMPLE001", first.Output);
             AssertSelection(version);
             byte[] output = File.ReadAllBytes(app.OutputPath);
+            var duplicate = new XElement("AlarmlistAnalyzer", new XAttribute("Include", File.ReadAllLines(projectPath + ".analyzers").Single()));
+            reference.Parent.Add(duplicate);
+            project.Save(projectPath);
+            var repeated = app.Run(_output, "/t:Build");
+            Assert.True(repeated.ExitCode == 0, repeated.Output);
+            Assert.Contains("SAMPLE001", repeated.Output);
+            Assert.DoesNotContain("ALM0025", repeated.Output);
+            Assert.Equal(output, File.ReadAllBytes(app.OutputPath));
+            duplicate.Remove();
+            project.Save(projectPath);
             var promoted = app.Run(_output, "/t:Build", "/p:WarningsAsErrors=SAMPLE001");
             Assert.NotEqual(0, promoted.ExitCode);
             Assert.Contains("SAMPLE001", promoted.Output);

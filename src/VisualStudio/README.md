@@ -125,6 +125,16 @@ for precedence, runtime selection and the trusted/cooperative analyzer contract.
 The functional xUnit scenarios have the `Area=Analyzers` trait and the same host
 environment prerequisites as the other UI integration tests.
 
+Milestone nine adds analyzer packages whose ordinary NuGet build targets register
+`AlarmlistAnalyzer` items. Dependencies / Analyzers (Analysetools in German) shows
+assembly names and their declared `ID: Title` rules for both package and DLL items.
+Rules remain visible when they report no violations or ALMX contains errors. Rule
+icons show descriptor **default severity**; the Error List reflects the effective
+per-file configuration. Configure severity through EditorConfig or project warning
+options. Rule nodes do not provide a ruleset editor or delete action. Descriptor
+loading stays in the selected SDK domain; unavailable analyzers have no stale rule
+children. Manage direct analyzer packages through native NuGet commands.
+
 Milestone five also supports reusable named templates such as
 `$(loc:Instruction.Set, path=$(path:Service.Vakuum), value="60")`.
 External tools supply `.almlookup` XML catalogues; the SDK includes the XSD.

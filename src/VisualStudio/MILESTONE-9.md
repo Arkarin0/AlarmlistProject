@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–17 complete; follow-up iterations 18–19 planned for direct mixed-reference builds, NuGet analyzers and package-content presentation.
+Status: iterations 1–18 complete; iteration 19 remains planned for package-content presentation.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2795,3 +2795,65 @@ Final iteration-17 validation:
   file retains its original hash and remains unstaged. No implementation blocker
   remains for iteration 17. Native analyzer-package lifecycle and the top-level
   analyzer/rule tree remain iteration 18; package-content nodes remain iteration 19.
+
+### Iteration 18 — analyzer declarations and live tree (complete 2026-10-21)
+
+Added detached assembly/rule metadata to the existing captured-byte analyzer loader.
+Descriptor validation is shared with the analyzer driver; metadata capture does not
+call Analyze. The SDK worker copies declarations from the same loader used by analysis,
+including malformed-ALMX responses, and disposes its instances normally. Host DTOs
+contain only strings, booleans and immutable collections. The dependency tree now has
+localized Analyzers/Analysetools assembly nodes and sorted ID/title children with native
+rule severity icons. Those icons represent descriptor defaults, independently of saved
+per-file diagnostic policy. Pending, failed and changed configurations clear old rules.
+
+Validation so far (not iteration completion):
+
+- Compiler analyzer/loader/metadata tests: **19 net472 and 21 net8.0 passed**,
+  zero failures/skips. Covers declarations without execution, duplicate/invalid IDs,
+  getter/load failures and collectible-context release while retaining metadata.
+- Editor bridge/tree/package regressions: **63 net472 passed**, zero failures/skips.
+  Covers SDK-domain isolation, malformed ALMX, multi-type declarations, descriptor
+  failure/disposal, immutable retained metadata, localization and stale-tree clearing.
+- Native ConfiguredAnalyzer2022 and ConfiguredAnalyzer2026 each passed one scenario,
+  zero failures/skips, with actual assembly and `SAMPLE001: Alarm code prefix` children
+  visible both with a live diagnostic and with no violations. TestResults runs:
+  `50a23d62b79249e4ae818b84efd9ec28` (2022) and
+  `7c0b59c043ef4012893d47fccfd94ae4` (2026).
+- Initial tree compilation caught an unavailable image-catalog member; switched to
+  the installed native CodeAnalysisWindow and Code*Rule monikers before these passes.
+- LineA's pre-existing project edit retains its original SHA-256 and remains unstaged.
+
+Final implementation and acceptance evidence:
+
+- Native package scenarios use the real packaged sample in isolated feeds, with a
+  second version of the same payload to verify NuGet version selection. They cover
+  native installation/update/uninstall/reinstallation, corrupted assets and DLL
+  failure/recovery, live Error List parity, conditional explicit-DLL registration
+  alongside the package, Debug/Release, project unload/reload and a fresh IDE restart.
+  Keyboard parent selection/collapse/expansion works; rule deletion is unavailable.
+  Browsing preserves source, package and output bytes and does not invoke Build
+  (verified by an explicit build-hook log). Package definitions remain iteration 19.
+- Shared saved-byte capture deduplicates the same normalized DLL path before loading.
+  Distinct implementations retain existing duplicate-ID validation. SDK consumer
+  coverage now registers a package DLL explicitly as well, verifies a successful
+  build with its diagnostic and unchanged compiled output, then tests removal.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --verbosity quiet`: **547 passed net472**, zero failures/skips, including multi-type
+  and multiple-assembly declarations, failure cleanup, metadata retention and isolation.
+- `dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj
+  --filter 'FullyQualifiedName~AnalyzerPackageTests|FullyQualifiedName~AnalyzerTests'
+  --verbosity quiet`: **9 passed on each of net472/net8.0**. Repeated the net472 suite
+  with `--no-build --no-restore` and VS2022 desktop MSBuild through
+  ALARMLIST_TEST_MSBUILD_PATH: **9 passed**; restored the prior environment value.
+- `eng/test-visualstudio.ps1 -VisualStudioPath <host> -Filter
+  'FullyQualifiedName~AnalyzerPackage<version>|FullyQualifiedName~ConfiguredAnalyzer<version>'`:
+  **2 passed per host**, zero failures/skips. Final TestResults runs are
+  `02b13f555be049e08f127e14e57e116e` (2022) and
+  `56dca3e7cc68409780485ed84de962b9` (2026). These include the complete package
+  lifecycle/restart and the existing configured explicit-DLL scenario.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj
+  --verbosity quiet`: **13 passed on each of net472/net8.0**, zero failures/skips.
+- Reviewed the diff, paths, public behavior documentation and repository guidance.
+  LineA retains its original SHA-256 and is excluded from this iteration's commit.
+  No iteration-18 blocker remains. Iteration 19 has not started.

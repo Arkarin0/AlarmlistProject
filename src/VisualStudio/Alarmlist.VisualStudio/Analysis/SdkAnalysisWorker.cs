@@ -120,6 +120,7 @@ namespace Alarmlist.VisualStudio.Analysis
 
         private AnalysisResponse AnalyzeCore(AnalysisInput[] inputs, AnalysisContext context, CancellationToken token)
         {
+            IReadOnlyList<AnalysisAnalyzerMetadata> analyzers = Array.Empty<AnalysisAnalyzerMetadata>();
             try
             {
                 return WithCapturedInputs(inputs, context, (snapshots, capturedContext) =>
@@ -130,15 +131,16 @@ namespace Alarmlist.VisualStudio.Analysis
                     AnalysisSnapshot snapshot = _reader.Read(result);
                     return new AnalysisResponse(AnalysisAvailability.Available, null, snapshot,
                         snapshot.Success ? (string)_compiledXml.GetValue(result, null) : null,
-                        context?.IsLibrary == true ? "Library definitions do not produce final application XML. Preview compiled XML in a consuming application project." : null);
-                });
+                        context?.IsLibrary == true ? "Library definitions do not produce final application XML. Preview compiled XML in a consuming application project." : null,
+                        analyzers);
+                }, loader => analyzers = AnalysisAnalyzerMetadata.Read(loader, context ?? AnalysisContext.Empty));
             }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(Unwrap(exception)))
             {
                 Exception failure = Unwrap(exception);
                 AnalysisAvailability state = failure is XmlException ? AnalysisAvailability.InvalidInput
                     : failure is NotSupportedException ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.AnalysisFailed;
-                return new AnalysisResponse(state, "SDK analysis is incomplete: " + failure.Message);
+                return new AnalysisResponse(state, "SDK analysis is incomplete: " + failure.Message, analyzers: analyzers);
             }
         }
 
@@ -255,7 +257,8 @@ namespace Alarmlist.VisualStudio.Analysis
             }
         }
 
-        private T WithCapturedInputs<T>(AnalysisInput[] inputs, AnalysisContext context, Func<Array, object, T> operation)
+        private T WithCapturedInputs<T>(AnalysisInput[] inputs, AnalysisContext context, Func<Array, object, T> operation,
+            Action<object> captureAnalyzerMetadata = null)
         {
             Array snapshots = Array.CreateInstance(_snapshotType, inputs.Length);
             for (int i = 0; i < inputs.Length; i++)
@@ -300,6 +303,7 @@ namespace Alarmlist.VisualStudio.Analysis
             using (var loader = (IDisposable)Activator.CreateInstance(_analyzerLoaderType, new object[] { analyzerReferences }))
             {
                 capturedContext = _withAnalyzers.Invoke(capturedContext, new[] { _analyzerLoaderType.GetProperty("Analyzers").GetValue(loader) });
+                captureAnalyzerMetadata?.Invoke(loader);
                 return operation(snapshots, capturedContext);
             }
         }
