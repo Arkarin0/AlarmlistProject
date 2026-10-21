@@ -336,7 +336,8 @@ properties and procedures for the selected alarm. Each area scrolls independentl
 In either parameter list, right-click a row or focus a cell and press Shift+F10
 for assignment, explicit-empty, fallback and declaration actions. Cell menus also
 retain normal text-editing commands. Add and Remove remain above each list.
-Use either header to collapse its area; drag the divider or focus it and use
+Use either header to collapse its area; drag the divider's centered grip (or
+anywhere along the divider), or focus it and use
 Up/Down to resize. These actions preserve private drafts. Collapse states and the
 divider position are restored from Visual Studio user settings. A single project
 context is shown as a label; linked files with multiple contexts get a labelled
@@ -420,7 +421,10 @@ never rewrite existing alarms. See the [creation settings](../SDK/Alarmlist.SDK/
 
 Expand **Test procedure** below the alarm fields to edit ordered named groups.
 Enter a stable group ID and select **Add group**; IDs compare ignoring case.
-Edit the title with the same expression editor and completion as alarm fields.
+Each group has its own bordered area. Edit its heading with the same expression
+editor and completion as alarm fields: it shows resolved text normally and the
+raw expression when focused. The read-only **Group ID** remains visible beneath
+the heading; editing the title never renames the group. Long headings wrap.
 An absent title inherits; an explicit empty title displays the group ID. The
 title context menu can remove a local title or navigate to its source.
 Move controls reorder newly introduced local groups; inherited order stays fixed.

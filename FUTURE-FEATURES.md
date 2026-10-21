@@ -249,23 +249,24 @@ Open questions:
 
 ## Procedure groups and splitter UI refinements
 
-Proposed on 2026-10-21; no milestone assigned.
+Assigned on 2026-10-21 to [milestone ten](src/VisualStudio/MILESTONE-10.md).
+Its confirmed contract supersedes the presentation questions below: title-like
+editable headings, always-visible read-only group IDs, and a centered themed grip.
+Implementation and acceptance evidence are tracked in that plan.
 
 - Enclose each procedure group in its own GroupBox so the boundaries between
   groups are clear.
 - Give the divider between file and alarm settings a visible drag handle so users
-  can recognize that it resizes the two areas. Use the previously supplied splitter
-  image as the visual reference once available; the exact appearance remains open.
+  can recognize that it resizes the two areas, using the selected centered themed grip.
 - Combine the repeated display title and separate title/localization input into
   one editable GroupBox heading. Show the resolved title normally and the raw
   expression, such as `$(loc:GroupTitle)`, when focused. Preserve existing title
   inheritance, ID fallback, expression completion, and draft/commit behavior.
 
 The stable group ID remains distinct from the editable title; editing the heading
-does not rename the group. Its presentation remains an open UX question: consider
-a tooltip or details area to avoid repeating the group name as a heading, ID, and
-separate title field. These notes propose presentation changes without changing
-the existing group or localization semantics.
+does not rename the group. Show it as an always-visible read-only label below the
+heading; remove the separate title field. These are presentation changes without
+changing the existing group or localization semantics.
 
 ## External alarm analyzers
 
