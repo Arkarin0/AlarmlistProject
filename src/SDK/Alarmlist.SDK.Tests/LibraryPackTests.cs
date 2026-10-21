@@ -31,6 +31,46 @@ namespace Alarmlist.MSBuild.SDK.Tests
         }
 
         [Fact]
+        public void DirectProjectAndPackageReferencesContributeToCompiledOutput()
+        {
+            var app = _fixture.CreateTestApp("LibraryProjects");
+            var pack = app.RunProject(_output, Path.Combine(app.WorkingDirectory, "Base", "Base.almproj"),
+                "/t:Pack", "/restore", "/p:PackageOutputPath=" + Path.Combine(app.WorkingDirectory, "feed"));
+            Assert.True(pack.ExitCode == 0, pack.Output);
+
+            string ownerPath = Path.Combine(app.WorkingDirectory, "Owner", "Owner.almproj");
+            var owner = XDocument.Load(ownerPath);
+            owner.Descendants("ProjectReference").Remove();
+            owner.Save(ownerPath);
+            File.WriteAllText(Path.Combine(app.WorkingDirectory, "Owner", "Owner.almx"),
+                "<Alarmlist><Alarm><FullyQualifiedName>Owner</FullyQualifiedName>"
+                + "<Name>Direct project alarm</Name></Alarm></Alarmlist>");
+
+            string consumerPath = Path.Combine(app.WorkingDirectory, "Plant.almproj");
+            var consumer = XDocument.Load(consumerPath);
+            Assert.Single(consumer.Descendants("ProjectReference"));
+            consumer.Root.Add(new XElement("ItemGroup", new XElement("PackageReference",
+                new XAttribute("Include", "Base"), new XAttribute("Version", "1.0.0"))));
+            consumer.Save(consumerPath);
+            Assert.Empty(consumer.Descendants("TargetFramework"));
+
+            app.Build(_output);
+            AssertOutput();
+            File.Delete(app.OutputPath);
+            app.Build(_output);
+            AssertOutput();
+
+            void AssertOutput()
+            {
+                var alarms = XDocument.Load(app.OutputPath).Root.Elements("Alarm")
+                    .OrderBy(alarm => alarm.Element("FullyQualifiedName").Value).ToArray();
+                Assert.Equal(new[] { "Base", "Owner" }, alarms.Select(alarm => alarm.Element("FullyQualifiedName").Value));
+                Assert.Equal("Final value", alarms[0].Element("Name").Value);
+                Assert.Equal("Direct project alarm", alarms[1].Element("Name").Value);
+            }
+        }
+
+        [Fact]
         public void MixedProjectPackageGraphCanBePackedAndConsumed()
         {
             var app = _fixture.CreateTestApp("LibraryProjects");

@@ -1,6 +1,6 @@
 # Milestone nine: reusable alarm libraries
 
-Status: iterations 1–15 complete; follow-up iterations 16–19 planned for direct mixed-reference builds, NuGet analyzers and package-content presentation.
+Status: iterations 1–16 complete; follow-up iterations 17–19 planned for direct mixed-reference builds, NuGet analyzers and package-content presentation.
 The native integration foundation gate has passed on both supported hosts.
 
 ## Outcome and confirmed scope
@@ -2742,3 +2742,22 @@ Planning validation: inspected current NuGet-generated props/targets imports,
 explicit AlarmlistAnalyzer selection, sample packaging and IAlarmAnalyzer's
 SupportedDiagnostics contract. Reviewed plan consistency and paths. Implementation
 and new acceptance tests have not run; the owner's LineA.almproj edit is preserved.
+
+### Iteration 16 — direct mixed-reference compiled output (complete 2026-10-21)
+
+The owner authorized iterations 16–19 with validation and a separate commit after
+each iteration, preserving their LineA project edit and pausing at 20% remaining
+allowance. This supersedes the previous goal's 15% threshold for this follow-up.
+
+Added DirectProjectAndPackageReferencesContributeToCompiledOutput using an
+isolated LibraryProjects fixture. Plant directly references the independent Owner
+project and Base 1.0.0 package. The test checks exactly Base/Owner output identities,
+consumer-resolved Final value and the distinct Direct project alarm name, then
+deletes the output and repeats Restore/Build and the same assertions. No compiler,
+SDK behavior or persistent example change is included.
+
+Validation: `dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj
+--filter 'FullyQualifiedName~LibraryPackTests|FullyQualifiedName~LibraryProjectReferenceTests|FullyQualifiedName~PackageRestoreTests'
+--verbosity quiet` passed **19 tests per framework**, net472 and net8.0, zero
+failures/skips. Reviewed the focused diff and whitespace; LineA's pre-existing
+edit retains its original SHA-256. No iteration-16 blocker remains.
