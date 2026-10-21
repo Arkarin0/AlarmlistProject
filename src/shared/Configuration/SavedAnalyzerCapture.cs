@@ -13,11 +13,13 @@ namespace Alarmlist.ConfigurationInput
         internal static IReadOnlyList<CapturedAnalyzerReference> Capture(IEnumerable<string> paths, CancellationToken token)
         {
             var result = new List<CapturedAnalyzerReference>();
+            var selectedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var directories = new Dictionary<string, IReadOnlyList<CapturedAnalyzerImage>>(StringComparer.OrdinalIgnoreCase);
             foreach (string path in paths)
             {
                 token.ThrowIfCancellationRequested();
                 string fullPath = Path.GetFullPath(path);
+                if (!selectedPaths.Add(fullPath)) continue;
                 string directory = Path.GetDirectoryName(fullPath);
                 if (!string.Equals(Path.GetExtension(fullPath), ".dll", StringComparison.OrdinalIgnoreCase))
                     throw new IOException("An AlarmlistAnalyzer must reference a DLL: " + fullPath);

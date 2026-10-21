@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Alarmlist.Analyzers;
 using Alarmlist.Diagnostics;
+using Alarmlist.Libraries;
 using Alarmlist.Text;
 
 namespace Alarmlist.Compiler
@@ -75,12 +76,20 @@ namespace Alarmlist.Compiler
         public string Culture { get; }
         public DiagnosticOptions DiagnosticOptions { get; }
         public IReadOnlyList<IAlarmAnalyzer> Analyzers { get; }
+        public LibraryReferenceSet Libraries { get; private set; } = LibraryReferenceSet.Empty;
+
+        public CompilationContext WithLibraries(LibraryReferenceSet libraries)
+        {
+            if (libraries == null) throw new ArgumentNullException(nameof(libraries));
+            return new CompilationContext(Resources, Lookups, Culture, ProjectPath, Configuration, Platform, Properties, DiagnosticOptions, Analyzers)
+                { Libraries = libraries };
+        }
 
         public CompilationContext WithDiagnosticOptions(DiagnosticOptions options)
-            => new CompilationContext(Resources, Lookups, Culture, ProjectPath, Configuration, Platform, Properties, options, Analyzers);
+            => new CompilationContext(Resources, Lookups, Culture, ProjectPath, Configuration, Platform, Properties, options, Analyzers) { Libraries = Libraries };
 
         public CompilationContext WithAnalyzers(IEnumerable<IAlarmAnalyzer> analyzers)
-            => new CompilationContext(Resources, Lookups, Culture, ProjectPath, Configuration, Platform, Properties, DiagnosticOptions, analyzers);
+            => new CompilationContext(Resources, Lookups, Culture, ProjectPath, Configuration, Platform, Properties, DiagnosticOptions, analyzers) { Libraries = Libraries };
     }
 
     /// <summary>A declaration and optional literal assignment. Null means unassigned; empty is assigned.</summary>

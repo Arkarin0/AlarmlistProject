@@ -12,6 +12,22 @@ namespace Alarmlist.VisualStudio.UnitTests
     public class RuleTests
     {
         [Fact]
+        public void LibraryOutputAndPackagePropertiesUseTheSupportedSdkValues()
+        {
+            var rule = Assert.IsType<Rule>(XamlServices.Load(Path.Combine(AppContext.BaseDirectory, "Rules", "General.xaml")));
+            var output = Assert.IsType<EnumProperty>(rule.Properties.Single(item => item.Name == "OutputType"));
+            Assert.Equal(new[] { "Application", "Library" }, output.AdmissibleValues.Select(value => value.Name));
+            Assert.Equal("ProjectFile", rule.DataSource.Persistence);
+            Assert.IsType<StringProperty>(rule.Properties.Single(item => item.Name == "AlarmlistLibraryFileName"));
+            foreach (string name in new[] { "PackageId", "PackageVersion" })
+            {
+                var property = Assert.IsType<StringProperty>(rule.Properties.Single(item => item.Name == name));
+                Assert.Equal("ProjectFile", property.DataSource.Persistence);
+                Assert.False(property.DataSource.HasConfigurationCondition);
+            }
+        }
+
+        [Fact]
         public void PreviewColumnLayoutIsAHiddenConfigurationIndependentUserProperty()
         {
             var rule = Assert.IsType<Rule>(XamlServices.Load(Path.Combine(AppContext.BaseDirectory, "Rules", "General.xaml")));
@@ -27,6 +43,8 @@ namespace Alarmlist.VisualStudio.UnitTests
         [InlineData("AlarmlistResource")]
         [InlineData("AlarmlistLookup")]
         [InlineData("AlarmlistAnalyzer")]
+        [InlineData("ProjectReference")]
+        [InlineData("PackageReference")]
         [InlineData("None")]
         [InlineData("Folder")]
         public void PropertyRulesCanBeLoadedByMSBuild(string name)

@@ -31,7 +31,7 @@ namespace Alarmlist.VisualStudio.UI
 
         private bool CanNavigateDiagnostic(LiveDiagnostic diagnostic, AnalysisLocation location)
             => !_disposed && !_analysisBusy && !HasPending && ReferenceEquals(_analysis?.Current, diagnostic.State)
-                && DiagnosticDocumentMatches(diagnostic.State) && diagnostic.TryGetSourceText(location, out _);
+                && DiagnosticDocumentMatches(diagnostic.State) && diagnostic.TryGetNavigationTarget(location, out _);
 
         private bool DiagnosticDocumentMatches(ProjectAnalysisState state)
             => state.Inputs.Any(input => string.Equals(input.Input.FilePath, _analysis?.DocumentPath, StringComparison.OrdinalIgnoreCase)
@@ -50,7 +50,7 @@ namespace Alarmlist.VisualStudio.UI
                     if (!_disposed) { _error = "The source or draft changed. Wait for current analysis and try again."; Notify(nameof(Error)); }
                     return;
                 }
-                if (diagnostic.TryGetSourceText(location, out string text)) _analysis.Navigate(location, text);
+                if (diagnostic.TryGetNavigationTarget(location, out AnalysisNavigationTarget target)) _analysis.Navigate(target);
                 _error = null;
                 Notify(nameof(Error));
             }

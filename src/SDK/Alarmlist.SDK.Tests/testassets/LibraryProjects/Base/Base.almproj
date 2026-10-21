@@ -1,0 +1,3 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup><OutputType>Library</OutputType></PropertyGroup>
+</Project>

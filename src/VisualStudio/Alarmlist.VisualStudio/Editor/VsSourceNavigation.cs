@@ -14,6 +14,14 @@ namespace Alarmlist.VisualStudio.Editor
 {
     internal static class VsSourceNavigation
     {
+        public static void Navigate(IServiceProvider services, IVsEditorAdaptersFactoryService adapters, AnalysisNavigationTarget target)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (target == null) return;
+            if (target.IsReadOnlyDefinition) GeneratedLibraryDefinition.Navigate(services, adapters, target);
+            else Navigate(services, adapters, target.Location, target.Text);
+        }
+
         internal static bool PreferDesigner(IServiceProvider services)
         {
             ThreadHelper.ThrowIfNotOnUIThread();

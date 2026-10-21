@@ -1,0 +1,8 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="@(Compile)" />
+    <ProjectReference Include="Owner/Owner.almproj" />
+    <AlarmlistProperty Include="ConsumerValue" Value="Final value" />
+  </ItemGroup>
+</Project>

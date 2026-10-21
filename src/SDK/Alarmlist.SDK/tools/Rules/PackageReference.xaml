@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="PackageReference" DisplayName="Alarm library package reference" PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource ItemType="PackageReference" Persistence="ProjectFile" HasConfigurationCondition="False"
+                SourceOfDefaultValue="AfterContext" />
+  </Rule.DataSource>
+  <StringProperty Name="Name" DisplayName="Name" ReadOnly="True">
+    <StringProperty.DataSource>
+      <DataSource PersistedName="{}{Identity}" SourceOfDefaultValue="AfterContext" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="Version" DisplayName="Version">
+    <StringProperty.DataSource>
+      <DataSource PersistenceStyle="Attribute" SourceOfDefaultValue="AfterContext" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="IncludeAssets" DisplayName="Included assets" />
+  <StringProperty Name="ExcludeAssets" DisplayName="Excluded assets" />
+  <StringProperty Name="PrivateAssets" DisplayName="Private assets" />
+  <BoolProperty Name="IsImplicitlyDefined" Visible="False" ReadOnly="True" />
+</Rule>

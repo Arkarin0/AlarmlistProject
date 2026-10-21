@@ -84,6 +84,7 @@ namespace Alarmlist.Text
 
         private static SourceLocation Location(LookupTextSnapshot snapshot, XObject node)
         {
+            if (snapshot.Origins != null) return snapshot.Origins.Resolve(node, snapshot.FilePath);
             IXmlLineInfo info = node;
             int length = node is XAttribute attribute ? attribute.Name.LocalName.Length : node is XElement element ? element.Name.LocalName.Length : 1;
             return new SourceLocation(snapshot.FilePath, info?.HasLineInfo() == true ? info.LineNumber : 1,

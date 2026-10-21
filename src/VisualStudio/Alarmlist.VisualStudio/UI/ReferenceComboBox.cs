@@ -107,7 +107,8 @@ namespace Alarmlist.VisualStudio.UI
         }
         internal static ReferenceChoice[] FindMatches(IEnumerable choices, string query) => choices?.OfType<ReferenceChoice>()
             .Where(item => item.Identifier.IndexOf(query ?? "", StringComparison.OrdinalIgnoreCase) >= 0
-                || item.Name.IndexOf(query ?? "", StringComparison.OrdinalIgnoreCase) >= 0).ToArray() ?? Array.Empty<ReferenceChoice>();
+                || item.Name.IndexOf(query ?? "", StringComparison.OrdinalIgnoreCase) >= 0
+                || item.OriginLabel.IndexOf(query ?? "", StringComparison.OrdinalIgnoreCase) >= 0).ToArray() ?? Array.Empty<ReferenceChoice>();
         internal void CloseChoices()
         {
             _version++;

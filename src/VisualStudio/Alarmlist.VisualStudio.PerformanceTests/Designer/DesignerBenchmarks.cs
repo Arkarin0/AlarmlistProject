@@ -196,6 +196,7 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Designer
                 => throw new InvalidOperationException("A measurement must not change project properties.");
             public void Set(ProjectAnalysisState state) { Current = state; Changed?.Invoke(this, EventArgs.Empty); }
             public void Navigate(AnalysisLocation location, string expectedText) => throw new InvalidOperationException("Unexpected navigation.");
+            public void Navigate(AnalysisNavigationTarget target) => throw new InvalidOperationException("Unexpected navigation.");
             public void Dispose() { Changed = null; }
         }
     }

@@ -4,6 +4,14 @@ Status: ideas for future development, recorded on 2026-09-24. These notes captur
 intent and open design questions; they do not define implemented behavior,
 committed milestones, or a delivery schedule.
 
+Implementation update (2026-10-18): [milestone nine](src/VisualStudio/MILESTONE-9.md)
+implements reusable alarm libraries, project references and NuGet distribution,
+including native Visual Studio management and saved-source dependency refresh.
+Its [design contract](src/VisualStudio/MILESTONE-9-DESIGN.md) supersedes the open
+library/project-reference questions below. All eight iterations and their scoped
+automated acceptance are complete; the milestone records the actual evidence and
+performance limitations. Shared Projects remain unassigned; publication is separate.
+
 Planning update (2026-10-10): the owner selected improvements to the existing ALMX
 file editor's UI/UX for [milestone seven](src/VisualStudio/MILESTONE-7.md), with
 procedure editing identified as the first priority. The procedure preview is
@@ -238,6 +246,26 @@ Open questions:
 - Which columns and project/file scopes should be available, and how should
   procedures and other collection-valued properties be displayed?
 - Which sorting, filtering, column arrangement, and copy operations are useful?
+
+## Procedure groups and splitter UI refinements
+
+Proposed on 2026-10-21; no milestone assigned.
+
+- Enclose each procedure group in its own GroupBox so the boundaries between
+  groups are clear.
+- Give the divider between file and alarm settings a visible drag handle so users
+  can recognize that it resizes the two areas. Use the previously supplied splitter
+  image as the visual reference once available; the exact appearance remains open.
+- Combine the repeated display title and separate title/localization input into
+  one editable GroupBox heading. Show the resolved title normally and the raw
+  expression, such as `$(loc:GroupTitle)`, when focused. Preserve existing title
+  inheritance, ID fallback, expression completion, and draft/commit behavior.
+
+The stable group ID remains distinct from the editable title; editing the heading
+does not rename the group. Its presentation remains an open UX question: consider
+a tooltip or details area to avoid repeating the group name as a heading, ID, and
+separate title field. These notes propose presentation changes without changing
+the existing group or localization semantics.
 
 ## External alarm analyzers
 

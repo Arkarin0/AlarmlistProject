@@ -24,5 +24,6 @@ namespace Alarmlist.VisualStudio.UI
         Task<bool> IsCurrentAsync(ProjectAnalysisState state, CancellationToken token);
         Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token);
         void Navigate(AnalysisLocation location, string expectedText);
+        void Navigate(AnalysisNavigationTarget target);
     }
 }

@@ -12,6 +12,7 @@ using Alarmlist.Binding;
 using Alarmlist.Core;
 using Alarmlist.Diagnostics;
 using Alarmlist.Evaluation;
+using Alarmlist.Libraries;
 using Alarmlist.Text;
 
 namespace Alarmlist.Compiler
@@ -19,6 +20,25 @@ namespace Alarmlist.Compiler
     public class AlarmCompiler
     {
         public AlarmCompiler() { }
+
+        /// <summary>
+        /// Creates a culture-independent library from captured inputs. Source, resource and lookup
+        /// paths must be portable relative artifact names, or have entries in portablePaths supplied
+        /// by the host. Physical paths remain available during validation. No files are accessed.
+        /// Missing consumer values may be deferred; syntax, structure and references must be valid.
+        /// </summary>
+        public LibraryBuildResult CreateLibrary(LibraryIdentity identity, IEnumerable<AlmxTextSnapshot> sources,
+            CompilationContext context, CancellationToken cancellationToken = default, IReadOnlyDictionary<string, string> portablePaths = null)
+        {
+            if (identity == null) throw new ArgumentNullException(nameof(identity));
+            if (sources == null) throw new ArgumentNullException(nameof(sources));
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            cancellationToken.ThrowIfCancellationRequested();
+            AlmxTextSnapshot[] captured = sources.ToArray();
+            if (captured.Any(source => source == null)) throw new ArgumentException("A source snapshot cannot be null.", nameof(sources));
+            var capturedPaths = portablePaths?.ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
+            return LibraryBuilder.Create(identity, captured, context, cancellationToken, capturedPaths);
+        }
 
         public CompilationResult Compile(IEnumerable<SourceText> sourceTexts)
             => Compile(sourceTexts, CompilationContext.Empty);
@@ -34,7 +54,7 @@ namespace Alarmlist.Compiler
             token.ThrowIfCancellationRequested();
             var binder = new Binder();
             binder.AddSourceTexts(sourceTexts);
-            var bindingResult = binder.Bind();
+            var bindingResult = LibraryCompilation.Include(binder.Bind(), context);
             return SnapshotAnalyzer.Compile(bindingResult, context, token);
         }
 
@@ -98,6 +118,17 @@ namespace Alarmlist.Compiler
             return SnapshotAnalyzer.Analyze(inputs, context, includeCompiledXml, cancellationToken);
         }
 
+        /// <summary>Analyzes library definitions with deferred consumer values and no final XML output.</summary>
+        public AnalysisResult AnalyzeLibrarySnapshots(IEnumerable<AlmxTextSnapshot> snapshots, CompilationContext context, CancellationToken cancellationToken = default)
+        {
+            if (snapshots == null) throw new ArgumentNullException(nameof(snapshots));
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            cancellationToken.ThrowIfCancellationRequested();
+            AlmxTextSnapshot[] inputs = snapshots.ToArray();
+            if (inputs.Any(snapshot => snapshot == null)) throw new ArgumentException("A source snapshot must not be null.", nameof(snapshots));
+            return SnapshotAnalyzer.Analyze(inputs, context, false, cancellationToken, allowDeferredValues: true);
+        }
+
         public CompilationResult Compile(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree)
             => Compile(syntaxTree, CompilationContext.Empty);
 
@@ -106,7 +137,7 @@ namespace Alarmlist.Compiler
             if (syntaxTree == null)
                 throw new ArgumentNullException(nameof(syntaxTree));
 
-            BindingResult binding = Binder.Bind(syntaxTree);
+            BindingResult binding = LibraryCompilation.Include(Binder.Bind(syntaxTree), context);
             return SnapshotAnalyzer.Compile(binding, context);
         }
 

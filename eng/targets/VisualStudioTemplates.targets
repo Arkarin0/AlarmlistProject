@@ -27,11 +27,18 @@
       <_AlarmlistProjectTemplate>$(_AlarmlistProjectTemplate.Replace('__ALARMLIST_SDK_VERSION__', '%(_AlarmlistTemplateSdk.PackageVersion)'))</_AlarmlistProjectTemplate>
     </PropertyGroup>
     <WriteLinesToFile File="$(_AlarmlistTemplateRoot)Projects/Alarmlist/Alarmlist.almproj" Lines="$(_AlarmlistProjectTemplate)" Overwrite="true" />
+    <PropertyGroup>
+      <_AlarmlistLibraryTemplate>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/Templates/Projects/AlarmlistLibrary/AlarmlistLibrary.almproj'))</_AlarmlistLibraryTemplate>
+      <_AlarmlistLibraryTemplate>$(_AlarmlistLibraryTemplate.Replace('__ALARMLIST_SDK_VERSION__', '%(_AlarmlistTemplateSdk.PackageVersion)'))</_AlarmlistLibraryTemplate>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(_AlarmlistTemplateRoot)Projects/AlarmlistLibrary/AlarmlistLibrary.almproj" Lines="$(_AlarmlistLibraryTemplate)" Overwrite="true" />
     <ZipDirectory SourceDirectory="$(_AlarmlistTemplateRoot)Projects/Alarmlist" DestinationFile="$(_AlarmlistTemplateRoot)Alarmlist.Project.zip" Overwrite="true" />
+    <ZipDirectory SourceDirectory="$(_AlarmlistTemplateRoot)Projects/AlarmlistLibrary" DestinationFile="$(_AlarmlistTemplateRoot)Alarmlist.Library.zip" Overwrite="true" />
     <ZipDirectory SourceDirectory="$(_AlarmlistTemplateRoot)Items/AlarmList" DestinationFile="$(_AlarmlistTemplateRoot)Alarmlist.Item.zip" Overwrite="true" />
     <ZipDirectory SourceDirectory="$(_AlarmlistTemplateRoot)Items/Translations" DestinationFile="$(_AlarmlistTemplateRoot)Alarmlist.Translations.zip" Overwrite="true" />
     <ItemGroup>
       <VSIXSourceItem Include="$(_AlarmlistTemplateRoot)Alarmlist.Project.zip" VSIXSubPath="ProjectTemplates\Alarmlist" />
+      <VSIXSourceItem Include="$(_AlarmlistTemplateRoot)Alarmlist.Library.zip" VSIXSubPath="ProjectTemplates\Alarmlist" />
       <VSIXSourceItem Include="$(_AlarmlistTemplateRoot)Alarmlist.Item.zip" VSIXSubPath="ItemTemplates\Alarmlist" />
       <VSIXSourceItem Include="$(_AlarmlistTemplateRoot)Alarmlist.Translations.zip" VSIXSubPath="ItemTemplates\Alarmlist" />
       <FileWrites Include="$(_AlarmlistTemplateRoot)**/*" />

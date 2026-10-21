@@ -1,7 +1,6 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
-using System.IO;
 using System.Linq;
 using Alarmlist.VisualStudio.Analysis;
 
@@ -16,7 +15,8 @@ namespace Alarmlist.VisualStudio.UI
         public string Description { get; }
         public string TestMethod { get; }
         public string Identity => Alarm.Origin.FullyQualifiedName ?? "";
-        public string Source => Alarm.Origin.Location == null ? "" : Path.GetFileName(Alarm.Origin.Location.FilePath) + ":" + Alarm.Origin.Location.LineNumber;
+        public string Source => AlarmOriginPresentation.Source(Alarm.Origin)
+            + (Alarm.Origin.Location == null ? "" : ":" + Alarm.Origin.Location.LineNumber);
         public string SourcePath => Alarm.Origin.Location?.FilePath;
         public string Status => Alarm.HasEvaluatedValues ? "Resolved" : "Values unavailable; see live project diagnostics.";
         public string AutomationName => Identity + " — " + Name;
@@ -57,7 +57,7 @@ namespace Alarmlist.VisualStudio.UI
             }
         }
 
-        internal bool Matches(string filter) => new[] { Name, Code, Category, Description, TestMethod, Identity, SourcePath }
+        internal bool Matches(string filter) => new[] { Name, Code, Category, Description, TestMethod, Identity, SourcePath, Source }
             .Any(value => value?.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0);
     }
 }

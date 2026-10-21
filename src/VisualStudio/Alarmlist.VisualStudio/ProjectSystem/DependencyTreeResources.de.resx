@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Dependencies" xml:space="preserve"><value>Abhängigkeiten</value></data>
+  <data name="Projects" xml:space="preserve"><value>Projekte</value></data>
+  <data name="Packages"><value>Pakete</value></data>
+  <data name="Pending"><value>Wiederherstellung ausstehend</value></data>
+  <data name="Unresolved"><value>Nicht aufgelöst</value></data>
+  <data name="Transitive"><value>Transitiv</value></data>
+  <data name="Analyzers"><value>Analysetools</value></data>
+  <data name="BuildFiles"><value>Builddateien</value></data>
+  <data name="AlarmLibraries"><value>Alarmbibliotheken</value></data>
+  <data name="Documents"><value>Dokumente</value></data>
+</root>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm abstract="true">
+    <FullyQualifiedName>$safeprojectname$.Template</FullyQualifiedName>
+    <Name>Reusable alarm</Name>
+    <Category>General</Category>
+    <Description>Derive an alarm from this template in a consuming project.</Description>
+    <TestProcedure>
+      <Group Name="Instructions"/>
+      <Group Name="Reset"/>
+    </TestProcedure>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>$safeprojectname$.Example</FullyQualifiedName>
+    <ReferenceName>$safeprojectname$.Template</ReferenceName>
+    <Code>A-001</Code>
+  </Alarm>
+</Alarmlist>

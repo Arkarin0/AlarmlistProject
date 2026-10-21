@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Alarmlist.Text;
+using Alarmlist.Libraries;
 
 namespace Alarmlist.Analysis
 {
@@ -14,12 +15,14 @@ namespace Alarmlist.Analysis
         public int Index { get; }
         public string FullyQualifiedName { get; }
         public SourceLocation Location { get; }
+        public LibraryIdentity Library { get; }
 
-        internal AlarmOrigin(int index, string fullyQualifiedName, SourceLocation location)
+        internal AlarmOrigin(int index, string fullyQualifiedName, SourceLocation location, LibraryIdentity library = null)
         {
             Index = index;
             FullyQualifiedName = fullyQualifiedName;
             Location = location;
+            Library = library;
         }
     }
 

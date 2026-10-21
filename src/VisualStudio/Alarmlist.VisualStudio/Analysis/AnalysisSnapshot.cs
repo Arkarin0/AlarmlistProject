@@ -55,12 +55,14 @@ namespace Alarmlist.VisualStudio.Analysis
         public int Index { get; }
         public string FullyQualifiedName { get; }
         public AnalysisLocation Location { get; }
+        public AnalysisLibraryIdentity Library { get; }
 
-        public AnalysisAlarmOrigin(int index, string fullyQualifiedName, AnalysisLocation location)
+        public AnalysisAlarmOrigin(int index, string fullyQualifiedName, AnalysisLocation location, AnalysisLibraryIdentity library = null)
         {
             Index = index;
             FullyQualifiedName = fullyQualifiedName;
             Location = location;
+            Library = library;
         }
     }
 
@@ -222,6 +224,7 @@ namespace Alarmlist.VisualStudio.Analysis
         public int ContractVersion { get; }
         public bool Success { get; }
         public IReadOnlyList<AnalysisSource> Sources { get; }
+        public IReadOnlyList<AnalysisLibrary> Libraries { get; }
         public IReadOnlyList<AnalysisAlarm> Alarms { get; }
         public IReadOnlyList<AnalysisDiagnostic> Diagnostics { get; }
         public string Culture { get; }
@@ -237,11 +240,12 @@ namespace Alarmlist.VisualStudio.Analysis
             string culture = "keyword", IReadOnlyList<AnalysisResource> resources = null, IReadOnlyList<AnalysisResourceEntry> entries = null,
             IReadOnlyList<AnalysisTranslation> translations = null, IReadOnlyList<AnalysisLookupFile> lookupFiles = null,
             IReadOnlyList<AnalysisLookupPath> lookupPaths = null, IReadOnlyList<AnalysisLookupList> lookupLists = null,
-            IReadOnlyList<AnalysisArgumentBinding> argumentBindings = null)
+            IReadOnlyList<AnalysisArgumentBinding> argumentBindings = null, IReadOnlyList<AnalysisLibrary> libraries = null)
         {
             ContractVersion = contractVersion;
             Success = success;
             Sources = Array.AsReadOnly(sources.ToArray());
+            Libraries = Array.AsReadOnly((libraries ?? Array.Empty<AnalysisLibrary>()).ToArray());
             Alarms = Array.AsReadOnly(alarms.ToArray());
             Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
             Culture = culture;

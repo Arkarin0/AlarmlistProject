@@ -10,6 +10,7 @@ using Alarmlist.Analyzers;
 using Alarmlist.Compiler;
 using Alarmlist.Configuration;
 using Alarmlist.Diagnostics;
+using Alarmlist.Libraries;
 using Alarmlist.Text;
 using Xunit;
 
@@ -25,6 +26,33 @@ namespace Alarmlist.Core.UnitTests.Configuration
         private static IEnumerable<Diagnostic> CheckCodes(AlarmAnalyzerContext context, CancellationToken token)
             => context.Alarms.Where(alarm => !alarm.IsAbstract && string.IsNullOrEmpty(alarm.Fields.Single(field => field.Name == "Code").EffectiveValue))
                 .Select(alarm => new Diagnostic(s_rule, alarm.Origin.FullyQualifiedName).WithLocation(alarm.Origin.Location));
+
+        [Fact]
+        public void LibraryPortableNamesPreservePhysicalEditorConfigAndOwningAnalyzerContext()
+        {
+            var source = Source("Library", "<Alarm><FullyQualifiedName>A</FullyQualifiedName><Code>001</Code></Alarm>");
+            string projectPath = Path.Combine(s_directory, "Library.almproj");
+            var names = new Dictionary<string, string> { [source.FilePath] = "definitions/Library.almx" };
+            AlarmAnalyzerContext retained = null;
+            var analyzer = new DelegateAnalyzer((context, token) =>
+            {
+                retained = context;
+                names[source.FilePath] = "changed-after-capture.almx";
+                return new[] { new Diagnostic(s_rule, "A").WithLocation(context.Alarms[0].Origin.Location) };
+            });
+            var configuration = new AnalyzerConfiguration(new[] { new EditorConfigTextSnapshot(
+                "root = true\n[*.almx]\nalarmlist_diagnostic.TEST001.severity = none\n", Path.Combine(s_directory, ".editorconfig"), 1) });
+            var context = new CompilationContext(projectPath: projectPath).WithAnalyzers(new[] { analyzer })
+                .WithDiagnosticOptions(new DiagnosticOptions(configuration));
+            LibraryBuildResult result = new AlarmCompiler().CreateLibrary(new LibraryIdentity("Library", "1.0.0"), new[] { source }, context,
+                portablePaths: names);
+            Assert.True(result.Success);
+            Assert.Empty(result.Diagnostics);
+            Assert.Equal(projectPath, retained.ProjectPath);
+            Assert.Equal(source.FilePath, Assert.Single(retained.Alarms).Origin.Location.FilePath);
+            Assert.Contains("definitions/Library.almx", result.ArtifactText);
+            Assert.DoesNotContain(s_directory, result.ArtifactText);
+        }
 
         [Fact]
         public void BuildAndSnapshotAnalysisShareTheRuleAndWarningPromotion()
@@ -45,6 +73,53 @@ namespace Alarmlist.Core.UnitTests.Configuration
             Assert.False(preview.Success);
             Assert.Null(preview.CompiledXml);
             Assert.Equal(DiagnosticSeverity.Error, Assert.Single(preview.Diagnostics).Severity);
+        }
+
+        [Fact]
+        public void LibraryAnalyzerAndPolicyStayWithOwnerWhileConsumerAnalyzerSeesCombinedModel()
+        {
+            var compiler = new AlarmCompiler();
+            var identity = new LibraryIdentity("Library", "1.0.0");
+            var source = Source("Library", "<Alarm><FullyQualifiedName>Imported</FullyQualifiedName><Name>Imported alarm</Name></Alarm>");
+            int ownerCalls = 0;
+            var ownerAnalyzer = new DelegateAnalyzer((context, token) =>
+            {
+                ownerCalls++;
+                return CheckCodes(context, token);
+            });
+            var policy = new AnalyzerConfiguration(new[] { new EditorConfigTextSnapshot(
+                "root=true\n[*.almx]\nalarmlist_diagnostic.TEST001.severity=none\n",
+                Path.Combine(s_directory, ".editorconfig"), 1) });
+            var ownerContext = CompilationContext.Empty.WithAnalyzers(new[] { ownerAnalyzer })
+                .WithDiagnosticOptions(new DiagnosticOptions(policy));
+            var library = compiler.CreateLibrary(identity, new[] { source }, ownerContext,
+                portablePaths: new Dictionary<string, string> { [source.FilePath] = "Library.almx" });
+            Assert.True(library.Success, string.Join("; ", library.Diagnostics));
+            Assert.Empty(library.Diagnostics);
+            Assert.Equal(1, ownerCalls);
+
+            var references = new LibraryReferenceSet(new[] { identity },
+                new[] { new LibraryTextSnapshot(library.ArtifactText, "Library.almlib", 1) });
+            var consumerContext = CompilationContext.Empty.WithLibraries(references);
+            var local = Source("Consumer", "<Alarm><FullyQualifiedName>Local</FullyQualifiedName><Name>Local alarm</Name></Alarm>");
+            var withoutAnalyzer = compiler.CompileSnapshots(new[] { local }, consumerContext);
+            Assert.True(withoutAnalyzer.Success);
+            Assert.Empty(withoutAnalyzer.Diagnostics);
+            Assert.Equal(2, withoutAnalyzer.AlarmList.Count);
+
+            AlarmAnalyzerContext captured = null;
+            var consumerAnalyzer = new DelegateAnalyzer((context, token) =>
+            {
+                captured = context;
+                return CheckCodes(context, token);
+            });
+            var analyzed = compiler.CompileSnapshots(new[] { local }, consumerContext.WithAnalyzers(new[] { consumerAnalyzer }));
+            Assert.True(analyzed.Success);
+            Assert.Equal(new[] { "Imported", "Local" }, captured.Alarms.Select(alarm => alarm.Origin.FullyQualifiedName).OrderBy(name => name));
+            Assert.Equal(2, analyzed.Diagnostics.Count);
+            Assert.All(analyzed.Diagnostics, diagnostic => Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity));
+            Assert.Contains(analyzed.Diagnostics, diagnostic => diagnostic.Location.FilePath.StartsWith("library://Library/1.0.0/", StringComparison.Ordinal));
+            Assert.Equal(1, ownerCalls);
         }
 
         [Fact]
@@ -132,9 +207,10 @@ namespace Alarmlist.Core.UnitTests.Configuration
         }
 
         [Theory]
-        [InlineData("ALM9999", 2)]
+        [InlineData("ALM9999", 3)]
         [InlineData("TEST001", 1)]
-        [InlineData("bad.id", 2)]
+        [InlineData("TEST001", 2)]
+        [InlineData("bad.id", 3)]
         public void InvalidAnalyzerContractsBecomeMandatoryFailures(string id, int version)
         {
             var analyzer = new DelegateAnalyzer((context, token) => Array.Empty<Diagnostic>(),
@@ -158,7 +234,7 @@ namespace Alarmlist.Core.UnitTests.Configuration
         {
             private readonly Func<AlarmAnalyzerContext, CancellationToken, IEnumerable<Diagnostic>> _analyze;
             internal DelegateAnalyzer(Func<AlarmAnalyzerContext, CancellationToken, IEnumerable<Diagnostic>> analyze,
-                DiagnosticDescriptor rule = null, int version = 2)
+                DiagnosticDescriptor rule = null, int version = AlarmAnalyzerContext.CurrentContractVersion)
             { _analyze = analyze; SupportedDiagnostics = Array.AsReadOnly(new[] { rule ?? s_rule }); ContractVersion = version; }
             public int ContractVersion { get; }
             public IReadOnlyList<DiagnosticDescriptor> SupportedDiagnostics { get; }

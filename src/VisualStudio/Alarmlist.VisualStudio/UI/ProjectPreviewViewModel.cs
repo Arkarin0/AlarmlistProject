@@ -196,8 +196,9 @@ namespace Alarmlist.VisualStudio.UI
             {
                 if (CanNavigate()) StartPreviewAction(() =>
                 {
-                    string text = state.Inputs.First(item => SamePath(item.Input.FilePath, location.FilePath)).Input.Text;
-                    _analysis.Navigate(location, text);
+                    AnalysisNavigationTarget target = AnalysisNavigationTarget.Resolve(state, location);
+                    if (target == null) throw new InvalidOperationException("The source definition is unavailable. Wait for current analysis and try again.");
+                    _analysis.Navigate(target);
                 });
             }, CanNavigate);
         }

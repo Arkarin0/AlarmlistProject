@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rule Name="ProjectReference" DisplayName="Alarm library project reference" PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+  <Rule.DataSource>
+    <DataSource ItemType="ProjectReference" Persistence="ProjectFile" HasConfigurationCondition="False"
+                SourceOfDefaultValue="AfterContext" />
+  </Rule.DataSource>
+  <StringProperty Name="Name" DisplayName="Name" ReadOnly="True">
+    <StringProperty.DataSource>
+      <DataSource PersistedName="{}{Identity}" SourceOfDefaultValue="AfterContext" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="Project" Visible="False" />
+  <StringProperty Name="ReferencedProjectIdentifier" Visible="False" />
+  <StringProperty Name="ProjectFileFullPath" Visible="False" ReadOnly="True">
+    <StringProperty.DataSource>
+      <DataSource ItemType="ProjectReference" PersistedName="FullPath" Persistence="Intrinsic"
+                  SourceOfDefaultValue="AfterContext" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <StringProperty Name="BrowsePath" Visible="False" ReadOnly="True">
+    <StringProperty.DataSource>
+      <DataSource ItemType="ProjectReference" PersistedName="Identity" Persistence="Intrinsic"
+                  SourceOfDefaultValue="AfterContext" />
+    </StringProperty.DataSource>
+  </StringProperty>
+  <BoolProperty Name="ReferenceOutputAssembly" DisplayName="Include library" Default="True"
+                Description="Include this project's library definitions in the consuming alarm list." />
+</Rule>

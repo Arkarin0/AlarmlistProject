@@ -47,7 +47,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     InheritanceAdornerTests.Pump();
                     ItemsControl owner = selector.IsVisible ? (ItemsControl)selector : list;
                     var peer = (ItemsControlAutomationPeer)UIElementAutomationPeer.CreatePeerForElement(owner);
-                    Assert.Equal("Child", Assert.Single(peer.GetChildren().Where(item => item.GetAutomationControlType()
+                    Assert.Equal("Inherited", Assert.Single(peer.GetChildren().Where(item => item.GetAutomationControlType()
                         == AutomationControlType.ListItem)).GetName());
                     selector.IsDropDownOpen = false;
 

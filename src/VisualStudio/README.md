@@ -5,6 +5,13 @@ templates, Solution Explorer file management, project properties, and
 Build/Rebuild/Clean through `Alarmlist.MSBuild.SDK`. Compiler errors are reported
 through the standard MSBuild logger and Visual Studio Error List.
 
+**Add New Project > Alarmlist Library** creates reusable definitions with an abstract
+template and a concrete derived alarm. In its Alarmlist project properties, choose
+the output type and library filename, and set the package ID/version before sharing
+it through project or NuGet references. Package identity is shared across build
+configurations. The [library playground](../../example/Libraries/README.md) includes
+two consumers, a transitive dependency, local feed preparation and expected output.
+
 **Add > New Item > Alarmlist > Translations (RESX)** creates a resource file and
 opens Visual Studio's resource editor. Keep a culture suffix in its name, such as
 `Translations.en.resx` (the default) or `Translations.de.resx`. It is included as
@@ -59,8 +66,59 @@ Alarm-field properties read resolved values; custom parameter assignments remain
 literal. Explicit-empty assignments stop fallback, while unassigned parameters
 use outer scopes and cause errors only when used unresolved by a concrete alarm.
 Milestone three's remaining release checks stay open. Milestone five localization
-is implemented; see its [iteration results and remaining gates](MILESTONE-5.md). NuGet alarm libraries
-remain for a later milestone.
+is implemented; see its [iteration results and remaining gates](MILESTONE-5.md).
+
+[Milestone nine](MILESTONE-9.md) adds reusable alarm libraries through project and
+NuGet references. Consumer analysis reads saved referenced projects and their
+imports, ALMX, resources, lookups and configuration without running Build or
+writing library artifacts. This also works for unloaded projects and projects
+outside the solution. Save dependency changes to refresh consumers; unsaved
+dependency XML remains private, while the consumer's own open ALMX buffers still
+participate in its analysis. Solution configuration mappings select the referenced
+project configuration. Library analyzers and EditorConfig validate their owning
+library and do not become consumer policy.
+
+Solution Explorer groups direct project references under Dependencies / Projects
+(Abhängigkeiten / Projekte in a German IDE). The tree follows evaluated project
+items in the active configuration, keeps missing references visible with a warning,
+and does not require referenced projects to be loaded. Expanding it does not build
+the project. Use the native Add Reference command with the dependency root selected,
+or remove a selected direct reference with Delete; removal keeps the referenced
+project on disk. Empty Projects groups are hidden.
+
+Dependencies / Packages (Pakete) shows evaluated direct NuGet references. Resolved
+nodes show the selected version; a differing requested version/range appears as
+`requested → resolved`. Restore-pending and unresolved references remain visible.
+Expand a package to inspect its selected transitive dependencies, labelled as
+read-only transitive entries. Shared dependencies expand once per direct root;
+repeated occurrences stay visible as leaves. Use the native Manage NuGet Packages
+action on the dependency root to install, update or uninstall packages. Delete
+does not edit package references or transitives. Resolution follows the selected
+SDK's restored assets; invalid/failed restore clears resolved children until
+recovery. An older SDK without the graph projection leaves package nodes unresolved.
+Selected packages also expose nonempty Build files, Analyzers, Alarm libraries and
+Documents groups (localized in German). Entries come from restored declarations:
+selected props/targets, registered host-compatible Alarmlist analyzers, `.almlib`
+artifacts, the manifest's README and `.md`/`.txt`/`.html` files in `docs/` or
+`documentation/`. Enter or double-click opens captured read-only content. HTML and
+build files are plain text; libraries use the virtual XML viewer; DLLs show captured
+identity/path information. Browsing never executes HTML or build files, loads a DLL,
+or edits the package cache. Missing files are marked unresolved and recover when
+restored. Navigation checks current selection, captured bytes and path containment.
+Integrated playground/configuration lifecycle acceptance passed on both supported
+hosts; milestone-nine iteration 12 records the scenarios and retained evidence.
+
+Package analysis uses the selected SDK and restored NuGet assets. Restore after
+changing package references. Missing or invalid dependencies clear stale results;
+saved-file recovery triggers analysis again. Inputs and package selections are
+revalidated before results are published or used for editor actions. Reference
+choices and preview source labels show library identity/version and can be searched
+by library name. Concrete imported alarms appear in the project preview table;
+deferred values remain unavailable. Navigation into a referenced project opens
+its actual source. Package navigation opens a generated, read-only definition
+with portable origin information; it does not expose the original formatting or
+write to the package cache. Repeated navigation reuses an identical open definition.
+See milestone-nine iteration six for validation evidence.
 
 [Milestone six](MILESTONE-6.md) adds saved EditorConfig settings, diagnostic severity,
 project warning controls and explicit `AlarmlistAnalyzer` DLLs. The SDK owns rule
@@ -75,6 +133,16 @@ compiler and plugin types remain outside the VS host domain. See the
 for precedence, runtime selection and the trusted/cooperative analyzer contract.
 The functional xUnit scenarios have the `Area=Analyzers` trait and the same host
 environment prerequisites as the other UI integration tests.
+
+Milestone nine adds analyzer packages whose ordinary NuGet build targets register
+`AlarmlistAnalyzer` items. Dependencies / Analyzers (Analysetools in German) shows
+assembly names and their declared `ID: Title` rules for both package and DLL items.
+Rules remain visible when they report no violations or ALMX contains errors. Rule
+icons show descriptor **default severity**; the Error List reflects the effective
+per-file configuration. Configure severity through EditorConfig or project warning
+options. Rule nodes do not provide a ruleset editor or delete action. Descriptor
+loading stays in the selected SDK domain; unavailable analyzers have no stale rule
+children. Manage direct analyzer packages through native NuGet commands.
 
 Milestone five also supports reusable named templates such as
 `$(loc:Instruction.Set, path=$(path:Service.Vakuum), value="60")`.
@@ -131,7 +199,7 @@ Copying revalidates saved resources/lookups and source snapshots first. Errors
 mark unavailable row values and disable compiled XML. See the scope-specific draft
 behavior above.
 
-The bridge accepts analysis contract 4 and loads the resolved SDK's net472 compiler
+The bridge accepts analysis contract 5 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off
 the UI thread, recreating the bridge after SDK/configuration changes. The project
@@ -143,7 +211,12 @@ keeps linked projects separate; each view can choose its owning project context.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
-Contract 4 requires captured-context analysis and compiled preview support. It
+Contract 5 requires captured-context analysis and compiled preview support. It
+also requires library snapshot analysis. CPS captures `OutputType=Library` and
+uses that mode for the project's own editor: missing consumer values are unavailable
+in previews, without treating those missing values as invalid library definitions.
+Library previews never provide final application XML. Application projects retain
+strict value validation. The bridge
 copies selected culture, saved-resource identities/versions, raw catalogue entries,
 translation origins and alarm-specific localization uses, as well as raw expressions,
 evaluated values, abstract state, availability, and separate
@@ -249,6 +322,10 @@ from document contents. **Open With > XML (Text) Editor** remains available.
 Filter the alarm list by name or identifier, select an alarm, and edit its local
 `FullyQualifiedName`, `Name`, `Code`, `Category`, `Description`, or `ReferenceName`.
 The list becomes a selector when the designer pane is narrow.
+Both show resolved names in the current preview culture, including inherited
+names. When current values are unavailable, they fall back to raw expressions or
+identifiers. Filtering matches displayed names, local raw expressions and
+identifiers. Analysis refreshes preserve an actively edited alarm and its drafts.
 The Add alarm and Delete buttons expose A/D access keys in their tooltips and
 accessible help: press A or D while the designer has focus outside a text field.
 Inside text fields, letters remain ordinary input and Ctrl+A selects all text.

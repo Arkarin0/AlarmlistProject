@@ -12,6 +12,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
+    <Content Include="../../../example/Libraries/**/Labels.en.resx"
+             Exclude="../../../example/Libraries/**/bin/**;../../../example/Libraries/**/obj/**;../../../example/Libraries/**/.*/**"
+             Link="testassets/LibraryResources/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioAutomation.cs" Link="VisualStudioAutomation.cs" />
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioTestDeployment.cs" Link="VisualStudioTestDeployment.cs" />
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" ReferenceOutputAssembly="false"
@@ -40,5 +43,10 @@
       <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzer" />
     </MSBuild>
     <Copy SourceFiles="@(_SampleAnalyzer)" DestinationFolder="$(TargetDir)testassets" SkipUnchangedFiles="true" />
+    <MSBuild Projects="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" Targets="GetSampleAnalyzerPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzerPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_SampleAnalyzerPackage)" DestinationFolder="$(TargetDir)testassets" SkipUnchangedFiles="true" />
   </Target>
 </Project>

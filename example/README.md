@@ -1,5 +1,9 @@
 # Alarmlist example playground
 
+For reusable ProjectReference/NuGet libraries, see the independent
+[library playground](Libraries/README.md) with two consumers and a transitive
+dependency graph. Its preparation does not change this North/South playground.
+
 Run `scripts/start-vs2022.bat` or `scripts/start-vs2026.bat` from the repository.
 The launcher builds and deploys the current extension, prepares its matching SDK
 and sample analyzer,

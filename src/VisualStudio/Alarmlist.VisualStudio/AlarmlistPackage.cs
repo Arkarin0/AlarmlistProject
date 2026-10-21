@@ -22,10 +22,15 @@ namespace Alarmlist.VisualStudio
     [ProvideUIContextRule(ProjectSelectedContext, "Alarmlist project selected", "Project", new[] { "Project" }, new[] { "ActiveProjectCapability:Alarmlist" })]
     [ProvideOptionPage(typeof(NavigationOptions), "Alarmlist", "Navigation", 0, 0, true)]
     [ProvideToolWindow(typeof(AlarmlistPreviewWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 900, Height = 380)]
+    // These editors use captured ALMX analysis, not the host's language-project
+    // IntelliSense readiness. They must remain usable during dependency loading.
+    [ProvideEditorFactory(typeof(AlmxEditorFactory), 111, false)]
     [ProvideEditorExtension(typeof(AlmxEditorFactory), ".almx", 0x60, NameResourceID = 111)]
     [ProvideEditorLogicalView(typeof(AlmxEditorFactory), VSConstants.LOGVIEWID.Designer_string)]
     [ProvideEditorLogicalView(typeof(AlmxEditorFactory), VSConstants.LOGVIEWID.Code_string)]
     [ProvideEditorLogicalView(typeof(AlmxEditorFactory), VSConstants.LOGVIEWID.TextView_string)]
+    [ProvideEditorFactory(typeof(LibraryDefinitionEditorFactory), 111, false)]
+    [ProvideEditorLogicalView(typeof(LibraryDefinitionEditorFactory), VSConstants.LOGVIEWID.TextView_string)]
     public sealed class AlarmlistPackage : AsyncPackage
     {
         public const string PackageGuid = "2c4fa8f8-d641-4f5c-a7df-6cfc6bf30f34";
@@ -47,6 +52,7 @@ namespace Alarmlist.VisualStudio
             if (commands == null) throw new System.InvalidOperationException("Visual Studio's command service is unavailable.");
             await JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
             RegisterEditorFactory(components.GetService<AlmxEditorFactory>());
+            RegisterEditorFactory(components.GetService<LibraryDefinitionEditorFactory>());
             commands.AddCommand(new MenuCommand((sender, args) =>
             {
                 ThreadHelper.ThrowIfNotOnUIThread();

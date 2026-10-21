@@ -1,0 +1,8 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup><OutputType>Library</OutputType><PackageId>Example.Equipment</PackageId><PackageVersion>1.0.0</PackageVersion></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Common/Common.almproj" Condition="'$(UseLibraryPackages)' != 'true'" />
+    <PackageReference Include="Example.Common" Version="1.0.0" Condition="'$(UseLibraryPackages)' == 'true'" />
+    <AlarmlistProperty Include="Site" Value="Equipment default" />
+  </ItemGroup>
+</Project>

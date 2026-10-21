@@ -35,9 +35,10 @@ namespace Alarmlist.VisualStudio.UI
                 return name?.IsValueAvailable == true ? name.EffectiveValue ?? Identifier : name?.EffectiveExpression ?? Identifier;
             }
         }
+        public string OriginLabel => AlarmOriginPresentation.Library(Alarm.Origin);
         public string Label => Name
-            + " — " + Identifier + " — " + Path.GetFileName(Alarm.Origin.Location?.FilePath);
-        public string HelpText => Name + " — " + Identifier + " — " + Alarm.Origin.Location?.FilePath;
+            + " — " + Identifier + " — " + AlarmOriginPresentation.Source(Alarm.Origin);
+        public string HelpText => Name + " — " + Identifier + " — " + AlarmOriginPresentation.Source(Alarm.Origin, fullPath: true);
         public ReferenceChoice(AnalysisAlarm alarm) { Alarm = alarm; }
     }
 
@@ -204,6 +205,72 @@ namespace Alarmlist.VisualStudio.UI
             }
         }
 
+        private void UpdateAlarmNames(ProjectAnalysisState state)
+        {
+            bool current = !HasPending && state?.Status == ProjectAnalysisStatus.Available
+                && state.Response?.Snapshot != null && DiagnosticDocumentMatches(state);
+            var names = current ? state.Response.Snapshot.Alarms
+                .Where(alarm => alarm.Origin.Location != null && string.Equals(alarm.Origin.Location.FilePath,
+                    _analysis.DocumentPath, StringComparison.OrdinalIgnoreCase))
+                .GroupBy(alarm => Tuple.Create(alarm.Origin.Location.LineNumber, alarm.Origin.Location.ColumnNumber))
+                .Where(group => group.Count() == 1)
+                .ToDictionary(group => group.Key, group => group.Single()) : null;
+            // Source declarations are ordered. Scan text once, including CRLF,
+            // rather than rescanning the entire prefix for every list item.
+            int offset = 0, line = 1, column = 1;
+            string text = _model.Projection.Text;
+            foreach (AlarmViewModel view in _allAlarms)
+            {
+                AnalysisField name = null;
+                if (current)
+                {
+                    int end = view.Source.Start + 1;
+                    while (offset < end)
+                    {
+                        char character = text[offset++];
+                        if (character == '\r' || character == '\n')
+                        {
+                            if (character == '\r' && offset < end && text[offset] == '\n') offset++;
+                            line++; column = 1;
+                        }
+                        else column++;
+                    }
+                    if (names.TryGetValue(Tuple.Create(line, column), out AnalysisAlarm alarm) && alarm.IsResolved)
+                        name = alarm.Fields.FirstOrDefault(field => field.Name == "Name");
+                }
+                view.SetName(name);
+            }
+        }
+
+        private void RefreshAlarmNames(ProjectAnalysisState state)
+        {
+            UpdateAlarmNames(state);
+            if (_refreshing) return;
+            _refreshing = true;
+            try
+            {
+                bool wasEmpty = Alarms.Count == 0;
+                // Keep an actively edited item visible even if fallback text no
+                // longer matches the filter. Never reload its fields on refresh.
+                var visible = _allAlarms.Where(view => view.Matches(_filter)
+                    || (HasPending && ReferenceEquals(view, _selected))).ToArray();
+                var visibleSet = new HashSet<AlarmViewModel>(visible);
+                for (int index = Alarms.Count - 1; index >= 0; index--)
+                    if (!visibleSet.Contains(Alarms[index])) Alarms.RemoveAt(index);
+                for (int index = 0; index < visible.Length; index++)
+                    if (index >= Alarms.Count || !ReferenceEquals(Alarms[index], visible[index]))
+                        Alarms.Insert(index, visible[index]);
+                if ((_selected != null && !Alarms.Contains(_selected))
+                    || (_selected == null && wasEmpty && Alarms.Count > 0))
+                {
+                    _selected = Alarms.FirstOrDefault();
+                    LoadFields();
+                    Notify(nameof(Selected)); Notify(nameof(CanEdit)); DeleteCommand.Refresh();
+                }
+            }
+            finally { _refreshing = false; }
+        }
+
         private void OnAnalysisChanged(object sender, EventArgs args) => RefreshAnalysis();
         private void RefreshAnalysis()
         {
@@ -212,6 +279,7 @@ namespace Alarmlist.VisualStudio.UI
             try
             {
                 ProjectAnalysisState state = _analysis?.Current;
+                RefreshAlarmNames(state);
                 PreviewColumns.SetStore((_analysis as IDesignerPreviewSettings)?.GetPreviewLayout());
                 var projects = _analysis?.Projects ?? Array.Empty<AnalysisProject>();
                 if (Projects.Count != projects.Count || Projects.Where((choice, index) => choice.ProjectPath != projects[index].ProjectPath
@@ -342,8 +410,9 @@ namespace Alarmlist.VisualStudio.UI
         private void Navigate(ProjectAnalysisState state, AnalysisLocation location)
         {
             if (location == null) return;
-            string text = state.Inputs.First(item => string.Equals(item.Input.FilePath, location.FilePath, StringComparison.OrdinalIgnoreCase)).Input.Text;
-            _analysis.Navigate(location, text);
+            AnalysisNavigationTarget target = AnalysisNavigationTarget.Resolve(state, location);
+            if (target == null) throw new InvalidOperationException("The source definition is unavailable. Wait for current analysis and try again.");
+            _analysis.Navigate(target);
         }
 
         private void DisposeAnalysis()

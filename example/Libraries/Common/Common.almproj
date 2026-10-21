@@ -1,0 +1,4 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup><OutputType>Library</OutputType><PackageId>Example.Common</PackageId><PackageVersion>1.0.0</PackageVersion></PropertyGroup>
+  <ItemGroup><AlarmlistProperty Include="Site" Value="Common default" /></ItemGroup>
+</Project>

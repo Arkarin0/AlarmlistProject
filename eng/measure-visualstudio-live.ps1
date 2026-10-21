@@ -8,6 +8,7 @@ param(
   [switch]$KeepOpen,
   [switch]$MeasureAnalysis = $true,
   [switch]$AnalyzerWorkload,
+  [switch]$LibraryWorkload,
   [ValidateRange(1, 100)]
   [int]$MeasurementIterations = 20,
   [ValidateRange(1, 10000)]
@@ -18,6 +19,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if ($AnalyzerWorkload -and $LibraryWorkload) { throw 'Select one measurement workload.' }
 if ($PSVersionTable.PSEdition -ne 'Desktop' -or [Threading.Thread]::CurrentThread.ApartmentState -ne 'STA' -or [IntPtr]::Size -ne 8) {
   throw 'Run this script with x64 powershell.exe -STA (Windows PowerShell 5.1).'
 }
@@ -284,6 +286,10 @@ try {
     [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::OpenSolution($dte, $solutionPath)
   }
   $outputFile = Join-Path $projectDirectory 'bin/Debug/keyword/Plant.Alarmlist.xml'
+  if ($LibraryWorkload) {
+    . (Join-Path $PSScriptRoot 'measure-visualstudio-libraries.ps1')
+    Measure-LiveLibraries
+  } else {
   $livePath = Join-Path $projectDirectory 'Live.almx'
   $liveText = "<Alarmlist>`r`n  <Alarm><FullyQualifiedName>Live</FullyQualifiedName>`r`n    <ReferenceName>MissingLive</ReferenceName></Alarm>`r`n</Alarmlist>"
   $liveMessage = "Alarm 'Live' references missing alarm 'MissingLive'."
@@ -299,6 +305,7 @@ try {
   Wait-For { [Alarmlist.VisualStudio.Testing.VisualStudioAutomation]::FindItem($dte, $null, 'Live.almx', 'delete') } 'live input deletion' | Out-Null
   Wait-For { !(Test-LiveDiagnostic $liveMessage) } 'removed input clears live diagnostic' | Out-Null
   Write-Output 'Live measurement fixture cleanup passed.'
+  }
 
   if ($KeepOpen) {
     $dte.ItemOperations.OpenFile((Join-Path $projectDirectory 'Alarms.almx')) | Out-Null
@@ -337,11 +344,13 @@ try {
       HostVersion = '{0}.{1}.{2}.{3}' -f $hostFile.FileMajorPart, $hostFile.FileMinorPart, $hostFile.FileBuildPart, $hostFile.FilePrivatePart
       Measurements = $MeasureAnalysis.IsPresent; Iterations = $MeasurementIterations
       AnalyzerWorkload = $AnalyzerWorkload.IsPresent
+      LibraryWorkload = $LibraryWorkload.IsPresent
       AdditionalAlarms = $MeasurementAlarmCount; SourcesPreserved = $measurementSourcesPreserved
       Failure = $failureMessage
     }
     foreach ($name in $values.Keys) { $root.SetAttribute($name, [string]$values[$name]) }
-    foreach ($table in @(@('Latencies', 'analysis-latency.csv'), @('Memory', 'designer-close-memory.csv'))) {
+    $memoryFile = if ($LibraryWorkload) { 'project-unload-memory.csv' } else { 'designer-close-memory.csv' }
+    foreach ($table in @(@('Latencies', 'analysis-latency.csv'), @('Memory', $memoryFile))) {
       $csv = Join-Path $runDirectory $table[1]
       $element = $report.CreateElement($table[0])
       [void]$root.AppendChild($element)

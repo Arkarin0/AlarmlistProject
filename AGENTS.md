@@ -66,6 +66,25 @@ Existing plans and iteration records:
 | [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX: procedures, property fields, IntelliSense, searchable references, file/alarm scope separation and preview-table rendering/column preferences; accepted direction and open interaction details. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+[Milestone 9](src/VisualStudio/MILESTONE-9.md) authorizes reusable alarm libraries,
+ProjectReference/NuGet and native reference management; its
+[design contract](src/VisualStudio/MILESTONE-9-DESIGN.md) governs dependency scopes,
+resource overrides, saved-project analysis and the coordinated analysis-5/analyzer-3
+transition. Native integration on both supported IDE hosts is an essential first
+iteration gate. Read the plan's implementation evidence and remaining gates before
+resuming. Consumer analysis captures saved dependency projects in private MSBuild
+collections without executing targets, including unloaded/out-of-solution projects.
+Dependency drafts remain private; consumer ALMX buffers retain precedence. Keep
+dependency discovery watches through failed recapture so missing imports and
+package artifacts can recover, and revalidate the graph and package selection
+before publication or editor actions. NuGet resolution stays in the selected SDK
+AppDomain; never load its implementation assemblies into the VS host.
+Package-content groups use restored declared files and selected build assets, never
+cache enumeration. Keep missing-file/manifest watches through failed capture.
+Revalidate selected package/version and captured bytes before opening content;
+reject escaping paths and junctions/symlinks. Use the virtual read-only editor:
+HTML/build files are plain text, library artifacts XML, analyzer DLLs detached
+identity/path information. Browsing must not execute targets or load analyzer DLLs.
 [Milestone 8](src/VisualStudio/MILESTONE-8.md) defines the authorized custom
 procedure-group transition, including analysis contract 4 and analyzer contract 2.
 Groups use case-insensitive stable identities and expression-capable titles;
@@ -88,7 +107,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | --- | --- |
 | `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, and detached snapshot/provenance results in `Analysis/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
-| `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-2 sample rule; also a package/UI test asset. |
+| `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-3 sample rule; also a package/UI test asset. |
 | `src/shared/Configuration/` | Saved EditorConfig discovery and analyzer/dependency byte capture shared by build and IDE hosts; no compiler file I/O. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
 | `src/MSBuild/AlarmList.MSBuild.UnitTests/` | Task unit tests and mocked build-engine behavior. |
@@ -107,6 +126,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
 | `example/` | Persistent two-project designer playground opened by the launchers; `eng/prepare-example.ps1` prepares the SDK matching the built VSIX without replacing sample sources. |
+| `example/Libraries/` | Independent four-project library playground, including two consumers and transitive parameter/resource/lookup overrides; `eng/prepare-library-example.ps1` prepares its matching SDK without touching North/South. |
 | `template/` | Reference XML implementation/tests outside the current solution; active implementation lives in `src/`. |
 
 Read `src/SDK/Alarmlist.SDK/README.md` for SDK usage and
@@ -235,7 +255,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 - Milestone six adds captured `.editorconfig` inputs and diagnostic policy in
   `Configuration/` and `Diagnostics/`. Resolve options without compiler filesystem
   access. Preserve physical-source scoping, case-sensitive globs, root/unset,
-  literal inline punctuation and immutable captured results. ALM0001-ALM0027
+  literal inline punctuation and immutable captured results. ALM0001-ALM0028
   remain mandatory errors regardless of NoWarn or per-file severity. Determine
   success after configurable warning promotion and preserve previous outputs on
   failure. See `src/VisualStudio/MILESTONE-6.md` for scope and implementation status.
@@ -290,12 +310,24 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   in editor code. The SDK's `AnalysisContract` consumer asset verifies this API
   from the restored package without a compiler project reference.
 - The optional `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` overload
-  uses the same bound inputs and normal XML output writer. Contract 4 also accepts
+  uses the same bound inputs and normal XML output writer. Contract 5 also accepts
   captured CompilationContext. Preserve raw expressions separately from evaluated
   values, abstract state, availability, and declaration/assignment origins. The
-  unreleased contracts 1, 2 and 3 are no longer supported by the bridge. `CompiledXml` is unavailable
+  unreleased contracts 1, 2, 3 and 4 are no longer supported by the bridge. `CompiledXml` is unavailable
   on errors; in-memory previews must never save source or write build output.
-- Contract 4 localization results retain captured resource identities/versions,
+  `AnalyzeLibrarySnapshots` uses deferred consumer-value validation and never
+  returns final XML. Capture the root project's OutputType in the IDE analysis
+  context, preserve it through input updates, and invalidate on mode changes.
+  Application analysis and compilation remain strict about missing values.
+  Both ALMX editor factories explicitly opt out of host IntelliSense deferral:
+  their captured analysis does not depend on language-project initialization.
+  Verify this policy in the packaged editor registration and native loading tests.
+  Package definition navigation uses the registered in-memory editor factory,
+  captured generated text and compiler-provided location maps. Keep its documents
+  read-only and non-saving, and retain no project analysis state in open buffers.
+  Project-reference navigation uses captured physical source mappings and the
+  existing current-input and destination-draft checks.
+- Contract 5 localization results retain captured resource identities/versions,
   normalized selected culture, raw entries and ambiguity, compiler-owned parent
   lookup origins and per-alarm LocalizationUses. Lookup availability is distinct
   from evaluated-value availability. Keep these detached and immutable, with no
@@ -323,12 +355,40 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 
 ## MSBuild SDK contracts
 
+- Milestone-nine library builds use OutputType=Library and produce one
+  culture-independent `.almlib`; Application remains the default XML output.
+  Preserve captured library references, portable project-relative/Link names,
+  deferred consumer values and transactional output ownership. Manifest version 2
+  distinguishes output kinds and must continue reading version 1. ProjectReference
+  builds use toolset configuration assignment; IDE/BuildProjectReferences=false
+  consumption must not rebuild dependencies. GetTargetPath stays local and
+  GetAlarmlistReferenceClosure discovers transitive identities/paths without Build.
+  Protect project/import and dependency inputs during Build/Clean and library
+  artifacts during XLIFF exchange. Package discovery uses NuGet's selected assets
+  graph and declared files, never a package-cache scan. Normalize NuGet versions
+  consistently in artifact production and output discovery. Pack builds first,
+  uses exact library dependency versions, rejects non-packable project dependencies,
+  and installs packages only after successful staging. Preserve runtime asset
+  subdirectories in the SDK package. Follow the milestone plan for acceptance
+  evidence and remaining editor integration.
+
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
-  saved dependency-byte capture, contract-2 detached inputs, cooperative cancellation,
+  package registration through ordinary build assets selecting net472 for desktop
+  MSBuild/Visual Studio and net8.0 for .NET MSBuild. The sample analyzer package is
+  opt-in project-local tooling; do not bundle Alarmlist.Core, add buildTransitive
+  activation or discover arbitrary Roslyn analyzer/cache DLLs. Direct DLL items
+  remain supported. See milestone-nine iterations 17–19 for package/tree scope.
+  Preserve saved dependency-byte capture, contract-3 detached inputs, cooperative cancellation,
   ALM0025 failure reporting, and diagnostic policy before output installation. The
   net472 loader must reject changed/conflicting images in an existing AppDomain;
   VS replaces the domain on payload changes, while desktop builds need a new process.
   Do not claim silent reload or load compiler/plugin types into the VS host domain.
+  Analyzer tree children are SupportedDiagnostics declarations, including rules
+  without violations. Capture them through the selected SDK loader without calling
+  Analyze, share descriptor validation with execution, and copy detached metadata
+  before disposal. Preserve declarations for invalid ALMX, clear stale children on
+  load/descriptor failure, and label rule severity as the descriptor default rather
+  than one effective project-wide setting. Nodes never edit policy or delete rules.
 
 - Keep consumer `.almproj` projects usable without a `TargetFramework`.
   Task assembly selection depends on `MSBuildRuntimeType`: .NET MSBuild loads
@@ -385,9 +445,21 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   builds until removed/conditional input handling has an alternative guarantee.
   Keep Folder out of declared file item types in ProjectItemsSchema; its rule uses
   ProjectFileFolderItems so persisted empty folders can reload in CPS.
+- The Solution Explorer dependency tree uses the public CPS PhysicalViewRootGraft
+  contract, scoped to Alarmlist projects. Direct project references come from the
+  active evaluated snapshot, retain normalized path identities and missing-project
+  warning state, and never trigger Build/Pack while browsing. Keep subscription
+  cancellation/disposal, version/configuration guards, localized labels and native
+  CPS reference-management actions. See milestone-nine iterations 10–12 for scope;
+  do not enable unrelated .NET capabilities to obtain internal dependency providers.
+  Package nodes reuse the SDK's shared graph selection through the isolated bridge
+  and existing project-analysis watches. Preserve direct requested/resolved versions,
+  visible pending/unresolved states, read-only transitive edges and current-assets/
+  configuration/request guards. Bound repeated graph expansion and route package
+  changes through native NuGet management, not project-reference deletion.
 - The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
   SDK's net472 compiler independently of the build task runtime. The extension's
-  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-4 data
+  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-5 data
   into host-owned results. Do not load compiler types in the VS host domain, add a
   compiler project reference, or substitute another SDK on failure. Call bridge
   operations off the UI thread; owners must dispose on SDK/configuration changes
@@ -413,12 +485,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Capture saved lookup bytes only, watch regeneration/deletion, and compare captured
   text/path/order/version before publication, completion or navigation. Lookup drafts
   and close notifications must not expose unsealed changes. The bridge requires the
-  lookup-capable contract-4 context and copies catalogue labels, metadata, placeholder
+  library-capable contract-5 context and copies catalogue labels, metadata, placeholder
   names and usage provenance into detached host DTOs. Never parse catalogues or RESX
   templates in the IDE. Template completion inserts explicit empty named arguments;
   lookup/member/metadata completion inserts compiler-supplied expressions, with no
   automatic metadata defaults or range validation. Suppress ambiguous path choices.
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
+  Embedded XML keyboard editing inherits native text-editor bindings only while
+  the source view has aggregate focus; designer controls retain WPF draft editing.
+  Preserve focus-handler disposal and verify physical keys in XML and Split modes,
+  not only programmatic buffer replacement (milestone-nine iteration 15).
   Preview culture changes persist shared AlarmlistCulture through CPS without
   changing build cultures or committing ALMX drafts. Global overrides disable the
   selector; write failures retain evaluated state. Use
@@ -436,6 +512,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   behavior, unsupported-location XML fallback and unapplied destination drafts.
   Navigation layout changes must not commit drafts in another editor view.
   Keep source presence/local drafts separate from inherited effective displays.
+  Alarm-list and compact-selector names use current compiler-resolved values in
+  the editor's preview culture, with raw-expression/identity fallback. Match source
+  declarations by location and captured text/version; never reuse stale labels.
+  Keep raw names and identifiers searchable and preserve filtered active drafts
+  during semantic refresh. See milestone-nine iteration 13 for regression evidence.
   Only the SDK's provenance determines inheritance; equal text is not evidence.
   Revalidate current project inputs before copying/picking/navigating, preserve
   active drafts, and dispose notification subscriptions on view close. WPF adorners
@@ -472,7 +553,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   project previews include shared unsaved ALMX buffers and visibly explain that
   unapplied designer field edits are excluded; never auto-apply those drafts.
   Clear all scopes during stale/unavailable analysis; project XML requires
-  whole-project success. Require context-aware contract 4 and preview
+  whole-project success. Require context-aware contract 5 and preview
   support, and copy XML as a string outside the required property map.
 - Designer lookup caches must validate current text/version before reuse and be
   keyed by immutable analysis state, captured input, and selected source. Keep
@@ -532,6 +613,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   explicit sample analyzer references, and intentional nonfatal warnings. The
   preparation helper builds both analyzer runtimes into ignored example/.analyzers;
   preserve these references and validate changes through ExamplePlaygroundTests.
+- The library shortcuts `scripts/start-library-project-references.bat` and
+  `scripts/start-library-packages.bat` share `eng/start-library-example.ps1` and
+  open `example/Libraries/Libraries.sln` (VS2026 by default, optional VS2022).
+  Preparation persists `UseLibraryPackages` in ignored `LibraryExample.local.props`.
+  Package mode packs dependencies with project references before restoring all
+  projects into a fresh cache. Keep sources shared and North/South untouched;
+  validate switching and equivalent consumer output through LibraryExampleTests.
 - `eng/measure-visualstudio-live.ps1` (also reached through the compatibility
   `test-visualstudio.ps1 -MeasureAnalysis` option) measures running-IDE buffer-to-diagnostic
   latency and repeated designer close/process-memory samples. Parameters select
@@ -565,6 +653,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   to fourteen ordered groups per alarm with inherited expression titles. Preserve
   group/title correctness, source-state and virtualization checks outside timing.
   See milestone eight for the implementation and acceptance record.
+- The isolated `Area=Libraries` workload measures production saved-project graph
+  capture, saved-change recapture/analysis, captured-library analysis and consumer
+  bridge disposal for a three-library diamond with 1,000 concrete alarms. Its
+  `Area=LibraryPreview` companion measures actual WPF project-report creation and
+  publication of precomputed changed analysis. Keep saved writes, setup and
+  correctness checks outside timing; verify deduplication, consumer values,
+  source/output isolation and preview virtualization. These do not replace native
+  saved-refresh/project-unload evidence or establish leak freedom.
 - The isolated `Area=Analyzers` bridge workload captures the sample analyzer and
   saved configuration for 1,000 alarms, validating warning counts and host isolation
   outside timing. Its paired range scenario uses a full positive Int64 glob range;
@@ -575,6 +671,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   driver with saved sample-analyzer/configuration inputs, unique analyzer messages,
   and a third saved-configuration mode. Require the workload marker and complete
   three-mode reports; restore configuration and preserve source/output/DLL hashes.
+- The live `Host=VisualStudio&Area=Libraries` workload measures a saved external library
+  change through unique consumer diagnostic publication, then consumer removal
+  from the solution through diagnostic removal. Re-add and verify the consumer
+  outside timing. Retain raw samples and project-unload memory observations;
+  project removal includes shell overhead and does not establish leak freedom.
 - Live performance xUnit wrappers require `ALARMLIST_RUN_LIVE_VS_TESTS=1` and explicit
   host paths;
   they run only on net472 in PerformanceTests and use the dedicated live measurement
@@ -599,10 +700,18 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   require an unlocked desktop and cover project/editor lifecycle as separate xUnit
   cases; package-consumer coverage remains in IntegrationTests. The PowerShell
   smoke entry point only launches xUnit; keep functional assertions in C#.
+  Use the session's captured shell HWND for shell lookup and failure capture;
+  process main-window discovery can select a floating tool window, and modal
+  failures can reject DTE calls. Capture UI evidence before requesting build logs.
+  Native NuGet tests must await the UI's installed-state acknowledgement as well
+  as saved project/assets changes before building the updated consumer.
 - Run WPF editor unit tests, native IDE functional tests and isolated WPF
   measurements sequentially. They share desktop focus even when their project
   files and experimental profiles are isolated; overlapping runs can close menus
   or redirect keyboard input and invalidate interaction evidence.
+- Run SDK XLIFF apply tests separately from native IDE tests. Their resource-editor
+  guard inspects running IDEs; concurrent test-IDE startup/shutdown can make that
+  check fail closed and invalidate an otherwise isolated package-consumer run.
 - `eng/capture-visualstudio-heap.ps1` captures managed object counts, root paths
   and thread stacks from an explicitly selected test process using the optional
   ClrMD tool. Preserve PID/start-time identity checks and new report paths. Keep

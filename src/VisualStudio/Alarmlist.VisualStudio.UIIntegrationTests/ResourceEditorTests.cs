@@ -17,7 +17,7 @@ using Xunit.Abstractions;
 namespace Alarmlist.VisualStudio.UIIntegrationTests
 {
     [Trait("Category", "UIIntegration"), Trait("Host", "VisualStudio"), Trait("Area", "Resources")]
-    public sealed class ResourceEditorTests
+    public sealed partial class ResourceEditorTests
     {
         private readonly ITestOutputHelper _output;
 

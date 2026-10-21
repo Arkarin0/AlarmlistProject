@@ -4,6 +4,11 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);testassets/**</DefaultItemExcludes>
   </PropertyGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- These package tests use their own fixture rather than the compiler's shared helpers. -->
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
@@ -15,6 +20,9 @@
       <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
     </ProjectReference>
     <Content Include="testassets/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../example/Libraries/**/*.almx;../../../example/Libraries/**/*.almproj;../../../example/Libraries/**/*.resx;../../../example/Libraries/**/*.almlookup;../../../example/Libraries/Directory.Build.props;../../../example/Libraries/Directory.Build.targets;../../../example/Libraries/Libraries.sln"
+             Exclude="../../../example/Libraries/**/bin/**;../../../example/Libraries/**/obj/**;../../../example/Libraries/**/.*/**"
+             Link="testassets/LibraryExample/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../example/**/*.almx;../../../example/**/*.resx;../../../example/**/*.almlookup;../../../example/**/*.almproj;../../../example/**/.editorconfig;../../../example/Directory.Build.props;../../../example/Directory.Build.targets"
              Exclude="../../../example/**/bin/**;../../../example/**/obj/**;../../../example/**/.*/**"
              Link="testassets/Example/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -52,5 +60,10 @@
     </MSBuild>
     <Copy SourceFiles="@(_DesktopSampleAnalyzer)" DestinationFolder="$(TargetDir)testassets/boilerplate/analyzers/net472" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_CoreSampleAnalyzer)" DestinationFolder="$(TargetDir)testassets/boilerplate/analyzers/net8.0" SkipUnchangedFiles="true" />
+    <MSBuild Projects="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" Targets="GetSampleAnalyzerPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzerPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_SampleAnalyzerPackage)" DestinationFolder="$(TargetDir)testassets/boilerplate/feed" SkipUnchangedFiles="true" />
   </Target>
 </Project>

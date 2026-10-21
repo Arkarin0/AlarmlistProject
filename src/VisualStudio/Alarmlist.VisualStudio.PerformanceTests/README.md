@@ -8,6 +8,33 @@ contents. Ordinary solution tests skip all measurements and live IDE launches.
 
 ## Isolated benchmarks
 
+`Area=Libraries` uses a saved three-library diamond with 1,000 concrete alarms and
+one shared abstract template. It measures full saved graph/artifact capture,
+recapture plus consumer analysis after a saved template change, analysis of already
+captured libraries, and disposal of a populated consumer SDK bridge. Capture uses
+the production evaluator and opens/disposes the dependencies' SDK AppDomains.
+Source writes, bridge preparation for disposal, and assertions are outside the
+measured intervals. Assertions check deduplication, consumer parameter resolution,
+propagation of the latest saved template, compiler isolation and no build outputs.
+The fixture's initial target fails if any target is accidentally executed.
+
+```powershell
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=Libraries'
+```
+
+These timings exclude native CPS debounce, file watchers, editor painting and
+project unload in Visual Studio. Bridge disposal is not a leak-freedom claim.
+
+`Area=LibraryPreview` uses the same diamond and actual WPF project-preview control.
+It measures opening the imported report and publishing a precomputed saved-library
+change, with compilation/capture outside the UI intervals. It verifies 1,000
+concrete rows, current names, library version labels, compiled XML and row
+virtualization. Run it separately from native IDE tests:
+
+```powershell
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Category=Performance&Host=Isolated&Area=LibraryPreview'
+```
+
 From the repository root on Windows:
 
 ```powershell
@@ -177,6 +204,20 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.PerformanceTests/Alarmlist.V
 Set `ALARMLIST_VS_MEASUREMENT_ITERATIONS=100` for the extended lifecycle run. These
 measurements observe the whole IDE without forcing garbage collection. They do
 not establish a timing budget or prove absence of leaks.
+
+`Host=VisualStudio&Area=Libraries` uses the same opt-in settings on both hosts.
+It loads a consumer with an out-of-solution library containing one abstract
+template and 1,000 concrete alarms. Each saved change introduces a unique required
+parameter, and the timer ends only when its consumer diagnostic appears. The
+second interval removes the consumer from the solution and waits for its diagnostic
+to disappear. Re-adding the project and checking the current diagnostic is outside
+timing. Each mode retains two warmups and the requested samples; the workload
+marker, complete modes and zero loaded projects/documents at memory capture are
+required by report validation. `project-unload-memory.csv` observes whole-IDE
+memory after removal, without forced IDE collection or a leak-freedom claim.
+These timings include disk writes, 50 ms polling and shell/COM overhead; they do
+not isolate the extension's disposal cost. No library Build runs; consumer output
+and unchanged inputs are hash-checked, and the changed fixture source is restored.
 
 ## Heap and lifetime investigation
 

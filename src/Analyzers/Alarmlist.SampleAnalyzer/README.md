@@ -1,6 +1,6 @@
 # Sample analyzer
 
-`CodePrefixAnalyzer` implements analyzer contract 2. SAMPLE001 warns when a concrete
+`CodePrefixAnalyzer` implements analyzer contract 3. SAMPLE001 warns when a concrete
 alarm's resolved `Code` does not start with `AL-`. Configure the prefix per source:
 
 ```ini
@@ -15,10 +15,33 @@ Build from the repository root:
 dotnet build src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj
 ```
 
-The assemblies are under `artifacts/bin/Alarmlist.SampleAnalyzer/<Configuration>/`
-for net472 and net8.0. Reference the appropriate DLL using `AlarmlistAnalyzer` in
-your `.almproj`; see the [SDK guide](../../SDK/Alarmlist.SDK/README.md#diagnostic-configuration-and-analyzers).
-The sample is not shipped as an automatic or mandatory rule.
+Build also produces `Alarmlist.SampleAnalyzer.<version>.nupkg` in the repository's
+package output. Add that directory to your NuGet sources, then reference the
+package directly in your `.almproj` (replace the version with the built version):
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Alarmlist.SampleAnalyzer" Version="1.0.0" PrivateAssets="all" />
+</ItemGroup>
+```
+
+Restore before building. The package's ordinary `build` targets register an
+`AlarmlistAnalyzer` from `tools/net472` for desktop MSBuild/Visual Studio or
+`tools/net8.0` for .NET MSBuild. No consumer TargetFramework is needed. The package
+does not bundle the compiler contract or expose managed `lib` assets. It is opt-in
+tooling, not a mandatory rule or a transitive alarm-library dependency.
+
+Direct DLL registration remains supported. Assemblies are under
+`artifacts/bin/Alarmlist.SampleAnalyzer/<Configuration>/` for both runtimes;
+see the [SDK guide](../../SDK/Alarmlist.SDK/README.md#diagnostic-configuration-and-analyzers).
+
+For your own analyzer package, ship both runtime payloads and an unqualified
+`build/<PackageId>.targets` registering the host-appropriate `AlarmlistAnalyzer`
+relative to `MSBuildThisFileDirectory`. Keep private managed dependencies beside
+each payload; use separate runtime directories. Do not ship another Alarmlist.Core
+or use `buildTransitive` to activate rules in downstream projects. Ordinary Roslyn
+analyzer assets are not Alarmlist analyzers. Package version updates require restore;
+invalid DLLs/contracts report ALM0025 and preserve previous compiled outputs.
 
 An analyzer exposes its contract version, immutable `SupportedDiagnostics`, and
 `Analyze(AlarmAnalyzerContext, CancellationToken)`. Use unique letter-led IDs

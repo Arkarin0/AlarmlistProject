@@ -20,21 +20,7 @@ namespace Alarmlist.Analyzers
                 string name = analyzer.GetType().FullName;
                 try
                 {
-                    if (analyzer.ContractVersion != AlarmAnalyzerContext.CurrentContractVersion)
-                        throw new NotSupportedException("Unsupported analyzer contract " + analyzer.ContractVersion + ".");
-                    var rules = new Dictionary<string, DiagnosticDescriptor>(StringComparer.OrdinalIgnoreCase);
-                    foreach (DiagnosticDescriptor descriptor in analyzer.SupportedDiagnostics ?? throw new InvalidOperationException("SupportedDiagnostics is null."))
-                    {
-                        if (descriptor == null || string.IsNullOrWhiteSpace(descriptor.Id)
-                            || descriptor.Id.StartsWith("ALM", StringComparison.OrdinalIgnoreCase)
-                            || !char.IsLetter(descriptor.Id[0]) || descriptor.Id.Any(character => !char.IsLetterOrDigit(character) && character != '_')
-                            || !Enum.IsDefined(typeof(DiagnosticSeverity), descriptor.Severity))
-                            throw new InvalidOperationException("Analyzer rules require a valid ID outside the reserved ALM prefix and a supported severity.");
-                        if (rules.ContainsKey(descriptor.Id) || owners.Contains(descriptor.Id))
-                            throw new InvalidOperationException("Duplicate analyzer diagnostic ID '" + descriptor.Id + "'.");
-                        rules.Add(descriptor.Id, descriptor);
-                    }
-                    foreach (string id in rules.Keys) owners.Add(id);
+                    var rules = ReadRules(analyzer, owners);
                     var reported = new List<Diagnostic>();
                     foreach (Diagnostic diagnostic in analyzer.Analyze(context, token) ?? throw new InvalidOperationException("The analyzer returned null diagnostics."))
                     {
@@ -56,6 +42,26 @@ namespace Alarmlist.Analyzers
                 }
             }
             return diagnostics.AsReadOnly();
+        }
+
+        internal static Dictionary<string, DiagnosticDescriptor> ReadRules(IAlarmAnalyzer analyzer, HashSet<string> owners)
+        {
+            if (analyzer.ContractVersion != AlarmAnalyzerContext.CurrentContractVersion)
+                throw new NotSupportedException("Unsupported analyzer contract " + analyzer.ContractVersion + ".");
+            var rules = new Dictionary<string, DiagnosticDescriptor>(StringComparer.OrdinalIgnoreCase);
+            foreach (DiagnosticDescriptor descriptor in analyzer.SupportedDiagnostics ?? throw new InvalidOperationException("SupportedDiagnostics is null."))
+            {
+                if (descriptor == null || string.IsNullOrWhiteSpace(descriptor.Id)
+                    || descriptor.Id.StartsWith("ALM", StringComparison.OrdinalIgnoreCase)
+                    || !char.IsLetter(descriptor.Id[0]) || descriptor.Id.Any(character => !char.IsLetterOrDigit(character) && character != '_')
+                    || !Enum.IsDefined(typeof(DiagnosticSeverity), descriptor.Severity))
+                    throw new InvalidOperationException("Analyzer rules require a valid ID outside the reserved ALM prefix and a supported severity.");
+                if (rules.ContainsKey(descriptor.Id) || owners.Contains(descriptor.Id))
+                    throw new InvalidOperationException("Duplicate analyzer diagnostic ID '" + descriptor.Id + "'.");
+                rules.Add(descriptor.Id, descriptor);
+            }
+            foreach (string id in rules.Keys) owners.Add(id);
+            return rules;
         }
     }
 }

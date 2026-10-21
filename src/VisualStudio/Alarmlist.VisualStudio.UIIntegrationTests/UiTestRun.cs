@@ -82,9 +82,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     catch (Exception exception)
                     {
                         File.WriteAllText(Path.Combine(phaseDirectory, "failure.txt"), exception.ToString());
+                        CaptureFailure(ide, phaseDirectory, output);
                         try { VisualStudioAutomation.DumpBuildOutput(ide.Automation); }
                         catch (Exception capture) { output.WriteLine("Build output unavailable: " + capture.Message); }
-                        CaptureFailure(ide, phaseDirectory, output);
                         throw;
                     }
                 }
@@ -102,8 +102,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             {
                 using var automation = new UIA3Automation();
                 // A visible floating tooltip can be returned as MainWindow by
-                // process discovery. Capture the actual shell frame instead.
-                var window = automation.FromHandle(new IntPtr(ide.Automation.MainWindow.HWnd)).AsWindow();
+                // process discovery. Use the shell HWND captured at startup;
+                // a modal failure can reject further DTE calls.
+                var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
                 if (window == null) return;
                 window.CaptureToFile(Path.Combine(directory, "failure.png"));
                 File.WriteAllLines(Path.Combine(directory, "automation.txt"), window.FindAllDescendants()

@@ -7,11 +7,12 @@ namespace Alarmlist.VisualStudio.Analysis
     [Serializable]
     internal sealed class AnalysisPropertyOrigin
     {
-        public AnalysisPropertyOrigin(string scope, AnalysisAlarmOrigin alarm, AnalysisLocation location)
-        { Scope = scope; Alarm = alarm; Location = location; }
+        public AnalysisPropertyOrigin(string scope, AnalysisAlarmOrigin alarm, AnalysisLocation location, AnalysisLibraryIdentity library = null)
+        { Scope = scope; Alarm = alarm; Location = location; Library = library; }
         public string Scope { get; }
         public AnalysisAlarmOrigin Alarm { get; }
         public AnalysisLocation Location { get; }
+        public AnalysisLibraryIdentity Library { get; }
     }
 
     [Serializable]

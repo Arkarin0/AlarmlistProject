@@ -41,6 +41,7 @@ namespace Alarmlist.VisualStudio.Editor
         private IVsCodeWindow _codeWindow;
         private IWpfTextViewHost _textHost;
         private IVsUIShell _shell;
+        private IVsWindowFrame _frame;
         public EditFileControlViewModel PreviewSource => _viewModel;
         public event EventHandler PreviewSourceChanged;
         internal bool NavigateSource(int position, string expectedText, bool designer)
@@ -113,9 +114,25 @@ namespace Alarmlist.VisualStudio.Editor
             ErrorHandler.ThrowOnFailure(_textManager.RegisterIndependentView(this, _lines));
             _rdt = (IVsRunningDocumentTable)GetService(typeof(SVsRunningDocumentTable));
             ErrorHandler.ThrowOnFailure(_rdt.AdviseRunningDocTableEvents(this, out _rdtEvents));
-            IVsWindowFrame frame = (IVsWindowFrame)GetService(typeof(SVsWindowFrame));
-            if (frame != null) ErrorHandler.ThrowOnFailure(frame.SetProperty((int)__VSFPROPID.VSFPROPID_ViewHelper, this));
+            _frame = (IVsWindowFrame)GetService(typeof(SVsWindowFrame));
+            if (_frame != null)
+            {
+                ErrorHandler.ThrowOnFailure(_frame.SetProperty((int)__VSFPROPID.VSFPROPID_ViewHelper, this));
+                _textHost.TextView.GotAggregateFocus += OnSourceFocusChanged;
+                _textHost.TextView.LostAggregateFocus += OnSourceFocusChanged;
+                OnSourceFocusChanged(this, EventArgs.Empty);
+            }
             PreviewSourceChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnSourceFocusChanged(object sender, EventArgs args)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            // The custom document frame otherwise has no text-editor bindings for
+            // Backspace/Return. Inherit them only while the XML view owns focus;
+            // designer fields keep their WPF editing and private draft semantics.
+            Guid bindings = _textHost.TextView.HasAggregateFocus ? VSConstants.GUID_TextEditorFactory : Guid.Empty;
+            ErrorHandler.ThrowOnFailure(_frame.SetGuidProperty((int)__VSFPROPID.VSFPROPID_InheritKeyBindings, ref bindings));
         }
 
         protected override void Dispose(bool disposing)
@@ -123,6 +140,12 @@ namespace Alarmlist.VisualStudio.Editor
             ThreadHelper.ThrowIfNotOnUIThread();
             if (disposing)
             {
+                if (_textHost != null)
+                {
+                    _textHost.TextView.GotAggregateFocus -= OnSourceFocusChanged;
+                    _textHost.TextView.LostAggregateFocus -= OnSourceFocusChanged;
+                }
+                _frame = null;
                 if (_rdtEvents != 0) { _rdt.UnadviseRunningDocTableEvents(_rdtEvents); _rdtEvents = 0; }
                 _textManager?.UnregisterIndependentView(this, _lines);
                 if (_control != null) { _control.PreviewKeyDown -= OnKeyDown; _control.Dispose(); }

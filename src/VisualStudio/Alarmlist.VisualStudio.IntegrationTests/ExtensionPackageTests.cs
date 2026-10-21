@@ -28,9 +28,9 @@ namespace Alarmlist.VisualStudio.IntegrationTests
         {
             using (var package = OpenPackage())
             {
-                Assert.Equal(new[] { "Alarmlist.VisualStudio.dll" }, package.Entries
+                Assert.Equal(new[] { "Alarmlist.VisualStudio.dll", "de/Alarmlist.VisualStudio.resources.dll" }, package.Entries
                     .Where(entry => entry.FullName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
-                    .Select(entry => entry.FullName).ToArray());
+                    .Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
                 Assert.DoesNotContain(package.Entries, entry => entry.FullName.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase));
                 var manifest = XDocument.Parse(Read(package.GetEntry("extension.vsixmanifest")));
                 XNamespace ns = manifest.Root.Name.Namespace;
@@ -47,6 +47,16 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("Menus.ctmenu, 2", registration);
                 Assert.Contains("ToolWindows\\{2c7f1b33-66f5-4831-96b1-c11cd1e28769}", registration);
                 Assert.Contains("Editors\\{6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f}", registration);
+                Assert.Contains("Editors\\{92d86a30-3de0-4f7d-bc54-3e801efb277d}", registration);
+                foreach (string editor in new[] { "6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f", "92d86a30-3de0-4f7d-bc54-3e801efb277d" })
+                {
+                    string section = "[$RootKey$\\Editors\\{" + editor + "}]";
+                    // Registration attributes can reopen the same pkgdef key.
+                    string values = string.Join("\n", System.Text.RegularExpressions.Regex.Matches(registration,
+                        "(?ms)^" + System.Text.RegularExpressions.Regex.Escape(section) + @"\r?\n(.*?)(?=^\[|\z)")
+                        .Cast<System.Text.RegularExpressions.Match>().Select(match => match.Groups[1].Value));
+                    Assert.Contains("\"DeferUntilIntellisenseIsReady\"=dword:00000000", values);
+                }
                 Assert.Contains("\"almx\"=dword:00000060", registration);
                 foreach (string logicalView in new[] { "7651a701", "7651a702", "7651a703" }) Assert.Contains(logicalView, registration);
                 Assert.Contains(manifest.Descendants(ns + "Asset"), asset => (string)asset.Attribute("Type") == "Microsoft.VisualStudio.MefComponent"
@@ -55,11 +65,13 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("\"almx\"=dword:00000028", xmlRegistration);
                 Assert.Contains("Languages\\File Extensions\\.almx", xmlRegistration);
                 Assert.Contains("{F6819A78-A205-47B5-BE1C-675B3C7F0B8E}", xmlRegistration);
-                Assert.Equal(3, package.Entries.Count(entry => entry.FullName.EndsWith(".vstemplate")));
-                var projectTemplate = XDocument.Parse(Read(package.Entries.Single(entry =>
+                Assert.Equal(4, package.Entries.Count(entry => entry.FullName.EndsWith(".vstemplate")));
+                var projectTemplates = package.Entries.Where(entry =>
                     entry.FullName.StartsWith("ProjectTemplates/", StringComparison.Ordinal)
-                    && entry.FullName.EndsWith(".vstemplate", StringComparison.Ordinal))));
-                Assert.Equal("true", projectTemplate.Descendants(s_templateNamespace + "CreateInPlace").Single().Value);
+                    && entry.FullName.EndsWith(".vstemplate", StringComparison.Ordinal)).ToArray();
+                Assert.Equal(2, projectTemplates.Length);
+                Assert.All(projectTemplates, entry => Assert.Equal("true", XDocument.Parse(Read(entry))
+                    .Descendants(s_templateNamespace + "CreateInPlace").Single().Value));
                 var catalogs = package.Entries.Where(entry => entry.FullName.EndsWith(".vstman")).ToArray();
                 Assert.Equal(2, catalogs.Length);
                 foreach (var catalog in catalogs)
@@ -129,7 +141,11 @@ namespace Alarmlist.VisualStudio.IntegrationTests
         {
             using (var vsix = OpenPackage())
             {
-                var project = XDocument.Parse(Read(vsix.Entries.Single(entry => entry.FullName.EndsWith(".almproj"))));
+                var projects = vsix.Entries.Where(entry => entry.FullName.EndsWith(".almproj")).ToArray();
+                Assert.Equal(2, projects.Length);
+                Assert.All(projects, entry => Assert.Equal(XDocument.Parse(Read(projects[0])).Root.Attribute("Sdk").Value,
+                    XDocument.Parse(Read(entry)).Root.Attribute("Sdk").Value));
+                var project = XDocument.Parse(Read(projects[0]));
                 string sdk = project.Root.Attribute("Sdk").Value;
                 const string prefix = "Alarmlist.MSBuild.SDK/";
                 Assert.StartsWith(prefix, sdk);
@@ -144,6 +160,29 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                     Assert.NotNull(package.GetEntry("tasks/net472/Alarmlist.Core.dll"));
                     Assert.NotNull(package.GetEntry("tasks/net8.0/Alarmlist.Core.dll"));
                 }
+            }
+        }
+
+        [Fact]
+        public void PackagedLibraryTemplateBuildsAndPacksReusableDefinitions()
+        {
+            using (var app = CreateApp(nameof(PackagedLibraryTemplateBuildsAndPacksReusableDefinitions)))
+            using (var package = OpenPackage())
+            {
+                Instantiate(package, "ProjectTemplates/", app.WorkingDirectory, "Plant", "AlarmlistLibrary.vstemplate");
+                var result = app.Run(_output, "/t:Restore;Build;Pack");
+                Assert.True(result.ExitCode == 0, result.Output);
+                var project = XDocument.Load(Path.Combine(app.WorkingDirectory, "Plant.almproj"));
+                Assert.Empty(project.Descendants("TargetFramework"));
+                Assert.Equal("Library", project.Descendants("OutputType").Single().Value);
+                string artifact = Directory.GetFiles(Path.Combine(app.WorkingDirectory, "bin"), "Plant.almlib", SearchOption.AllDirectories).Single();
+                string text = File.ReadAllText(artifact);
+                Assert.Contains("Plant.Template", text);
+                Assert.Contains("Plant.Example", text);
+                Assert.Contains("abstract=\"true\"", text);
+                Assert.Contains("ReferenceName", text);
+                Assert.False(File.Exists(app.OutputPath));
+                Assert.Single(Directory.GetFiles(Path.Combine(app.WorkingDirectory, "bin"), "Plant.1.0.0.nupkg", SearchOption.AllDirectories));
             }
         }
 

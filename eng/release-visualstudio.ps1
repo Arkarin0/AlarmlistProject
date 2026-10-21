@@ -29,8 +29,16 @@ function Read-Template([string]$VsixPath) {
     $projectEntries = @($archive.Entries | Where-Object {
       $_.FullName.StartsWith('ProjectTemplates/') -and $_.FullName.EndsWith('.almproj')
     })
-    if ($projectEntries.Count -ne 1) { throw 'Expected exactly one project template.' }
-    $projectEntry = $projectEntries[0]
+    if ($projectEntries.Count -ne 2) { throw 'Expected application and library project templates.' }
+    foreach ($entry in $projectEntries) {
+      [xml]$templateXml = Read-ZipEntry $archive $entry.FullName
+      if ($templateXml.Project.Sdk -ne "Alarmlist.MSBuild.SDK/$Version") {
+        throw 'Every VSIX project template must pin the candidate SDK version.'
+      }
+    }
+    $applicationEntries = @($projectEntries | Where-Object { $_.FullName.EndsWith('/Alarmlist.almproj') })
+    if ($applicationEntries.Count -ne 1) { throw 'Expected exactly one application project template.' }
+    $projectEntry = $applicationEntries[0]
     $projectText = Read-ZipEntry $archive $projectEntry.FullName
     [xml]$projectXml = $projectText
     if ($projectXml.Project.Sdk -ne "Alarmlist.MSBuild.SDK/$Version") {
