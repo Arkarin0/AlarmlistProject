@@ -66,6 +66,11 @@ Existing plans and iteration records:
 | [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX: procedures, property fields, IntelliSense, searchable references, file/alarm scope separation and preview-table rendering/column preferences; accepted direction and open interaction details. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+[Milestone 11](src/VisualStudio/MILESTONE-11.md) plans fork-time generated alarm
+definitions across compiler, SDK and metadata-driven designer, including typed
+scalar expressions. It records the planned analysis/analyzer/library transitions;
+current contracts remain authoritative until their coordinated iteration lands.
+Do not add runtime per-project schemas or inherited-entry reordering under this scope.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter
 grip, plus collapsible group bodies and procedure search in follow-up iterations.

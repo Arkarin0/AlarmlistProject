@@ -487,6 +487,12 @@ broader XML IntelliSense have no assigned milestone.
 
 ## Generate syntax nodes from an external definition
 
+Assigned on 2026-10-21 to [milestone eleven](src/VisualStudio/MILESTONE-11.md).
+The plan governs fork-time end-to-end generation, typed scalar expressions,
+metadata-driven designer/preview support, defaults/validation and coordinated
+contract transitions. Custom collections and per-project schemas are excluded.
+The proposal and open questions below are retained as design history.
+
 Introduce a source-file generator that creates syntax nodes from an external
 definition, following the approach used by Roslyn. Useful references are Roslyn's
 [`Syntax.xml`](https://github.com/dotnet/roslyn/blob/main/src/Compilers/CSharp/Portable/Syntax/Syntax.xml)
