@@ -29,7 +29,8 @@ namespace Alarmlist.VisualStudio.Editing
 
     internal sealed class AlarmSource
     {
-        public static readonly string[] FieldNames = { "FullyQualifiedName", "Name", "Code", "Category", "Description", "ReferenceName" };
+        public static readonly string[] FieldNames = new[] { "FullyQualifiedName" }
+            .Concat(Definition.AlarmDefinition.Fields.Select(field => field.Name)).Concat(new[] { "ReferenceName" }).ToArray();
         internal XmlSourceElement Source { get; }
         public int Start => Source.Start;
         public string Identity => GetValue("FullyQualifiedName");

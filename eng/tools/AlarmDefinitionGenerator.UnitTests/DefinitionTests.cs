@@ -21,6 +21,24 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator.UnitTests
             return path;
         }
 
+        [Fact]
+        public void TemplatesOmitRemovedAndRetypedFieldsWithoutMaterializingDefaults()
+        {
+            var fields = Definition.Read(Write("<Field Name='Description' Type='String'/><Field Name='Name' Type='String'/>"
+                + "<Field Name='Code' Type='Int64' Default='7'/><Field Name='Enabled' Type='Boolean' Required='true'/>"));
+            string source = "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>$safeprojectname$.Example</FullyQualifiedName>"
+                + "<Name>Example</Name><Code>A-001</Code><Category>General</Category><Description>Help</Description>"
+                + "<TestProcedure><Group Name='Instructions'/></TestProcedure></Alarm></Alarmlist>";
+            string result = Program.GenerateTemplate(fields, source);
+            Assert.DoesNotContain("<Code", result);
+            Assert.DoesNotContain("<Category", result);
+            Assert.DoesNotContain("<Enabled", result);
+            Assert.True(result.IndexOf("<Description>", StringComparison.Ordinal) < result.IndexOf("<Name>", StringComparison.Ordinal));
+            Assert.Contains("$safeprojectname$.Example", result);
+            Assert.Contains("abstract=\"true\"", result);
+            Assert.Contains("Instructions", result);
+        }
+
         [Theory]
         [InlineData("String", "Default='hello &amp; world' Multiline='true'")]
         [InlineData("Int64", "Default='9223372036854775807' Minimum='-9223372036854775808'")]

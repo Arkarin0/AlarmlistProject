@@ -15,15 +15,16 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
     {
         public static int Main(string[] args)
         {
-            if (args.Length != 3 || (args[2] != "compiler" && args[2] != "host"))
+            if ((args.Length != 3 || (args[2] != "compiler" && args[2] != "host"))
+                && (args.Length != 4 || args[2] != "template"))
             {
-                Console.Error.WriteLine("AlarmDefinitionGenerator <definition.xml> <output.cs> <compiler|host>");
+                Console.Error.WriteLine("AlarmDefinitionGenerator <definition.xml> <output> <compiler|host|template> [template-input]");
                 return 1;
             }
             try
             {
                 IReadOnlyList<Field> fields = Definition.Read(args[0]);
-                string source = Generate(fields, args[2] == "host");
+                string source = args[2] == "template" ? GenerateTemplate(fields, File.ReadAllText(args[3])) : Generate(fields, args[2] == "host");
                 string path = Path.GetFullPath(args[1]);
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 using FileStream gate = AcquireLock(path + ".lock");
@@ -42,6 +43,30 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
                 Console.Error.WriteLine("error ALMGEN001: " + error.Message);
                 return 1;
             }
+        }
+
+        internal static string GenerateTemplate(IReadOnlyList<Field> fields, string source)
+        {
+            using var reader = System.Xml.XmlReader.Create(new StringReader(source), new System.Xml.XmlReaderSettings
+            { DtdProcessing = System.Xml.DtdProcessing.Prohibit, XmlResolver = null });
+            var document = System.Xml.Linq.XDocument.Load(reader);
+            foreach (var alarm in document.Root.Elements("Alarm"))
+            {
+                // Sample prose only makes sense for string fields. Omitted fields
+                // stay absent: compiler defaults and required diagnostics apply.
+                var ordinary = alarm.Elements().Where(element => element.Name.LocalName != "FullyQualifiedName"
+                    && element.Name.LocalName != "ReferenceName" && element.Name.LocalName != "TestProcedure"
+                    && element.Name.LocalName != "Properties").ToArray();
+                foreach (var element in ordinary)
+                    if (!fields.Any(field => field.Name == element.Name.LocalName && field.Type == "String")) element.Remove();
+                var retained = ordinary.Where(element => element.Parent != null)
+                    .OrderBy(element => fields.ToList().FindIndex(field => field.Name == element.Name.LocalName)).ToArray();
+                foreach (var element in retained) element.Remove();
+                var identity = alarm.Element("FullyQualifiedName");
+                if (identity != null) identity.AddAfterSelf(retained);
+                else alarm.AddFirst(retained);
+            }
+            return document.ToString() + Environment.NewLine;
         }
 
         private static FileStream AcquireLock(string path)

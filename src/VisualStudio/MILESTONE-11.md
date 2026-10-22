@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
-Status: iterations 1–4 complete.
-Iterations 5–8 remain planned. Owner decisions were confirmed on 2026-10-21.
+Status: iterations 1–5 complete.
+Iterations 6–8 remain planned. Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
 starting each iteration; record incomplete work honestly if that threshold is met.
@@ -345,3 +345,51 @@ Reviewed changes, paths and documentation; `git diff --check` passed. The existi
 shared test helper CA1416 warning remains. No required check failed or was skipped.
 No display/DPI checks were run. Alternate-schema native designer/preview acceptance
 remains in iterations 5–7; those features are not claimed complete here.
+
+### Iteration 5 — metadata-driven designer fields (2026-10-22)
+
+Ordinary field rows and source insertion order now use generated descriptors.
+Labels, multiline behavior, format/bounds/required help and default/deferred/invalid
+status come from metadata and compiler analysis. Shared expression controls retain
+raw drafts and resolved display. Boolean/enum helpers expose explicit literal
+choices beside the editor and in its context menu; opening/focusing does not edit,
+while choosing the same inherited literal can deliberately create a local override.
+Identity, reference and procedure controls retain their specialized behavior.
+
+Creation omits Name when it is removed or retyped. Packaged templates omit removed
+or retyped sample prose, respect field order and never write defaults or invent
+required values. Missing required values remain compiler diagnostics. Generator
+lock files are excluded from packaged templates. The isolated designer fixture
+copies source, edits only the definition, builds matching tools, checks each scalar
+and restores the standard experimental deployment on both IDE hosts.
+
+Completed validation:
+
+- Generator suite: 37 passed (`artifacts/m11-designer-generator.log`).
+- Designer/editor regressions: 366 passed on net472, with the separate theme/DPI
+  form cases excluded. Command: `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj --filter 'FullyQualifiedName~Editing&FullyQualifiedName!~DirectFieldFormAligns&FullyQualifiedName!~Theme' --verbosity quiet -m:1 -nr:false`.
+  Final evidence: `artifacts/m11-designer-host-final.log`. Covers draft refresh,
+  focus, inheritance, source navigation, Undo, all nine metadata field types,
+  compiler-owned states and deliberate identical inherited-literal overrides.
+- Packaged extension/template consumers: 13 passed on each of net472/net8.0,
+  including the assertion that no generator lock files ship. Command:
+  `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj --verbosity quiet -m:1 -nr:false`.
+  Evidence: `artifacts/m11-designer-package.log`.
+- Standard native `Area=MetadataFields|Area=Keyboard`: 3 passed, no skips, on
+  each VS2022/VS2026 host using `eng/test-visualstudio.ps1`. Evidence:
+  `artifacts/m11-designer-native-2022.log` and `artifacts/m11-designer-native-2026.log`.
+- `eng/test-alarm-definition-designer.ps1` with both installed IDE paths: isolated
+  compiler/SDK/VSIX build passed without warnings; alternate native field scenario
+  passed once on each host, exercising every scalar's expression focus, literal
+  commit/Undo and boolean/enum menu actions. Standard deployment restoration and
+  metadata scenario passed on each host. Evidence: `artifacts/fork11/21903b2f/`
+  and `artifacts/m11-designer-fork.log`.
+- Reviewed diff/paths and `git diff --check` passed. An intermediate build attempted
+  to replace the running test assembly and failed with a file lock; after that
+  test exited, subsequent builds and the final suites passed. Desktop suites ran
+  sequentially. No separate OS theme/DPI display checks were performed.
+
+The alternate designer fixture is this iteration's field-editing gate, not full
+fork acceptance: dynamic lists/previews/completion are iteration 6, and complete
+alternate library/package/analyzer workflows remain iteration 7. Iterations 6–8
+are still required before declaring the milestone complete.

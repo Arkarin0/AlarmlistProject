@@ -37,6 +37,11 @@ The CLI accepts `<definition.xml> <output.cs> <compiler|host>`. An
 it is a repository build input, not an `.almproj` consumer option. The semantic
 fingerprint excludes presentation metadata; the tooling fingerprint includes it.
 
+The template mode accepts `<definition.xml> <output.almx> template <input.almx>`.
+VSIX packaging uses it to omit removed/retyped sample prose and order retained
+fields by the definition. It never materializes defaults or invents required
+values; missing required values without defaults are reported by the compiler.
+
 Current iteration boundary: compiler fields are metadata-driven, with raw syntax
 access through `GetLocalFieldValue`/`SetLocalFieldValue` and resolved values through
 `Alarm.GetField`. Generated accessors expose nullable typed values; deferred typed
@@ -45,6 +50,13 @@ ALM0029 reports mandatory scalar/required/bounds errors. String output retains i
 text; typed output is invariant and canonical. Defaults are literal and are never
 written into authored source.
 
-Alternate schemas still require the coordinated contract and designer iterations
-before they are supported end to end. Rebuild matching tools after definition
-changes; this is not runtime project customization.
+Analysis 6, analyzer 4 and library format 2 carry matching definition metadata
+and fingerprints. Rebuild matching tools after definition changes; this is not
+runtime project customization. The metadata field designer is implemented in
+iteration 5; dynamic previews and full fork acceptance remain later gates.
+
+`eng/test-alarm-definition-designer.ps1` accepts `-VisualStudio2022Path` and
+`-VisualStudio2026Path`. It copies repository sources into `artifacts/fork11/`,
+changes only the definition, builds the alternate compiler/SDK/VSIX and exercises
+native field editing on both hosts. It retains logs and restores the standard
+experimental deployment afterward. Run it sequentially with other live IDE tests.

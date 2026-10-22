@@ -74,6 +74,14 @@ the SDK bridge requires the full tooling fingerprint and copies only detached
 metadata and primitive scalar values. Reject old libraries/analyzers with rebuild
 guidance. Mismatched toolsets retain XML editing and drafts but block designer
 changes until a compatible result arrives, including through pending refreshes.
+Ordinary designer fields use generated descriptors and shared expression controls.
+Literal helpers are explicit draft actions; focus and analysis refresh must never
+materialize inherited values or defaults. Keep template samples schema-aware and
+leave missing required values to compiler diagnostics. The isolated
+`eng/test-alarm-definition-designer.ps1` fixture validates alternate fields on both
+IDE hosts and restores standard experimental deployments; run it sequentially
+with other desktop tests. Dynamic previews and full fork acceptance remain governed
+by the milestone's subsequent iterations.
 Do not add runtime per-project schemas or inherited-entry reordering under this scope.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter

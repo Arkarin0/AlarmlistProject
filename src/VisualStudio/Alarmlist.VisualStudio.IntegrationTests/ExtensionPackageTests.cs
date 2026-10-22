@@ -32,6 +32,7 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                     .Where(entry => entry.FullName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
                     .Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
                 Assert.DoesNotContain(package.Entries, entry => entry.FullName.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(package.Entries, entry => entry.FullName.EndsWith(".lock", StringComparison.OrdinalIgnoreCase));
                 var manifest = XDocument.Parse(Read(package.GetEntry("extension.vsixmanifest")));
                 XNamespace ns = manifest.Root.Name.Namespace;
                 Assert.Equal("[17.9,)", manifest.Descendants(ns + "InstallationTarget").Single().Attribute("Version").Value);

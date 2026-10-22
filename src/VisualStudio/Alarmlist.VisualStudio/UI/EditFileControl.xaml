@@ -278,7 +278,7 @@
               <DataTemplate>
                 <Grid Margin="0,0,8,8">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="135" /><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                  <Label x:Name="FieldLabel" Content="{Binding Name}" Padding="0,5,6,0"
+                  <Label x:Name="FieldLabel" Content="{Binding Label}" Padding="0,5,6,0"
                          Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
                     <Label.Style><Style TargetType="Label"><Setter Property="Target" Value="{Binding ElementName=LocalValueEditor}" /><Style.Triggers>
                       <DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Target" Value="{Binding ElementName=ReferenceValueEditor}" /></DataTrigger>
@@ -289,10 +289,11 @@
                                     ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}"
                                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                   </AdornerDecorator>
-                  <ui:ExpressionTextBox x:Name="LocalValueEditor" Grid.Column="2" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.LabeledBy="{Binding ElementName=FieldLabel}" AutomationProperties.HelpText="{Binding EditHelp}" ToolTip="{Binding EditHelp}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False"
+                  <ui:ExpressionTextBox x:Name="LocalValueEditor" Grid.Column="2" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.LabeledBy="{Binding ElementName=FieldLabel}" AutomationProperties.HelpText="{Binding EditHelp}" ToolTip="{Binding EditHelp}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="{Binding Multiline}" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False"
                                         ContextMenuOpening="OnActionsMenuOpening" Unloaded="OnActionsUnloaded">
                     <ui:ExpressionTextBox.Style><Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type ui:ExpressionTextBox}}"><Style.Triggers>
                       <DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                      <DataTrigger Binding="{Binding HasLiteralChoices}" Value="True"><Setter Property="Margin" Value="0,0,32,0" /></DataTrigger>
                     </Style.Triggers></Style></ui:ExpressionTextBox.Style>
                     <ui:ExpressionTextBox.ContextMenu>
                       <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
@@ -301,6 +302,15 @@
                         <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Paste}}" Header="Paste" Command="ApplicationCommands.Paste" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                         <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.SelectAll}}" Header="Select all" Command="ApplicationCommands.SelectAll" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                         <Separator />
+                        <MenuItem Header="Choose literal value" ItemsSource="{Binding LiteralChoices}" Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}">
+                          <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                              <Setter Property="Header" Value="{Binding Label}" />
+                              <Setter Property="Command" Value="{Binding ApplyCommand}" />
+                              <Setter Property="ToolTip" Value="{Binding Value}" />
+                            </Style>
+                          </MenuItem.ItemContainerStyle>
+                        </MenuItem>
                         <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Inheritance}}" Header="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}"
                                   ToolTip="Remove this local field. The reference supplies its value again; Undo restores the local value."
                                   AutomationProperties.Name="{Binding Name, StringFormat=Use inherited {0}}" />
@@ -309,6 +319,20 @@
                       </ContextMenu>
                     </ui:ExpressionTextBox.ContextMenu>
                   </ui:ExpressionTextBox>
+                  <Button Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Top" Width="28" Height="27" Content="▾" Tag="PreserveDraft"
+                          Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}" Click="OnInheritanceActions" Unloaded="OnActionsUnloaded"
+                          ToolTip="Choose a literal value. Opening this menu preserves the current expression."
+                          AutomationProperties.Name="{Binding Name, StringFormat=Choose literal for {0}}">
+                    <Button.ContextMenu>
+                      <ContextMenu ItemsSource="{Binding LiteralChoices}" Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
+                        <ContextMenu.ItemContainerStyle><Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                          <Setter Property="Header" Value="{Binding Label}" />
+                          <Setter Property="Command" Value="{Binding ApplyCommand}" />
+                          <Setter Property="ToolTip" Value="{Binding Value}" />
+                        </Style></ContextMenu.ItemContainerStyle>
+                      </ContextMenu>
+                    </Button.ContextMenu>
+                  </Button>
                   <DockPanel Grid.Column="2" Visibility="{Binding IsReference, Converter={StaticResource Visibility}}">
                     <Button DockPanel.Dock="Right" Content="↗" Margin="4,0,0,0" Command="{Binding DataContext.GoToReferenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             ToolTip="Open the referenced alarm's source." AutomationProperties.Name="Go to reference" />
