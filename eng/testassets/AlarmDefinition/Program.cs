@@ -61,6 +61,12 @@ internal static class Program
         var librarySources = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>Library</FullyQualifiedName><Count>$(Consumer)</Count></Alarm></Alarmlist>", "library.almx", 1) };
         Check(new AlarmCompiler().AnalyzeLibrarySnapshots(librarySources, CompilationContext.Empty).Success, "library consumer values defer");
         Check(!new AlarmCompiler().CompileSnapshots(librarySources).Success, "applications require concrete consumer values");
+        foreach (string abstractAttribute in new[] { "", " abstract='true'" })
+        {
+            var invalidLiteral = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm" + abstractAttribute + "><FullyQualifiedName>Invalid</FullyQualifiedName><Count>not-a-number</Count></Alarm></Alarmlist>", "invalid.almx", 1) };
+            Check(!new AlarmCompiler().AnalyzeLibrarySnapshots(invalidLiteral, CompilationContext.Empty).Success, "library known-invalid literals fail");
+            Check(!new AlarmCompiler().CompileSnapshots(invalidLiteral).Success, "abstract known-invalid literals fail");
+        }
         var node = new Alarmlist.Syntax.AlarmSyntaxNode { FullyQualifiedName = "Raw" };
         node.SetLocalFieldValue("Count", "+0042");
         node.SetLocalFieldValue("Message", "$(Unresolved)");

@@ -286,3 +286,12 @@ checks, not alternate-schema native designer acceptance. Analysis/analyzer
 contracts and library schema compatibility remain at their existing versions
 until iteration 4; alternate end-to-end toolsets remain unsupported at this boundary.
 No display checks were run. Iterations 4–8 remain outstanding.
+
+Iteration 3 follow-up: contract review found that known-invalid literals in
+abstract/library definitions were incorrectly deferred. Added declaration-time
+scalar checks for nonempty token-free expressions, while retaining consumer-input
+deferral. The alternate fixture now explicitly rejects invalid literals in both
+abstract and concrete library declarations. Lifecycle/runtime checks passed on
+both frameworks (`6b99a2f01b264b568529abdb95371466`); compiler suites again passed
+654/net472 and 656/net8.0. Diff review passed. This corrects the earlier acceptance
+gap before the coordinated iteration 4 transition.

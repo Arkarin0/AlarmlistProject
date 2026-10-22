@@ -57,7 +57,22 @@ namespace Alarmlist.Evaluation
                     Report(DiagnosticDescriptors.InvalidAbstract, alarm, alarm.GetFieldLocation("abstract"), alarm.InvalidAbstractValue);
                 var fields = new Dictionary<string, PropertyExpression>();
                 foreach (string field in Fields)
-                    fields.Add(field, Parse(alarm, alarm.GetLocalFieldValue(field), alarm.GetFieldLocation(field)));
+                {
+                    string raw = alarm.GetLocalFieldValue(field);
+                    PropertyExpression expression = Parse(alarm, raw, alarm.GetFieldLocation(field));
+                    fields.Add(field, expression);
+                    // Missing consumer values defer, but a supplied literal is already
+                    // knowable even in an abstract or library declaration.
+                    if ((alarm.IsAbstract || allowDeferredValues) && !string.IsNullOrEmpty(raw)
+                        && expression != null && !expression.Tokens.Any())
+                    {
+                        var descriptor = Definition.AlarmDefinition.Fields.Single(item => item.Name == field);
+                        var literal = Definition.AlarmFieldValue.Resolve(descriptor, raw, expression.Evaluate(_ => null), false, false);
+                        if (literal.State == Definition.AlarmFieldValueState.Invalid)
+                            Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidFieldValue, alarm.FullyQualifiedName ?? "<unnamed>", field)
+                                .WithLocation(alarm.GetFieldLocation(field) ?? alarm.Location));
+                    }
+                }
                 _fields.Add(alarm, fields);
                 var groupNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (ProcedureGroupSyntax group in alarm.TestProcedure.Groups)
