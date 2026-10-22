@@ -42,7 +42,7 @@ VSIX packaging uses it to omit removed/retyped sample prose and order retained
 fields by the definition. It never materializes defaults or invents required
 values; missing required values without defaults are reported by the compiler.
 
-Current iteration boundary: compiler fields are metadata-driven, with raw syntax
+Compiler fields are metadata-driven, with raw syntax
 access through `GetLocalFieldValue`/`SetLocalFieldValue` and resolved values through
 `Alarm.GetField`. Generated accessors expose nullable typed values; deferred typed
 values remain null and retain their token text in the generic field result.
@@ -52,8 +52,78 @@ written into authored source.
 
 Analysis 6, analyzer 4 and library format 2 carry matching definition metadata
 and fingerprints. Rebuild matching tools after definition changes; this is not
-runtime project customization. The field designer and previews use metadata;
-full fork acceptance and integrated validation remain later milestone gates.
+runtime project customization. The field designer, lists, completion and previews
+use metadata. The milestone document records completed acceptance and remaining gates.
+
+## Authoring a fork definition
+
+Edit the definition, then rebuild the compiler, SDK and VSIX together. Ordinary
+fields can be added, removed, reordered or retyped; the XML declaration order is
+also the default designer/output/preview order. Do not edit generated C# files.
+Existing source values must satisfy any changed type or bound. Update consumer
+sources, rebuild referenced libraries and rebuild analyzers against the matching
+compiler before using the new toolset. Keep fork packages in a distinct feed or
+use distinct package versions so a cache cannot select older tools with the same
+package identity.
+
+From the repository root, build the production extension project:
+
+```powershell
+dotnet build src/VisualStudio/Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj
+```
+
+Its project dependencies build the matching SDK and both compiler/task runtimes.
+Use the resulting SDK package and VSIX together. The standard solution includes
+tests written for the standard fields. The fork workflow below exercises a
+representative alternate definition; adapt consumer fixtures for your fork's own
+fields rather than treating the baseline tests as schema-agnostic.
+
+For example, retain desired existing fields and add:
+
+```xml
+<Field Name="Severity" Type="Enum" Required="true" Default="Low" Label="Severity">
+  <Value Name="Low" Label="Low priority" />
+  <Value Name="High" Label="High priority" />
+</Field>
+<Field Name="Limit" Type="Decimal" Minimum="0" Maximum="100" Help="Allowed percentage" />
+<Field Name="ObservedAt" Type="Timestamp" PreviewWidth="220" />
+```
+
+Place these inside `<AlarmDefinition Version="1">`. Enum tokens are case-sensitive;
+labels are presentation only. Field names must be unique ignoring case. Identity,
+reference, parameters, procedure structure, generated API members and the
+`Alarmlist` prefix are reserved; the generator reports unsupported names.
+
+| Type | Accepted literal examples and behavior |
+| --- | --- |
+| String | Exact text, including whitespace. `Multiline="true"` is available. |
+| Int64 | Signed integer, such as `-42` or `+0042`; canonical output removes the plus and leading zeros. |
+| Decimal | Invariant decimal, such as `12.500`; canonical output is `12.5`. No exponent or grouping separators. |
+| Double | Finite floating-point number, such as `1e3`; NaN and infinities are rejected. |
+| Boolean | `true`, `false`, `1`, `0`; canonical output uses `true`/`false`. |
+| Enum | One declared `Value` token; sort order follows declaration order. |
+| Date | `yyyy-MM-dd`, such as `2024-02-29`. |
+| Time | `HH:mm:ss` with optional 1–7 fractional digits, such as `12:34:56.12`. |
+| Timestamp | Date and time separated by `T`, optional fractional seconds, and required `Z` or explicit offset such as `+02:00`. |
+
+Non-string values trim surrounding whitespace before validation, but whitespace
+alone is invalid. Defaults are literals, never expressions. An absent or authored
+empty value can inherit; a default applies only when no authored inherited value
+is available. An expression that evaluates to empty does not trigger a default.
+Optional absent typed fields are omitted from compiled XML; absent strings retain
+the standard empty-element output. Numeric bounds are inclusive and use the same
+invariant literal grammar as the field type.
+
+Every ordinary field accepts expressions in ALMX. Validation follows evaluation;
+keyword-mode localization tokens retain their text with deferred typed validation.
+Concrete-culture builds validate resolved values. Boolean/enum designer helpers
+offer explicit literal choices while preserving expression editing and drafts.
+Focusing a field never writes defaults or inherited values into source.
+
+Optional metadata includes `Label`, `Help`, `Multiline` (String only),
+`PreviewVisible` (default true), and `PreviewWidth` (40–2000, default 180).
+New preview columns use these defaults; surviving saved preferences retain their
+order, width and visibility. Use Reset columns to restore definition defaults.
 
 `eng/test-alarm-definition-designer.ps1` accepts `-VisualStudio2022Path` and
 `-VisualStudio2026Path`. It copies repository sources into `artifacts/fork11/`,

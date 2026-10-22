@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
-Status: iterations 1–7 complete.
-Iteration 8 remains planned. Owner decisions were confirmed on 2026-10-21.
+Status: iterations 1–8 complete; final acceptance recorded on 2026-10-23.
+Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
 starting each iteration; record incomplete work honestly if that threshold is met.
@@ -477,3 +477,86 @@ Command: `eng/test-alarm-definition-designer.ps1 -VisualStudio2022Path '<install
 Reviewed source, documentation, paths and diff; `git diff --check` passed.
 No separate OS theme/DPI checks ran. Integrated standard-schema regression
 acceptance remains iteration 8; the milestone is not yet complete.
+
+### Iteration 8 — integrated acceptance (2026-10-23)
+
+Expanded the definition authoring guide with production rebuild instructions,
+literal formats, defaults/inheritance, expression validation, metadata defaults
+and fork package compatibility. Updated SDK/extension documentation to describe
+the implemented metadata workflow and current contract.
+
+Final standard-definition validation:
+
+- `dotnet build AlarmlistProject.slnx --verbosity quiet -m:1 -nr:false`: passed;
+  two existing CA1416 warnings in the shared test helper, zero errors.
+- Generator suite: 41 passed on net8.0.
+- Compiler suite: 661/net472 and 663/net8.0 passed.
+- Task unit suite: 91 passed on each framework.
+- Task integration suite: 4 passed on each framework.
+- SDK suite using .NET MSBuild: 85/net472 and 82/net8.0 passed.
+- Editor suite: 577/net472 passed; the filter excludes `DirectFieldFormAligns`
+  and `Theme` display cases. No selected tests were skipped.
+- Packaged VSIX suite: 13 passed on each framework.
+- SDK suite with VS2022 desktop MSBuild selected by `ALARMLIST_TEST_MSBUILD_PATH`:
+  85/net472 passed; the previous environment value was restored.
+- `eng/test-alarm-definition-generation.ps1`: all lifecycle and alternate-runtime
+  checks passed; evidence under
+  `artifacts/log/Debug/AlarmDefinitionGeneration/3077f5c18d944462bf846fb3ec043057`.
+
+Evidence: `artifacts/m11-integrated-build.log`, `m11-integrated-generator.log`,
+`m11-integrated-compiler.log`, `m11-integrated-tasks.log` and
+`m11-integrated-taskintegration.log`. Test commands use the project paths listed
+in iteration 4, with `--verbosity quiet -m:1 -nr:false`. Later logs are
+`artifacts/m11-integrated-sdk.log`, `m11-integrated-editor.log` and
+`m11-integrated-vsix.log`, `m11-integrated-desktop-sdk.log` and
+`m11-integrated-generation.log`. These suites ran sequentially, followed by the
+affected native scenarios on both hosts described below.
+
+The first integrated VS2022 native batch exposed two test setup failures:
+`PropertiesAndCompletion2022` assumed the concrete alarm was initially selected,
+but captured UI state showed its abstract template selected; `ScalarCommitAndUndo2022`
+clicked a mode selector covered by a persisted floating preview and remained in
+XML mode. The tests now hide that preview before interaction and explicitly select
+the concrete parameter-test alarm. Assertions are unchanged. Evidence is retained
+in `artifacts/m11-integrated-native-2022.log` and the corresponding native failure
+folders. The batch finished with 20 passed and three failed, no skips. The third
+failure, `LibraryMode2022`, still expected `(unavailable)` while captured output
+correctly showed the new `(deferred)` state; its assertion now checks that explicit
+state. All three corrected cases passed on rerun (`m11-integrated-native-2022-retry.log`,
+TRX `0c2b084364a94e1c8ee310bdef51f514`). Original TRX:
+`artifacts/log/Debug/VisualStudioUI/TestResults/fbd472bf0fb54b73a72948437ed11a52`.
+
+The VS2026 batch passed 22 cases and exposed one native property-page timing issue:
+Visual Studio's known save-changes prompt disabled Apply while the last identity
+cell lost focus. The test now handles that owned prompt and waits for application;
+saved project values and built artifact assertions remain intact. The corrected
+case passed on both hosts (`m11-integrated-properties-2026-retry.log` and
+`m11-integrated-properties-2022-retry.log`). VS2026 original TRX is
+`485f5c1999b04e549c7afd60ef79ac3c`; final retry TRX folders are
+`90f0ba03e9b34c7d80703cba1ec7cdd1` and `289078c957a946e4a687f95067bd8b63`.
+All TRX folders are under `artifacts/log/Debug/VisualStudioUI/TestResults/`.
+
+Reconciled the latest result for each native test name across the original and
+retry reports: all 46 cases passed (23 per host), none skipped or left failing.
+Native command: `eng/test-visualstudio.ps1 -VisualStudioPath '<installed host>' -Filter 'Area=MetadataFields|Area=MetadataPreview|Area=Keyboard|Area=Properties|Area=PreviewTable|Area=Preview|Area=SharedEditor|Area=LibraryReferences|Area=Analyzers|Area=Localization|Area=Lists|Area=Lookups'`.
+The Localization partial class also contributes its library, resource and XLIFF
+scenarios. Retries selected the exact affected method names. No production-code
+change was needed in this iteration. Native test maintenance guidance is in AGENTS.md.
+
+Completion audit:
+
+| Confirmed requirement | Evidence |
+| --- | --- |
+| Definition-only generation, stable baseline and safe build lifecycle | Iterations 2/7; final 41 generator tests and lifecycle run, including clean/design-time/parallel/no-op/failure recovery. |
+| All nine scalar types, expressions, defaults, bounds, inheritance and deferred validation | Iterations 3/4; final compiler suites on both frameworks and alternate-runtime fixtures, including raw-source preservation and keyword/concrete-culture behavior. |
+| Matching analysis/analyzer/library contracts and packaged task hosts | Iteration 4; final SDK/task/VSIX suites, desktop-MSBuild run, and iteration 7 packaged fork consumers/analyzers. |
+| Metadata designer, lists, completion, typed previews and preserved editing | Iterations 5/6; final 577 editor tests and 46 reconciled native cases, plus alternate-schema field/preview tests on both hosts in iteration 7. |
+| Remove/retype/reorder/add fields by changing only the definition | Iteration 7's isolated reordered fork: matching production tools, project/NuGet libraries, analyzers, canonical output and both native hosts; standard deployments restored. |
+| Documentation, reproducibility and scope control | Authoring guide, SDK/extension docs, AGENTS.md and per-iteration evidence reviewed; documented paths and `git diff --check` passed. |
+
+No required implementation or acceptance gate remains open. Separate OS theme/DPI
+checks were excluded as requested. Publication, runtime per-project schemas,
+collections, VS Code support and inherited-entry reordering remain outside scope.
+The two existing test-helper CA1416 warnings remain; no new build warning was
+introduced. The allowance check before completion showed 30% remaining, above
+the owner's 20% pause threshold.

@@ -58,7 +58,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             SelectDesigner(window);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
             SelectPreviewTab(window, "Alarm table preview");
-            VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Reusable — (unavailable)"), "deferred library preview value");
+            VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Reusable — (deferred)"), "deferred library preview value");
             Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
             Assert.False(File.Exists(workspace.OutputPath));
             Assert.Empty(Directory.GetFiles(workspace.ProjectDirectory, "*.almlib", SearchOption.AllDirectories));

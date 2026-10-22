@@ -739,6 +739,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   failures can reject DTE calls. Capture UI evidence before requesting build logs.
   Native NuGet tests must await the UI's installed-state acknowledgement as well
   as saved project/assets changes before building the updated consumer.
+  Native editor scenarios must select their intended alarm explicitly when source
+  replacement or navigation can change selection. Hide or dock a persisted floating
+  preview before mouse input it could obstruct, except when the scenario explicitly
+  tests that window's placement or restoration. Preserve the functional assertions.
 - Run WPF editor unit tests, native IDE functional tests and isolated WPF
   measurements sequentially. They share desktop focus even when their project
   files and experimental profiles are isolated; overlapping runs can close menus

@@ -491,6 +491,8 @@ Assigned on 2026-10-21 to [milestone eleven](src/VisualStudio/MILESTONE-11.md).
 The plan governs fork-time end-to-end generation, typed scalar expressions,
 metadata-driven designer/preview support, defaults/validation and coordinated
 contract transitions. Custom collections and per-project schemas are excluded.
+Implemented and validated on 2026-10-23 within that scalar scope; see the milestone
+evidence and [definition authoring guide](eng/tools/AlarmDefinitionGenerator/README.md).
 The proposal and open questions below are retained as design history.
 
 Introduce a source-file generator that creates syntax nodes from an external

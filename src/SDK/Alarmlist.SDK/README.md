@@ -24,8 +24,10 @@ enum types. Analyzer inputs expose the same descriptors and semantic fingerprint
 rules should tolerate missing or retyped ordinary fields.
 
 Definition changes are repository build inputs, not per-project configuration.
-The compiler supports typed expressions; metadata-driven designer work remains
-tracked in [milestone eleven](../../VisualStudio/MILESTONE-11.md).
+The compiler supports typed expressions; designer fields, lists, completion and
+previews use the same metadata. See the [definition authoring guide](../../../eng/tools/AlarmDefinitionGenerator/README.md)
+for supported types, defaults, rebuilding and fork acceptance, and
+[milestone eleven](../../VisualStudio/MILESTONE-11.md) for validation evidence.
 
 ### Procedure groups and format transition
 
@@ -732,7 +734,7 @@ Check IsValueAvailable and HasEvaluatedValues independently of IsResolved: an ab
 alarm or a field-dependency error can have a valid reference chain. IsAbstract marks
 templates. Alarm and source Properties contain visible custom and well-known values,
 local declaration/assignment presence, and separate declaration/value origins.
-Contract 5 adds selected `Culture`, captured `Resources` (path, version and input
+Contract 6 retains selected `Culture`, captured `Resources` (path, version and input
 culture), raw `ResourceEntries` with comments/locations/validity/ambiguity, and
 compiler-resolved `Translations` for catalogue keys. Requested and supplying
 cultures are separate. Translation `IsAvailable` means lookup succeeded, not that

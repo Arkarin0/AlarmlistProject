@@ -216,7 +216,7 @@ typed values; generated compiler or enum types never enter the host AppDomain.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
-Contract 5 requires captured-context analysis and compiled preview support. It
+Contract 6 retains captured-context analysis and compiled preview support. It
 also requires library snapshot analysis. CPS captures `OutputType=Library` and
 uses that mode for the project's own editor: missing consumer values are unavailable
 in previews, without treating those missing values as invalid library definitions.

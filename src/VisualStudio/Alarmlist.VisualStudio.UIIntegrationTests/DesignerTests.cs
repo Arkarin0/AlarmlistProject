@@ -47,6 +47,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 return designer != null;
             }, "loaded designer window");
             Assert.Equal(ide.ProcessId, window.Properties.ProcessId.Value);
+            // A restored floating preview can cover the mode selector and turn
+            // its mouse click into an unrelated preview action.
+            foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
             window.SetForeground();
             designer.Focus();
             ide.RequireForeground();
