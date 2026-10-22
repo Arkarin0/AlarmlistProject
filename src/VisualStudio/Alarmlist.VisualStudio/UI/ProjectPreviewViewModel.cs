@@ -41,7 +41,7 @@ namespace Alarmlist.VisualStudio.UI
         public IReadOnlyList<AlarmPreviewRow> AlarmTableRows { get; private set; } = Array.Empty<AlarmPreviewRow>();
         public string AlarmTableMessage { get; private set; }
         public string AlarmTableCount => AlarmTableRows.Count + " of " + _allRows.Count + " concrete alarms";
-        public string AlarmTableSortColumn { get; private set; } = nameof(AlarmPreviewRow.Name);
+        public string AlarmTableSortColumn { get; private set; } = PreviewColumnLayout.DefaultSortColumn;
         public bool AlarmTableSortDescending { get; private set; }
         public string Error { get; private set; }
         public bool CanUseProjectPreview => !_disposed && !_busy && _state != null && ReferenceEquals(_state, Current);
@@ -140,9 +140,7 @@ namespace Alarmlist.VisualStudio.UI
         private void RebuildRows()
         {
             IEnumerable<AlarmPreviewRow> rows = _allRows.Where(row => row.Matches(_filter));
-            AlarmTableRows = BindingCollection.Create(AlarmTableSortDescending
-                ? rows.OrderByDescending(row => row.Column(AlarmTableSortColumn), StringComparer.OrdinalIgnoreCase)
-                : rows.OrderBy(row => row.Column(AlarmTableSortColumn), StringComparer.OrdinalIgnoreCase));
+            AlarmTableRows = BindingCollection.Create(AlarmPreviewRow.Sort(rows, AlarmTableSortColumn, AlarmTableSortDescending));
             if (!AlarmTableRows.Contains(_selected)) _selected = null;
             if (_state != null) RememberSelection();
             _refreshing = true;

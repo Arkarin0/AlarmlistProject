@@ -16,12 +16,15 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand GoToSourceCommand { get; }
 
         public ResolvedFieldViewModel(string name, string value, bool inherited, AnalysisAlarmOrigin origin,
-            AnalysisLocation location, DelegateCommand navigation)
+            AnalysisLocation location, DelegateCommand navigation, AnalysisField field = null)
         {
             Name = name; Value = value; IsInherited = inherited; GoToSourceCommand = navigation;
-            OriginText = origin == null ? "No effective value."
+            OriginText = field?.IsDefault == true ? "Definition default."
+                : origin == null ? "No effective value."
                 : (inherited ? "Inherited from " : "Defined in ") + (origin.FullyQualifiedName ?? "(unnamed alarm)")
                     + " — " + location?.FilePath + (value == "" ? " — empty value" : "");
+            if (field?.State == AnalysisFieldValueState.Deferred) OriginText += " Validation deferred until a concrete value is available.";
+            if (field?.State == AnalysisFieldValueState.Invalid) OriginText += " Invalid value; see compiler diagnostics.";
         }
     }
 

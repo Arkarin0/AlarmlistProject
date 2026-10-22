@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
-Status: iterations 1–5 complete.
-Iterations 6–8 remain planned. Owner decisions were confirmed on 2026-10-21.
+Status: iterations 1–6 complete.
+Iterations 7–8 remain planned. Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
 starting each iteration; record incomplete work honestly if that threshold is met.
@@ -157,6 +157,11 @@ reordering, publication and separate OS theme/DPI display checks.
   separately, enum values by declaration order and timestamps by instant.
   Keep column preferences keyed by stable field identity; ignore removed columns
   and add new fields at their default positions without resetting surviving widths.
+  Preserve existing preview preference IDs. Ordinary fields named Source, Identity
+  or TestMethod use `Field:<name>` IDs so they coexist with the built-in columns;
+  labels remain presentation only. Optional absent values render empty, deferred
+  tokens retain their text, and invalid values are marked. Sorting keeps valid,
+  absent, deferred and invalid groups separate in both directions.
 
 ## Numbered iterations and acceptance
 
@@ -393,3 +398,45 @@ The alternate designer fixture is this iteration's field-editing gate, not full
 fork acceptance: dynamic lists/previews/completion are iteration 6, and complete
 alternate library/package/analyzer workflows remain iteration 7. Iterations 6–8
 are still required before declaring the milestone complete.
+
+### Iteration 6 — metadata-driven lists and previews (2026-10-23)
+
+Alarm lists, preview columns, filtering, clipboard headers and completion now use
+field descriptors and compiler-owned canonical values. Sorting uses typed scalar
+values and enum declaration order, with explicit absent/deferred/invalid groups.
+Removed Name falls back to identity. Column preferences retain surviving IDs;
+new columns use definition defaults. Ordinary Source, Identity and TestMethod
+fields receive distinct column IDs so they coexist with specialized columns.
+Detail views preserve null for absent values and show definition-default provenance.
+Procedure element names are rejected as ordinary fields, matching reserved scope.
+
+Completed validation:
+
+- Generator tests: 41 passed (`artifacts/m11-preview-generator.log`).
+- Focused preview/editor tests: 43 passed (`artifacts/m11-preview-focused.log`).
+- Final editor regression command from iteration 5: 375 passed, none skipped
+  (`artifacts/m11-preview-host-final.log`). This includes canonical names, default
+  provenance, typed ordering, column preference migration and field completion.
+- Packaged extension integration command from iteration 5: 13 passed on each
+  framework (`artifacts/m11-preview-package.log`).
+- Native metadata/table tests: 2 passed on VS2022. VS2026's combined run passed
+  metadata/table tests but exposed a floating preview obscuring the culture
+  toolbar. Docking that persisted window before selecting culture fixed test
+  setup; both preview-window cases then passed on each host. Evidence:
+  `artifacts/m11-preview-native-2022.log`, `artifacts/m11-preview-native-2026.log`,
+  `artifacts/m11-preview-window-2022.log` and
+  `artifacts/m11-preview-window-2026-retry.log`.
+- Strengthened native metadata preview checks, including exact source navigation:
+  one passed on each host (`artifacts/m11-preview-final-native-2022.log` and
+  `artifacts/m11-preview-final-native-2026.log`).
+- `eng/test-alarm-definition-designer.ps1 -IncludePreview` with both installed
+  IDE paths: isolated compiler/SDK/VSIX build passed without warnings; two native
+  cases passed per host. The fixture removes Name/Category, retypes Code, adds all
+  scalar types and colliding specialized column names, and tests hidden-column
+  defaults, real cell values, typed sorting, completion, filtering and clipboard.
+  Standard deployment restoration passed one metadata case per host. Evidence:
+  `artifacts/fork11/a6ee7a03/` and `artifacts/m11-preview-fork.log`.
+- The broader editor suite caught an absent detail value becoming an empty string;
+  preserving the SDK's null state fixed that regression before the final pass.
+  Diff/path review and `git diff --check` passed. No separate OS theme/DPI checks
+  ran. Full fork package/library/analyzer acceptance remains iteration 7.

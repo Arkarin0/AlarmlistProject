@@ -32,7 +32,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
     internal static class Definition
     {
         private static readonly HashSet<string> s_reserved = new HashSet<string>((
-            "FullyQualifiedName ReferenceName IsAbstract Abstract TestProcedure Properties Property Parameter Parameters " +
+            "FullyQualifiedName ReferenceName IsAbstract Abstract TestProcedure Group Title Step Hint Warning Note Clear Properties Property Parameter Parameters " +
             "Location SourceFile Reference ResolvedTestProcedures GetFieldLocation SetFieldLocation GetLocalFieldValue " +
             "SetLocalFieldValue GetEffectiveFieldValue GetFieldSource SetReference RemoveReference ClearResolvedReference " +
             "InvalidAbstractValue Fields GetField TypedFields GetTypedField Definition SchemaFingerprint ToolingFingerprint " +

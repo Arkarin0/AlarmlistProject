@@ -15,20 +15,24 @@ namespace Alarmlist.VisualStudio.UI
     {
         public AlarmSource Source { get; }
         private string _analysisName;
+        private string _searchValues;
         public string Title => _analysisName ?? RawTitle;
-        private string RawTitle => !string.IsNullOrWhiteSpace(Source.GetValue("Name")) ? Source.GetValue("Name")
+        private string RawTitle => AlarmDefinition.Fields.Any(field => field.Name == "Name") && !string.IsNullOrWhiteSpace(Source.GetValue("Name")) ? Source.GetValue("Name")
             : !string.IsNullOrWhiteSpace(Source.Identity) ? Source.Identity : "Unnamed alarm";
         public string Identity => Source.Identity ?? "(no identifier)";
         public AlarmViewModel(AlarmSource source) { Source = source; }
-        public void SetName(AnalysisField field)
+        public void SetFields(IReadOnlyList<AnalysisField> fields)
         {
-            string name = field?.IsValueAvailable == true ? field.EffectiveValue : field?.EffectiveExpression;
+            AnalysisField field = fields?.FirstOrDefault(item => item.Name == "Name");
+            _searchValues = fields == null ? null : string.Join(" ", fields.Select(item => item.IsValueAvailable ? item.CanonicalValue ?? item.EffectiveValue : item.EffectiveExpression));
+            string name = field?.IsValueAvailable == true ? field.CanonicalValue ?? field.EffectiveValue : field?.EffectiveExpression;
             if (string.IsNullOrWhiteSpace(name)) name = null;
             if (_analysisName == name) return;
             _analysisName = name;
             Notify(nameof(Title));
         }
-        public bool Matches(string filter) => (Title + " " + Source.GetValue("Name") + " " + Identity)
+        public bool Matches(string filter) => (Title + " " + _searchValues + " "
+            + string.Join(" ", AlarmDefinition.Fields.Select(field => Source.GetValue(field.Name))) + " " + Identity)
             .IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 

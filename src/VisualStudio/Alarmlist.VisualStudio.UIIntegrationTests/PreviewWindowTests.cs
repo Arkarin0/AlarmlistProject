@@ -47,10 +47,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal("View.AlarmlistPreview", previewCommand.Name);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "$(loc:Inspection)", "dockable keyword preview");
-            SelectCulture(ide, window, "en");
-            VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Inspect 001", "tool window follows preview culture");
+            // A previous scenario can persist a floating preview over the native
+            // toolbar. Dock it before mouse input targets the language selector.
             ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").IsFloating = false;
             VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Alarmlist Preview").And(cf.ByControlType(ControlType.Window))) == null, "preview docking animation");
+            SelectCulture(ide, window, "en");
+            VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Inspect 001", "tool window follows preview culture");
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "selected-alarm-preview.png"));
             SelectPreviewTab(window, "Compiled XML preview");
             VisualStudioSession.Wait(() => PreviewValue(window, "Compiled project XML")?.Text.Contains("Inspect 001") == true, "whole-project XML preview");

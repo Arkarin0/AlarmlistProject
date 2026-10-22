@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using Alarmlist.VisualStudio.Analysis;
+using Alarmlist.VisualStudio.Definition;
 
 namespace Alarmlist.VisualStudio.UI
 {
@@ -16,7 +17,8 @@ namespace Alarmlist.VisualStudio.UI
         private double _width;
         private int _order;
         public string Id { get; }
-        public string Label => Id == "TestMethod" ? "Test method" : Id;
+        public string Label { get; }
+        public bool DefaultVisible { get; }
         public double DefaultWidth { get; }
         public int Order { get => _order; internal set { _order = value; Notify(); Notify(nameof(Position)); } }
         public int Position => Order + 1;
@@ -34,11 +36,13 @@ namespace Alarmlist.VisualStudio.UI
         }
         public DelegateCommand MoveLeftCommand { get; }
         public DelegateCommand MoveRightCommand { get; }
-        public PreviewColumn(string id, double width, int order, Action changed, Action<PreviewColumn, int> move)
+        public PreviewColumn(string id, double width, int order, Action changed, Action<PreviewColumn, int> move,
+            string label = null, bool visible = true, int count = 7)
         {
-            Id = id; DefaultWidth = _width = width; _order = order; _changed = changed;
+            Id = id; Label = label ?? (id == "TestMethod" ? "Test method" : id);
+            DefaultVisible = _visible = visible; DefaultWidth = _width = width; _order = order; _changed = changed;
             MoveLeftCommand = new DelegateCommand(() => move(this, -1), () => Order > 0);
-            MoveRightCommand = new DelegateCommand(() => move(this, 1), () => Order < 6);
+            MoveRightCommand = new DelegateCommand(() => move(this, 1), () => Order < count - 1);
         }
         internal void RefreshActions() { MoveLeftCommand.Refresh(); MoveRightCommand.Refresh(); }
     }
@@ -56,11 +60,21 @@ namespace Alarmlist.VisualStudio.UI
         public Task PendingLoad { get; private set; } = Task.CompletedTask;
         public Task PendingSave => _store?.PendingSave ?? Task.CompletedTask;
         public event EventHandler Changed;
-        public PreviewColumnLayout()
+        internal static string FieldId(string name) => name == "TestMethod" || name == "Identity" || name == "Source" ? "Field:" + name : name;
+        internal static string DefaultSortColumn => AlarmDefinition.Fields.Any(field => field.Name == "Name") ? "Name" : "Identity";
+        internal static string ColumnLabel(string id) => AlarmDefinition.Fields.FirstOrDefault(field => FieldId(field.Name) == id)?.Label
+            ?? (id == "TestMethod" ? "Test method" : id);
+        public PreviewColumnLayout() : this(AlarmDefinition.Fields) { }
+        internal PreviewColumnLayout(IReadOnlyList<AlarmFieldDescriptor> fields)
         {
-            string[] ids = { "Name", "Code", "Category", "Description", "TestMethod", "Identity", "Source" };
-            double[] widths = { 200, 100, 130, 300, 420, 220, 180 };
-            Columns = BindingCollection.Create(ids.Select((id, index) => new PreviewColumn(id, widths[index], index, Commit, Move)));
+            int count = fields.Count + 3;
+            Columns = BindingCollection.Create(fields.Select((field, index) => new PreviewColumn(FieldId(field.Name), field.PreviewWidth,
+                index, Commit, Move, field.Label, field.PreviewVisible, count)).Concat(new[]
+                {
+                    new PreviewColumn("TestMethod", 420, fields.Count, Commit, Move, count: count),
+                    new PreviewColumn("Identity", 220, fields.Count + 1, Commit, Move, count: count),
+                    new PreviewColumn("Source", 180, fields.Count + 2, Commit, Move, count: count)
+                }));
             ResetCommand = new DelegateCommand(Reset);
         }
         public void SetStore(ProjectUserSetting store)
@@ -107,7 +121,13 @@ namespace Alarmlist.VisualStudio.UI
                         column.Order = order++; column.IsVisible = parts[1] == "1"; column.Width = width;
                     }
                     if (!valid) ApplyDefaults();
-                    else foreach (PreviewColumn column in Columns.Where(column => !seen.Contains(column.Id))) column.Order = order++;
+                    else
+                    {
+                        var ordered = Columns.Where(column => seen.Contains(column.Id)).OrderBy(column => column.Order).ToList();
+                        for (int index = 0; index < Columns.Count; index++)
+                            if (!seen.Contains(Columns[index].Id)) ordered.Insert(Math.Min(index, ordered.Count), Columns[index]);
+                        for (int index = 0; index < ordered.Count; index++) ordered[index].Order = index;
+                    }
                 }
             }
             finally { _applying = false; }
@@ -116,7 +136,7 @@ namespace Alarmlist.VisualStudio.UI
         private void ApplyDefaults()
         {
             for (int index = 0; index < Columns.Count; index++)
-            { Columns[index].Order = index; Columns[index].IsVisible = true; Columns[index].Width = Columns[index].DefaultWidth; }
+            { Columns[index].Order = index; Columns[index].IsVisible = Columns[index].DefaultVisible; Columns[index].Width = Columns[index].DefaultWidth; }
         }
         private void Reset() { Apply(""); Commit(); }
         private void Move(PreviewColumn column, int delta)

@@ -32,7 +32,7 @@ namespace Alarmlist.VisualStudio.UI
             get
             {
                 AnalysisField name = Alarm.Fields.FirstOrDefault(field => field.Name == "Name");
-                return name?.IsValueAvailable == true ? name.EffectiveValue ?? Identifier : name?.EffectiveExpression ?? Identifier;
+                return name?.IsValueAvailable == true ? name.CanonicalValue ?? name.EffectiveValue ?? Identifier : name?.EffectiveExpression ?? Identifier;
             }
         }
         public string OriginLabel => AlarmOriginPresentation.Library(Alarm.Origin);
@@ -221,7 +221,7 @@ namespace Alarmlist.VisualStudio.UI
             string text = _model.Projection.Text;
             foreach (AlarmViewModel view in _allAlarms)
             {
-                AnalysisField name = null;
+                IReadOnlyList<AnalysisField> fields = null;
                 if (current)
                 {
                     int end = view.Source.Start + 1;
@@ -236,9 +236,9 @@ namespace Alarmlist.VisualStudio.UI
                         else column++;
                     }
                     if (names.TryGetValue(Tuple.Create(line, column), out AnalysisAlarm alarm) && alarm.IsResolved)
-                        name = alarm.Fields.FirstOrDefault(field => field.Name == "Name");
+                        fields = alarm.Fields;
                 }
-                view.SetName(name);
+                view.SetFields(fields);
             }
         }
 

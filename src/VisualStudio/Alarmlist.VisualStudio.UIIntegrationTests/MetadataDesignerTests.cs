@@ -106,7 +106,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         private static void RequireFocus(VisualStudioSession ide, TextBox field)
         { ide.RequireForeground(); Assert.True(field.Properties.HasKeyboardFocus.Value, "Refusing input after field focus was lost."); }
 
-        private static string Literal(XElement field) => (string)field.Attribute("Default") ?? ((string)field.Attribute("Type") switch
+        internal static string Literal(XElement field) => (string)field.Attribute("Default") ?? ((string)field.Attribute("Type") switch
         {
             "String" => "Metadata value",
             "Int64" or "Decimal" or "Double" => (string)field.Attribute("Minimum") ?? "1",

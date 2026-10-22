@@ -80,8 +80,11 @@ materialize inherited values or defaults. Keep template samples schema-aware and
 leave missing required values to compiler diagnostics. The isolated
 `eng/test-alarm-definition-designer.ps1` fixture validates alternate fields on both
 IDE hosts and restores standard experimental deployments; run it sequentially
-with other desktop tests. Dynamic previews and full fork acceptance remain governed
-by the milestone's subsequent iterations.
+with other desktop tests. Preview columns use metadata labels/visibility and stable
+IDs; ordinary Source/Identity/TestMethod fields use `Field:<name>` IDs alongside
+the built-in columns. Sort compiler-provided typed values, preserving separate
+absent/deferred/invalid groups; never parse values again in the host. Full fork
+acceptance remains governed by the milestone's subsequent iterations.
 Do not add runtime per-project schemas or inherited-entry reordering under this scope.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 
 namespace Alarmlist.VisualStudio.UI
 {
@@ -31,13 +32,28 @@ namespace Alarmlist.VisualStudio.UI
             _applyingColumns = true;
             try
             {
+                if (!AlarmTable.Columns.Select(column => column.SortMemberPath).OrderBy(id => id)
+                    .SequenceEqual(_columnLayout.Columns.Select(column => column.Id).OrderBy(id => id)))
+                {
+                    AlarmTable.Columns.Clear();
+                    foreach (PreviewColumn preference in _columnLayout.Columns)
+                        AlarmTable.Columns.Add(new DataGridTextColumn
+                        {
+                            Header = preference.Label, SortMemberPath = preference.Id,
+                            Binding = new Binding("[" + preference.Id + "]"),
+                            Width = new DataGridLength(preference.Width),
+                            ElementStyle = (Style)FindResource("ReportCellText")
+                        });
+                }
                 foreach (PreviewColumn preference in _columnLayout.OrderedColumns)
                 {
                     DataGridColumn column = AlarmTable.Columns.Single(item => item.SortMemberPath == preference.Id);
+                    column.Header = preference.Label;
                     column.DisplayIndex = preference.Order;
                     column.Visibility = preference.IsVisible ? Visibility.Visible : Visibility.Collapsed;
                     if (Math.Abs(column.Width.Value - preference.Width) > 0.1) column.Width = new DataGridLength(preference.Width);
                 }
+                UpdateSortArrows();
             }
             finally { _applyingColumns = false; }
         }

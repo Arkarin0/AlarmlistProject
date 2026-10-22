@@ -16,8 +16,9 @@ namespace Alarmlist.VisualStudio.UI
         public static IReadOnlyList<ResolvedFieldViewModel> Fields(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate)
             => BindingCollection.Create(new[] { new ResolvedFieldViewModel("FullyQualifiedName", alarm.Origin.FullyQualifiedName,
                 false, alarm.Origin, alarm.Origin.Location, navigate(alarm.Origin.Location)) }
-                .Concat(alarm.Fields.Select(field => new ResolvedFieldViewModel(field.Name, field.EffectiveValue,
-                    field.IsInherited, field.DefiningAlarm, field.ValueLocation, navigate(field.ValueLocation)))));
+                .Concat(alarm.Fields.Select(field => new ResolvedFieldViewModel(Definition.AlarmDefinition.Fields.FirstOrDefault(item => item.Name == field.Name)?.Label ?? field.Name,
+                    field.State == AnalysisFieldValueState.Absent ? null : AlarmPreviewRow.FieldText(field),
+                    field.IsInherited, field.DefiningAlarm, field.ValueLocation, navigate(field.ValueLocation), field))));
 
         public static IReadOnlyList<ResolvedSectionViewModel> Sections(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate)
             => BindingCollection.Create(alarm.ProcedureSections.Select(section => new ResolvedSectionViewModel(section,
@@ -34,7 +35,7 @@ namespace Alarmlist.VisualStudio.UI
         }
 
         public static string CopyRows(IEnumerable<AlarmPreviewRow> rows, string[] columns)
-            => string.Join("\t", columns.Select(column => column == "TestMethod" ? "Test method" : column)) + "\r\n"
+            => string.Join("\t", columns.Select(column => Quote(PreviewColumnLayout.ColumnLabel(column)))) + "\r\n"
                 + string.Join("\r\n", rows.Select(row => string.Join("\t", columns.Select(column => Quote(row.Column(column))))));
 
         private static string Quote(string value) => value.IndexOfAny(new[] { '\t', '\r', '\n', '"' }) >= 0

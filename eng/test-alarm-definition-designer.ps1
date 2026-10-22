@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)][string]$VisualStudio2022Path,
-  [Parameter(Mandatory = $true)][string]$VisualStudio2026Path
+  [Parameter(Mandatory = $true)][string]$VisualStudio2026Path,
+  [switch]$IncludePreview
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,20 +22,22 @@ foreach ($file in $files) {
 }
 & git -C $fork init --quiet
 if ($LASTEXITCODE -ne 0) { throw 'Cannot initialize isolated fork.' }
-# The only source customization: remove Category, retype Code, change presentation
+# The only source customization: remove Name/Category, retype Code, change presentation
 # and add all supported scalar shapes. Defaults remain compiler-owned.
 Set-Content -LiteralPath (Join-Path $fork 'src/Compiler/Definition/AlarmDefinition.xml') -Encoding utf8 -Value @'
 <AlarmDefinition Version="1">
   <Field Name="Code" Type="Int64" Required="true" Default="7" Minimum="0" Maximum="10" Label="Alarm number" />
-  <Field Name="Name" Type="String" Label="Alarm title" />
   <Field Name="Description" Type="String" Multiline="true" />
   <Field Name="Price" Type="Decimal" />
-  <Field Name="Ratio" Type="Double" />
+  <Field Name="Ratio" Type="Double" PreviewVisible="false" />
   <Field Name="Enabled" Type="Boolean" />
   <Field Name="Priority" Type="Enum"><Value Name="Low" Label="Low priority"/><Value Name="High" Label="High priority"/></Field>
   <Field Name="Day" Type="Date" />
   <Field Name="Clock" Type="Time" />
   <Field Name="Instant" Type="Timestamp" />
+  <Field Name="Source" Type="String" Label="Source field" Default="Ordinary source value" />
+  <Field Name="Identity" Type="String" Label="Identity field" Default="Ordinary identity value" />
+  <Field Name="TestMethod" Type="String" Label="Method field" Default="Ordinary method value" />
 </AlarmDefinition>
 '@
 $project = Join-Path $fork 'src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist.VisualStudio.UI.IntegrationTests.csproj'
@@ -52,13 +55,15 @@ try {
   foreach ($name in $settings.Keys) { [Environment]::SetEnvironmentVariable($name, $settings[$name]) }
   foreach ($version in @('2022', '2026')) {
     $results = Join-Path $fork "results-$version"
-    & dotnet test $project --no-build --no-restore --filter "Host=VisualStudio&VSVersion=$version&Area=MetadataFields" --logger trx --results-directory $results *> (Join-Path $fork "native-$version.log")
+    $areas = if ($IncludePreview) { '(Area=MetadataFields|Area=MetadataPreview)' } else { 'Area=MetadataFields' }
+    & dotnet test $project --no-build --no-restore --filter "Host=VisualStudio&VSVersion=$version&$areas" --logger trx --results-directory $results *> (Join-Path $fork "native-$version.log")
     if ($LASTEXITCODE -ne 0) { throw "Alternate native test failed: $fork/native-$version.log" }
     $reports = @(Get-ChildItem -LiteralPath $results -Filter '*.trx')
     if ($reports.Count -ne 1) { throw 'Missing native report.' }
     [xml]$report = Get-Content -LiteralPath $reports[0].FullName -Raw
     $counts = $report.TestRun.ResultSummary.Counters
-    if ([int]$counts.total -ne 1 -or [int]$counts.passed -ne 1) { throw 'Alternate native scenario did not pass.' }
+    $expected = if ($IncludePreview) { 2 } else { 1 }
+    if ([int]$counts.total -ne $expected -or [int]$counts.passed -ne $expected) { throw 'Alternate native scenarios did not pass.' }
   }
 } finally {
   foreach ($name in $settings.Keys) { [Environment]::SetEnvironmentVariable($name, $previous[$name]) }

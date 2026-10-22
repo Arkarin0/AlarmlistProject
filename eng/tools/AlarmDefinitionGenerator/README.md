@@ -52,11 +52,14 @@ written into authored source.
 
 Analysis 6, analyzer 4 and library format 2 carry matching definition metadata
 and fingerprints. Rebuild matching tools after definition changes; this is not
-runtime project customization. The metadata field designer is implemented in
-iteration 5; dynamic previews and full fork acceptance remain later gates.
+runtime project customization. The field designer and previews use metadata;
+full fork acceptance and integrated validation remain later milestone gates.
 
 `eng/test-alarm-definition-designer.ps1` accepts `-VisualStudio2022Path` and
 `-VisualStudio2026Path`. It copies repository sources into `artifacts/fork11/`,
 changes only the definition, builds the alternate compiler/SDK/VSIX and exercises
-native field editing on both hosts. It retains logs and restores the standard
+native field editing on both hosts. Add `-IncludePreview` for dynamic columns,
+typed sorting, completion, filtering and clipboard checks, including a definition
+without Name/Category and ordinary fields named Source, Identity and TestMethod.
+It retains logs and restores the standard
 experimental deployment afterward. Run it sequentially with other live IDE tests.

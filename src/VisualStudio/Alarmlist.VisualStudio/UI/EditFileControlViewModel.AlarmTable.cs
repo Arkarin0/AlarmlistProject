@@ -21,7 +21,7 @@ namespace Alarmlist.VisualStudio.UI
         public IReadOnlyList<AlarmPreviewRow> AlarmTableRows { get; private set; } = Array.Empty<AlarmPreviewRow>();
         public string AlarmTableMessage { get; private set; }
         public string AlarmTableCount => AlarmTableRows.Count + " of " + _allPreviewRows.Count + " concrete alarms";
-        public string AlarmTableSortColumn { get; private set; } = nameof(AlarmPreviewRow.Name);
+        public string AlarmTableSortColumn { get; private set; } = PreviewColumnLayout.DefaultSortColumn;
         public bool AlarmTableSortDescending { get; private set; }
         public bool CanUseProjectPreview => !_disposed && !_analysisBusy && !HasPending && _previewState != null
             && ReferenceEquals(_previewState, _analysis?.Current);
@@ -93,8 +93,7 @@ namespace Alarmlist.VisualStudio.UI
         private void RebuildTableRows()
         {
             IEnumerable<AlarmPreviewRow> rows = _allPreviewRows.Where(row => row.Matches(_tableFilter));
-            rows = AlarmTableSortDescending ? rows.OrderByDescending(row => row.Column(AlarmTableSortColumn), StringComparer.OrdinalIgnoreCase)
-                : rows.OrderBy(row => row.Column(AlarmTableSortColumn), StringComparer.OrdinalIgnoreCase);
+            rows = AlarmPreviewRow.Sort(rows, AlarmTableSortColumn, AlarmTableSortDescending);
             AlarmTableRows = BindingCollection.Create(rows);
             if (!AlarmTableRows.Contains(_selectedPreviewRow)) _selectedPreviewRow = null;
             _refreshingTable = true;
@@ -104,7 +103,7 @@ namespace Alarmlist.VisualStudio.UI
 
         public void SortAlarmTable(string column)
         {
-            if (!new[] { "Name", "Code", "Category", "Description", "TestMethod", "Identity", "Source" }.Contains(column)) return;
+            if (!PreviewColumns.Columns.Any(item => item.Id == column)) return;
             AlarmTableSortDescending = column == AlarmTableSortColumn && !AlarmTableSortDescending;
             AlarmTableSortColumn = column;
             InvalidatePreviewActions();

@@ -102,7 +102,7 @@
                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
                  ToolTip="Show, hide, reorder or resize preview columns. These preferences belong to this project and user.">
         <StackPanel Margin="6">
-         <DockPanel Margin="0,0,0,6"><Button DockPanel.Dock="Right" Content="Reset layout" Command="{Binding PreviewColumns.ResetCommand}" AutomationProperties.Name="Reset preview column layout" ToolTip="Show all columns in their original order and widths." />
+         <DockPanel Margin="0,0,0,6"><Button DockPanel.Dock="Right" Content="Reset layout" Command="{Binding PreviewColumns.ResetCommand}" AutomationProperties.Name="Reset preview column layout" ToolTip="Restore the default column visibility, order and widths." />
           <ui:LiveStatusTextBlock Text="{Binding PreviewColumns.Status}" TextWrapping="Wrap" VerticalAlignment="Center" /></DockPanel>
          <ScrollViewer MaxHeight="235" VerticalScrollBarVisibility="Auto">
           <ItemsControl ItemsSource="{Binding PreviewColumns.Columns}"><ItemsControl.ItemTemplate><DataTemplate>
@@ -170,15 +170,7 @@
         <Setter Property="VerticalContentAlignment" Value="Top" />
         <Setter Property="BorderThickness" Value="0" />
        </Style></DataGrid.CellStyle>
-       <DataGrid.Columns>
-        <DataGridTextColumn Header="Name" Binding="{Binding Name}" SortMemberPath="Name" Width="200" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Code" Binding="{Binding Code}" SortMemberPath="Code" Width="100" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Category" Binding="{Binding Category}" SortMemberPath="Category" Width="130" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Description" Binding="{Binding Description}" SortMemberPath="Description" Width="300" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Test method" Binding="{Binding TestMethod}" SortMemberPath="TestMethod" Width="420" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Identity" Binding="{Binding Identity}" SortMemberPath="Identity" Width="220" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Source" Binding="{Binding Source}" SortMemberPath="Source" Width="180" ElementStyle="{StaticResource ReportCellText}" />
-       </DataGrid.Columns>
+
       </DataGrid>
      </DockPanel>
     </TabItem>
