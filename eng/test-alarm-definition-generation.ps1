@@ -48,6 +48,11 @@ try {
 <AlarmDefinition Version="1">
   <Field Name="Message" Type="String" Label="Quoted &quot;label&quot;" />
   <Field Name="Count" Type="Int64" />
+  <Field Name="Code" Type="Int64" Required="true" Default="7" Minimum="0" Maximum="10" />
+  <Field Name="Literal" Type="String" Default="$(NotAnExpression)" />
+  <Field Name="identity" Type="String" Default="identifier" />
+  <Field Name="Enum" Type="String" Default="enum-name" />
+  <Field Name="DateTime" Type="String" Default="date-name" />
   <Field Name="Price" Type="Decimal" />
   <Field Name="Ratio" Type="Double" />
   <Field Name="Enabled" Type="Boolean" />
@@ -60,20 +65,26 @@ try {
   $toolAssembly = Join-Path $repoRoot 'artifacts/bin/AlarmDefinitionGenerator/Debug/net8.0/AlarmDefinitionGenerator.dll'
   Invoke-CheckedDotNet 'generate-all-types' @($toolAssembly, $typeDefinition, (Join-Path $fixture 'Generated.cs'), 'compiler')
   Invoke-CheckedDotNet 'generate-host-types' @($toolAssembly, $typeDefinition, (Join-Path $fixture 'Host.cs'), 'host')
-  Set-Content -LiteralPath (Join-Path $fixture 'Stubs.cs') -Encoding utf8 -Value @'
-namespace Alarmlist.Compiler { public sealed class TestProcedure { } }
-namespace Alarmlist.Syntax
-{
-    public partial class AlarmSyntaxNode
-    {
-        private string GetEffectiveFieldValue(string name) => null;
-        private void SetLocalFieldValue(string name, string value) { }
-    }
-}
-'@
   $fixtureProject = Join-Path $fixture 'GeneratedTypes.csproj'
-  Set-Content -LiteralPath $fixtureProject -Encoding utf8 -Value '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFrameworks>net472;net8.0</TargetFrameworks><IsPackable>false</IsPackable></PropertyGroup></Project>'
+  $compilerSources = Join-Path $repoRoot 'src/Compiler/**/*.cs'
+  $sharedSource = Join-Path $repoRoot 'src/shared/Configuration/EditorConfigPreamble.cs'
+  $lookupSchema = Join-Path $repoRoot 'src/Compiler/Lookups/AlarmlistLookup.xsd'
+  $runtimeChecks = Join-Path $repoRoot 'eng/testassets/AlarmDefinition/Program.cs'
+  Set-Content -LiteralPath $fixtureProject -Encoding utf8 -Value @"
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFrameworks>net472;net8.0</TargetFrameworks><OutputType>Exe</OutputType><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$compilerSources" />
+    <Compile Include="$sharedSource" />
+    <Compile Include="$runtimeChecks" />
+    <EmbeddedResource Include="$lookupSchema" LogicalName="Alarmlist.Lookups.AlarmlistLookup.xsd" />
+  </ItemGroup>
+</Project>
+"@
   Invoke-CheckedDotNet 'compile-all-generated-types' @('build', $fixtureProject, '--verbosity', 'quiet', '-m:1', '-nr:false')
+  Invoke-CheckedDotNet 'run-all-types-net8' @((Join-Path $repoRoot 'artifacts/bin/GeneratedTypes/Debug/net8.0/GeneratedTypes.dll'))
+  & (Join-Path $repoRoot 'artifacts/bin/GeneratedTypes/Debug/net472/GeneratedTypes.exe') *> (Join-Path $runRoot 'run-all-types-net472.log')
+  if ($LASTEXITCODE -ne 0) { throw 'Alternate runtime checks failed on net472.' }
   Write-Output "Generation lifecycle checks passed. Evidence: $runRoot"
 } finally {
   Pop-Location

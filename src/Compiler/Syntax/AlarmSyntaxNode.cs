@@ -37,14 +37,14 @@ namespace Alarmlist.Syntax
 
         private readonly Dictionary<string, string> _localFields = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        internal string GetLocalFieldValue(string fieldName)
+        public string GetLocalFieldValue(string fieldName)
         {
             if (!Definition.AlarmDefinition.Fields.Any(field => field.Name == fieldName))
                 throw new ArgumentException("Unknown inheritable field.", nameof(fieldName));
             return _localFields.TryGetValue(fieldName, out string value) ? value : null;
         }
 
-        internal void SetLocalFieldValue(string fieldName, string value)
+        public void SetLocalFieldValue(string fieldName, string value)
         {
             if (!Definition.AlarmDefinition.Fields.Any(field => field.Name == fieldName))
                 throw new ArgumentException("Unknown inheritable field.", nameof(fieldName));
@@ -56,7 +56,7 @@ namespace Alarmlist.Syntax
             return string.IsNullOrEmpty(GetLocalFieldValue(fieldName)) ? Reference?.GetFieldSource(fieldName) : this;
         }
 
-        private string GetEffectiveFieldValue(string fieldName)
+        public string GetEffectiveFieldValue(string fieldName)
         {
             return GetFieldSource(fieldName)?.GetLocalFieldValue(fieldName);
         }

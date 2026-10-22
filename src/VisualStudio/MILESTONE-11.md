@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
-Status: iterations 1 and 2 complete.
-Iterations 3–8 remain planned. Owner decisions were confirmed on 2026-10-21.
+Status: iterations 1–3 complete.
+Iterations 4–8 remain planned. Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
 starting each iteration; record incomplete work honestly if that threshold is met.
@@ -236,4 +236,53 @@ Invalid definitions fail the build before compilation even when the previous
 complete generated file remains on disk. Baseline behavior is preserved. Alternate
 definitions are not yet supported end to end; descriptor-driven runtime behavior
 starts in iteration 3. Native IDE and display checks were not run for this iteration.
-Iterations 3–8 have no completed acceptance evidence yet.
+Iterations 3–8 had no completed acceptance evidence at this boundary.
+
+### Iteration 3 — descriptor-driven compiler values (2026-10-22)
+
+Parsing, local source serialization, inheritance access, expression field lookup,
+analysis field enumeration, library source locations, resolved construction and XML
+output now follow the generated definition. Added immutable generic field values
+with raw/evaluated/canonical text, typed value, state and default provenance.
+Generated accessors preserve the standard constructor API and expose nullable
+typed scalars for alternate definitions. The generator and compiler share literal
+conversion rules. Defaults apply only after authored inheritance lookup fails and
+remain literal; source output never inserts their values.
+
+ALM0029 is a mandatory scalar/required/bounds error. Keyword localization and
+lookup tokens retain text and defer validation through dependent fields, without
+rescanning inserted parameter text. Concrete cultures validate converted values;
+abstract and library consumer values retain their existing deferred semantics.
+Canonical output preserves string text, omits absent typed fields and formats
+typed values independently of machine culture.
+
+Validation completed (commands run from repository root with `--verbosity quiet
+-m:1 -nr:false` for dotnet test):
+
+- `dotnet test src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj`:
+  654 passed on net472; 656 on net8.0. Includes scalar boundaries, temporal and
+  numeric canonical forms, invalid values, bounds and required/absent states.
+- `dotnet test eng/tools/AlarmDefinitionGenerator.UnitTests/AlarmDefinitionGenerator.UnitTests.csproj`:
+  36 passed on net8.0.
+- `dotnet test src/MSBuild/AlarmList.MSBuild.UnitTests/AlarmList.MSBuild.UnitTests.csproj`:
+  91 passed on each framework.
+- `dotnet test src/MSBuild/AlarmList.MSBuild.IntegrationTests/AlarmList.MSBuild.IntegrationTests.csproj`:
+  4 passed on each framework.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj`:
+  13 passed on each framework.
+- `eng/test-alarm-definition-generation.ps1`: all lifecycle gates and an isolated
+  alternate-schema compiler passed on both frameworks. The fixture removes the
+  normal string fields, retypes Code and covers every scalar, literal defaults,
+  bounds, expressions/cycles, inheritance, raw-source preservation, keyword and
+  concrete-culture localization/lookups, library deferral and mandatory errors.
+  It also checks legal lowercase/type-like field names. Final logs:
+  `artifacts/log/Debug/AlarmDefinitionGeneration/1711c5b30674486bb82967cbe8824d43`.
+- Diff and path review completed; `git diff --check` passed. The existing shared
+  test helper CA1416 warning remains; no tests failed or were skipped.
+
+A library-source namespace collision found during the lifecycle build was fixed
+before the successful rerun. These are compiler/runtime and packaged-standard
+checks, not alternate-schema native designer acceptance. Analysis/analyzer
+contracts and library schema compatibility remain at their existing versions
+until iteration 4; alternate end-to-end toolsets remain unsupported at this boundary.
+No display checks were run. Iterations 4–8 remain outstanding.

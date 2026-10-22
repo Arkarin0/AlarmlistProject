@@ -104,6 +104,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
                 code.Append("    public enum ").Append(field.Name).Append("Value { ").Append(string.Join(", ", field.Values)).Append(" }\n");
             code.Append("    public readonly partial struct Alarm\n    {\n");
             code.Append("        public string FullyQualifiedName { get; }\n        public TestProcedure TestProcedure { get; }\n");
+            code.Append("        public IReadOnlyList<Alarmlist.Definition.AlarmFieldValue> Fields { get; }\n");
             foreach (Field field in fields)
                 code.Append("        public ").Append(TypeName(field)).Append(' ').Append(field.Name).Append(" { get; }\n");
             // Preserve the established constructors for the standard schema. Fork
@@ -122,10 +123,16 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
                     .Append("        public Alarm(").Append(declarations).Append(", TestProcedure testProcedure) : this(null, ").Append(arguments).Append(", testProcedure) { }\n");
             }
             code.Append("        public Alarm(string fullyQualifiedName").Append(declarations.Length == 0 ? "" : ", " + declarations)
-                .Append(", TestProcedure testProcedure = null)\n        {\n")
-                .Append("            FullyQualifiedName = fullyQualifiedName;\n            TestProcedure = testProcedure ?? new TestProcedure();\n");
-            foreach (Field field in parameters)
-                code.Append("            ").Append(field.Name).Append(" = ").Append(baseline ? field.Name.ToLowerInvariant() : "@" + field.Name).Append(";\n");
+                .Append(", TestProcedure testProcedure = null) : this(fullyQualifiedName, CreateFieldValues(new object[] { ")
+                .Append(string.Join(", ", fields.Select(field => "(object)" + (baseline ? field.Name.ToLowerInvariant() : "@" + field.Name)))).Append(" }), testProcedure) { }\n");
+            code.Append("        internal Alarm(string identity, IReadOnlyList<Alarmlist.Definition.AlarmFieldValue> fields, TestProcedure procedure)\n        {\n            FullyQualifiedName = identity; TestProcedure = procedure ?? new TestProcedure(); Fields = fields;\n");
+            for (int index = 0; index < fields.Count; index++)
+            {
+                Field field = fields[index];
+                string value = "fields[" + index + "].Value";
+                string converted = field.Type == "Enum" ? value + " == null ? (" + TypeName(field) + ")null : (" + field.Name + "Value)global::System.Enum.Parse(typeof(" + field.Name + "Value), (string)" + value + ")" : "(" + TypeName(field) + ")" + value;
+                code.Append("            this.").Append(field.Name).Append(" = ").Append(converted).Append(";\n");
+            }
             code.Append("        }\n    }\n}\n");
         }
 

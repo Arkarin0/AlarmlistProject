@@ -19,7 +19,7 @@ namespace Alarmlist.Analysis
 {
     internal sealed class SnapshotAnalyzer
     {
-        private static readonly string[] s_fields = { "Name", "Code", "Category", "Description" };
+        private static readonly string[] s_fields = Definition.AlarmDefinition.Fields.Select(field => field.Name).ToArray();
         private readonly Dictionary<AlarmSyntaxNode, AlarmOrigin> _alarms = new Dictionary<AlarmSyntaxNode, AlarmOrigin>();
         private readonly Dictionary<ITestProcedureItem, ProcedureEntryOrigin> _entries = new Dictionary<ITestProcedureItem, ProcedureEntryOrigin>();
         private readonly Dictionary<string, Dictionary<AlarmSyntaxNode, SectionResolution>> _sections = new Dictionary<string, Dictionary<AlarmSyntaxNode, SectionResolution>>(StringComparer.OrdinalIgnoreCase);

@@ -14,7 +14,7 @@ namespace Alarmlist.Evaluation
 {
     internal sealed class CompilationEvaluator
     {
-        internal static readonly string[] Fields = { "Name", "Code", "Category", "Description" };
+        internal static readonly string[] Fields = Definition.AlarmDefinition.Fields.Select(field => field.Name).ToArray();
         private readonly CompilationContext _context;
         private readonly bool _allowDeferredValues;
         private readonly ResourceCatalogue _resources;
@@ -129,6 +129,7 @@ namespace Alarmlist.Evaluation
                 || diagnostic.Id == DiagnosticWellKnownIds.UnassignedProperty
                 || diagnostic.Id == DiagnosticWellKnownIds.MissingPropertyContext
                 || diagnostic.Id == DiagnosticWellKnownIds.MissingTranslation
+                || diagnostic.Id == DiagnosticWellKnownIds.InvalidFieldValue
                 || diagnostic.Id == DiagnosticWellKnownIds.MissingLookup))
                 DeferredDiagnostics.Add(diagnostic);
             else Diagnostics.Add(diagnostic);
@@ -151,6 +152,8 @@ namespace Alarmlist.Evaluation
             private readonly Dictionary<string, string> _fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             private readonly List<string> _visiting = new List<string>();
             private readonly HashSet<string> _failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            private readonly HashSet<string> _deferred = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, Definition.AlarmFieldValue> _values = new Dictionary<string, Definition.AlarmFieldValue>(StringComparer.OrdinalIgnoreCase);
             private readonly List<SourceLocation> _activeResources = new List<SourceLocation>();
             internal Dictionary<TestProcedureStepSyntax, string> Steps { get; } = new Dictionary<TestProcedureStepSyntax, string>();
             internal List<LocalizationEvaluation> LocalizationUses { get; } = new List<LocalizationEvaluation>();
@@ -195,15 +198,20 @@ namespace Alarmlist.Evaluation
                     return false;
                 }
                 AlarmSyntaxNode origin = _alarm.GetFieldSource(field);
-                if (origin == null)
-                {
-                    _fields[field] = null;
-                    return true;
-                }
+                var descriptor = Definition.AlarmDefinition.Fields.Single(item => item.Name == field);
+                string raw = origin?.GetLocalFieldValue(field);
                 _visiting.Add(field);
-                value = EvaluateExpression(_owner._fields[origin][field], origin.GetFieldLocation(field));
+                value = origin == null ? descriptor.Default : EvaluateExpression(_owner._fields[origin][field], origin.GetFieldLocation(field));
                 _visiting.RemoveAt(_visiting.Count - 1);
-                if (value == null) { _failed.Add(field); return false; }
+                if (value == null && origin != null) { _failed.Add(field); return false; }
+                var resolved = Definition.AlarmFieldValue.Resolve(descriptor, raw, value, _deferred.Contains(field), origin == null && descriptor.Default != null);
+                _values[field] = resolved;
+                if (resolved.State == Definition.AlarmFieldValueState.Invalid)
+                {
+                    _owner.Report(DiagnosticDescriptors.InvalidFieldValue, _alarm, origin?.GetFieldLocation(field), field);
+                    _failed.Add(field);
+                    return false;
+                }
                 _fields[field] = value;
                 return true;
             }
@@ -212,7 +220,11 @@ namespace Alarmlist.Evaluation
             {
                 foreach (string field in Fields)
                     if (string.Equals(name, "AlarmlistAlarm" + field, StringComparison.OrdinalIgnoreCase))
-                        return TryGetField(field, out string fieldValue) ? fieldValue ?? string.Empty : null;
+                    {
+                        bool available = TryGetField(field, out string fieldValue);
+                        if (_deferred.Contains(field)) foreach (string active in _visiting) _deferred.Add(active);
+                        return available ? fieldValue ?? string.Empty : null;
+                    }
                 if (_wellKnown.TryGetValue(name, out string value))
                 {
                     if (value == null) _owner.Report(DiagnosticDescriptors.MissingPropertyContext, _alarm, location, name, _activeResources);
@@ -233,6 +245,8 @@ namespace Alarmlist.Evaluation
                 if (token.Kind == "parameter") return Lookup(token.Key, location);
                 if (token.Kind == "loc") return Localize(token, location);
                 string value = ResolveLookup(token, location, out SourceLocation definition);
+                if (value != null && _owner._culture == LocalizationCulture.Keyword)
+                    foreach (string active in _visiting) _deferred.Add(active);
                 LookupUses.Add(new LookupEvaluation(token.Raw, definition, location ?? _alarm.Location, value));
                 return value;
             }
@@ -250,6 +264,7 @@ namespace Alarmlist.Evaluation
                 entry = null;
                 if (_owner._culture == LocalizationCulture.Keyword)
                 {
+                    foreach (string active in _visiting) _deferred.Add(active);
                     bool available = true;
                     foreach (ExpressionArgument argument in token.Arguments.Values)
                         if (argument.Token != null && argument.Token.Kind != "parameter"
@@ -364,7 +379,7 @@ namespace Alarmlist.Evaluation
             internal Alarm ToAlarm()
             {
                 TestProcedureSyntax procedure = _alarm.ResolvedTestProcedures;
-                return new Alarm(_alarm.FullyQualifiedName, _fields["Category"], _fields["Code"], _fields["Description"], _fields["Name"],
+                return new Alarm(_alarm.FullyQualifiedName, Array.AsReadOnly(Fields.Select(field => _values[field]).ToArray()),
                     new TestProcedure(procedure.Groups.Where(group => ProcedureGroupSyntax.IsValidName(group.Name)).Select(group =>
                         new ProcedureGroup(group.Name, Titles[group.Name], Convert(group.Entries)))));
             }

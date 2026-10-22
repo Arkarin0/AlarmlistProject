@@ -65,10 +65,12 @@ namespace Alarmlist.Output
         {
             writer.WriteStartElement(nameof(Alarm));
             writer.WriteElementString(nameof(alarm.FullyQualifiedName), alarm.FullyQualifiedName);
-            writer.WriteElementString(nameof(alarm.Name), alarm.Name);
-            writer.WriteElementString(nameof(alarm.Code), alarm.Code);
-            writer.WriteElementString(nameof(alarm.Category), alarm.Category);
-            writer.WriteElementString(nameof(alarm.Description), alarm.Description);
+            foreach (var field in Definition.AlarmDefinition.Fields)
+            {
+                var value = alarm.GetField(field.Name);
+                if (field.Type == "String" || value?.CanonicalText != null)
+                    writer.WriteElementString(field.Name, value?.CanonicalText);
+            }
             WriteTestProcedure(writer, alarm.TestProcedure);
             writer.WriteEndElement();
         }

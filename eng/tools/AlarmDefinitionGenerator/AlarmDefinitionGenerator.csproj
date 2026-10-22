@@ -7,6 +7,7 @@
     <IsShipping>false</IsShipping>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../../src/Compiler/Definition/ScalarCodec.cs" Link="ScalarCodec.cs" />
     <EmbeddedResource Include="../../../src/Compiler/Definition/AlarmDefinition.xsd" LogicalName="AlarmDefinition.xsd" />
     <InternalsVisibleTo Include="AlarmDefinitionGenerator.UnitTests" />
   </ItemGroup>

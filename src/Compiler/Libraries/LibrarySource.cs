@@ -56,7 +56,7 @@ namespace Alarmlist.Libraries
                 AlarmSyntaxNode alarm = syntax.Alarms[index];
                 string key = "alarms/" + Index(index);
                 Add(key, alarm.Location);
-                foreach (string field in new[] { "FullyQualifiedName", "ReferenceName", "Name", "Code", "Category", "Description" })
+                foreach (string field in new[] { "FullyQualifiedName", "ReferenceName" }.Concat(Alarmlist.Definition.AlarmDefinition.Fields.Select(field => field.Name)))
                     Add(key + "/fields/" + field, alarm.GetFieldLocation(field));
                 for (int propertyIndex = 0; propertyIndex < alarm.Properties.Count; propertyIndex++)
                     Add(key + "/properties/" + Index(propertyIndex), alarm.Properties[propertyIndex].Location);
@@ -101,7 +101,7 @@ namespace Alarmlist.Libraries
                 AlarmSyntaxNode alarm = tree.Alarms[index];
                 string key = "alarms/" + Index(index);
                 alarm.Location = Location(key);
-                foreach (string field in new[] { "FullyQualifiedName", "ReferenceName", "Name", "Code", "Category", "Description" })
+                foreach (string field in new[] { "FullyQualifiedName", "ReferenceName" }.Concat(Alarmlist.Definition.AlarmDefinition.Fields.Select(field => field.Name)))
                     alarm.SetFieldLocation(field, Location(key + "/fields/" + field));
                 Properties(alarm.Properties, key + "/properties");
                 for (int groupIndex = 0; groupIndex < alarm.TestProcedure.Groups.Count; groupIndex++)

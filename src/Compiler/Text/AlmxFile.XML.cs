@@ -34,10 +34,8 @@ namespace Alarmlist.Text
             WriteProperties(alarm.Properties, writer);
             writer.WriteElementString(nameof(alarm.FullyQualifiedName), alarm.FullyQualifiedName);
             writer.WriteElementString(nameof(alarm.ReferenceName), alarm.ReferenceName);
-            writer.WriteElementString(nameof(alarm.Name), alarm.GetLocalFieldValue(nameof(alarm.Name)));
-            writer.WriteElementString(nameof(alarm.Code), alarm.GetLocalFieldValue(nameof(alarm.Code)));
-            writer.WriteElementString(nameof(alarm.Category), alarm.GetLocalFieldValue(nameof(alarm.Category)));
-            writer.WriteElementString(nameof(alarm.Description), alarm.GetLocalFieldValue(nameof(alarm.Description)));
+            foreach (var field in Definition.AlarmDefinition.Fields)
+                writer.WriteElementString(field.Name, alarm.GetLocalFieldValue(field.Name));
             WriteTestProcedureNode(alarm.TestProcedure, writer);
             writer.WriteEndElement();
             return true;
@@ -145,33 +143,18 @@ namespace Alarmlist.Text
                         result.ReferenceName = reader.ReadElementContentAsString();
                         break;
 
-                    case nameof(AlarmSyntaxNode.Name):
-                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
-                        result.Name = reader.ReadElementContentAsString();
-                        break;
-
-                    case nameof(AlarmSyntaxNode.Code):
-                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
-                        result.Code = reader.ReadElementContentAsString();
-                        break;
-
-                    case nameof(AlarmSyntaxNode.Category):
-                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
-                        result.Category = reader.ReadElementContentAsString();
-                        break;
-
-                    case nameof(AlarmSyntaxNode.Description):
-                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
-                        result.Description = reader.ReadElementContentAsString();
-                        break;
-
                     case WellKnownNodeNames.TestProcedure:
                         ReadTestProcedureNode(reader, result.TestProcedure, filePath, version);
                         break;
 
                     default:
-                        // Critical for forward compatibility
-                        reader.Skip();
+                        if (Definition.AlarmDefinition.Fields.Any(field => field.Name == reader.LocalName))
+                        {
+                            string field = reader.LocalName;
+                            result.SetFieldLocation(field, GetLocation(reader, filePath, version));
+                            result.SetLocalFieldValue(field, reader.ReadElementContentAsString());
+                        }
+                        else reader.Skip(); // Unknown elements remain forward compatible.
                         break;
                 }
             }

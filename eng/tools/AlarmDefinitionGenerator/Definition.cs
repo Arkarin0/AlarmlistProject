@@ -36,7 +36,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
             "Location SourceFile Reference ResolvedTestProcedures GetFieldLocation SetFieldLocation GetLocalFieldValue " +
             "SetLocalFieldValue GetEffectiveFieldValue GetFieldSource SetReference RemoveReference ClearResolvedReference " +
             "InvalidAbstractValue Fields GetField TypedFields GetTypedField Definition SchemaFingerprint ToolingFingerprint " +
-            "Equals GetHashCode GetType ToString Deconstruct Alarm AlarmSyntaxNode").Split(' '), StringComparer.OrdinalIgnoreCase);
+            "Equals GetHashCode GetType ToString Deconstruct Alarm AlarmSyntaxNode CreateFieldValues").Split(' '), StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> s_keywords = new HashSet<string>((
             "abstract as base bool break byte case catch char checked class const continue decimal default delegate do double " +
             "else enum event explicit extern false finally fixed float for foreach goto if implicit in int interface internal " +
@@ -106,25 +106,6 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
             ? double.Parse(left, CultureInfo.InvariantCulture).CompareTo(double.Parse(right, CultureInfo.InvariantCulture))
             : decimal.Parse(left, CultureInfo.InvariantCulture).CompareTo(decimal.Parse(right, CultureInfo.InvariantCulture));
         internal static bool ValidLiteral(Field field, string raw)
-        {
-            string value = raw.Trim();
-            switch (field.Type)
-            {
-                case "String": return true;
-                case "Int64": return Regex.IsMatch(value, "^[+-]?[0-9]+$") && long.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _);
-                case "Decimal": return Regex.IsMatch(value, "^[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)$") && decimal.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out _);
-                case "Double": return Regex.IsMatch(value, "^[+-]?([0-9]+(\\.[0-9]*)?|\\.[0-9]+)([eE][+-]?[0-9]+)?$")
-                    && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) && !double.IsNaN(number) && !double.IsInfinity(number);
-                case "Boolean": return value == "true" || value == "false" || value == "1" || value == "0";
-                case "Enum": return field.Values.Contains(value, StringComparer.Ordinal);
-                case "Date": return DateTime.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
-                case "Time": return DateTime.TryParseExact(value, new[] { "HH:mm:ss", "HH:mm:ss.FFFFFFF" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
-                case "Timestamp":
-                    return Regex.IsMatch(value, "[T][0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,7})?(Z|[+-][0-9]{2}:[0-9]{2})$")
-                        && DateTimeOffset.TryParseExact(value.EndsWith("Z", StringComparison.Ordinal) ? value.Substring(0, value.Length - 1) + "+00:00" : value,
-                            new[] { "yyyy-MM-dd'T'HH:mm:sszzz", "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
-                default: return false;
-            }
-        }
+            => Alarmlist.Definition.ScalarCodec.TryParse(field.Type, field.Values, raw, out _, out _);
     }
 }

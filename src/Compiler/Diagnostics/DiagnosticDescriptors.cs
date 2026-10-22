@@ -4,6 +4,8 @@ namespace Alarmlist.Diagnostics
 {
     public static class DiagnosticDescriptors
     {
+        public static readonly DiagnosticDescriptor InvalidFieldValue = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidFieldValue, "Invalid alarm field", "Alarm '{0}' has an invalid value for field '{1}'.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidLibrary = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidLibrary, "Invalid library reference", "Invalid alarm library reference: {0}", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidProcedureGroup = new DiagnosticDescriptor(

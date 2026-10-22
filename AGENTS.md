@@ -268,7 +268,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   `Configuration/` and `Diagnostics/`. Resolve options without compiler filesystem
   access. Preserve physical-source scoping, case-sensitive globs, root/unset,
   literal inline punctuation and immutable captured results. ALM0001-ALM0028
-  remain mandatory errors regardless of NoWarn or per-file severity. Determine
+  remain mandatory errors regardless of NoWarn or per-file severity. Milestone 11
+  also makes ALM0029 (scalar/required/bounds validation) mandatory. Definition
+  defaults remain literal and source serialization never materializes them.
+  Determine
   success after configurable warning promotion and preserve previous outputs on
   failure. See `src/VisualStudio/MILESTONE-6.md` for scope and implementation status.
 

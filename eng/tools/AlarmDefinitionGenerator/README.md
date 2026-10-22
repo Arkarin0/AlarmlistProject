@@ -26,7 +26,10 @@ dotnet test eng/tools/AlarmDefinitionGenerator.UnitTests/AlarmDefinitionGenerato
 ```
 
 The lifecycle check exercises Clean, a fresh design-time compile, parallel and
-no-op builds, invalid-definition failure and recovery. Evidence remains under
+no-op builds, invalid-definition failure and recovery. It also builds an isolated
+alternate-definition compiler on both frameworks and checks typed values,
+expressions, defaults, bounds, inheritance, keyword deferral and canonical output.
+Evidence remains under
 `artifacts/log/Debug/AlarmDefinitionGeneration/`. It does not edit tracked source.
 
 The CLI accepts `<definition.xml> <output.cs> <compiler|host>`. An
@@ -34,7 +37,14 @@ The CLI accepts `<definition.xml> <output.cs> <compiler|host>`. An
 it is a repository build input, not an `.almproj` consumer option. The semantic
 fingerprint excludes presentation metadata; the tooling fingerprint includes it.
 
-Current iteration boundary: standard-schema model generation is integrated.
-Alternate schemas require the later compiler, contract and designer iterations
-before they are supported end to end. Do not treat generated type declarations
-alone as evidence of typed compilation support.
+Current iteration boundary: compiler fields are metadata-driven, with raw syntax
+access through `GetLocalFieldValue`/`SetLocalFieldValue` and resolved values through
+`Alarm.GetField`. Generated accessors expose nullable typed values; deferred typed
+values remain null and retain their token text in the generic field result.
+ALM0029 reports mandatory scalar/required/bounds errors. String output retains its
+text; typed output is invariant and canonical. Defaults are literal and are never
+written into authored source.
+
+Alternate schemas still require the coordinated contract and designer iterations
+before they are supported end to end. Rebuild matching tools after definition
+changes; this is not runtime project customization.
