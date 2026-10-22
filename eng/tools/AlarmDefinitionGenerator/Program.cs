@@ -65,7 +65,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
             code.Append("using System;\nusing System.Collections.Generic;\n\nnamespace ")
                 .Append(host ? "Alarmlist.VisualStudio.Definition" : "Alarmlist.Definition").Append("\n{\n");
             string visibility = host ? "internal" : "public";
-            code.Append("    ").Append(visibility).Append(" sealed class AlarmFieldDescriptor\n    {\n");
+            code.Append("    [Serializable]\n    ").Append(visibility).Append(" sealed class AlarmFieldDescriptor\n    {\n");
             foreach (string name in new[] { "Name", "Type", "Default", "Minimum", "Maximum", "Label", "Help" })
                 code.Append("        public string ").Append(name).Append(" { get; }\n");
             foreach (string name in new[] { "Required", "Multiline", "PreviewVisible" })

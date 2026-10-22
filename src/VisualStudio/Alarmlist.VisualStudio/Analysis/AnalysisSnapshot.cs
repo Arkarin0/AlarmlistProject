@@ -83,9 +83,16 @@ namespace Alarmlist.VisualStudio.Analysis
         }
     }
 
+    internal enum AnalysisFieldValueState { Absent, Valid, Deferred, Invalid }
+
     [Serializable]
     internal sealed class AnalysisField
     {
+        public string Type { get; }
+        public AnalysisFieldValueState State { get; }
+        public string CanonicalValue { get; }
+        public object TypedValue { get; }
+        public bool IsDefault { get; }
         public string Name { get; }
         public bool IsPresent { get; }
         public string LocalValue { get; }
@@ -98,8 +105,10 @@ namespace Alarmlist.VisualStudio.Analysis
         public bool IsInherited { get; }
 
         public AnalysisField(string name, bool isPresent, string localValue, AnalysisLocation localLocation, string effectiveValue, AnalysisAlarmOrigin definingAlarm, AnalysisLocation valueLocation, bool isInherited,
-            string effectiveExpression = null, bool isValueAvailable = true)
+            string effectiveExpression = null, bool isValueAvailable = true, string type = "String",
+            AnalysisFieldValueState state = AnalysisFieldValueState.Valid, string canonicalValue = null, object typedValue = null, bool isDefault = false)
         {
+            Type = type; State = state; CanonicalValue = canonicalValue; TypedValue = typedValue; IsDefault = isDefault;
             Name = name;
             IsPresent = isPresent;
             LocalValue = localValue;
@@ -221,6 +230,9 @@ namespace Alarmlist.VisualStudio.Analysis
     [Serializable]
     internal sealed class AnalysisSnapshot
     {
+        public string SchemaFingerprint { get; }
+        public string ToolingFingerprint { get; }
+        public IReadOnlyList<Definition.AlarmFieldDescriptor> FieldDefinitions { get; }
         public int ContractVersion { get; }
         public bool Success { get; }
         public IReadOnlyList<AnalysisSource> Sources { get; }
@@ -240,8 +252,12 @@ namespace Alarmlist.VisualStudio.Analysis
             string culture = "keyword", IReadOnlyList<AnalysisResource> resources = null, IReadOnlyList<AnalysisResourceEntry> entries = null,
             IReadOnlyList<AnalysisTranslation> translations = null, IReadOnlyList<AnalysisLookupFile> lookupFiles = null,
             IReadOnlyList<AnalysisLookupPath> lookupPaths = null, IReadOnlyList<AnalysisLookupList> lookupLists = null,
-            IReadOnlyList<AnalysisArgumentBinding> argumentBindings = null, IReadOnlyList<AnalysisLibrary> libraries = null)
+            IReadOnlyList<AnalysisArgumentBinding> argumentBindings = null, IReadOnlyList<AnalysisLibrary> libraries = null,
+            string schemaFingerprint = null, string toolingFingerprint = null, IReadOnlyList<Definition.AlarmFieldDescriptor> fieldDefinitions = null)
         {
+            SchemaFingerprint = schemaFingerprint ?? Definition.AlarmDefinition.SchemaFingerprint;
+            ToolingFingerprint = toolingFingerprint ?? Definition.AlarmDefinition.ToolingFingerprint;
+            FieldDefinitions = Array.AsReadOnly((fieldDefinitions ?? Definition.AlarmDefinition.Fields).ToArray());
             ContractVersion = contractVersion;
             Success = success;
             Sources = Array.AsReadOnly(sources.ToArray());

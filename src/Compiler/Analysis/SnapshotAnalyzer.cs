@@ -137,9 +137,22 @@ namespace Alarmlist.Analysis
                 AlarmSyntaxNode source = resolved ? alarm.GetFieldSource(field) : null;
                 string value = null;
                 bool available = evaluation != null && evaluation.TryGetField(field, out value);
+                var descriptor = Definition.AlarmDefinition.Fields.Single(item => item.Name == field);
+                Definition.AlarmFieldValue scalar = evaluation?.GetFieldValue(field);
+                if (scalar?.State == Definition.AlarmFieldValueState.Deferred && scalar.EvaluatedText == null) available = false;
+                if (scalar == null)
+                {
+                    string raw = source?.GetLocalFieldValue(field);
+                    PropertyExpression expression = raw == null ? null : PropertyExpression.Parse(raw);
+                    scalar = resolved && expression != null && !expression.Tokens.Any()
+                        ? Definition.AlarmFieldValue.Resolve(descriptor, raw, expression.Evaluate(_ => null), false, false)
+                        : new Definition.AlarmFieldValue(field, raw, null, null, null,
+                            resolved && (raw == null || expression != null) ? Definition.AlarmFieldValueState.Deferred : Definition.AlarmFieldValueState.Invalid, false);
+                }
                 return new AnalyzedField(field, alarm.GetLocalFieldValue(field), alarm.GetFieldLocation(field),
                     value, source == null ? null : _alarms[source],
-                    source?.GetFieldLocation(field), source != null && !ReferenceEquals(source, alarm), source?.GetLocalFieldValue(field), available);
+                    source?.GetFieldLocation(field), source != null && !ReferenceEquals(source, alarm), source?.GetLocalFieldValue(field), available,
+                    scalar, descriptor.Type);
             });
 
             return new AnalyzedAlarm(_alarms[alarm], alarm.ReferenceName, resolved, chain, fields,

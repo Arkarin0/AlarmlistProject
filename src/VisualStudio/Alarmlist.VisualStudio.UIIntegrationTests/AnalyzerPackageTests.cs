@@ -189,7 +189,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             string source = Path.Combine(workspace.ProjectDirectory, "Explicit.cs");
             File.WriteAllText(source, """
                 public sealed class ExplicitRule : Alarmlist.Analyzers.IAlarmAnalyzer {
-                  public int ContractVersion { get { return 3; } }
+                  public int ContractVersion { get { return 4; } }
                   public System.Collections.Generic.IReadOnlyList<Alarmlist.Diagnostics.DiagnosticDescriptor> SupportedDiagnostics {
                     get { return new[] { new Alarmlist.Diagnostics.DiagnosticDescriptor("EXTRA001", "Explicit rule", "Explicit", Alarmlist.Diagnostics.DiagnosticSeverity.Warning) }; }
                   }

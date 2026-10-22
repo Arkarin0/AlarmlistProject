@@ -32,6 +32,7 @@ namespace Alarmlist.VisualStudio.UI
         private bool _pending;
         private bool _committing;
         private bool _refreshing;
+        private bool _definitionIncompatible;
         private readonly List<AlarmViewModel> _allAlarms = new List<AlarmViewModel>();
         public event EventHandler PendingChanged;
         public ObservableCollection<AlarmViewModel> Alarms { get; } = new ObservableCollection<AlarmViewModel>();
@@ -43,9 +44,12 @@ namespace Alarmlist.VisualStudio.UI
         public bool HasPending => _pending;
         public DesignerLayoutViewModel DesignerLayout { get; }
         public PreviewColumnLayout PreviewColumns { get; } = new PreviewColumnLayout();
-        public bool IsValid => _model.Projection.IsValid;
+        private bool IsDefinitionCompatible => !_definitionIncompatible && _analysis?.Current?.Response?.Availability != Analysis.AnalysisAvailability.UnsupportedContract
+            && (_analysis?.Current?.Response?.Snapshot == null
+                || _analysis.Current.Response.Snapshot.ToolingFingerprint == Definition.AlarmDefinition.ToolingFingerprint);
+        public bool IsValid => _model.Projection.IsValid && IsDefinitionCompatible;
         public bool CanEdit => IsValid && _selected != null;
-        public string Error => _error ?? _model.Projection.Error;
+        public string Error => !IsDefinitionCompatible ? "The SDK and extension definitions are incompatible. Rebuild matching tools or edit XML." : _error ?? _model.Projection.Error;
         public string Filter { get => _filter; set { if (_filter == value || !CommitPending()) return; _filter = value ?? string.Empty; Refresh(); Notify(); } }
         public AlarmViewModel Selected
         {
@@ -91,6 +95,7 @@ namespace Alarmlist.VisualStudio.UI
         public bool CommitPending()
         {
             if (!_pending || _committing) return true;
+            if (!IsDefinitionCompatible) { Notify(nameof(Error)); return false; }
             _committing = true;
             try
             {
@@ -129,7 +134,7 @@ namespace Alarmlist.VisualStudio.UI
 
         private void Add()
         {
-            if (!CommitPending() || _analysisBusy || _disposed) return;
+            if (!CommitPending() || _analysisBusy || _disposed || !IsValid) return;
             PendingAnalysisAction = AddAlarmAsync();
         }
         private void Delete()

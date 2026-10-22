@@ -10,7 +10,7 @@ using Alarmlist.Diagnostics;
 public sealed class LifecycleRule : IAlarmAnalyzer, IDisposable
 {
     private string _project;
-    public int ContractVersion => 3;
+    public int ContractVersion => 4;
     public IReadOnlyList<DiagnosticDescriptor> SupportedDiagnostics => Array.Empty<DiagnosticDescriptor>();
 
     public IEnumerable<Diagnostic> Analyze(AlarmAnalyzerContext context, CancellationToken cancellationToken)

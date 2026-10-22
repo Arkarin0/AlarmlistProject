@@ -15,6 +15,14 @@ namespace Alarmlist.Core.UnitTests.Analysis
     public class SnapshotAnalysisTests
     {
         [Fact]
+        public void MalformedAbstractExpressionHasInvalidFieldState()
+        {
+            var result = new AlarmCompiler().AnalyzeSnapshots(new[] { new AlmxTextSnapshot(
+                "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName><Code>$(</Code></Alarm></Alarmlist>", "invalid.almx", 1) });
+            Assert.False(result.Success);
+            Assert.Equal(Alarmlist.Definition.AlarmFieldValueState.Invalid, result.Alarms.Single().Fields.Single(field => field.Name == "Code").State);
+        }
+        [Fact]
         public void FieldsRetainLocalPresenceAndActualOriginThroughMultipleReferences()
         {
             AlmxTextSnapshot[] inputs =
@@ -28,7 +36,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
             AnalysisResult result = new AlarmCompiler().AnalyzeSnapshots(inputs);
 
             Assert.True(result.Success);
-            Assert.Equal(5, result.ContractVersion);
+            Assert.Equal(6, result.ContractVersion);
             Assert.Equal(inputs.Select(input => input.FilePath), result.Sources.Select(source => source.FilePath));
             Assert.Equal(new[] { 1, 2, 3, 4 }, result.Sources.Select(source => source.Version));
             AnalyzedAlarm child = result.Alarms[2];

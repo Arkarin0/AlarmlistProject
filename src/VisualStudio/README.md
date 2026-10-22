@@ -199,7 +199,7 @@ Copying revalidates saved resources/lookups and source snapshots first. Errors
 mark unavailable row values and disable compiled XML. See the scope-specific draft
 behavior above.
 
-The bridge accepts analysis contract 5 and loads the resolved SDK's net472 compiler
+The bridge accepts analysis contract 6 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off
 the UI thread, recreating the bridge after SDK/configuration changes. The project
@@ -208,6 +208,11 @@ and clears stale results immediately. Generation, text, and buffer identity chec
 guard publication. ALMX XML-only editor buffers take precedence over disk, and drafts
 that have not reached the shared buffer remain outside analysis. A context registry
 keeps linked projects separate; each view can choose its owning project context.
+The bridge compares the generated definition's full tooling fingerprint before
+semantic actions. Incompatible toolsets disable designer changes while retaining
+XML editing and existing drafts. Rebuild the compiler/SDK and extension together.
+Contract 6 copies field descriptors, scalar states, canonical values and primitive
+typed values; generated compiler or enum types never enter the host AppDomain.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.

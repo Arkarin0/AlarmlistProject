@@ -23,7 +23,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
             var compiler = new AlarmCompiler();
             AnalysisResult result = compiler.AnalyzeSnapshots(new[] { source }, context, true);
             Assert.True(result.Success);
-            Assert.Equal(5, result.ContractVersion);
+            Assert.Equal(6, result.ContractVersion);
             Assert.Equal("de-DE", result.Culture);
             Assert.Equal(new[] { 19, 23 }, result.Resources.Select(item => item.Version));
             Assert.Equal(new[] { "de", "de-DE" }, result.Resources.Select(item => item.Culture));

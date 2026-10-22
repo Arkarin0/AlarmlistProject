@@ -7,6 +7,26 @@ assemblies, and their runtime dependencies.
 
 ## Use the SDK
 
+### Generated definitions and compatibility
+
+Milestone eleven uses analysis contract 6, analyzer contract 4 and library format 2.
+Rebuild old analyzers and `.almlib` artifacts with the matching toolset. Libraries
+carry a semantic definition fingerprint; a different field layout, type, default,
+required flag, bound or enum choice is incompatible. Presentation-only changes do
+not invalidate libraries. The Visual Studio extension requires the full tooling
+fingerprint to match and retains XML editing when the SDK is incompatible.
+
+Analysis exposes immutable `FieldDefinitions`, `SchemaFingerprint` and
+`ToolingFingerprint`. Each ordinary field reports its type, absent/valid/deferred/
+invalid state, canonical value, primitive typed value and whether a definition
+default supplied it. Enum values cross tool boundaries as tokens, never generated
+enum types. Analyzer inputs expose the same descriptors and semantic fingerprint;
+rules should tolerate missing or retyped ordinary fields.
+
+Definition changes are repository build inputs, not per-project configuration.
+The compiler supports typed expressions; metadata-driven designer work remains
+tracked in [milestone eleven](../../VisualStudio/MILESTONE-11.md).
+
 ### Procedure groups and format transition
 
 Procedure sections are ordered named groups. Source entries retain Step, Hint,
@@ -33,8 +53,8 @@ This is a breaking transition: replace old Instructions/Reset elements with
 `<Group Name="Instructions">` / `<Group Name="Reset">`. Legacy elements are
 rejected. Compiled XML uses Group/Name/Title and TestProcedureItem children.
 The compiler's TestProcedure exposes Groups; detached alarm analysis exposes
-ProcedureSections with title provenance. Analysis contract 5 requires the matching
-extension; external analyzers must be rebuilt for analyzer contract 3. No migration
+ProcedureSections with title provenance. Analysis contract 6 requires the matching
+extension; external analyzers must be rebuilt for analyzer contract 4. No migration
 tool or compatibility aliases are supplied. See the
 [milestone-eight contract](../../VisualStudio/MILESTONE-8.md).
 
@@ -541,7 +561,7 @@ The XSD and [complete format specification](../../VisualStudio/HMI-LOOKUPS.md)
 describe these rules. No built-in DeviceTag field, relationship validation, or
 multi-selection formatting is introduced.
 
-Analysis contract 5 adds read-only LookupLists and ArgumentBindings. Entries expose
+Analysis contract 6 adds read-only LookupLists and ArgumentBindings. Entries expose
 their literal Value, Expression, Location, ambiguity, optional DescriptionTranslation,
 and metadata; bindings expose TemplateKey, ArgumentName, ListKey and availability.
 Hosts use these detached compiler answers and revalidate saved inputs for completion.
@@ -699,7 +719,7 @@ It shares the compiler's resolution rules and never reads or writes snapshot pat
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and returns contract 5.
+The original overload keeps its analysis-only behavior and returns contract 6.
 `AnalyzeLibrarySnapshots(snapshots, context, cancellationToken)` analyzes library
 definitions with the same deferred-value rules as library validation. Missing
 consumer values remain unavailable; syntax, structure and reference errors remain
@@ -725,7 +745,7 @@ ALMX usage location, evaluated Value and IsValueAvailable. Abstract or excluded
 content does not invent uses. A missing or invalid expression can retain lookup
 provenance while its evaluated value is unavailable. Results are detached and
 read-only; changing resource/culture inputs cannot mutate earlier results.
-The bridge requires contract 5 and copies this data into host-owned serializable
+The bridge requires contract 6 and copies this data into host-owned serializable
 objects. Resource filename inference is delegated to the SDK's
 `LocalizationCulture.InferResourceCulture`; explicit empty culture stays distinct.
 CPS saved-resource capture and designer localization follow in iterations six/seven.
@@ -748,7 +768,7 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 5 and a CPS
+The extension now has an isolated AppDomain bridge for contract 6 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear

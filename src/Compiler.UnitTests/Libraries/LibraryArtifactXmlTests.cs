@@ -13,6 +13,46 @@ namespace Alarmlist.Core.UnitTests.Libraries
 {
     public class LibraryArtifactXmlTests
     {
+        [Theory]
+        [InlineData(null)]
+        [InlineData("foreign-schema")]
+        public void MissingOrForeignSchemaFailsBeforeSourceParsing(string fingerprint)
+        {
+            XDocument document = XDocument.Parse(LibraryArtifactXml.Write(Create()));
+            document.Root.SetAttributeValue("SchemaFingerprint", fingerprint);
+            var error = Assert.Throws<InvalidDataException>(() => LibraryArtifactXml.Read(document.ToString()));
+            Assert.Contains("Rebuild", error.Message);
+            Assert.Contains("alarm definition", error.Message);
+        }
+
+        [Fact]
+        public void OldLibraryFormatRequiresRebuild()
+        {
+            XDocument document = XDocument.Parse(LibraryArtifactXml.Write(Create()));
+            document.Root.SetAttributeValue("FormatVersion", "1");
+            document.Root.SetAttributeValue("SchemaFingerprint", null);
+            var error = Assert.Throws<InvalidDataException>(() => LibraryArtifactXml.Read(document.ToString()));
+            Assert.Contains("Rebuild", error.Message);
+            Assert.Contains("format 2", error.Message);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void DirectAndTransitiveForeignSchemasFailCompilation(bool transitive)
+        {
+            var foreign = new LibraryArtifact(new LibraryIdentity("Foreign", "1.0.0"), null, null, null, null, null);
+            var root = new LibraryArtifact(new LibraryIdentity("Root", "1.0.0"), new[] { foreign.Identity }, null, null, null, null);
+            var document = XDocument.Parse(LibraryArtifactXml.Write(foreign));
+            document.Root.SetAttributeValue("SchemaFingerprint", "another-fork");
+            var inputs = new[] { new LibraryTextSnapshot(document.ToString(), "foreign.almlib", 2) }
+                .Concat(transitive ? new[] { new LibraryTextSnapshot(LibraryArtifactXml.Write(root), "root.almlib", 1) } : Array.Empty<LibraryTextSnapshot>());
+            var context = CompilationContext.Empty.WithLibraries(new LibraryReferenceSet(new[] { transitive ? root.Identity : foreign.Identity }, inputs));
+            var result = new AlarmCompiler().CompileSnapshots(Array.Empty<AlmxTextSnapshot>(), context);
+            Assert.False(result.Success);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Id == "ALM0028" && diagnostic.Message.Contains("Rebuild"));
+            Assert.Empty(result.AlarmList);
+        }
         [Fact]
         public void ArtifactRoundTripRetainsScopesRawValuesAndPortableOrigins()
         {
@@ -62,7 +102,7 @@ namespace Alarmlist.Core.UnitTests.Libraries
             XElement origin = source.Element(ns + "Origins").Elements().First();
             switch (mutation)
             {
-                case "version": root.SetAttributeValue("FormatVersion", "2"); break;
+                case "version": root.SetAttributeValue("FormatVersion", "1"); break;
                 case "namespace": root.Name = "AlarmLibrary"; root.Attribute("xmlns").Remove(); break;
                 case "unknown-section": root.Add(new XElement(ns + "Unknown")); break;
                 case "duplicate-section": root.Add(new XElement(root.Element(ns + "Sources"))); break;

@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
-    /// <summary>Contract 5 adapter. Copies compiler answers without reimplementing resolution.</summary>
+    /// <summary>Contract 6 adapter. Copies compiler answers without reimplementing resolution.</summary>
     internal sealed class AnalysisContractReader
     {
         private readonly Dictionary<Type, Type> _types = new Dictionary<Type, Type>();
@@ -17,8 +17,13 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             Add<AnalysisSnapshot>(assembly, "Alarmlist.Analysis.AnalysisResult");
             FieldInfo version = _types[typeof(AnalysisSnapshot)].GetField("CurrentContractVersion", BindingFlags.Public | BindingFlags.Static);
-            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 5))
-                throw new NotSupportedException("Only analysis contract 5 is supported by this extension.");
+            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 6))
+                throw new NotSupportedException("Only analysis contract 6 is supported by this extension. Rebuild matching tools.");
+            Type definition = assembly.GetType("Alarmlist.Definition.AlarmDefinition");
+            if (!Equals(definition?.GetField("ToolingFingerprint")?.GetRawConstantValue(), Definition.AlarmDefinition.ToolingFingerprint))
+                throw new NotSupportedException("The SDK and extension alarm definitions do not match. Rebuild matching tools; XML editing remains available.");
+            Add<Definition.AlarmFieldDescriptor>(assembly, "Alarmlist.Definition.AlarmFieldDescriptor");
+            Add<AnalysisFieldValueState>(assembly, "Alarmlist.Definition.AlarmFieldValueState");
             Add<AnalysisResource>(assembly, "Alarmlist.Analysis.AnalyzedResource");
             Add<AnalysisLibrary>(assembly, "Alarmlist.Analysis.AnalyzedLibrary");
             Add<AnalysisLibraryIdentity>(assembly, "Alarmlist.Libraries.LibraryIdentity");
@@ -85,9 +90,11 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public AnalysisSnapshot Read(object result)
         {
-            if (result == null || Value<int>(result, "ContractVersion") != 5)
+            if (result == null || Value<int>(result, "ContractVersion") != 6)
                 throw new NotSupportedException("The SDK returned an unsupported analysis contract.");
-            return new AnalysisSnapshot(5, Value<bool>(result, "Success"), List(result, "Sources", source =>
+            if (Value<string>(result, "ToolingFingerprint") != Definition.AlarmDefinition.ToolingFingerprint)
+                throw new NotSupportedException("The SDK returned mismatched alarm metadata. Rebuild matching tools; XML editing remains available.");
+            return new AnalysisSnapshot(6, Value<bool>(result, "Success"), List(result, "Sources", source =>
                 new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"), List(source, "Properties", Property),
                     ProcedureCreation(Value<object>(source, "ProcedureCreation")))),
                 List(result, "Alarms", Alarm), List(result, "Diagnostics", diagnostic => new AnalysisDiagnostic(
@@ -104,7 +111,8 @@ namespace Alarmlist.VisualStudio.Analysis
                 List(result, "LookupLists", list => new AnalysisLookupList(Value<string>(list, "Key"), List(list, "Entries", ListEntry))),
                 List(result, "ArgumentBindings", binding => new AnalysisArgumentBinding(Value<string>(binding, "TemplateKey"),
                     Value<string>(binding, "ArgumentName"), Value<string>(binding, "ListKey"), Location(Value<object>(binding, "Location")),
-                    Value<bool>(binding, "IsAvailable"))), List(result, "Libraries", Library));
+                    Value<bool>(binding, "IsAvailable"))), List(result, "Libraries", Library), Value<string>(result, "SchemaFingerprint"),
+                    Value<string>(result, "ToolingFingerprint"), List(result, "FieldDefinitions", Descriptor));
         }
 
         private static AnalysisLibraryIdentity LibraryIdentity(object identity) => identity == null ? null
@@ -128,11 +136,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private static AnalysisAlarm Alarm(object alarm)
         {
             return new AnalysisAlarm(AlarmOrigin(Value<object>(alarm, "Origin")), Value<string>(alarm, "ReferenceName"),
-                Value<bool>(alarm, "IsResolved"), List(alarm, "ReferenceChain", AlarmOrigin), List(alarm, "Fields", field =>
-                    new AnalysisField(Value<string>(field, "Name"), Value<bool>(field, "IsPresent"), Value<string>(field, "LocalValue"),
-                        Location(Value<object>(field, "LocalLocation")), Value<string>(field, "EffectiveValue"),
-                        AlarmOrigin(Value<object>(field, "DefiningAlarm")), Location(Value<object>(field, "ValueLocation")), Value<bool>(field, "IsInherited"),
-                        Value<string>(field, "EffectiveExpression"), Value<bool>(field, "IsValueAvailable"))),
+                Value<bool>(alarm, "IsResolved"), List(alarm, "ReferenceChain", AlarmOrigin), List(alarm, "Fields", Field),
                 List(alarm, "ProcedureSections", Section), Value<bool>(alarm, "IsAbstract"),
                 Value<bool>(alarm, "HasEvaluatedValues"), List(alarm, "Properties", Property), List(alarm, "LocalizationUses", use =>
                     new AnalysisLocalizationUse(Translation(Value<object>(use, "Translation")), Location(Value<object>(use, "UsageLocation")),
@@ -175,7 +179,22 @@ namespace Alarmlist.VisualStudio.Analysis
             Value<bool>(field, "IsPresent"), Value<string>(field, "LocalValue"), Location(Value<object>(field, "LocalLocation")),
             Value<string>(field, "EffectiveValue"), AlarmOrigin(Value<object>(field, "DefiningAlarm")),
             Location(Value<object>(field, "ValueLocation")), Value<bool>(field, "IsInherited"),
-            Value<string>(field, "EffectiveExpression"), Value<bool>(field, "IsValueAvailable"));
+            Value<string>(field, "EffectiveExpression"), Value<bool>(field, "IsValueAvailable"), Value<string>(field, "Type"),
+            EnumValue<AnalysisFieldValueState>(field, "State"), Value<string>(field, "CanonicalValue"), ScalarValue(field), Value<bool>(field, "IsDefault"));
+
+        private static object ScalarValue(object field)
+        {
+            object value = Value<object>(field, "TypedValue");
+            if (value == null || value is string || value is long || value is decimal || value is double || value is bool
+                || value is DateTime || value is TimeSpan || value is DateTimeOffset) return value;
+            throw new NotSupportedException("The SDK returned an unsupported scalar value type.");
+        }
+
+        private static Definition.AlarmFieldDescriptor Descriptor(object field) => new Definition.AlarmFieldDescriptor(
+            Value<string>(field, "Name"), Value<string>(field, "Type"), Value<bool>(field, "Required"), Value<string>(field, "Default"),
+            Value<string>(field, "Minimum"), Value<string>(field, "Maximum"), Value<string>(field, "Label"), Value<string>(field, "Help"),
+            Value<bool>(field, "Multiline"), Value<bool>(field, "PreviewVisible"), Value<double>(field, "PreviewWidth"),
+            List(field, "Values", item => (string)item).ToArray(), List(field, "ValueLabels", item => (string)item).ToArray());
 
         private static AnalysisEntry Entry(object entry)
         {

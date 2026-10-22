@@ -1,7 +1,11 @@
 # Sample analyzer
 
-`CodePrefixAnalyzer` implements analyzer contract 3. SAMPLE001 warns when a concrete
+`CodePrefixAnalyzer` implements analyzer contract 4. SAMPLE001 warns when a concrete
 alarm's resolved `Code` does not start with `AL-`. Configure the prefix per source:
+
+The rule skips definitions without a string `Code` field. Contract-3 analyzer
+binaries must be rebuilt; the loader reports rebuild guidance instead of running
+them against contract 4.
 
 ```ini
 [*.almx]

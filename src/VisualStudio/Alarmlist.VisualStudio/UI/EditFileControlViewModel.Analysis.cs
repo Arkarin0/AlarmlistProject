@@ -279,6 +279,11 @@ namespace Alarmlist.VisualStudio.UI
             try
             {
                 ProjectAnalysisState state = _analysis?.Current;
+                if (state?.Response?.Availability == AnalysisAvailability.UnsupportedContract) _definitionIncompatible = true;
+                else if (state?.Status == ProjectAnalysisStatus.Available && state.Response?.Snapshot != null)
+                    _definitionIncompatible = state.Response.Snapshot.ToolingFingerprint != Definition.AlarmDefinition.ToolingFingerprint;
+                Notify(nameof(IsValid)); Notify(nameof(CanEdit)); Notify(nameof(Error));
+                AddCommand.Refresh(); DeleteCommand.Refresh();
                 RefreshAlarmNames(state);
                 PreviewColumns.SetStore((_analysis as IDesignerPreviewSettings)?.GetPreviewLayout());
                 var projects = _analysis?.Projects ?? Array.Empty<AnalysisProject>();

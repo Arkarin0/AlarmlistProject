@@ -63,7 +63,7 @@ namespace Alarmlist.Evaluation
                     fields.Add(field, expression);
                     // Missing consumer values defer, but a supplied literal is already
                     // knowable even in an abstract or library declaration.
-                    if ((alarm.IsAbstract || allowDeferredValues) && !string.IsNullOrEmpty(raw)
+                    if (alarm.IsAbstract && !string.IsNullOrEmpty(raw)
                         && expression != null && !expression.Tokens.Any())
                     {
                         var descriptor = Definition.AlarmDefinition.Fields.Single(item => item.Name == field);
@@ -144,7 +144,6 @@ namespace Alarmlist.Evaluation
                 || diagnostic.Id == DiagnosticWellKnownIds.UnassignedProperty
                 || diagnostic.Id == DiagnosticWellKnownIds.MissingPropertyContext
                 || diagnostic.Id == DiagnosticWellKnownIds.MissingTranslation
-                || diagnostic.Id == DiagnosticWellKnownIds.InvalidFieldValue
                 || diagnostic.Id == DiagnosticWellKnownIds.MissingLookup))
                 DeferredDiagnostics.Add(diagnostic);
             else Diagnostics.Add(diagnostic);
@@ -174,7 +173,18 @@ namespace Alarmlist.Evaluation
             internal List<LocalizationEvaluation> LocalizationUses { get; } = new List<LocalizationEvaluation>();
             internal List<LookupEvaluation> LookupUses { get; } = new List<LookupEvaluation>();
             internal Dictionary<string, string> Titles { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            internal bool IsAvailable => _failed.Count == 0 && Steps.Values.All(value => value != null) && Titles.Values.All(value => value != null);
+            internal Definition.AlarmFieldValue GetFieldValue(string field)
+                => _values.TryGetValue(field, out var value) ? value : new Definition.AlarmFieldValue(field,
+                    _alarm.GetFieldSource(field)?.GetLocalFieldValue(field), null, null, null,
+                    _deferred.Contains(field) ? Definition.AlarmFieldValueState.Deferred : Definition.AlarmFieldValueState.Invalid, false);
+
+            private void DeferConsumerInput()
+            {
+                if (_owner._allowDeferredValues)
+                    foreach (string active in _visiting) _deferred.Add(active);
+            }
+            internal bool IsAvailable => _failed.Count == 0 && _values.Values.All(value => value.State != Definition.AlarmFieldValueState.Deferred || value.EvaluatedText != null)
+                && Steps.Values.All(value => value != null) && Titles.Values.All(value => value != null);
 
             internal AlarmEvaluation(CompilationEvaluator owner, AlarmSyntaxNode alarm)
             {
@@ -219,8 +229,11 @@ namespace Alarmlist.Evaluation
                 value = origin == null ? descriptor.Default : EvaluateExpression(_owner._fields[origin][field], origin.GetFieldLocation(field));
                 _visiting.RemoveAt(_visiting.Count - 1);
                 if (value == null && origin != null) { _failed.Add(field); return false; }
-                var resolved = Definition.AlarmFieldValue.Resolve(descriptor, raw, value, _deferred.Contains(field), origin == null && descriptor.Default != null);
+                var resolved = Definition.AlarmFieldValue.Resolve(descriptor, raw, value,
+                    _deferred.Contains(field) || (_owner._allowDeferredValues && origin == null && descriptor.Required && value == null),
+                    origin == null && descriptor.Default != null);
                 _values[field] = resolved;
+                if (resolved.State == Definition.AlarmFieldValueState.Deferred) _deferred.Add(field);
                 if (resolved.State == Definition.AlarmFieldValueState.Invalid)
                 {
                     _owner.Report(DiagnosticDescriptors.InvalidFieldValue, _alarm, origin?.GetFieldLocation(field), field);
@@ -238,16 +251,18 @@ namespace Alarmlist.Evaluation
                     {
                         bool available = TryGetField(field, out string fieldValue);
                         if (_deferred.Contains(field)) foreach (string active in _visiting) _deferred.Add(active);
+                        if (_deferred.Contains(field) && fieldValue == null) return null;
                         return available ? fieldValue ?? string.Empty : null;
                     }
                 if (_wellKnown.TryGetValue(name, out string value))
                 {
-                    if (value == null) _owner.Report(DiagnosticDescriptors.MissingPropertyContext, _alarm, location, name, _activeResources);
+                    if (value == null) { DeferConsumerInput(); _owner.Report(DiagnosticDescriptors.MissingPropertyContext, _alarm, location, name, _activeResources); }
                     return value;
                 }
                 _properties.TryGetValue(name, out PropertyBinding property);
                 value = property?.Assignment?.Definition.Value;
                 if (value != null) return value;
+                DeferConsumerInput();
                 _owner.Report(property == null ? DiagnosticDescriptors.UnknownProperty : DiagnosticDescriptors.UnassignedProperty, _alarm, location, name, _activeResources);
                 return null;
             }
@@ -289,6 +304,7 @@ namespace Alarmlist.Evaluation
                 if (_owner._culture == null) return null; // Invalid culture already has a diagnostic.
                 if (!_owner._resources.TryResolve(key, _owner._culture, out ResourceTranslation translation))
                 {
+                    DeferConsumerInput();
                     _owner.ReportDiagnostic(new Diagnostic(DiagnosticDescriptors.MissingTranslation, key, _owner._culture)
                         .WithLocation(location ?? _alarm.Location, _owner._resources.GetLookupLocations(key, _owner._culture)));
                     return null;
@@ -374,6 +390,7 @@ namespace Alarmlist.Evaluation
 
             private string MissingLookup(ExpressionToken token, string reason, SourceLocation location, SourceLocation definition)
             {
+                DeferConsumerInput();
                 _owner.ReportDiagnostic(new Diagnostic(DiagnosticDescriptors.MissingLookup, token.Raw, reason)
                     .WithLocation(location ?? _alarm.Location, new[] { definition }.Concat(_activeResources)));
                 return null;
@@ -384,8 +401,11 @@ namespace Alarmlist.Evaluation
                 if (_owner._culture == null) return null;
                 _owner._resources.TryResolve(label.Key, _owner._culture, out ResourceTranslation translation);
                 if (translation == null)
+                {
+                    DeferConsumerInput();
                     _owner.ReportDiagnostic(new Diagnostic(DiagnosticDescriptors.MissingTranslation, label.Key, _owner._culture)
                         .WithLocation(location ?? _alarm.Location, new[] { label.Location }.Concat(_owner._resources.GetLookupLocations(label.Key, _owner._culture))));
+                }
                 string value = translation?.Entry.Value;
                 LocalizationUses.Add(new LocalizationEvaluation(label.Key, translation?.Entry, location ?? _alarm.Location, value));
                 return value;

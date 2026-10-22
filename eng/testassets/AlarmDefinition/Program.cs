@@ -18,6 +18,20 @@ internal static class Program
 
     public static void Main()
     {
+        if (AlarmDefinition.Fields.Single(field => field.Name == "Code").Default == null)
+        {
+            Check(!Compile("").Success, "required field without a default fails in applications");
+            var inputs = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Ratio>$(AlarmlistAlarmCode)</Ratio></Alarm></Alarmlist>", "required.almx", 1) };
+            var analysis = new AlarmCompiler().AnalyzeLibrarySnapshots(inputs, CompilationContext.Empty);
+            Check(analysis.Success && !analysis.Alarms.Single().HasEvaluatedValues, "library missing required field defers");
+            foreach (string name in new[] { "Code", "Ratio" })
+            {
+                var field = analysis.Alarms.Single().Fields.Single(item => item.Name == name);
+                Check(field.State == AlarmFieldValueState.Deferred && !field.IsValueAvailable && field.TypedValue == null, "required deferral propagates: " + name);
+            }
+            Console.WriteLine("Required-field runtime checks passed.");
+            return;
+        }
         foreach (string culture in new[] { "en-US", "de-DE", "tr-TR" })
         {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
@@ -33,6 +47,8 @@ internal static class Program
         foreach (string fields in new[] { "<Count>9223372036854775808</Count>", "<Price>1,2</Price>", "<Ratio>NaN</Ratio>", "<Enabled>TRUE</Enabled>", "<Priority>high</Priority>", "<Day>2023-02-29</Day>", "<Clock>24:00:00</Clock>", "<Instant>2024-01-01T00:00:00</Instant>", "<Count> </Count>" })
             Check(!Compile(fields).Success, "invalid scalar rejected: " + fields);
         var absent = Compile("").AlarmList.Single();
+        Check(Compile("", CompilationContext.Empty.WithAnalyzers(new[] { new Alarmlist.SampleAnalyzer.CodePrefixAnalyzer() })).Success,
+            "sample analyzer tolerates a retyped Code field");
         Check(absent.Count == null && absent.GetField("Count").State == AlarmFieldValueState.Absent, "optional absence");
         Check(absent.Code == 7 && absent.GetField("Code").IsDefault && absent.GetField("Code").RawText == null, "typed literal default");
         Check(absent.Literal == "$(NotAnExpression)", "defaults are literal");
@@ -60,7 +76,15 @@ internal static class Program
         Check(inherited.Success && inherited.AlarmList.Single().Count == 12 && inherited.AlarmList.Single().Code == 9, "abstract inheritance resolves in consumer context");
         var librarySources = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>Library</FullyQualifiedName><Count>$(Consumer)</Count></Alarm></Alarmlist>", "library.almx", 1) };
         Check(new AlarmCompiler().AnalyzeLibrarySnapshots(librarySources, CompilationContext.Empty).Success, "library consumer values defer");
+        var libraryAnalysis = new AlarmCompiler().AnalyzeLibrarySnapshots(librarySources, CompilationContext.Empty);
+        Check(libraryAnalysis.ContractVersion == 6 && libraryAnalysis.SchemaFingerprint == AlarmDefinition.SchemaFingerprint
+            && libraryAnalysis.FieldDefinitions.Any(field => field.Name == "Code" && field.Type == "Int64"), "analysis schema metadata");
+        Check(libraryAnalysis.Alarms.Single().Fields.Single(field => field.Name == "Count").State == AlarmFieldValueState.Deferred, "analysis consumer field defers");
+        var defaultCode = libraryAnalysis.Alarms.Single().Fields.Single(field => field.Name == "Code");
+        Check(defaultCode.IsDefault && defaultCode.CanonicalValue == "7" && (long)defaultCode.TypedValue == 7, "analysis typed default provenance");
         Check(!new AlarmCompiler().CompileSnapshots(librarySources).Success, "applications require concrete consumer values");
+        var knownExpression = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>Invalid</FullyQualifiedName><Properties><Property Name='p' Value='not-a-number'/></Properties><Count>$(p)</Count></Alarm></Alarmlist>", "known.almx", 1) };
+        Check(!new AlarmCompiler().AnalyzeLibrarySnapshots(knownExpression, CompilationContext.Empty).Success, "known-invalid evaluated library values do not defer");
         foreach (string abstractAttribute in new[] { "", " abstract='true'" })
         {
             var invalidLiteral = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm" + abstractAttribute + "><FullyQualifiedName>Invalid</FullyQualifiedName><Count>not-a-number</Count></Alarm></Alarmlist>", "invalid.almx", 1) };

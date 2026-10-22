@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
-Status: iterations 1–3 complete.
-Iterations 4–8 remain planned. Owner decisions were confirmed on 2026-10-21.
+Status: iterations 1–4 complete.
+Iterations 5–8 remain planned. Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
 starting each iteration; record incomplete work honestly if that threshold is met.
@@ -295,3 +295,53 @@ abstract and concrete library declarations. Lifecycle/runtime checks passed on
 both frameworks (`6b99a2f01b264b568529abdb95371466`); compiler suites again passed
 654/net472 and 656/net8.0. Diff review passed. This corrects the earlier acceptance
 gap before the coordinated iteration 4 transition.
+
+### Iteration 4 — coordinated contracts (2026-10-22)
+
+Advanced analysis to 6, analyzers to 4 and libraries to format 2. Analysis and
+analyzer inputs expose generated metadata and fingerprints; field results include
+type, state, canonical/primitive value and default origin. The bridge copies only
+host-owned metadata and permitted primitive values and rejects a mismatched
+full tooling fingerprint before semantic use. Designer guards retain drafts,
+block edits through pending refreshes after a mismatch, and keep XML editing
+available. Libraries validate semantic fingerprints before parsing sources;
+old formats and analyzer contracts report rebuild guidance. The sample analyzer
+skips missing/non-string Code fields.
+
+Refined library deferral to track actual missing consumer inputs and required
+values through dependent expressions. Known-invalid evaluated values still fail.
+Abstract malformed expressions report invalid field state. The isolated fixture
+covers typed/default states and sample-analyzer tolerance of retyped Code.
+
+Completed validation (dotnet test commands used `--verbosity quiet -m:1 -nr:false`):
+
+| Command/suite | Result |
+| --- | --- |
+| `dotnet test src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj` | 661/net472 and 663/net8.0 passed. |
+| `dotnet test eng/tools/AlarmDefinitionGenerator.UnitTests/AlarmDefinitionGenerator.UnitTests.csproj` | 36/net8.0 passed. |
+| `dotnet test src/MSBuild/AlarmList.MSBuild.UnitTests/AlarmList.MSBuild.UnitTests.csproj` | 91 passed on each framework. |
+| `dotnet test src/MSBuild/AlarmList.MSBuild.IntegrationTests/AlarmList.MSBuild.IntegrationTests.csproj` | 4 passed on each framework. |
+| `dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj` | 85/net472 and 82/net8.0 passed using .NET MSBuild. |
+| Same SDK suite with `--framework net472` and `ALARMLIST_TEST_MSBUILD_PATH` selecting VS2022 desktop MSBuild | 85 passed; prior environment value restored. |
+| `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj` | Final full suite: 564 passed. Earlier bridge subset: 53 passed; draft/mismatch guard: 1 passed. |
+| `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj` | 13 passed on each framework. |
+| Native functional suite (command below) | 4 passed on VS2022 17.14.26; then 4 on VS2026 18.10.3. No skipped cases. |
+
+```powershell
+eng/test-visualstudio.ps1 -VisualStudioPath '<host installation>' -Filter 'Area=SharedEditor|Area=LibraryReferences|Area=Analyzers'
+```
+
+`eng/test-alarm-definition-generation.ps1` passed clean/design-time/parallel/no-op/
+failure-recovery checks and both alternate-schema runtime variants on both
+frameworks, including required fields without defaults and deferred dependencies.
+Logs: `artifacts/log/Debug/AlarmDefinitionGeneration/7f589f6871c24febbcd289f404a77790`.
+The final evaluated-library-value regression then passed in that isolated fixture
+on both runtimes (`artifacts/m11-contract-evaluated-library.log`). Native TRX
+folders are `artifacts/log/Debug/VisualStudioUI/TestResults/c1a38842e6054e32869e922234b99758`
+and `artifacts/log/Debug/VisualStudioUI/TestResults/e91aff9540ee4e35aa4ad8dfbed4bfbf`.
+Other command output is retained in `artifacts/m11-contract-*.log`.
+
+Reviewed changes, paths and documentation; `git diff --check` passed. The existing
+shared test helper CA1416 warning remains. No required check failed or was skipped.
+No display/DPI checks were run. Alternate-schema native designer/preview acceptance
+remains in iterations 5–7; those features are not claimed complete here.

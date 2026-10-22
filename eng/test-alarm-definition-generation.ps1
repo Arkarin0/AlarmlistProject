@@ -70,6 +70,7 @@ try {
   $sharedSource = Join-Path $repoRoot 'src/shared/Configuration/EditorConfigPreamble.cs'
   $lookupSchema = Join-Path $repoRoot 'src/Compiler/Lookups/AlarmlistLookup.xsd'
   $runtimeChecks = Join-Path $repoRoot 'eng/testassets/AlarmDefinition/Program.cs'
+  $sampleAnalyzer = Join-Path $repoRoot 'src/Analyzers/Alarmlist.SampleAnalyzer/CodePrefixAnalyzer.cs'
   Set-Content -LiteralPath $fixtureProject -Encoding utf8 -Value @"
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFrameworks>net472;net8.0</TargetFrameworks><OutputType>Exe</OutputType><IsPackable>false</IsPackable></PropertyGroup>
@@ -77,6 +78,7 @@ try {
     <Compile Include="$compilerSources" />
     <Compile Include="$sharedSource" />
     <Compile Include="$runtimeChecks" />
+    <Compile Include="$sampleAnalyzer" />
     <EmbeddedResource Include="$lookupSchema" LogicalName="Alarmlist.Lookups.AlarmlistLookup.xsd" />
   </ItemGroup>
 </Project>
@@ -85,6 +87,14 @@ try {
   Invoke-CheckedDotNet 'run-all-types-net8' @((Join-Path $repoRoot 'artifacts/bin/GeneratedTypes/Debug/net8.0/GeneratedTypes.dll'))
   & (Join-Path $repoRoot 'artifacts/bin/GeneratedTypes/Debug/net472/GeneratedTypes.exe') *> (Join-Path $runRoot 'run-all-types-net472.log')
   if ($LASTEXITCODE -ne 0) { throw 'Alternate runtime checks failed on net472.' }
+  [xml]$requiredDefinition = Get-Content -LiteralPath $typeDefinition -Raw
+  $requiredDefinition.AlarmDefinition.Field | Where-Object Name -eq 'Code' | ForEach-Object { $_.RemoveAttribute('Default') }
+  $requiredDefinition.Save($typeDefinition)
+  Invoke-CheckedDotNet 'generate-required-types' @($toolAssembly, $typeDefinition, (Join-Path $fixture 'Generated.cs'), 'compiler')
+  Invoke-CheckedDotNet 'compile-required-types' @('build', $fixtureProject, '--verbosity', 'quiet', '-m:1', '-nr:false')
+  Invoke-CheckedDotNet 'run-required-net8' @((Join-Path $repoRoot 'artifacts/bin/GeneratedTypes/Debug/net8.0/GeneratedTypes.dll'))
+  & (Join-Path $repoRoot 'artifacts/bin/GeneratedTypes/Debug/net472/GeneratedTypes.exe') *> (Join-Path $runRoot 'run-required-net472.log')
+  if ($LASTEXITCODE -ne 0) { throw 'Required-field runtime checks failed on net472.' }
   Write-Output "Generation lifecycle checks passed. Evidence: $runRoot"
 } finally {
   Pop-Location

@@ -135,6 +135,9 @@ namespace Alarmlist.Core.UnitTests.Configuration
             };
             var compiler = new AlarmCompiler();
             Assert.True(compiler.CompileSnapshots(inputs, context).Success);
+            Assert.Equal(4, AlarmAnalyzerContext.CurrentContractVersion);
+            Assert.Equal(Alarmlist.Definition.AlarmDefinition.SchemaFingerprint, retained.SchemaFingerprint);
+            Assert.Equal(new[] { "Name", "Code", "Category", "Description" }, retained.FieldDefinitions.Select(field => field.Name));
             AnalyzedAlarm child = retained.Alarms[1];
             Assert.Equal("001", child.Fields.Single(field => field.Name == "Code").EffectiveValue);
             Assert.Equal("$(code)", child.Fields.Single(field => field.Name == "Code").EffectiveExpression);
@@ -171,6 +174,18 @@ namespace Alarmlist.Core.UnitTests.Configuration
             var inputs = new[] { Source("Invalid", "<Alarm><ReferenceName>Missing</ReferenceName></Alarm>") };
             Assert.Equal("ALM0002", Assert.Single(new AlarmCompiler().CompileSnapshots(inputs, context).Diagnostics).Id);
             Assert.Equal("ALM0002", Assert.Single(new AlarmCompiler().AnalyzeSnapshots(inputs, context).Diagnostics).Id);
+        }
+
+        [Fact]
+        public void ContractThreeAnalyzerRequiresRebuildWithoutExecuting()
+        {
+            var analyzer = new DelegateAnalyzer((context, token) => throw new Exception("Must not execute"), version: 3);
+            var result = new AlarmCompiler().CompileSnapshots(Inputs(), CompilationContext.Empty.WithAnalyzers(new[] { analyzer }));
+            Assert.False(result.Success);
+            var diagnostic = Assert.Single(result.Diagnostics);
+            Assert.Equal("ALM0025", diagnostic.Id);
+            Assert.Contains("Rebuild", diagnostic.Message);
+            Assert.Contains("contract 4", diagnostic.Message);
         }
 
         [Fact]
