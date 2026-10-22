@@ -2,7 +2,8 @@
 param(
   [Parameter(Mandatory = $true)][string]$VisualStudio2022Path,
   [Parameter(Mandatory = $true)][string]$VisualStudio2026Path,
-  [switch]$IncludePreview
+  [switch]$IncludePreview,
+  [switch]$FullWorkflow
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,8 +27,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Cannot initialize isolated fork.' }
 # and add all supported scalar shapes. Defaults remain compiler-owned.
 Set-Content -LiteralPath (Join-Path $fork 'src/Compiler/Definition/AlarmDefinition.xml') -Encoding utf8 -Value @'
 <AlarmDefinition Version="1">
-  <Field Name="Code" Type="Int64" Required="true" Default="7" Minimum="0" Maximum="10" Label="Alarm number" />
   <Field Name="Description" Type="String" Multiline="true" />
+  <Field Name="Code" Type="Int64" Required="true" Default="7" Minimum="0" Maximum="10" Label="Alarm number" />
   <Field Name="Price" Type="Decimal" />
   <Field Name="Ratio" Type="Double" PreviewVisible="false" />
   <Field Name="Enabled" Type="Boolean" />
@@ -43,6 +44,10 @@ Set-Content -LiteralPath (Join-Path $fork 'src/Compiler/Definition/AlarmDefiniti
 $project = Join-Path $fork 'src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist.VisualStudio.UI.IntegrationTests.csproj'
 & dotnet build $project --verbosity quiet -m:1 -nr:false "-p:RestorePackagesPath=$(Join-Path $repo '.packages')" *> (Join-Path $fork 'build.log')
 if ($LASTEXITCODE -ne 0) { throw "Alternate build failed: $fork/build.log" }
+if ($FullWorkflow) {
+  $IncludePreview = $true
+  & (Join-Path $PSScriptRoot 'test-alarm-definition-fork-consumers.ps1') -ForkRoot $fork -DesktopMSBuildPath (Join-Path $VisualStudio2022Path 'MSBuild/Current/Bin/MSBuild.exe')
+}
 $settings = @{
   ALARMLIST_RUN_UI_VS_TESTS = '1'
   ALARMLIST_VS_ROOT_SUFFIX = 'AlarmlistExp'

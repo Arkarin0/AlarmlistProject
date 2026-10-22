@@ -63,3 +63,30 @@ typed sorting, completion, filtering and clipboard checks, including a definitio
 without Name/Category and ordinary fields named Source, Identity and TestMethod.
 It retains logs and restores the standard
 experimental deployment afterward. Run it sequentially with other live IDE tests.
+
+For the complete fork acceptance workflow, use `-FullWorkflow` (which also enables
+preview checks):
+
+```powershell
+./eng/test-alarm-definition-designer.ps1 -VisualStudio2022Path '<VS2022 installation>' -VisualStudio2026Path '<VS2026 installation>' -FullWorkflow
+```
+
+The isolated copy changes only `src/Compiler/Definition/AlarmDefinition.xml` in
+product source. It builds matching production tools, then tests the resulting SDK
+package with private feeds and caches. Consumers use both ProjectReference and
+PackageReference libraries. Their raw expressions remain deferred in the library,
+then resolve to canonical scalar values in the application. A custom analyzer,
+compiled against the packaged compiler on each framework, verifies metadata,
+typed values and default provenance. Both .NET and desktop MSBuild execute it;
+both runtimes verify output and the packaged analysis API. Invalid scalar and
+analyzer failures must preserve prior output. Native field/preview tests run on
+both hosts, followed by standard experimental deployment restoration.
+
+Logs remain under `artifacts/fork11/<run>/`; consumer evidence is under
+`consumer-checks/<run>/`. To diagnose only consumer checks against an existing
+isolated fork package, run `eng/test-alarm-definition-fork-consumers.ps1` with
+`-ForkRoot` and `-DesktopMSBuildPath`. Each run creates a new private workspace.
+The fixture's baseline-specific tests are not the arbitrary-schema contract:
+fork acceptance builds production tools and runs generic metadata-based checks.
+The normal solution regression suites still validate the repository's standard
+definition separately.

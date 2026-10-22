@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
-Status: iterations 1–6 complete.
-Iterations 7–8 remain planned. Owner decisions were confirmed on 2026-10-21.
+Status: iterations 1–7 complete.
+Iteration 8 remains planned. Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
 starting each iteration; record incomplete work honestly if that threshold is met.
@@ -440,3 +440,40 @@ Completed validation:
   preserving the SDK's null state fixed that regression before the final pass.
   Diff/path review and `git diff --check` passed. No separate OS theme/DPI checks
   ran. Full fork package/library/analyzer acceptance remains iteration 7.
+
+### Iteration 7 — full fork workflow (2026-10-23)
+
+Added `-FullWorkflow` to the isolated designer fixture, with a packaged consumer
+runner and dual-framework verifier/analyzer assets. The product customization is
+still only the definition: remove Name/Category, retype Code, change labels/order
+and add every scalar type. The workflow creates private feeds/caches, packs a
+library with deferred consumer expressions, builds ProjectReference and NuGet
+consumers on .NET/desktop MSBuild, executes analyzers compiled against the package,
+and verifies canonical output plus packaged analysis on both runtimes. It also
+checks matching library fingerprints and output preservation on analyzer/scalar
+failure. Documentation explains full and diagnostic-only invocation.
+
+Initial harness corrections isolated inherited NuGet mappings, selected the
+package-identity library filename and separated analyzer output directories by
+framework. Consumer retry `artifacts/fork11/406b0aa3/consumer-checks/28163d57`
+passed. The subsequent fresh full run `artifacts/fork11/f062bbb8` passed:
+
+- Production compiler/SDK/VSIX build: zero warnings/errors.
+- Four application builds (project/package on each task host), each with
+  verified analyzer execution; eight output/API verifier runs across both runtimes.
+- Both intentional failures (`FORK002`, `ALM0029`) retained prior output.
+- Two native field/preview cases passed on each IDE, no skips.
+- Standard experimental deployment restoration: one metadata case passed per IDE.
+
+Evidence: `artifacts/m11-full-fork-final.log`, the fixture's `build.log`,
+`consumer-checks/9a08f9c9/`, `native-2022.log`, `native-2026.log` and restoration
+logs. A final acceptance review strengthened the fixture by explicitly reversing
+the surviving Description/Code order and checking emitted field order. That
+updated full run also passed, including both restoration checks:
+`artifacts/fork11/2f219cc3`, consumer evidence `consumer-checks/9f4efd3e`, and
+`artifacts/m11-full-fork-reordered.log`. Its counts match the earlier full run
+above, with zero skipped native cases and zero production build warnings/errors.
+Command: `eng/test-alarm-definition-designer.ps1 -VisualStudio2022Path '<installed VS2022>' -VisualStudio2026Path '<installed VS2026>' -FullWorkflow`.
+Reviewed source, documentation, paths and diff; `git diff --check` passed.
+No separate OS theme/DPI checks ran. Integrated standard-schema regression
+acceptance remains iteration 8; the milestone is not yet complete.

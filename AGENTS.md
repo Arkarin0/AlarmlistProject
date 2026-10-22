@@ -83,8 +83,12 @@ IDE hosts and restores standard experimental deployments; run it sequentially
 with other desktop tests. Preview columns use metadata labels/visibility and stable
 IDs; ordinary Source/Identity/TestMethod fields use `Field:<name>` IDs alongside
 the built-in columns. Sort compiler-provided typed values, preserving separate
-absent/deferred/invalid groups; never parse values again in the host. Full fork
-acceptance remains governed by the milestone's subsequent iterations.
+absent/deferred/invalid groups; never parse values again in the host. Use
+`-FullWorkflow` for fork acceptance: it adds isolated packaged project/library/
+NuGet/analyzer checks on both task hosts and enables native preview checks.
+`eng/test-alarm-definition-fork-consumers.ps1` can rerun consumer checks against
+an existing isolated fork. Keep its feeds/caches private and compile verification
+assets against the packaged compiler, not a compiler project reference.
 Do not add runtime per-project schemas or inherited-entry reordering under this scope.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter

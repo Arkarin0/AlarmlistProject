@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net472;net8.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <LangVersion>12</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Verify.cs" />
+    <Reference Include="Alarmlist.Core" HintPath="$(ForkSdkPath)/tasks/$(TargetFramework)/Alarmlist.Core.dll" />
+  </ItemGroup>
+</Project>
