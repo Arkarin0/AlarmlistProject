@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Tools/">
+    <Project Path="eng/tools/AlarmDefinitionGenerator/AlarmDefinitionGenerator.csproj" />
+    <Project Path="eng/tools/AlarmDefinitionGenerator.UnitTests/AlarmDefinitionGenerator.UnitTests.csproj" />
+  </Folder>
   <Folder Name="/Analyzers/">
     <Project Path="src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" />
   </Folder>

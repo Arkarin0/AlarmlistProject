@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:simpleType name="ScalarType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="String" /><xs:enumeration value="Int64" />
+      <xs:enumeration value="Decimal" /><xs:enumeration value="Double" />
+      <xs:enumeration value="Boolean" /><xs:enumeration value="Enum" />
+      <xs:enumeration value="Date" /><xs:enumeration value="Time" />
+      <xs:enumeration value="Timestamp" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="AlarmDefinition">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="Field" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Value" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="Name" type="xs:string" use="required" />
+                  <xs:attribute name="Label" type="xs:string" />
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="Name" type="xs:string" use="required" />
+            <xs:attribute name="Type" type="ScalarType" use="required" />
+            <xs:attribute name="Required" type="xs:boolean" />
+            <xs:attribute name="Default" type="xs:string" />
+            <xs:attribute name="Minimum" type="xs:string" />
+            <xs:attribute name="Maximum" type="xs:string" />
+            <xs:attribute name="Label" type="xs:string" />
+            <xs:attribute name="Help" type="xs:string" />
+            <xs:attribute name="Multiline" type="xs:boolean" />
+            <xs:attribute name="PreviewVisible" type="xs:boolean" />
+            <xs:attribute name="PreviewWidth" type="xs:decimal" />
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="Version" type="xs:string" use="required" fixed="1" />
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

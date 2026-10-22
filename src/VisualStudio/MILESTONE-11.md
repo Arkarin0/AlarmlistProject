@@ -1,7 +1,10 @@
 # Milestone eleven: generated alarm definitions end to end
 
-Status: planning iteration 1 complete; implementation iterations 2–8 are planned,
-not implemented or validated. Owner decisions were confirmed on 2026-10-21.
+Status: iterations 1 and 2 complete.
+Iterations 3–8 remain planned. Owner decisions were confirmed on 2026-10-21.
+Implementation was authorized on 2026-10-22, with a pause requested when the
+remaining account allowance reaches 20%. Check allowance periodically and before
+starting each iteration; record incomplete work honestly if that threshold is met.
 
 ## Outcome and confirmed scope
 
@@ -175,8 +178,9 @@ as supported product configurations before their end-to-end gate passes.
 
 An essential failed or unavailable check blocks its iteration. Record actual
 commands/results separately from this planned acceptance, review the diff, commit
-each successful iteration and report its hash before proceeding. No implementation
-is authorized solely by this plan; begin it on the owner's implementation request.
+each successful iteration and report its hash before proceeding. Implementation
+iterations are authorized; continue through the gates unless the allowance pause
+threshold is reached or a required external decision blocks progress.
 
 ## References and architecture
 
@@ -201,5 +205,35 @@ Recorded the owner's decisions and concrete implementation defaults after readin
 the syntax/evaluation/output pipeline, analysis/analyzer contracts, library format,
 designer templates and preview-column implementation. Linked repository guidance
 and assigned the syntax-generation backlog proposal. Reviewed the documentation
-diff and local links. Tests were not run: documentation only. Iterations 2–8 have
-no implementation or acceptance evidence yet.
+diff and local links. Tests were not run: documentation only.
+
+### Iteration 2 — generated baseline and build integration (2026-10-22)
+
+Added the authoritative XML definition and XSD, a deterministic net8.0 generator,
+generated syntax/resolved members and immutable compiler/host descriptors, and
+shared build integration. Definition validation includes identifiers, scalar
+literals, enum choices, bounds and presentation metadata. Separate semantic and
+tooling fingerprints distinguish compatibility from presentation changes. Outputs
+stay in intermediate directories; atomic replacement and locking protect parallel
+generation, and unchanged content retains its timestamp.
+
+Validation completed:
+
+- Generator unit suite: 36 passed on net8.0.
+- Compiler unit suite: 622 passed on net472 and 624 on net8.0.
+- Visual Studio extension build: succeeded with zero warnings/errors.
+- Packaged extension integration suite: 13 passed on each framework.
+- `eng/test-alarm-definition-generation.ps1`: clean, fresh design-time, parallel,
+  no-op, invalid-definition rejection and recovery passed. Generated compiler and
+  host declarations for all nine scalar types compiled on both frameworks.
+  Final lifecycle logs are under `artifacts/log/Debug/AlarmDefinitionGeneration/55a550e10bf04434834d8f75593cdda7`.
+- Reviewed the diff, links and paths; `git diff --check` passed.
+
+The fresh design-time check initially exposed inherited SkipCompilerExecution
+settings preventing the tool from building; removing those host-only globals from
+the tool build fixed the failure, and the full lifecycle check passed afterward.
+Invalid definitions fail the build before compilation even when the previous
+complete generated file remains on disk. Baseline behavior is preserved. Alternate
+definitions are not yet supported end to end; descriptor-driven runtime behavior
+starts in iteration 3. Native IDE and display checks were not run for this iteration.
+Iterations 3–8 have no completed acceptance evidence yet.

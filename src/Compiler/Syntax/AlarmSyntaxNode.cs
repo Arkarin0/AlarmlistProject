@@ -8,7 +8,7 @@ using Alarmlist.Text;
 
 namespace Alarmlist.Syntax
 {
-    public class AlarmSyntaxNode
+    public partial class AlarmSyntaxNode
     {
         private readonly Dictionary<string, SourceLocation> _fieldLocations = new Dictionary<string, SourceLocation>(StringComparer.Ordinal);
 
@@ -35,45 +35,20 @@ namespace Alarmlist.Syntax
             _fieldLocations[fieldName] = location;
         }
 
-        private string _Name;
-        public string Name
-        {
-            get { return GetEffectiveFieldValue(nameof(Name)); }
-            set { _Name = value; }
-        }
-
-        private string _Code;
-        public string Code
-        {
-            get { return GetEffectiveFieldValue(nameof(Code)); }
-            set { _Code = value; }
-        }
-
-        private string _Description;
-        public string Description
-        {
-            get { return GetEffectiveFieldValue(nameof(Description)); }
-            set { _Description = value; }
-        }
-
-        private string _Category;
-        public string Category
-        {
-            get { return GetEffectiveFieldValue(nameof(Category)); }
-            set { _Category = value; }
-        }
-
+        private readonly Dictionary<string, string> _localFields = new Dictionary<string, string>(StringComparer.Ordinal);
 
         internal string GetLocalFieldValue(string fieldName)
         {
-            switch (fieldName)
-            {
-                case nameof(Name): return _Name;
-                case nameof(Code): return _Code;
-                case nameof(Description): return _Description;
-                case nameof(Category): return _Category;
-                default: throw new ArgumentException("Unknown inheritable field.", nameof(fieldName));
-            }
+            if (!Definition.AlarmDefinition.Fields.Any(field => field.Name == fieldName))
+                throw new ArgumentException("Unknown inheritable field.", nameof(fieldName));
+            return _localFields.TryGetValue(fieldName, out string value) ? value : null;
+        }
+
+        internal void SetLocalFieldValue(string fieldName, string value)
+        {
+            if (!Definition.AlarmDefinition.Fields.Any(field => field.Name == fieldName))
+                throw new ArgumentException("Unknown inheritable field.", nameof(fieldName));
+            _localFields[fieldName] = value;
         }
 
         internal AlarmSyntaxNode GetFieldSource(string fieldName)

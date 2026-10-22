@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsShipping>false</IsShipping>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../../src/Compiler/Definition/AlarmDefinition.xsd" LogicalName="AlarmDefinition.xsd" />
+    <InternalsVisibleTo Include="AlarmDefinitionGenerator.UnitTests" />
+  </ItemGroup>
+</Project>
