@@ -99,7 +99,7 @@ inherited-first/Clear semantics. Nested collections and keyed inherited-record
 overrides remain excluded.
 Iteration 11 adds version-2 collection descriptors and procedure capability
 metadata, preserving version-1 input semantic fingerprints while advancing
-the full tooling fingerprint (now generator-3 after the runtime model change).
+the full tooling fingerprint (now generator-4 after the preview metadata change).
 Compiler/SDK generation is enabled in iteration 13. Iteration 14 adds host
 collection editing and optional-procedure UI, removing the remaining host guard.
 Collection drafts share the atomic document transaction and reject concurrent
@@ -107,12 +107,17 @@ changes to their source container. Keep local entry identities through moves and
 analysis refresh; inherited/excluded entries remain read-only compiler projections.
 Record completion adds sibling fields without making defaults into source values.
 Iteration 14 implemented a fixed collection-count column and separate entry
-details. The planned iterations 16–19 replace that column with one stable
+details. The authorized iterations 16–21 replace that column with one stable
 Collection:<name> column per collection: List/Concatenated for simple collections
 and compiled WPF DataTemplates for complex collections. Follow the plan's
 presentation contract, saved-column migration and template build/validation gates.
 Templates belong to the rebuilt extension, never runtime project/library inputs;
 keep WPF and template objects out of compiler/SDK analysis boundaries.
+Designer iteration 20 uses procedure-style collection entries with a shared
+26-DIP adorner gutter, shared record-label widths and right-aligned actions.
+Collapse and expansion preserve drafts; collapsed tooltips use current draft or
+compiler effective values, left-aligned with one field per line. View actions
+never materialize defaults or save source. Follow the milestone's acceptance gates.
 The standard definition now uses version 2 with explicit TestProcedure and the
 original four fields. This changes its semantic fingerprint; rebuild libraries
 and matching tools. The interactive shortcut accepts an explicit SampleFile as

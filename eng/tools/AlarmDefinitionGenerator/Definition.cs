@@ -88,8 +88,28 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
                     Name = name, Kind = kind == "SimpleCollection" ? "Simple" : "Complex",
                     Label = (string)element.Attribute("Label") ?? name, Help = (string)element.Attribute("Help") ?? "",
                     MinCount = Count(path, element, "MinCount") ?? 0,
-                    MaxCount = Count(path, element, "MaxCount")
+                    MaxCount = Count(path, element, "MaxCount"),
+                    PreviewVisible = Boolean(element, "PreviewVisible", true),
+                    PreviewWidth = (decimal?)element.Attribute("PreviewWidth") ?? 180
                 };
+                if (collection.PreviewWidth < 40 || collection.PreviewWidth > 2000)
+                    Fail(path, element, "PreviewWidth must be between 40 and 2000.");
+                XElement preview = element.Element("Preview");
+                collection.DisplayType = (string)preview?.Attribute("DisplayType") ?? (collection.Kind == "Simple" ? "List" : "Xaml");
+                if (preview != null)
+                {
+                    if (preview.Attribute("TemplateFile") != null || preview.Attribute("TemplateKey") != null)
+                        Fail(path, preview, "Custom compiled preview templates require the next host capability iteration.");
+                    if (collection.Kind == "Simple" ? collection.DisplayType != "List" && collection.DisplayType != "Concatenated" : collection.DisplayType != "Xaml")
+                        Fail(path, preview, "Unsupported collection DisplayType.");
+                    if (preview.Attribute("Symbol") != null && collection.DisplayType != "List"
+                        || preview.Attribute("Separator") != null && collection.DisplayType != "Concatenated")
+                        Fail(path, preview, "Symbol requires List; Separator requires Concatenated.");
+                    collection.Symbol = (string)preview.Attribute("Symbol") ?? "Bullet";
+                    collection.Separator = (string)preview.Attribute("Separator") ?? ", ";
+                    if (collection.Symbol != "Bullet" && collection.Symbol != "Number" && collection.Symbol != "None")
+                        Fail(path, preview, "Symbol must be Bullet, Number or None.");
+                }
                 if (collection.MaxCount.HasValue && collection.MinCount > collection.MaxCount.Value)
                     Fail(path, element, "MinCount exceeds MaxCount.");
                 if (collection.Kind == "Simple")

@@ -18,6 +18,7 @@ namespace Alarmlist.VisualStudio.UI
         private int _order;
         public string Id { get; }
         public string Label { get; }
+        public bool CanSort => !Id.StartsWith("Collection:", StringComparison.Ordinal);
         public bool DefaultVisible { get; }
         public double DefaultWidth { get; }
         public int Order { get => _order; internal set { _order = value; Notify(); Notify(nameof(Position)); } }
@@ -63,17 +64,21 @@ namespace Alarmlist.VisualStudio.UI
         internal static string FieldId(string name) => name == "TestMethod" || name == "Identity" || name == "Source" || name == "Collections" ? "Field:" + name : name;
         internal static string DefaultSortColumn => AlarmDefinition.Fields.Any(field => field.Name == "Name") ? "Name" : "Identity";
         internal static string ColumnLabel(string id) => AlarmDefinition.Fields.FirstOrDefault(field => FieldId(field.Name) == id)?.Label
+            ?? AlarmDefinition.Collections.FirstOrDefault(collection => "Collection:" + collection.Name == id)?.Label
             ?? (id == "TestMethod" ? "Test method" : id);
         public PreviewColumnLayout() : this(AlarmDefinition.Fields) { }
-        internal PreviewColumnLayout(IReadOnlyList<AlarmFieldDescriptor> fields, bool? hasProcedures = null, bool? hasCollections = null)
+        internal PreviewColumnLayout(IReadOnlyList<AlarmFieldDescriptor> fields, bool? hasProcedures = null,
+            IReadOnlyList<AlarmCollectionDescriptor> collections = null)
         {
             bool procedures = hasProcedures ?? AlarmDefinition.HasTestProcedure;
-            bool collections = hasCollections ?? AlarmDefinition.Collections.Count != 0;
-            int count = fields.Count + 2 + (procedures ? 1 : 0) + (collections ? 1 : 0);
+            collections = collections ?? AlarmDefinition.Collections;
+            int count = fields.Count + 2 + (procedures ? 1 : 0) + collections.Count;
             var columns = fields.Select((field, index) => new PreviewColumn(FieldId(field.Name), field.PreviewWidth,
                 index, Commit, Move, field.Label, field.PreviewVisible, count)).ToList();
             if (procedures) columns.Add(new PreviewColumn("TestMethod", 420, columns.Count, Commit, Move, count: count));
-            if (collections) columns.Add(new PreviewColumn("Collections", 240, columns.Count, Commit, Move, count: count));
+            foreach (var collection in collections)
+                columns.Add(new PreviewColumn("Collection:" + collection.Name, collection.PreviewWidth, columns.Count, Commit, Move,
+                    collection.Label, collection.PreviewVisible, count));
             columns.Add(new PreviewColumn("Identity", 220, columns.Count, Commit, Move, count: count));
             columns.Add(new PreviewColumn("Source", 180, columns.Count, Commit, Move, count: count));
             Columns = BindingCollection.Create(columns);
@@ -127,7 +132,11 @@ namespace Alarmlist.VisualStudio.UI
                     {
                         var ordered = Columns.Where(column => seen.Contains(column.Id)).OrderBy(column => column.Order).ToList();
                         for (int index = 0; index < Columns.Count; index++)
-                            if (!seen.Contains(Columns[index].Id)) ordered.Insert(Math.Min(index, ordered.Count), Columns[index]);
+                            if (!seen.Contains(Columns[index].Id))
+                            {
+                                if (!Columns[index].CanSort) ordered.Add(Columns[index]);
+                                else ordered.Insert(Math.Min(index, ordered.Count), Columns[index]);
+                            }
                         for (int index = 0; index < ordered.Count; index++) ordered[index].Order = index;
                     }
                 }

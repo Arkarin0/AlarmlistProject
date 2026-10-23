@@ -154,6 +154,9 @@ internal static class Program
         var copied = new Alarmlist.VisualStudio.Analysis.AnalysisContractReader(typeof(AlarmCompiler).Assembly).Read(analysis);
         var copiedEntry = copied.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child").Collections.Single(collection => collection.Name == "Checks").EffectiveEntries.Single();
         Check(copied.CollectionDefinitions.Count == 3 && copied.HasTestProcedure == AlarmDefinition.HasTestProcedure && (long)copiedEntry.Fields.Single(field => field.Name == "Copy").TypedValue == 4, "Bridge copies descriptors and primitive typed record values");
+        var presentation = copied.CollectionDefinitions.Single(collection => collection.Name == "Tags");
+        Check(presentation.DisplayType == "Concatenated" && presentation.Separator == ", " && presentation.PreviewVisible
+            && copied.CollectionDefinitions.Single(collection => collection.Name == "Numbers").Symbol == "Number", "Bridge retains collection presentation metadata");
         Check(!ReferenceEquals(copiedEntry.Origin, entry.Origin) && !ReferenceEquals(copiedEntry.Fields[0], entry.Fields[0]), "Bridge owns detached objects");
 
         var identity = new Alarmlist.Libraries.LibraryIdentity("Records", "1.0.0");

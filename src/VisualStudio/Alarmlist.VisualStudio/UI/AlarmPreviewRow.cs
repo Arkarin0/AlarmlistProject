@@ -15,8 +15,7 @@ namespace Alarmlist.VisualStudio.UI
         public string Name => _definitions.Any(field => field.Name == "Name") ? Value("Name") : Identity;
         public string this[string column] => Column(column);
         public string TestMethod { get; }
-        public string Collections => !Alarm.IsResolved ? "(unavailable)" : string.Join("; ", Alarm.Collections.Select(collection =>
-            (AlarmDefinition.Collections.FirstOrDefault(item => item.Name == collection.Name)?.Label ?? collection.Name) + ": " + collection.EffectiveEntries.Count));
+        public IReadOnlyDictionary<string, CollectionPreviewCell> CollectionCells { get; }
         public string Identity => Alarm.Origin.FullyQualifiedName ?? "";
         public string Source => AlarmOriginPresentation.Source(Alarm.Origin)
             + (Alarm.Origin.Location == null ? "" : ":" + Alarm.Origin.Location.LineNumber);
@@ -33,10 +32,14 @@ namespace Alarmlist.VisualStudio.UI
         public string AutomationName => Identity + " — " + Name;
         public DelegateCommand GoToSourceCommand { get; }
 
-        public AlarmPreviewRow(AnalysisAlarm alarm, DelegateCommand navigation, IReadOnlyList<AlarmFieldDescriptor> definitions = null)
+        public AlarmPreviewRow(AnalysisAlarm alarm, DelegateCommand navigation, IReadOnlyList<AlarmFieldDescriptor> definitions = null,
+            IReadOnlyList<AlarmCollectionDescriptor> collections = null)
         {
             Alarm = alarm;
             _definitions = definitions ?? AlarmDefinition.Fields;
+            CollectionCells = new System.Collections.ObjectModel.ReadOnlyDictionary<string, CollectionPreviewCell>(
+                (collections ?? AlarmDefinition.Collections).ToDictionary(item => item.Name,
+                    item => new CollectionPreviewCell(item, alarm.Collections.FirstOrDefault(value => value.Name == item.Name), alarm.IsResolved)));
             GoToSourceCommand = navigation;
             TestMethod = !alarm.HasEvaluatedValues ? "(unavailable)" : string.Join("\r\n\r\n", alarm.ProcedureSections.Select(section =>
                 ProcedureText((section.Title.IsValueAvailable ? section.Title.EffectiveValue : "(unavailable)") + ":", section)));
@@ -61,12 +64,12 @@ namespace Alarmlist.VisualStudio.UI
 
         internal string Column(string column)
         {
+            if (column.StartsWith("Collection:", StringComparison.Ordinal)) return CollectionCells[column.Substring(11)].FullText;
             switch (column)
             {
                 case nameof(TestMethod): return TestMethod;
                 case nameof(Identity): return Identity;
                 case nameof(Source): return Source;
-                case nameof(Collections): return Collections;
                 default:
                     AlarmFieldDescriptor field = _definitions.FirstOrDefault(item => PreviewColumnLayout.FieldId(item.Name) == column);
                     return field == null ? throw new ArgumentException("Unknown preview column.", nameof(column)) : Value(field.Name);

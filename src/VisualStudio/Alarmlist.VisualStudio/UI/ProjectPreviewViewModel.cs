@@ -152,7 +152,7 @@ namespace Alarmlist.VisualStudio.UI
         private void RememberSelection() => _selection = _selected == null ? null : Tuple.Create(_selected.SourcePath, _selected.Alarm.Origin.Index, _selected.Identity);
         public void SortAlarmTable(string column)
         {
-            if (!PreviewColumns.Columns.Any(item => item.Id == column)) return;
+            if (!PreviewColumns.Columns.Any(item => item.Id == column && item.CanSort)) return;
             AlarmTableSortDescending = column == AlarmTableSortColumn && !AlarmTableSortDescending;
             AlarmTableSortColumn = column; InvalidatePreviewActions(); RebuildRows();
             Notify(nameof(AlarmTableSortColumn)); Notify(nameof(AlarmTableSortDescending));

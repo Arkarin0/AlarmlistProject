@@ -106,13 +106,15 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             var collection = new AnalysisCollection("Checks", true, null, new[] { entry }, new[] { entry }, Array.Empty<AnalysisCollectionEntry>());
             var alarm = new AnalysisAlarm(origin, null, true, Array.Empty<AnalysisAlarmOrigin>(), Array.Empty<AnalysisField>(),
                 Array.Empty<AnalysisSection>(), collections: new[] { collection });
-            var row = new AlarmPreviewRow(alarm, null);
-            Assert.Equal("Checks: 1", row.Column("Collections"));
+            var definition = new AlarmCollectionDescriptor("Checks", "Complex", "Checks", "", 0, null, new[] { Definition("Count", "Int64") });
+            var row = new AlarmPreviewRow(alarm, null, collections: new[] { definition });
+            Assert.Equal("Count label: 8", row.Column("Collection:Checks"));
             var detail = Assert.Single(PreviewContent.Collections(alarm, location => null));
             Assert.Equal("1 effective entries", detail.Summary);
             Assert.Equal("8", Assert.Single(Assert.Single(detail.Items).Fields).Value);
-            using var layout = new PreviewColumnLayout(Array.Empty<AlarmFieldDescriptor>(), hasProcedures: false, hasCollections: true);
-            Assert.Equal(new[] { "Collections", "Identity", "Source" }, layout.Columns.Select(column => column.Id));
+            using var layout = new PreviewColumnLayout(Array.Empty<AlarmFieldDescriptor>(), hasProcedures: false, collections: new[] { definition });
+            Assert.Equal(new[] { "Collection:Checks", "Identity", "Source" }, layout.Columns.Select(column => column.Id));
+            Assert.False(layout.Columns[0].CanSort);
         }
 
         [Fact]

@@ -7,7 +7,7 @@
  Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
  AutomationProperties.Name="Alarmlist Preview" PreviewKeyDown="OnPreviewKeyDown">
  <UserControl.Resources><ResourceDictionary>
-  <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /><ResourceDictionary Source="EditorHelpResources.xaml" /></ResourceDictionary.MergedDictionaries>
+  <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /><ResourceDictionary Source="EditorHelpResources.xaml" /><ResourceDictionary Source="CollectionPreviewResources.xaml" /></ResourceDictionary.MergedDictionaries>
   <Style TargetType="TextBox">
    <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
    <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />

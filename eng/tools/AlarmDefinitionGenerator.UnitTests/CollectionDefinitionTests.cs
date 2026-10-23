@@ -155,6 +155,28 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator.UnitTests
             Assert.DoesNotContain("TestProcedure", result);
         }
 
+        [Fact]
+        public void CollectionPresentationChangesOnlyToolingAndPreservesSeparatorWhitespace()
+        {
+            var first = Definition.Read(Write("<SimpleCollection Name='Tags' Type='String'/>"));
+            var second = Definition.Read(Write("<SimpleCollection Name='Tags' Type='String' PreviewWidth='240' PreviewVisible='false'><Preview DisplayType='Concatenated' Separator=' | '/></SimpleCollection>"));
+            Assert.Equal(" | ", second.Collections[0].Separator);
+            Assert.False(second.Collections[0].PreviewVisible);
+            Assert.Equal(Fingerprint(Program.Generate(first, false), "SchemaFingerprint"), Fingerprint(Program.Generate(second, false), "SchemaFingerprint"));
+            Assert.NotEqual(Fingerprint(Program.Generate(first, false), "ToolingFingerprint"), Fingerprint(Program.Generate(second, false), "ToolingFingerprint"));
+            Assert.Equal(Fingerprint(Program.Generate(second, false), "ToolingFingerprint"), Fingerprint(Program.Generate(second, true), "ToolingFingerprint"));
+        }
+
+        [Theory]
+        [InlineData("<Preview DisplayType='List' Symbol='Unknown'/>")]
+        [InlineData("<Preview DisplayType='List' Separator=','/>")]
+        [InlineData("<Preview DisplayType='Concatenated' Symbol='None'/>")]
+        [InlineData("<Preview DisplayType='Xaml'/>")]
+        [InlineData("<Preview DisplayType='List'/><Preview DisplayType='List'/>")]
+        [InlineData("<Preview DisplayType='List' TemplateFile='a.xaml' TemplateKey='A'/>")]
+        public void UnsupportedSimplePreviewSettingsFail(string preview)
+            => Assert.Throws<InvalidDataException>(() => Definition.Read(Write("<SimpleCollection Name='Tags' Type='String'>" + preview + "</SimpleCollection>")));
+
         private static string Fingerprint(string source, string name)
             => Regex.Match(source, name + " = \"([^\"]+)\"").Groups[1].Value;
     }

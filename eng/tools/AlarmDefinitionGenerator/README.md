@@ -182,7 +182,17 @@ TestProcedure and preserves the four original scalar fields. The designer provid
 expandable records, sibling completion and read-only inherited/excluded entries.
 Local entry moves preserve internal draft identities; Clear excludes previous
 entries. Defaults remain compiler-owned and are never written merely by focusing
-a field. Preview shows collection counts and separate resolved entry details.
+a field. Preview gives each collection its own column and retains resolved entry
+details. Simple collections default to bulleted lists; use a Preview child with
+DisplayType="List" and Symbol="Bullet", "Number" or "None", or
+DisplayType="Concatenated" with Separator=", " (empty separators are allowed).
+Complex collections use a built-in compiled record template. Custom TemplateFile
+and TemplateKey declarations are guarded until the next implementation iteration.
+Collection PreviewVisible and PreviewWidth use the ordinary field defaults and
+limits. Preview presentation changes tooling compatibility, not library semantics.
+Cells initially show ten entries, with an expansion action; copying includes all
+entries. Collection columns cannot be sorted. Existing column preferences survive
+removal of the old aggregate Collections column.
 
 Generated metadata adds `AlarmCollectionDescriptor`, `AlarmDefinition.Collections`
 and `AlarmDefinition.HasTestProcedure`. Semantic fingerprints include collection

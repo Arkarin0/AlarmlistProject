@@ -42,6 +42,13 @@
     <xs:attribute name="PreviewVisible" type="xs:boolean" />
     <xs:attribute name="PreviewWidth" type="xs:decimal" />
   </xs:complexType>
+  <xs:complexType name="CollectionPreview">
+    <xs:attribute name="DisplayType" type="xs:string" use="required" />
+    <xs:attribute name="Symbol" type="xs:string" />
+    <xs:attribute name="Separator" type="xs:string" />
+    <xs:attribute name="TemplateFile" type="xs:string" />
+    <xs:attribute name="TemplateKey" type="xs:string" />
+  </xs:complexType>
   <xs:element name="AlarmDefinition">
     <xs:complexType>
       <xs:choice minOccurs="0" maxOccurs="unbounded">
@@ -50,6 +57,7 @@
           <xs:complexType>
             <xs:complexContent>
               <xs:extension base="FieldDefinition">
+                <xs:sequence><xs:element name="Preview" type="CollectionPreview" minOccurs="0" /></xs:sequence>
                 <xs:attributeGroup ref="CollectionCounts" />
               </xs:extension>
             </xs:complexContent>
@@ -59,10 +67,13 @@
           <xs:complexType>
             <xs:sequence>
               <xs:element name="Field" type="FieldDefinition" minOccurs="1" maxOccurs="unbounded" />
+              <xs:element name="Preview" type="CollectionPreview" minOccurs="0" />
             </xs:sequence>
             <xs:attribute name="Name" type="xs:string" use="required" />
             <xs:attributeGroup ref="Presentation" />
             <xs:attributeGroup ref="CollectionCounts" />
+            <xs:attribute name="PreviewVisible" type="xs:boolean" />
+            <xs:attribute name="PreviewWidth" type="xs:decimal" />
           </xs:complexType>
         </xs:element>
         <xs:element name="TestProcedure"><xs:complexType /></xs:element>

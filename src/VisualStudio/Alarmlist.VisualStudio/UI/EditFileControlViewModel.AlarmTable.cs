@@ -103,7 +103,7 @@ namespace Alarmlist.VisualStudio.UI
 
         public void SortAlarmTable(string column)
         {
-            if (!PreviewColumns.Columns.Any(item => item.Id == column)) return;
+            if (!PreviewColumns.Columns.Any(item => item.Id == column && item.CanSort)) return;
             AlarmTableSortDescending = column == AlarmTableSortColumn && !AlarmTableSortDescending;
             AlarmTableSortColumn = column;
             InvalidatePreviewActions();

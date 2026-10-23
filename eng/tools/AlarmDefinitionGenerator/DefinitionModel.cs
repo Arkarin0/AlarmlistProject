@@ -27,6 +27,11 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
         public string Help { get; set; }
         public int MinCount { get; set; }
         public int? MaxCount { get; set; }
+        public bool PreviewVisible { get; set; } = true;
+        public decimal PreviewWidth { get; set; } = 180;
+        public string DisplayType { get; set; }
+        public string Symbol { get; set; } = "Bullet";
+        public string Separator { get; set; } = ", ";
         public List<Field> Fields { get; } = new List<Field>();
     }
 }

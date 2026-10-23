@@ -109,6 +109,19 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(original, File.ReadAllText(workspace.AlarmPath));
             workspace.Build(ide, 1);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
+            AutomationElement table = null;
+            VisualStudioSession.Wait(() =>
+            {
+                var tab = window.FindFirstDescendant(cf => cf.ByName("Alarm table preview").And(cf.ByControlType(ControlType.TabItem)));
+                tab?.Patterns.SelectionItem.Pattern.Select();
+                table = window.FindFirstDescendant(cf => cf.ByName("Resolved alarm table").And(cf.ByControlType(ControlType.DataGrid)));
+                return table?.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem)).Length > 0;
+            }, "collection preview columns");
+            table.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem)).First().Patterns.SelectionItem.Pattern.Select();
+            window.FindFirstDescendant(cf => cf.ByName("Copy selected preview rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
+            VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().Contains("Tags\tNumbers\tChecks"), "one clipboard column per collection");
+            Assert.Contains("after clear", System.Windows.Forms.Clipboard.GetText());
+            Assert.Contains("Count: 8", System.Windows.Forms.Clipboard.GetText());
             VisualStudioSession.Wait(() =>
             {
                 var tab = window.FindFirstDescendant(cf => cf.ByName("Selected alarm preview").And(cf.ByControlType(ControlType.TabItem)));

@@ -37,13 +37,27 @@ namespace Alarmlist.VisualStudio.UI
                 {
                     AlarmTable.Columns.Clear();
                     foreach (PreviewColumn preference in _columnLayout.Columns)
-                        AlarmTable.Columns.Add(new DataGridTextColumn
+                    {
+                        DataGridColumn column;
+                        if (preference.Id.StartsWith("Collection:", StringComparison.Ordinal))
                         {
-                            Header = preference.Label, SortMemberPath = preference.Id,
+                            var content = new FrameworkElementFactory(typeof(ContentControl));
+                            content.SetBinding(ContentControl.ContentProperty, new Binding("CollectionCells[" + preference.Id.Substring(11) + "]"));
+                            content.SetValue(ContentControl.ContentTemplateProperty, FindResource("CollectionPreviewCell"));
+                            column = new DataGridTemplateColumn { CellTemplate = new DataTemplate { VisualTree = content } };
+                            var headerStyle = new Style(typeof(DataGridColumnHeader), (Style)FindResource(typeof(DataGridColumnHeader)));
+                            headerStyle.Setters.Add(new Setter(ToolTipProperty, "Drag to reorder or resize. Collection order is preserved; sorting is unavailable."));
+                            column.HeaderStyle = headerStyle;
+                        }
+                        else column = new DataGridTextColumn
+                        {
                             Binding = new Binding("[" + preference.Id + "]"),
-                            Width = new DataGridLength(preference.Width),
                             ElementStyle = (Style)FindResource("ReportCellText")
-                        });
+                        };
+                        column.Header = preference.Label; column.SortMemberPath = preference.Id;
+                        column.Width = new DataGridLength(preference.Width); column.CanUserSort = preference.CanSort;
+                        AlarmTable.Columns.Add(column);
+                    }
                 }
                 foreach (PreviewColumn preference in _columnLayout.OrderedColumns)
                 {

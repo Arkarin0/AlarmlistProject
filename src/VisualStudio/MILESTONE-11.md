@@ -4,7 +4,9 @@ Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
 Follow-up iterations 9–15 complete; follow-up acceptance recorded on
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions. Preview follow-up planning (iteration 16) is
-complete; implementation and acceptance in iterations 17–19 remain pending.
+complete; iteration 17 is complete and iterations 18–21 remain authorized and
+pending. The owner approved the combined preview/designer plan after the
+interactive layout review; completed iteration evidence remains unchanged.
 Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
@@ -977,8 +979,7 @@ Validation so far:
 
 Owner direction confirmed 2026-10-23. This section replaces the earlier
 collection-count presentation decision, without changing completed evidence.
-The current request authorizes planning; runtime implementation has not started.
-Continue on dev/milestone-11 when implementation is requested. Retain the 20%
+Implementation is now authorized on dev/milestone-11. Retain the 20%
 remaining-allowance pause rule and the exclusion of OS theme/DPI display checks.
 
 ### Confirmed outcome and exclusions
@@ -1090,8 +1091,9 @@ The following syntax is the implementation target; it is not supported yet:
   even when a custom record template omits a field.
 - Bound visible entry rendering for large collections and provide explicit
   expansion plus access to all entries; never silently truncate values. Preserve
-  row virtualization and recycling. Select and document the initial visible limit
-  during implementation using representative large-preview measurements.
+  row virtualization and recycling. Initially show ten entries; expansion exposes
+  all entries and copying includes all contents. Validate with representative
+  large-preview measurements.
 
 ### Numbered iterations and acceptance
 
@@ -1101,6 +1103,34 @@ The following syntax is the implementation target; it is not supported yet:
 | 17 | Per-collection columns and simple List/Concatenated end to end: definition validation/generated metadata, cells, stable IDs, saved preference migration, value states, copy text and bounded rendering. Complex records use the built-in compiled template. Depends on 16. | Generator tests; editor column/render/state/migration/draft tests; both-runtime downstream metadata compatibility checks; native simple-column cases on both IDE hosts. Keep custom-template declarations explicitly guarded until 18. Update authoring docs with supported behavior. |
 | 18 | Custom compiled XAML dictionaries, template keys, stable record binding contract, build/resource manifest, tooling fingerprint integration and error fallback. Depends on 17. | Clean/no-op/incremental/failing builds, missing/duplicate/wrong-type resource tests, binding/render fixtures, packaged VSIX checks without source files, compiler/SDK WPF-isolation checks; native custom-template cases on VS2022/2026. Validate edited/deleted resource inputs and matching-toolset rejection. Update authoring docs. |
 | 19 | Playground templates and both simple modes, enabled/disabled procedure samples, launcher copying of declared assets, integrated acceptance and final evidence. Depends on 18. | Existing collection runtime and packaged fork workflows on net472/net8.0 and both MSBuild hosts; native column/template/refresh/draft checks on both IDE hosts sequentially; focused large-preview performance/recycling checks and affected regression suites. Record actual passes, failures, skips and remaining gates separately. |
+| 20 | Approved procedure-style simple/complex designer entries, aligned fields and actions, inherited adorners, individual/bulk collapse and multiline tooltips. Depends on 19. | Draft/source/undo/identity tests, shared alignment, inherited navigation, tooltip states, collapse and focus tests; functional native checks on both IDE hosts. |
+| 21 | Combined preview/designer regression acceptance and final authoring/sample evidence. Depends on 20. | Both frameworks/task hosts and both IDE hosts, resource packaging/failure checks, measured large-preview rendering/recycling and affected regression suites. No OS display checks. |
+
+Iteration 19 completes preview-specific samples and acceptance; iteration 21 is
+the final integrated gate after the newly accepted designer iteration 20.
+
+### Approved designer layout and interaction
+
+Use bordered procedure-style rows with a shared 26-DIP adorner gutter, aligned
+headers/value areas and right-aligned actions. Inherited rows reuse
+InheritedValueAdorner, remain read-only and retain Source navigation. Simple rows
+have one full-width expression editor without a repeated label. Complex fields
+share a label-column width within their collection. Add text-labelled icons to
+Add entry, Clear previous entries, Collapse entries and Expand entries.
+
+Start entries expanded. Individual toggles and collection-level collapse/expand
+apply to local and inherited entries; new entries expand and receive focus. Keep
+state/adorners/validation/actions visible when collapsed. Retain local collapse
+state through moves/refresh via draft identities, and inherited state via compiler
+origins. State is session-only; view actions never commit/discard drafts or write
+source. Clear remains an explicit directive, excluding preceding effective
+entries while retaining subsequent ones, without a value editor.
+
+Collapsed-header tooltips are left-aligned, one field per line in definition
+order. Simple entries show the value; records show Label: value. Local tooltips
+use current draft expressions; inherited tooltips use compiler effective values.
+Distinguish absent/defaulted, invalid and deferred states without host evaluation.
+Expose equivalent accessible help text and expansion for full content.
 
 Each implementation iteration must leave matching compiler/SDK/extension usable,
 include its tests and documentation, and be committed before the next iteration.
@@ -1130,3 +1160,41 @@ guidance. Reviewed document consistency, referenced local paths and diff;
 git diff --check passed. Runtime
 tests were not run: this iteration changes documentation only. Implementation and
 all acceptance gates for 17–19 remain pending.
+
+### Iteration 17 implementation and validation (complete)
+
+Replaced the aggregate column with Collection:<name> columns, retaining surviving
+saved preferences and appending newly discovered collections. Added validated
+List/Bullet/Number/None and Concatenated presentation, collection width/visibility,
+detached bridge copying and a compiled default record template. Cells initially
+show ten entries and expand explicitly; clipboard text includes every entry.
+Collection sorting is disabled, and expansion buttons do not trigger source
+navigation. Empty, unavailable and scalar value states remain distinct.
+
+Generator tooling fingerprint advances to generator-4. Semantic hashing and
+library format remain unchanged. Analysis 7/analyzer 5 remain: additive descriptor
+properties are protected by the existing exact tooling-fingerprint check before
+reflection copying; no new compiler value/origin payload is introduced. Custom
+template declarations are explicitly guarded until iteration 18.
+
+Validation:
+
+- Generator suite: 81 passed.
+- Editor regression suite: 596 passed, zero failed/skipped; OS display filters
+  excluded (artifacts/m11-iteration17-editor.log). The initial sandbox run was
+  cancelled before results; rerunning with installed-tool access succeeded.
+- Final focused preview/render/migration selection: 27 passed, zero failed/skipped
+  (artifacts/m11-iteration17-focused-final.log), including compiled simple and
+  complex template rendering, ten-entry expansion and complete copy content.
+- Isolated runtime/bridge checks passed on net472/net8.0: 71 procedure-disabled,
+  69 enabled and 7 minimum-count checks per framework. Evidence:
+  artifacts/log/Debug/AlarmCollections/5d51494163174661aac86fa72d98e77b;
+  artifacts/m11-iteration17-runtime-final.log.
+- Native fork checks: enabled artifacts/col13/004ee38f and disabled
+  artifacts/col13/de369546 each passed one MetadataCollections case on VS2022 and
+  VS2026: four passed, zero failed/skipped. Builds had zero warnings/errors.
+  Cases include separate collection clipboard columns, canonical record values,
+  Clear and existing draft/focus scenarios. Wrapper: artifacts/m11-iteration17-native.log.
+- Source/diff review and git diff --check passed. No push or publication.
+  Custom templates, playground extensions and approved designer layout remain
+  iterations 18–21; this evidence does not claim those gates.

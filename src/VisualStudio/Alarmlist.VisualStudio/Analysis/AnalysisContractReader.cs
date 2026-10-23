@@ -213,7 +213,9 @@ namespace Alarmlist.VisualStudio.Analysis
         private static Definition.AlarmCollectionDescriptor CollectionDescriptor(object collection)
             => new Definition.AlarmCollectionDescriptor(Value<string>(collection, "Name"), Value<string>(collection, "Kind"),
                 Value<string>(collection, "Label"), Value<string>(collection, "Help"), Value<int>(collection, "MinCount"),
-                Value<int?>(collection, "MaxCount"), List(collection, "Fields", Descriptor).ToArray());
+                Value<int?>(collection, "MaxCount"), List(collection, "Fields", Descriptor).ToArray(),
+                Value<bool>(collection, "PreviewVisible"), Value<double>(collection, "PreviewWidth"),
+                Value<string>(collection, "DisplayType"), Value<string>(collection, "Symbol"), Value<string>(collection, "Separator"));
 
         private static AnalysisCollection Collection(object collection) => new AnalysisCollection(Value<string>(collection, "Name"),
             Value<bool>(collection, "IsLocallyDeclared"), Location(Value<object>(collection, "LocalLocation")),
