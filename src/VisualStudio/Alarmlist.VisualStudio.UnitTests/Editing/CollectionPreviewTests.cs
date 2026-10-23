@@ -89,9 +89,57 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     content.Measure(new System.Windows.Size(300, double.PositiveInfinity));
                     content.Arrange(new System.Windows.Rect(0, 0, 300, content.DesiredSize.Height));
                     content.UpdateLayout();
+                    InheritanceAdornerTests.Pump();
+                    Assert.Empty(BindingErrors(content));
                     Assert.Contains(Descendants(content).OfType<System.Windows.Controls.TextBlock>(), text => text.Text.Contains("value"));
                 }
             });
+        }
+        [Theory]
+        [InlineData("MissingField", System.Windows.Data.BindingStatus.UpdateTargetError)]
+        [InlineData("MissingMember", System.Windows.Data.BindingStatus.PathError)]
+        public void CompiledTemplateBindingErrorsAreDetectedByRepresentativeRendering(string key, System.Windows.Data.BindingStatus expected)
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                var resources = (System.Windows.ResourceDictionary)System.Windows.Application.LoadComponent(
+                    new Uri("/Alarmlist.VisualStudio.UnitTests;component/Editing/CollectionBindingFailure.xaml", UriKind.Relative));
+                var content = (System.Windows.FrameworkElement)((System.Windows.DataTemplate)resources[key]).LoadContent();
+                content.DataContext = new CollectionPreviewCell(Definition(), Collection("A"), true).Items[0];
+                content.Measure(new System.Windows.Size(300, double.PositiveInfinity));
+                content.Arrange(new System.Windows.Rect(0, 0, 300, content.DesiredSize.Height));
+                content.UpdateLayout();
+                InheritanceAdornerTests.Pump();
+                var expression = System.Windows.Data.BindingOperations.GetBindingExpression(content, System.Windows.Controls.TextBlock.TextProperty);
+                Assert.NotNull(expression);
+                Assert.Equal(expected, expression.Status);
+                Assert.Contains(BindingErrors(content), error => error.Contains(key));
+            });
+        }
+
+        private static System.Collections.Generic.IEnumerable<string> BindingErrors(System.Windows.DependencyObject root)
+        {
+            var seen = new System.Collections.Generic.HashSet<System.Windows.DependencyObject>();
+            var pending = new System.Collections.Generic.Stack<System.Windows.DependencyObject>();
+            pending.Push(root);
+            while (pending.Count != 0)
+            {
+                var item = pending.Pop();
+                if (!seen.Add(item)) continue;
+                foreach (var descriptor in System.ComponentModel.TypeDescriptor.GetProperties(item).Cast<System.ComponentModel.PropertyDescriptor>())
+                {
+                    var property = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(descriptor)?.DependencyProperty;
+                    if (property == null) continue;
+                    var expression = System.Windows.Data.BindingOperations.GetBindingExpressionBase(item, property);
+                    if (expression?.HasError == true || expression?.Status == System.Windows.Data.BindingStatus.PathError
+                        || expression?.Status == System.Windows.Data.BindingStatus.UpdateTargetError)
+                        yield return property.Name + ": " + System.Windows.Data.BindingOperations.GetBinding(item, property)?.Path?.Path;
+                }
+                if (item is System.Windows.Media.Visual || item is System.Windows.Media.Media3D.Visual3D)
+                    for (int index = 0; index < System.Windows.Media.VisualTreeHelper.GetChildrenCount(item); index++)
+                        pending.Push(System.Windows.Media.VisualTreeHelper.GetChild(item, index));
+                foreach (var child in System.Windows.LogicalTreeHelper.GetChildren(item).OfType<System.Windows.DependencyObject>()) pending.Push(child);
+            }
         }
         [Fact]
         public void MissingCompiledTemplateFallsBackWithDiagnostic()

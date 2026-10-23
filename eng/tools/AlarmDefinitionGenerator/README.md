@@ -248,7 +248,13 @@ The WPF temporary type-discovery project is not itself a markup-resource owner.
 Missing compiled resources at runtime produce a diagnostic and the default
 layout where recoverable. Arbitrary fork code cannot be isolated from the host.
 WPF compilation does not prove every Binding path is correct: use representative
-render tests. eng/test-alarm-preview-template-lifecycle.ps1 checks no-op/change/
+render tests. In a matching fork, run the editor unit test
+`DeclaredCompiledTemplatesLoadFromTheHostAssembly` to load each selected template,
+bind a representative record and inspect binding errors in its visual and logical
+children (including Run elements). The test project also compiles deliberately
+invalid field/member bindings to verify that the check detects WPF PathError and
+UpdateTargetError states. Correct compilation alone is not acceptance of a template.
+`eng/test-alarm-preview-template-lifecycle.ps1` checks no-op/change/
 failure/removal behavior in an existing isolated collection acceptance fork.
 
 Generated metadata adds `AlarmCollectionDescriptor`, `AlarmDefinition.Collections`

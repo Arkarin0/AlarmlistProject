@@ -4,8 +4,8 @@ Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
 Follow-up iterations 9–15 complete; follow-up acceptance recorded on
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions. Preview follow-up planning (iteration 16) is
-complete; iterations 17–20 are complete and iteration 21 remains authorized and
-pending. The owner approved the combined preview/designer plan after the
+complete; iterations 17–21 are complete with combined acceptance recorded below.
+The owner approved the combined preview/designer plan after the
 interactive layout review; completed iteration evidence remains unchanged.
 Execution resumed during iteration 20 after the owner explicitly removed the
 20% allowance stop for this goal. The earlier pause checkpoint remains below.
@@ -1357,3 +1357,71 @@ Validation:
   artifacts/m11-iteration20-native-final.log.
 - Authoring/playground documentation updated; source/diff review and
   git diff --check passed. Iteration 21 remains the final combined acceptance.
+
+### Iteration 21 combined acceptance (complete)
+
+Added compiled negative XAML fixtures for missing record fields and missing
+members, and inspected WPF binding status in visual/logical descendants of the
+actual custom templates. The initial trace-listener approach produced no errors
+without debugger tracing; local-value enumeration also missed template bindings.
+The final check enumerates dependency-property descriptors and detects PathError
+and UpdateTargetError, including dictionary-index failures. Both negative cases
+and the actual selected templates pass their respective rejection/acceptance
+checks. Authoring documentation describes this validation requirement.
+
+Confirmed evidence:
+
+- Generator suite: 86 passed. Compiler: 666 net472 and 668 net8.0 passed. MSBuild
+  task units: 91 per framework; task integration: four per framework. Logs:
+  artifacts/m11-iteration21-{generator,compiler,tasks,integration}.log.
+- Preview/binding/rendering selection: 18 passed
+  (artifacts/m11-iteration21-bindings-rendering-verified.log). The two deliberate
+  binding errors are detected after successful XAML compilation. Actual custom
+  templates passed the same binding inspection in both final isolated forks:
+  artifacts/m11-iteration21-template-ed8146b5.log and
+  artifacts/m11-iteration21-template-af2a2275.log (one test each).
+- Final collection runtime/bridge checks: 72 procedure-disabled, 70 enabled and
+  seven minimum-count checks per framework. Evidence:
+  artifacts/log/Debug/AlarmCollections/69a064699f68492c985f874958d3a0cb;
+  artifacts/m11-iteration21-collection-runtime.log.
+- Final template lifecycle passed: no-op timestamps, changed dependencies,
+  missing key, invalid XAML, missing dependency, removal from staged/compiled
+  resources and restoration. Evidence:
+  artifacts/m11-iteration21-template-lifecycle.log;
+  artifacts/col13/ed8146b5/preview-lifecycle.
+- Both final custom toolsets passed project/library/NuGet/analyzer/API consumer
+  checks on .NET and desktop MSBuild. Evidence:
+  artifacts/col13/ed8146b5/consumer-checks/0fb6e271 and
+  artifacts/col13/af2a2275/consumer-checks/0da9e495.
+- Final large-preview sample: 1,000 rows × 100 entries, ten initially visible.
+  Simple first-layout/scroll: 1060/22 ms, four realized rows; complex: 260/28 ms,
+  two realized rows. Recycling, complete copy and independent expansion state
+  passed. These are Debug single-run observations, not performance guarantees.
+- Iteration 20's 608 editor regressions, final alignment checks and four native
+  cases cover the final production code. Only tests/documentation changed in 21;
+  no native re-run is implied. Native cases cover both procedure variants and
+  VS2022/2026 sequentially, with source XAML unavailable during template rendering.
+
+- Standard SDK regressions: 85 net472 and 82 net8.0 passed, zero failed/skipped
+  (artifacts/m11-iteration21-sdk.log). These use the default .NET MSBuild host;
+  the separate custom-toolset checks above cover desktop MSBuild.
+- VSIX packaging/template-consumer regressions: 13 per framework passed, zero
+  failed/skipped (artifacts/m11-iteration21-vsix.log).
+
+Final requirement review:
+
+| Requirement | Acceptance evidence |
+| --- | --- |
+| Stable collection columns, preference migration, symbols/separators, empty/unavailable states, duplicates, ordering and full copy | Iteration 17 editor/native checks and iteration 21 preview/rendering selection. |
+| Compiled templates, keys/types, dependencies, fingerprints, rebuilding and packaging | Iteration 18 generator/host checks; final lifecycle, binding and packaged-consumer runs above. |
+| Samples and installed templates independent of original sources, with procedures enabled/disabled | Iteration 19 playground preparation and iteration 20's four native cases. |
+| Shared alignment, inherited adorners, commands, collapse, tooltip/accessibility content and focus | Iteration 20 rendered, model and native checks, plus 608 editor regressions. |
+| Draft/source/selection/undo preservation, pending analysis, duplicate origins and Clear | Iteration 20 editor/native checks and final both-framework collection runtime/bridge checks. |
+| Bounded rendering and recycling | Iteration 21 large-preview measurements above, including complete copy and independent expansion state. |
+
+The final diff and documented paths were reviewed; git diff --check passed.
+Iterations 1–16 and historical checkpoints remain intact. All scoped acceptance
+gates are complete. Trusted compiled fork templates are not sandboxed; binding
+validation requires representative rendering, and the measurements above are
+single-run observations. OS theme/DPI checks remain excluded. No push, merge or
+publication was performed.
