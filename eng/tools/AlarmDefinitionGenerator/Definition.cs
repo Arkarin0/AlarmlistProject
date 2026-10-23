@@ -44,7 +44,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
             "sbyte sealed short sizeof stackalloc static string struct switch this throw true try typeof uint ulong unchecked " +
             "unsafe ushort using virtual void volatile while __arglist __makeref __reftype __refvalue").Split(' '), StringComparer.Ordinal);
 
-        internal static IReadOnlyList<Field> Read(string path)
+        internal static DefinitionModel Read(string path)
         {
             var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null };
             using var reader = XmlReader.Create(path, settings);
@@ -55,9 +55,73 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
             schemas.Add(null, schemaReader);
             document.Validate(schemas, (sender, args) => throw new InvalidDataException(
                 path + "(" + args.Exception.LineNumber + "," + args.Exception.LinePosition + "): " + args.Message));
+            var model = new DefinitionModel
+            {
+                Version = (int)document.Root.Attribute("Version"),
+                HasTestProcedure = (string)document.Root.Attribute("Version") == "1"
+            };
+            var memberNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            bool procedureDeclared = false;
+            foreach (XElement element in document.Root.Elements())
+            {
+                string kind = element.Name.LocalName;
+                if (model.Version == 1 && kind != "Field")
+                    Fail(path, element, "Collections and explicit TestProcedure require definition Version='2'.");
+                if (kind == "TestProcedure")
+                {
+                    if (procedureDeclared) Fail(path, element, "TestProcedure may be declared only once.");
+                    procedureDeclared = true;
+                    model.HasTestProcedure = true;
+                    continue;
+                }
+                string name = (string)element.Attribute("Name");
+                if (!Identifier(name) || s_reserved.Contains(name) || name.StartsWith("Alarmlist", StringComparison.OrdinalIgnoreCase)
+                    || !memberNames.Add(name)) Fail(path, element, "Invalid, reserved or duplicate member name: " + name);
+                if (kind == "Field")
+                {
+                    model.Fields.AddRange(ReadFields(path, new[] { element }));
+                    continue;
+                }
+                var collection = new CollectionDefinition
+                {
+                    Name = name, Kind = kind == "SimpleCollection" ? "Simple" : "Complex",
+                    Label = (string)element.Attribute("Label") ?? name, Help = (string)element.Attribute("Help") ?? "",
+                    MinCount = Count(path, element, "MinCount") ?? 0,
+                    MaxCount = Count(path, element, "MaxCount")
+                };
+                if (collection.MaxCount.HasValue && collection.MinCount > collection.MaxCount.Value)
+                    Fail(path, element, "MinCount exceeds MaxCount.");
+                if (collection.Kind == "Simple")
+                {
+                    Field item = ReadFields(path, new[] { element }).Single();
+                    item.Name = "Item";
+                    collection.Fields.Add(item);
+                }
+                else collection.Fields.AddRange(ReadFields(path, element.Elements("Field")));
+                model.Collections.Add(collection);
+            }
+            foreach (Field field in model.Fields.Where(field => field.Type == "Enum"))
+                if (memberNames.Contains(field.Name + "Value")) throw new InvalidDataException(path + ": Member collides with generated enum type " + field.Name + "Value.");
+            return model;
+        }
+
+        private static int? Count(string path, XElement element, string attribute)
+        {
+            string raw = (string)element.Attribute(attribute);
+            if (raw == null) return null;
+            if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) || value < 0)
+                Fail(path, element, attribute + " must be between 0 and 2147483647.");
+            return value;
+        }
+
+        private static void Fail(string path, XElement element, string message)
+            => throw new InvalidDataException(path + "(" + ((IXmlLineInfo)element).LineNumber + ",1): " + message);
+
+        private static IReadOnlyList<Field> ReadFields(string path, IEnumerable<XElement> elements)
+        {
             var fields = new List<Field>();
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (XElement element in document.Root.Elements("Field"))
+            foreach (XElement element in elements)
             {
                 string name = (string)element.Attribute("Name");
                 void Fail(string message) => throw new InvalidDataException(path + "(" + ((IXmlLineInfo)element).LineNumber + ",1): " + message);

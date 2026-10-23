@@ -160,3 +160,32 @@ The fixture's baseline-specific tests are not the arbitrary-schema contract:
 fork acceptance builds production tools and runs generic metadata-based checks.
 The normal solution regression suites still validate the repository's standard
 definition separately.
+
+## Version-2 collection foundations (staged)
+
+The parser and generated metadata recognize version-2 definitions containing
+`Field`, `SimpleCollection`, `ComplexCollection` and one optional `TestProcedure`.
+Version 1 keeps its implicit procedure capability and rejects the new declarations.
+Version 2 requires an explicit `<TestProcedure />` to retain that capability.
+
+A simple collection declares a scalar `Type` and the existing scalar constraints /
+choices. A complex collection contains one or more `Field` declarations; field
+names are scoped to that record. Both declare `Name`, optional `Label`/`Help`,
+`MinCount` (default zero) and optional `MaxCount` (unbounded when omitted). Counts
+are nonnegative Int32 values and must form a valid range. Nested collections are
+rejected. Collection/ordinary field names share the alarm namespace and follow
+existing reserved-name rules. The generated simple-item descriptor is named Item.
+
+**This is not yet enabled collection runtime support.** Until the coordinated
+compiler/analysis/designer work is complete, the CLI rejects definitions with
+collections or disabled procedures before installing any output. Internal tests
+exercise their descriptors and template adaptation. Version-2 scalar definitions
+with an explicit procedure remain buildable. The standard checked-in definition
+stays at version 1 during this stage.
+
+Generated metadata adds `AlarmCollectionDescriptor`, `AlarmDefinition.Collections`
+and `AlarmDefinition.HasTestProcedure`. Semantic fingerprints include collection
+shape, item constraints, counts and procedure availability; labels/help remain
+presentation-only. The standard version-1 semantic fingerprint is preserved, while
+the generator-2 tooling fingerprint requires rebuilding matching SDK and extension
+assets. Use the milestone plan for the remaining end-to-end acceptance gates.

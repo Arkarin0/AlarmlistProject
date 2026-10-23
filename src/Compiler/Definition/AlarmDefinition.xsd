@@ -9,34 +9,65 @@
       <xs:enumeration value="Timestamp" />
     </xs:restriction>
   </xs:simpleType>
+  <xs:simpleType name="DefinitionVersion">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="1" /><xs:enumeration value="2" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:attributeGroup name="Presentation">
+    <xs:attribute name="Label" type="xs:string" />
+    <xs:attribute name="Help" type="xs:string" />
+  </xs:attributeGroup>
+  <xs:attributeGroup name="CollectionCounts">
+    <xs:attribute name="MinCount" type="xs:nonNegativeInteger" />
+    <xs:attribute name="MaxCount" type="xs:nonNegativeInteger" />
+  </xs:attributeGroup>
+  <xs:complexType name="FieldDefinition">
+    <xs:sequence>
+      <xs:element name="Value" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="Name" type="xs:string" use="required" />
+          <xs:attribute name="Label" type="xs:string" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" use="required" />
+    <xs:attribute name="Type" type="ScalarType" use="required" />
+    <xs:attribute name="Required" type="xs:boolean" />
+    <xs:attribute name="Default" type="xs:string" />
+    <xs:attribute name="Minimum" type="xs:string" />
+    <xs:attribute name="Maximum" type="xs:string" />
+    <xs:attributeGroup ref="Presentation" />
+    <xs:attribute name="Multiline" type="xs:boolean" />
+    <xs:attribute name="PreviewVisible" type="xs:boolean" />
+    <xs:attribute name="PreviewWidth" type="xs:decimal" />
+  </xs:complexType>
   <xs:element name="AlarmDefinition">
     <xs:complexType>
-      <xs:sequence>
-        <xs:element name="Field" minOccurs="0" maxOccurs="unbounded">
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Field" type="FieldDefinition" />
+        <xs:element name="SimpleCollection">
           <xs:complexType>
-            <xs:sequence>
-              <xs:element name="Value" minOccurs="0" maxOccurs="unbounded">
-                <xs:complexType>
-                  <xs:attribute name="Name" type="xs:string" use="required" />
-                  <xs:attribute name="Label" type="xs:string" />
-                </xs:complexType>
-              </xs:element>
-            </xs:sequence>
-            <xs:attribute name="Name" type="xs:string" use="required" />
-            <xs:attribute name="Type" type="ScalarType" use="required" />
-            <xs:attribute name="Required" type="xs:boolean" />
-            <xs:attribute name="Default" type="xs:string" />
-            <xs:attribute name="Minimum" type="xs:string" />
-            <xs:attribute name="Maximum" type="xs:string" />
-            <xs:attribute name="Label" type="xs:string" />
-            <xs:attribute name="Help" type="xs:string" />
-            <xs:attribute name="Multiline" type="xs:boolean" />
-            <xs:attribute name="PreviewVisible" type="xs:boolean" />
-            <xs:attribute name="PreviewWidth" type="xs:decimal" />
+            <xs:complexContent>
+              <xs:extension base="FieldDefinition">
+                <xs:attributeGroup ref="CollectionCounts" />
+              </xs:extension>
+            </xs:complexContent>
           </xs:complexType>
         </xs:element>
-      </xs:sequence>
-      <xs:attribute name="Version" type="xs:string" use="required" fixed="1" />
+        <xs:element name="ComplexCollection">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Field" type="FieldDefinition" minOccurs="1" maxOccurs="unbounded" />
+            </xs:sequence>
+            <xs:attribute name="Name" type="xs:string" use="required" />
+            <xs:attributeGroup ref="Presentation" />
+            <xs:attributeGroup ref="CollectionCounts" />
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="TestProcedure"><xs:complexType /></xs:element>
+      </xs:choice>
+      <xs:attribute name="Version" type="DefinitionVersion" use="required" />
     </xs:complexType>
   </xs:element>
 </xs:schema>

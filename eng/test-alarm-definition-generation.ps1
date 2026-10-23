@@ -31,7 +31,7 @@ try {
     throw 'An unchanged build rewrote generated source.'
   }
   $invalidDefinition = Join-Path $runRoot 'invalid.xml'
-  Set-Content -LiteralPath $invalidDefinition -Value '<AlarmDefinition Version="2" />' -Encoding utf8
+  Set-Content -LiteralPath $invalidDefinition -Value '<AlarmDefinition Version="999" />' -Encoding utf8
   $failureLog = Join-Path $runRoot 'invalid-definition.log'
   & dotnet build $compiler --framework net8.0 "-p:AlarmlistDefinitionFile=$invalidDefinition" --verbosity quiet -m:1 -nr:false *> $failureLog
   if ($LASTEXITCODE -eq 0 -or !(Select-String -LiteralPath $failureLog -SimpleMatch 'ALMGEN001' -Quiet)) {

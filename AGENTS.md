@@ -97,6 +97,12 @@ compatibility and staged capability guards; do not advertise metadata-only
 generation as end-to-end collection support. Preserve version-1 behavior and
 inherited-first/Clear semantics. Nested collections and keyed inherited-record
 overrides remain excluded.
+Iteration 11 adds version-2 collection descriptors and procedure capability
+metadata, preserving the standard version-1 semantic fingerprint while advancing
+the full tooling fingerprint to generator-2. Its CLI capability guard rejects
+collections and disabled procedures until their coordinated runtime consumers
+are ready. Keep that guard explicit during follow-up work; metadata generation
+alone is not permission to publish partially supported definitions.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter
 grip, plus collapsible group bodies and procedure search in follow-up iterations.

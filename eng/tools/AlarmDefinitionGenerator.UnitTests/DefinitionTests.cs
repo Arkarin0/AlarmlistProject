@@ -121,7 +121,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator.UnitTests
             File.SetLastWriteTimeUtc(output, sentinel);
             Assert.Equal(0, Program.Main(new[] { path, output, "compiler" }));
             Assert.Equal(sentinel, File.GetLastWriteTimeUtc(output));
-            File.WriteAllText(path, "<AlarmDefinition Version='2'/>");
+            File.WriteAllText(path, "<AlarmDefinition Version='999'/>");
             Assert.Equal(1, Program.Main(new[] { path, output, "compiler" }));
             Assert.Equal(source, File.ReadAllText(output));
             Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));

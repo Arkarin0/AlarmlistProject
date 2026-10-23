@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
 Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
-Follow-up iterations 9–10 complete; iterations 11–15 authorized and pending as of
+Follow-up iterations 9–11 complete; iterations 12–15 authorized and pending as of
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions.
 Owner decisions were confirmed on 2026-10-21.
@@ -703,3 +703,45 @@ Allowance reached 21% remaining, then the account tool reported a renewed window
 with 100% remaining before the pause threshold was reached. Continue to check the
 current allowance before further iterations. No collection runtime changes have
 been made in iteration 10.
+
+### Iteration 11 implementation and validation (complete)
+
+Added a version-2 definition model and XSD shapes for simple/complex collections
+and optional TestProcedure. Scalar fields and record fields share literal/type
+validation; collection counts are checked for nonnegative Int32 ranges, names for
+collisions, and nested collections/duplicate procedure declarations are rejected.
+Version 1 retains implicit procedures and disallows version-2 declarations.
+Generated compiler/host metadata includes immutable collection descriptors and
+procedure availability, with semantic versus presentation fingerprints. The
+standard version-1 library fingerprint remains
+6fef46acca6088624113e4d230a39963d0f9044645b62a54c36d1eca748a0c18. The full tooling
+fingerprint advances to generator-2 so matching compiler/SDK/VSIX are rebuilt.
+
+The CLI still rejects collections and procedure-disabled definitions before
+installing output. This is an intentional staged capability guard, not completed
+runtime support. Version-2 scalar definitions with TestProcedure are supported.
+The standard definition remains version 1. Updated the invalid-version lifecycle
+fixture from version 2 to version 999; version 2 is now a recognized schema.
+
+Validation so far:
+
+- Generator unit tests: 69 passed (m11-iteration11-generator-final.log), including
+  legacy semantic identity, nine scalar shapes, record scopes, count/name/nesting
+  failures, presentation/semantic fingerprints and atomic rejection in all roles.
+- Compiler unit tests: 661 net472 and 663 net8.0 passed
+  (m11-iteration11-compiler-tests.log). Existing CA1416 test-helper warning only.
+- Editor unit tests: 577 passed, excluding DirectFieldFormAligns and Theme checks
+  as requested (m11-iteration11-editor-tests.log). This rebuilt matching SDK/host
+  assets and exercised bridge behavior.
+- Generation lifecycle: passed, including alternate scalar compiler checks on both
+  frameworks. Evidence: artifacts/log/Debug/AlarmDefinitionGeneration/824528ce66734254b14526029a6547cc;
+  wrapper log m11-iteration11-generation-lifecycle.log.
+- Initial sandboxed test-host connection timed out, and a sandboxed build returned
+  nonzero without compiler diagnostics. The authorized unsandboxed test/build runs
+  above passed. These were execution-environment failures, not successful checks.
+- Packaged SDK tests: 85 net472 and 82 net8.0 passed using the .NET MSBuild host
+  (m11-iteration11-sdk-tests.log), including packaged APIs and libraries. Both
+  generated compiler targets and the host compiled successfully. All wrapper logs
+  are under artifacts/. git diff --check passed. No native or OS display reruns
+  were needed for this metadata-only foundation; native collection acceptance
+  remains a required later gate. No runtime collection support is claimed here.
