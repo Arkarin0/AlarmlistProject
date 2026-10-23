@@ -4,6 +4,8 @@ namespace Alarmlist.Diagnostics
 {
     public static class DiagnosticDescriptors
     {
+        public static readonly DiagnosticDescriptor InvalidCollectionCount = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidCollectionCount, "Invalid collection count", "Alarm '{0}' has an invalid item count for collection '{1}'.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidFieldValue = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidFieldValue, "Invalid alarm field", "Alarm '{0}' has an invalid value for field '{1}'.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidLibrary = new DiagnosticDescriptor(

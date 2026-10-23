@@ -71,7 +71,21 @@ namespace Alarmlist.Output
                 if (field.Type == "String" || value?.CanonicalText != null)
                     writer.WriteElementString(field.Name, value?.CanonicalText);
             }
-            WriteTestProcedure(writer, alarm.TestProcedure);
+            foreach (var descriptor in Definition.AlarmDefinition.Collections)
+            {
+                writer.WriteStartElement(descriptor.Name);
+                var collection = alarm.GetCollection(descriptor.Name);
+                if (collection != null) foreach (var item in collection.Items)
+                {
+                    writer.WriteStartElement("Item");
+                    if (descriptor.Kind == "Simple") writer.WriteString(item.GetField("Item")?.CanonicalText);
+                    else foreach (var field in item.Fields)
+                        if (field.CanonicalText != null) writer.WriteElementString(field.Name, field.CanonicalText);
+                    writer.WriteEndElement();
+                }
+                writer.WriteEndElement();
+            }
+            if (Definition.AlarmDefinition.HasTestProcedure) WriteTestProcedure(writer, alarm.TestProcedure);
             writer.WriteEndElement();
         }
 

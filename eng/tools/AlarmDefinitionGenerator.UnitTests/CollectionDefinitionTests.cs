@@ -73,7 +73,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator.UnitTests
             Assert.Contains("internal sealed class AlarmCollectionDescriptor", host);
             Assert.Contains("new AlarmCollectionDescriptor(\"Tags\", \"Simple\", \"Labels\", \"\", 1, 5", host);
             Assert.DoesNotContain("namespace Alarmlist.Compiler", host);
-            Assert.Contains("HasTestProcedure = true", host);
+            Assert.Contains("HasTestProcedure { get; } = true", host);
         }
 
         [Theory]

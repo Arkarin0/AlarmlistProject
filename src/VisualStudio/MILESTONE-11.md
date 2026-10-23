@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
 Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
-Follow-up iterations 9–11 complete; iterations 12–15 authorized and pending as of
+Follow-up iterations 9–12 complete; iterations 13–15 pending as of
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions.
 Owner decisions were confirmed on 2026-10-21.
@@ -626,8 +626,8 @@ The account allowance was 28% remaining at entry; pause at 20% remaining.
 | 9 | Record this follow-up contract and repository guidance. | Review paths, consistency and diff; documentation-only commit. |
 | 10 | Interactive scalar-definition launcher and checked-in definition/ALMX samples, using current production capabilities. Depends on 9. | Prepare and compile sample on both task hosts; validate alternate designer on both IDE hosts sequentially, failure behavior and source preservation. |
 | 11 | Version-2 definition model, validation, deterministic metadata generation and compatibility foundations. Depends on 10. | Generator positive/negative/fingerprint tests, baseline build on both frameworks. Keep new runtime declarations guarded until consumed. |
-| 12 | Collection source/resolved models, inheritance, expression/typed/count validation and XML output; optional procedure capability. Depends on 11. | Compiler tests on both frameworks, alternate-definition fixtures, unchanged baseline and transactional task failure checks. |
-| 13 | Coordinated analysis/analyzer/library contracts, SDK packaging and bridge metadata/provenance. Depends on 12. | Both-runtime package/project/library/analyzer tests; mismatch and detached bridge tests; baseline designer remains usable. |
+| 12 | Collection source/resolved models, inheritance, expression/typed/count validation and XML output; optional procedure capability. Depends on 11. | Compiler tests on both frameworks, isolated alternate-definition runtime fixtures, unchanged baseline and existing transactional task failure checks. Collection-specific packaged task failures remain in 13 because production generation stays guarded. |
+| 13 | Coordinated analysis/analyzer/library contracts, SDK packaging and bridge metadata/provenance. Depends on 12. | Both-runtime package/project/library/analyzer tests, including collection-specific transactional task failures; mismatch and detached bridge tests; baseline designer remains usable. |
 | 14 | Collection designer edits, drafts, completion, detail preview and optional procedure UI/templates. Depends on 13. | Editor preservation/draft/identity tests, native collection/procedure-disabled scenarios on both IDE hosts. |
 | 15 | Extend playground with collections, authoring docs and integrated fork acceptance. Depends on 14. | Full alternate fork and no-procedure fork acceptance, downstream suites on both runtimes and both IDE hosts; record remaining gates. |
 
@@ -745,3 +745,54 @@ Validation so far:
   are under artifacts/. git diff --check passed. No native or OS display reruns
   were needed for this metadata-only foundation; native collection acceptance
   remains a required later gate. No runtime collection support is claimed here.
+
+### Iteration 12 implementation and validation (complete)
+
+Added guarded compiler collection syntax and immutable resolved item values.
+Local containers preserve Item/Clear ordering, absent containers and record fields;
+malformed known collection content fails XML parsing with source positions.
+ReferenceableCollection supplies inherited-first/Clear behavior. Record defaults
+remain literal, do not create entries and are not materialized in source XML.
+Resolved output uses canonical scalar values in definition order and omits the
+procedure section when the definition disables it. Existing public scalar
+constructors and the standard source/output behavior are retained.
+
+Evaluation shares the scalar codec and consuming-alarm expression context.
+Explicit $(item:FieldName) references support forward sibling dependencies and
+cycle errors, including translated text and named localization arguments. They
+are rejected outside record context. Parameter replacement strings are not
+rescanned. Keyword-mode typed deferral propagates through sibling references.
+Collection fields carry raw/evaluated/canonical/typed state separately. Effective
+cardinality uses mandatory ALM0030; abstract and library counts defer until an
+application consumes them. Local entry/field source versions are preserved.
+
+The production generator guard remains. The isolated fixture driver calls the
+internal generator to compile source-linked runtime checks, without changing
+the standard definition or shipping a partially supported SDK. The tooling
+fingerprint advances to generator-3 for the resolved-model shape. Collection
+members are reserved to avoid generated CLR name collisions. HasTestProcedure
+is a static read-only property to avoid unreachable-code warnings in forks.
+
+Validation evidence:
+
+- eng/test-alarm-collections.ps1 passed: 52 checks with procedures disabled and
+  52 enabled, plus 7 minimum-count checks, on each of net472 and net8.0. Logs:
+  artifacts/log/Debug/AlarmCollections/5ac53c9623af4572b3bc5543039ec3d9;
+  wrapper artifacts/m11-iteration12-collections.log. Covers all scalar shapes,
+  inheritance across files, duplicates/Clear, sibling cycles/context, literal
+  defaults, malformed source, localization, consumer deferral and output.
+- Generator tests: 73 passed (artifacts/m11-iteration12-generator.log).
+- Compiler tests: 664 net472 / 666 net8.0 passed
+  (artifacts/m11-iteration12-compiler.log), including record-context and exchange
+  protection regression tests. Existing CA1416 test-helper warning only.
+- Task unit tests: 91 per framework passed; integration tests: 4 per framework
+  passed (artifacts/m11-iteration12-tasks.log and task-integration.log).
+- Editor compatibility tests: 577 passed, excluding the requested display checks
+  (artifacts/m11-iteration12-editor.log). No native collection acceptance is
+  claimed; that remains iteration 14. Collection-specific packaged task/output
+  preservation tests are explicitly assigned to iteration 13 because the staged
+  production generation guard still prevents such packages in this iteration.
+- Initial custom-fixture runs caught incorrect test source-version property names
+  and the need to assert XML exceptions for malformed source. Corrected fixtures
+  passed; these initial runs were failures, not acceptance evidence.
+- Reviewed the diff and documentation; git diff --check passed. No publication.

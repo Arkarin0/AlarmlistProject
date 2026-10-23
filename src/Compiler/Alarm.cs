@@ -10,6 +10,12 @@ namespace Alarmlist.Compiler
 {
     public readonly partial struct Alarm
     {
+        public AlarmCollectionValue GetCollection(string name)
+        {
+            if (!global::Alarmlist.Definition.AlarmDefinition.Collections.Any(collection => collection.Name == name)) throw new ArgumentException("Unknown alarm collection.", nameof(name));
+            return Collections?.FirstOrDefault(collection => collection.Name == name);
+        }
+
         public AlarmFieldValue GetField(string name)
         {
             if (!global::Alarmlist.Definition.AlarmDefinition.Fields.Any(field => field.Name == name)) throw new ArgumentException("Unknown alarm field.", nameof(name));

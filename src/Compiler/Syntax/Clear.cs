@@ -4,7 +4,7 @@ using Alarmlist.Text;
 
 namespace Alarmlist.Syntax
 {
-    public sealed class Clear : IReferenceableCollectionItem, ITestProcedureItem
+    public sealed class Clear : IReferenceableCollectionItem, ITestProcedureItem, IAlarmCollectionItem
     {
         public SourceLocation Location { get; internal set; }
     }

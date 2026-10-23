@@ -36,6 +36,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
             "Location SourceFile Reference ResolvedTestProcedures GetFieldLocation SetFieldLocation GetLocalFieldValue " +
             "SetLocalFieldValue GetEffectiveFieldValue GetFieldSource SetReference RemoveReference ClearResolvedReference " +
             "InvalidAbstractValue Fields GetField TypedFields GetTypedField Definition SchemaFingerprint ToolingFingerprint " +
+            "Collections LocalCollections GetCollection GetLocalCollection GetOrCreateLocalCollection GetEffectiveCollection GetCollectionDescriptor " +
             "Equals GetHashCode GetType ToString Deconstruct Alarm AlarmSyntaxNode CreateFieldValues").Split(' '), StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> s_keywords = new HashSet<string>((
             "abstract as base bool break byte case catch char checked class const continue decimal default delegate do double " +

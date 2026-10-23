@@ -187,5 +187,20 @@ Generated metadata adds `AlarmCollectionDescriptor`, `AlarmDefinition.Collection
 and `AlarmDefinition.HasTestProcedure`. Semantic fingerprints include collection
 shape, item constraints, counts and procedure availability; labels/help remain
 presentation-only. The standard version-1 semantic fingerprint is preserved, while
-the generator-2 tooling fingerprint requires rebuilding matching SDK and extension
+the generator-3 tooling fingerprint requires rebuilding matching SDK and extension
 assets. Use the milestone plan for the remaining end-to-end acceptance gates.
+
+The compiler runtime foundation now parses and writes local collection containers,
+resolves inherited-first entries and Clear, and evaluates item scalar expressions.
+Flat record fields can refer to siblings using `$(item:FieldName)`; references are
+case-insensitive and cycles are errors. Item expressions retain the consuming
+alarm's parameter, localization and lookup scope. Literal defaults never create
+items or appear in source serialization. Effective counts are validated only for
+concrete application alarms; ALM0030 is mandatory. Resolved items are exposed by
+`Alarm.Collections` / `GetCollection(name)` and contain `AlarmFieldValue` results.
+
+Run `eng/test-alarm-collections.ps1` for isolated runtime fixtures on net472 and
+net8.0, including procedure-enabled/disabled definitions and minimum cardinality.
+The test-only fixture generator accesses internal generation; it does not remove
+the production CLI guard or modify the standard definition. Library/analysis and
+designer payload integration remain subsequent milestone gates.

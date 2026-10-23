@@ -12,7 +12,7 @@ using Alarmlist.Text;
 
 namespace Alarmlist.Evaluation
 {
-    internal sealed class CompilationEvaluator
+    internal sealed partial class CompilationEvaluator
     {
         internal static readonly string[] Fields = Definition.AlarmDefinition.Fields.Select(field => field.Name).ToArray();
         private readonly CompilationContext _context;
@@ -74,6 +74,7 @@ namespace Alarmlist.Evaluation
                     }
                 }
                 _fields.Add(alarm, fields);
+                ParseCollections(alarm);
                 var groupNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (ProcedureGroupSyntax group in alarm.TestProcedure.Groups)
                 {
@@ -157,7 +158,7 @@ namespace Alarmlist.Evaluation
             return new CompilationResult(list, Diagnostics);
         }
 
-        internal sealed class AlarmEvaluation
+        internal sealed partial class AlarmEvaluation
         {
             private readonly CompilationEvaluator _owner;
             private readonly AlarmSyntaxNode _alarm;
@@ -198,6 +199,7 @@ namespace Alarmlist.Evaluation
             internal void Evaluate()
             {
                 foreach (string field in Fields) TryGetField(field, out _);
+                EvaluateCollections();
                 TestProcedureSyntax procedure = _alarm.ResolvedTestProcedures;
                 foreach (ProcedureGroupSyntax group in procedure.Groups)
                 {
@@ -272,6 +274,12 @@ namespace Alarmlist.Evaluation
 
             private string EvaluateToken(ExpressionToken token, SourceLocation location)
             {
+                if (token.Kind == "item")
+                {
+                    if (_itemLookup != null) return _itemLookup(token.Key, location);
+                    _owner.Report(DiagnosticDescriptors.InvalidExpression, _alarm, location, token.Raw);
+                    return null;
+                }
                 if (token.Kind == "parameter") return Lookup(token.Key, location);
                 if (token.Kind == "loc") return Localize(token, location);
                 string value = ResolveLookup(token, location, out SourceLocation definition);
@@ -313,7 +321,7 @@ namespace Alarmlist.Evaluation
                 bool formatted = token.Arguments.Count != 0;
                 Dictionary<ResourceEntry, PropertyExpression> cache = formatted ? _owner._formattedTranslations : _owner._translations;
                 if (!cache.TryGetValue(entry, out PropertyExpression expression))
-                    cache.Add(entry, expression = PropertyExpression.Parse(entry.Value, placeholders: formatted));
+                    cache.Add(entry, expression = PropertyExpression.Parse(entry.Value, placeholders: formatted, allowItemReferences: true));
                 if (expression == null)
                 {
                     if (formatted) ReportArguments(key, "malformed template or placeholder", location, entry);
@@ -416,7 +424,8 @@ namespace Alarmlist.Evaluation
                 TestProcedureSyntax procedure = _alarm.ResolvedTestProcedures;
                 return new Alarm(_alarm.FullyQualifiedName, Array.AsReadOnly(Fields.Select(field => _values[field]).ToArray()),
                     new TestProcedure(procedure.Groups.Where(group => ProcedureGroupSyntax.IsValidName(group.Name)).Select(group =>
-                        new ProcedureGroup(group.Name, Titles[group.Name], Convert(group.Entries)))));
+                        new ProcedureGroup(group.Name, Titles[group.Name], Convert(group.Entries)))),
+                    Array.AsReadOnly(_collections.ToArray()));
             }
 
             private IEnumerable<TestProcedureItem> Convert(IEnumerable<ITestProcedureItem> entries)

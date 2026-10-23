@@ -36,5 +36,6 @@ namespace Alarmlist.Diagnostics
         public const string DuplicateProcedureGroup = "ALM0027";
         public const string InvalidLibrary = "ALM0028";
         public const string InvalidFieldValue = "ALM0029";
+        public const string InvalidCollectionCount = "ALM0030";
     }
 }

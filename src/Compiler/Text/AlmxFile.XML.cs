@@ -36,7 +36,8 @@ namespace Alarmlist.Text
             writer.WriteElementString(nameof(alarm.ReferenceName), alarm.ReferenceName);
             foreach (var field in Definition.AlarmDefinition.Fields)
                 writer.WriteElementString(field.Name, alarm.GetLocalFieldValue(field.Name));
-            WriteTestProcedureNode(alarm.TestProcedure, writer);
+            WriteCollections(alarm, writer);
+            if (Definition.AlarmDefinition.HasTestProcedure) WriteTestProcedureNode(alarm.TestProcedure, writer);
             writer.WriteEndElement();
             return true;
         }
@@ -144,6 +145,8 @@ namespace Alarmlist.Text
                         break;
 
                     case WellKnownNodeNames.TestProcedure:
+                        if (!Definition.AlarmDefinition.HasTestProcedure)
+                            throw CollectionError(reader, "TestProcedure is disabled in this alarm definition.");
                         ReadTestProcedureNode(reader, result.TestProcedure, filePath, version);
                         break;
 
@@ -154,6 +157,8 @@ namespace Alarmlist.Text
                             result.SetFieldLocation(field, GetLocation(reader, filePath, version));
                             result.SetLocalFieldValue(field, reader.ReadElementContentAsString());
                         }
+                        else if (Definition.AlarmDefinition.Collections.FirstOrDefault(collection => collection.Name == reader.LocalName) is Definition.AlarmCollectionDescriptor descriptor)
+                            ReadCollection(reader, result, descriptor, filePath, version);
                         else reader.Skip(); // Unknown elements remain forward compatible.
                         break;
                 }

@@ -99,10 +99,17 @@ inherited-first/Clear semantics. Nested collections and keyed inherited-record
 overrides remain excluded.
 Iteration 11 adds version-2 collection descriptors and procedure capability
 metadata, preserving the standard version-1 semantic fingerprint while advancing
-the full tooling fingerprint to generator-2. Its CLI capability guard rejects
+the full tooling fingerprint (now generator-3 after the runtime model change). Its CLI capability guard rejects
 collections and disabled procedures until their coordinated runtime consumers
 are ready. Keep that guard explicit during follow-up work; metadata generation
 alone is not permission to publish partially supported definitions.
+Iteration 12 supplies guarded compiler collection parsing, inherited-first/Clear
+resolution, typed values and output. Record sibling expressions use $(item:FieldName)
+only in record context, including translated expressions; defaults stay literal.
+Run eng/test-alarm-collections.ps1 for isolated generated-runtime checks on both
+frameworks. Its test-only generator access must not enable partial production
+toolsets. ALM0030 cardinality failures are mandatory; library/abstract minimum and
+maximum counts defer until concrete application consumption.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter
 grip, plus collapsible group bodies and procedure search in follow-up iterations.
@@ -301,7 +308,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   access. Preserve physical-source scoping, case-sensitive globs, root/unset,
   literal inline punctuation and immutable captured results. ALM0001-ALM0028
   remain mandatory errors regardless of NoWarn or per-file severity. Milestone 11
-  also makes ALM0029 (scalar/required/bounds validation) mandatory. Definition
+  also makes ALM0029 (scalar/required/bounds validation) and ALM0030 (collection
+  cardinality) mandatory. Definition
   defaults remain literal and source serialization never materializes them.
   Determine
   success after configurable warning promotion and preserve previous outputs on
