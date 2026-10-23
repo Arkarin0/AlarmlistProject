@@ -37,6 +37,7 @@ foreach ($procedure in @($true, $false)) {
     }
     if ($procedure) { [void]$definition.DocumentElement.AppendChild($definition.CreateElement('TestProcedure')) }
     $definition.Save((Join-Path $fork 'src/Compiler/Definition/AlarmDefinition.xml'))
+    Copy-Item -LiteralPath (Join-Path $repo 'eng/testassets/AlarmCollections/Preview') -Destination (Join-Path $fork 'src/Compiler/Definition/Preview') -Recurse
     $project = if ($Designer) { Join-Path $fork 'src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist.VisualStudio.UI.IntegrationTests.csproj' }
         else { Join-Path $fork 'src/SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj' }
     & dotnet build $project --verbosity quiet -m:1 -nr:false "-p:RestorePackagesPath=$(Join-Path $repo '.packages')" *> (Join-Path $fork 'build.log')
@@ -54,6 +55,14 @@ foreach ($procedure in @($true, $false)) {
         }
         $previous = @{}
         foreach ($name in $settings.Keys) { $previous[$name] = [Environment]::GetEnvironmentVariable($name) }
+        # Only move the fixture's private template copy. Native rendering must
+        # use packaged BAML, without the original definition-relative files.
+        $templateSource = [IO.Path]::GetFullPath((Join-Path $fork 'src/Compiler/Definition/Preview'))
+        $templateArchive = [IO.Path]::GetFullPath((Join-Path $fork 'unavailable-preview-sources'))
+        foreach ($path in @($templateSource, $templateArchive)) {
+            if (!$path.StartsWith($fork + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Template fixture path escaped fork.' }
+        }
+        Move-Item -LiteralPath $templateSource -Destination $templateArchive
         try {
             foreach ($name in $settings.Keys) { [Environment]::SetEnvironmentVariable($name, $settings[$name]) }
             foreach ($version in @('2022', '2026')) {
@@ -67,6 +76,7 @@ foreach ($procedure in @($true, $false)) {
             }
         } finally {
             foreach ($name in $settings.Keys) { [Environment]::SetEnvironmentVariable($name, $previous[$name]) }
+            Move-Item -LiteralPath $templateArchive -Destination $templateSource
         }
     }
     Write-Output "Requested collection acceptance passed; TestProcedure=$procedure; fork=$fork"

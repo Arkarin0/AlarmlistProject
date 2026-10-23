@@ -14,5 +14,6 @@
     <Field Name="Price" Type="Decimal" />
     <Field Name="Ratio" Type="Double" />
     <Field Name="Priority" Type="Enum"><Value Name="Low" /><Value Name="High" /></Field>
+    <Preview DisplayType="Xaml" TemplateFile="Preview/Checks.xaml" TemplateKey="ChecksPreview" />
   </ComplexCollection>
 </AlarmDefinition>

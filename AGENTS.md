@@ -99,7 +99,7 @@ inherited-first/Clear semantics. Nested collections and keyed inherited-record
 overrides remain excluded.
 Iteration 11 adds version-2 collection descriptors and procedure capability
 metadata, preserving version-1 input semantic fingerprints while advancing
-the full tooling fingerprint (now generator-4 after the preview metadata change).
+the full tooling fingerprint (now generator-5 after compiled preview resources).
 Compiler/SDK generation is enabled in iteration 13. Iteration 14 adds host
 collection editing and optional-procedure UI, removing the remaining host guard.
 Collection drafts share the atomic document transaction and reject concurrent

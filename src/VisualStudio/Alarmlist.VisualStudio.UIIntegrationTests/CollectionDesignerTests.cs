@@ -122,6 +122,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().Contains("Tags\tNumbers\tChecks"), "one clipboard column per collection");
             Assert.Contains("after clear", System.Windows.Forms.Clipboard.GetText());
             Assert.Contains("Count: 8", System.Windows.Forms.Clipboard.GetText());
+            if (definition.Elements("ComplexCollection").Any(collection => collection.Element("Preview")?.Attribute("TemplateFile") != null))
+            {
+                Assert.NotNull(table.FindFirstDescendant(cf => cf.ByName("Custom collection record")));
+                Assert.False(File.Exists(Path.Combine(repository, "src/Compiler/Definition/Preview/Checks.xaml")));
+            }
             VisualStudioSession.Wait(() =>
             {
                 var tab = window.FindFirstDescendant(cf => cf.ByName("Selected alarm preview").And(cf.ByControlType(ControlType.TabItem)));

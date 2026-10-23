@@ -98,8 +98,11 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
                 collection.DisplayType = (string)preview?.Attribute("DisplayType") ?? (collection.Kind == "Simple" ? "List" : "Xaml");
                 if (preview != null)
                 {
-                    if (preview.Attribute("TemplateFile") != null || preview.Attribute("TemplateKey") != null)
-                        Fail(path, preview, "Custom compiled preview templates require the next host capability iteration.");
+                    collection.TemplateFile = (string)preview.Attribute("TemplateFile");
+                    collection.TemplateKey = (string)preview.Attribute("TemplateKey");
+                    if ((collection.TemplateFile != null || collection.TemplateKey != null)
+                        && (collection.Kind != "Complex" || string.IsNullOrWhiteSpace(collection.TemplateFile) || string.IsNullOrWhiteSpace(collection.TemplateKey)))
+                        Fail(path, preview, "TemplateFile and TemplateKey must be supplied together on a complex collection.");
                     if (collection.Kind == "Simple" ? collection.DisplayType != "List" && collection.DisplayType != "Concatenated" : collection.DisplayType != "Xaml")
                         Fail(path, preview, "Unsupported collection DisplayType.");
                     if (preview.Attribute("Symbol") != null && collection.DisplayType != "List"
@@ -123,6 +126,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
             }
             foreach (Field field in model.Fields.Where(field => field.Type == "Enum"))
                 if (memberNames.Contains(field.Name + "Value")) throw new InvalidDataException(path + ": Member collides with generated enum type " + field.Name + "Value.");
+            PreviewResources.Capture(model, path);
             return model;
         }
 

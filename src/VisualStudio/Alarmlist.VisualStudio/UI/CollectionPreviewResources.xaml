@@ -1,5 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
- xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI">
   <BooleanToVisibilityConverter x:Key="CollectionVisibility" />
   <DataTemplate x:Key="DefaultCollectionRecord">
     <ItemsControl ItemsSource="{Binding OrderedFields}">
@@ -8,6 +9,7 @@
       </DataTemplate></ItemsControl.ItemTemplate>
     </ItemsControl>
   </DataTemplate>
+  <ui:CollectionRecordTemplateSelector x:Key="CollectionRecordSelector" DefaultTemplate="{StaticResource DefaultCollectionRecord}" />
   <DataTemplate x:Key="CollectionPreviewCell">
     <StackPanel Margin="6,4">
       <TextBlock x:Name="SimpleText" Text="{Binding DisplayText}" TextWrapping="Wrap" />
@@ -16,8 +18,9 @@
         <ItemsControl ItemsSource="{Binding VisibleItems}">
           <ItemsControl.ItemTemplate><DataTemplate>
             <StackPanel Margin="0,0,0,8">
-              <ContentControl Content="{Binding}" ContentTemplate="{StaticResource DefaultCollectionRecord}" Focusable="False" />
+              <ContentControl Content="{Binding}" ContentTemplateSelector="{StaticResource CollectionRecordSelector}" Focusable="False" />
               <TextBlock Text="{Binding StateText}" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding TemplateError}" TextWrapping="Wrap" />
             </StackPanel>
           </DataTemplate></ItemsControl.ItemTemplate>
         </ItemsControl>

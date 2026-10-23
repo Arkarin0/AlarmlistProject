@@ -4,7 +4,7 @@ Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
 Follow-up iterations 9–15 complete; follow-up acceptance recorded on
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions. Preview follow-up planning (iteration 16) is
-complete; iteration 17 is complete and iterations 18–21 remain authorized and
+complete; iterations 17–18 are complete and iterations 19–21 remain authorized and
 pending. The owner approved the combined preview/designer plan after the
 interactive layout review; completed iteration evidence remains unchanged.
 Owner decisions were confirmed on 2026-10-21.
@@ -1198,3 +1198,52 @@ Validation:
 - Source/diff review and git diff --check passed. No push or publication.
   Custom templates, playground extensions and approved designer layout remain
   iterations 18–21; this evidence does not claim those gates.
+
+### Iteration 18 implementation and validation (complete)
+
+Complex collection definitions now select a directly declared DataTemplate using
+definition-relative TemplateFile and TemplateKey. The generator captures local
+Source/UriSource dependencies recursively, rejects escaping/external/link paths,
+and stages an owned manifest before WPF markup compilation. No-op staging retains
+timestamps; removed templates leave neither staged files nor compiled resources.
+Final host compilation verifies the captured bytes. Template contents affect the
+generator-5 tooling fingerprint, not semantic library identity. The bridge copies
+only detached strings; WPF resources are compiled into the extension.
+
+The read-only binding contract exposes named/ordered fields, labels, display text,
+primitive typed values, states, defaults, position and compiler-provided origins.
+Missing dictionaries, keys and incorrect resource types use the built-in layout
+with a visible diagnostic. Fork XAML remains trusted compiled code; arbitrary code
+failures are not isolated. Representative binding/render tests are required;
+compilation alone does not validate all binding paths.
+
+Validation and evidence:
+
+- Generator: 86 passed (artifacts/m11-iteration18-generator-verified.log).
+- Focused editor preview/metadata tests: 24 passed, zero failed/skipped
+  (artifacts/m11-iteration18-editor-final.log), including missing/incorrect-key
+  fallback. Those two added tests first exposed an uncaught InvalidDataException;
+  the exception filter was corrected and the complete selection rerun.
+- Custom compiled-template binding/render test: one passed in isolated fork
+  artifacts/col13/bdeb3ccb (artifacts/m11-iteration18-template-fixed.log).
+- Clean native builds and four native cases passed: procedures enabled in
+  artifacts/col13/3e9d8b14 and disabled in artifacts/col13/38b44f9c, on VS2022 and
+  VS2026 sequentially. Each confirmed the custom template while its original
+  source directory was unavailable; sources were restored afterward.
+  Wrapper: artifacts/m11-iteration18-native-verified.log.
+- Both-framework compiler/bridge runtime fixtures passed with procedures enabled,
+  disabled and minimum-count definitions. Evidence:
+  artifacts/log/Debug/AlarmCollections/48939d470f6f48e39388772fbab83919;
+  artifacts/m11-iteration18-runtime.log.
+- Lifecycle checks passed for no-op timestamps, dependency changes, missing keys,
+  invalid XAML, missing dependencies, removal from compiled resources and restored
+  inputs. Evidence: artifacts/m11-iteration18-lifecycle-verified.log and
+  artifacts/col13/bdeb3ccb/preview-lifecycle.
+- Earlier native/build attempts identified target ordering, unqualified MSBuild
+  metadata batching and WPF temporary-project verification problems. These were
+  corrected before the passing runs above. The lifecycle harness also required
+  BOM-aware XML reading. Sandbox test-host connection attempts timed out;
+  installed-tool access succeeded. No failed run is counted as acceptance.
+- Reviewed source, documentation and diff; git diff --check passed. Playground
+  launcher acceptance, designer changes and combined performance/regression gates
+  remain iterations 19–21. No OS theme/DPI checks, push or publication.

@@ -179,5 +179,60 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator.UnitTests
 
         private static string Fingerprint(string source, string name)
             => Regex.Match(source, name + " = \"([^\"]+)\"").Groups[1].Value;
+
+        private string TemplateDefinition(string template = "Preview/Record.xaml", string key = "Record")
+            => Write("<ComplexCollection Name='Checks'><Field Name='Text' Type='String'/><Preview DisplayType='Xaml' TemplateFile='" + template + "' TemplateKey='" + key + "'/></ComplexCollection>");
+
+        private void WriteTemplate(string contents)
+        {
+            Directory.CreateDirectory(Path.Combine(_directory, "Preview"));
+            File.WriteAllText(Path.Combine(_directory, "Preview/Record.xaml"), "<ResourceDictionary xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'>" + contents + "</ResourceDictionary>");
+        }
+
+        [Fact]
+        public void TemplatesTrackDependenciesAndStageWithoutRewritingUnchangedInputs()
+        {
+            WriteTemplate("<ResourceDictionary.MergedDictionaries><ResourceDictionary Source='Other.xaml'/></ResourceDictionary.MergedDictionaries><DataTemplate x:Key='Record'><TextBlock Text='{Binding Fields[Text].DisplayText}'/></DataTemplate>");
+            string dependency = Path.Combine(_directory, "Preview/Other.xaml");
+            File.WriteAllText(dependency, "<ResourceDictionary xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'/>");
+            string path = TemplateDefinition();
+            var model = Definition.Read(path);
+            Assert.Equal(2, model.PreviewResources.Count);
+            string original = Program.Generate(model, false);
+            string stage = Path.Combine(_directory, "stage");
+            PreviewResources.Stage(model, stage);
+            string staged = Path.Combine(stage, "CollectionTemplates/Preview/Record.xaml");
+            DateTime written = File.GetLastWriteTimeUtc(staged);
+            PreviewResources.Stage(model, stage);
+            Assert.Equal(written, File.GetLastWriteTimeUtc(staged));
+            PreviewResources.Verify(model, stage);
+            File.AppendAllText(dependency, "<!--changed-->");
+            Assert.Throws<InvalidDataException>(() => PreviewResources.Verify(Definition.Read(path), stage));
+            string changed = Program.Generate(Definition.Read(path), false);
+            Assert.Equal(Fingerprint(original, "SchemaFingerprint"), Fingerprint(changed, "SchemaFingerprint"));
+            Assert.NotEqual(Fingerprint(original, "ToolingFingerprint"), Fingerprint(changed, "ToolingFingerprint"));
+            Assert.DoesNotContain(_directory, original);
+            PreviewResources.Stage(Definition.Read(Write("<Field Name='Text' Type='String'/>")), stage);
+            Assert.False(File.Exists(staged));
+        }
+
+        [Theory]
+        [InlineData("<TextBlock x:Key='Record'/>")]
+        [InlineData("<DataTemplate x:Key='Other'/>")]
+        [InlineData("<DataTemplate x:Key='Record'/><DataTemplate x:Key='Record'/>")]
+        public void SelectedResourceMustBeOneDirectDataTemplate(string contents)
+        {
+            WriteTemplate(contents);
+            Assert.Throws<InvalidDataException>(() => Definition.Read(TemplateDefinition()));
+        }
+
+        [Fact]
+        public void MissingDependenciesAndEscapingPathsFailBeforeOutputReplacement()
+        {
+            WriteTemplate("<DataTemplate x:Key='Record'><Image Source='missing.png'/></DataTemplate>");
+            Assert.Throws<FileNotFoundException>(() => Definition.Read(TemplateDefinition()));
+            Assert.Throws<InvalidDataException>(() => Definition.Read(TemplateDefinition("../Record.xaml")));
+            Assert.Throws<InvalidDataException>(() => Definition.Read(TemplateDefinition("https://example.invalid/Record.xaml")));
+        }
     }
 }

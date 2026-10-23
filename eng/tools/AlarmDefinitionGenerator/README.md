@@ -186,20 +186,77 @@ a field. Preview gives each collection its own column and retains resolved entry
 details. Simple collections default to bulleted lists; use a Preview child with
 DisplayType="List" and Symbol="Bullet", "Number" or "None", or
 DisplayType="Concatenated" with Separator=", " (empty separators are allowed).
-Complex collections use a built-in compiled record template. Custom TemplateFile
-and TemplateKey declarations are guarded until the next implementation iteration.
+Complex collections use a built-in compiled record template by default, or a
+fork-owned compiled XAML template selected with TemplateFile and TemplateKey.
 Collection PreviewVisible and PreviewWidth use the ordinary field defaults and
 limits. Preview presentation changes tooling compatibility, not library semantics.
 Cells initially show ten entries, with an expansion action; copying includes all
 entries. Collection columns cannot be sorted. Existing column preferences survive
 removal of the old aggregate Collections column.
 
+### Compiled complex-collection preview templates
+
+Add this child after the collection's Field declarations:
+
+```xml
+<Preview DisplayType="Xaml" TemplateFile="Preview/Checks.xaml" TemplateKey="ChecksPreview" />
+```
+
+TemplateFile is relative to the definition, and must contain a WPF
+ResourceDictionary with exactly one directly declared DataTemplate having the
+selected string x:Key. Both attributes are required together. Ordinary WPF
+layout, styles and triggers are supported; the template is trusted fork source,
+not a sandbox or a runtime project plugin.
+
+```xml
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DataTemplate x:Key="ChecksPreview">
+    <StackPanel>
+      <TextBlock Text="{Binding Fields[Text].DisplayText}" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding Fields[Count].DisplayText}" />
+    </StackPanel>
+  </DataTemplate>
+</ResourceDictionary>
+```
+
+Each record receives a read-only host projection: Fields indexed by definition
+name and OrderedFields in definition order; field Name, Label, DisplayText,
+compiler-provided Value, State (Absent/Valid/Deferred/Invalid), IsDefault and
+DefiningAlarm/SourcePath/SourceLine. The record also exposes Position (one-based),
+IsInherited and its compiler-provided origin. Bind one-way; do not evaluate alarm
+expressions or parse scalar text in a template. The host retains value-state
+indicators, entry limits, selection and navigation outside custom record visuals.
+
+Literal local Source/UriSource dependencies (merged dictionaries and images) are
+captured recursively within the definition directory. Missing files, escaping
+paths, links/junctions, external URLs and invalid selected keys/types fail the
+build. Resource-key bindings resolve through WPF; assets referenced dynamically
+by custom fork code must be included by that fork's normal host build. Do not
+expect arbitrary dynamic resource references to be discovered automatically.
+Use inherited foreground/fonts and shared WPF/IDE theme resources instead of
+hard-coded colours. This feature does not add custom converter/plugin discovery.
+
+The host stages owned inputs under its intermediate directory before
+MarkupCompilePass1, compiles dictionaries to BAML and packages assets in the
+extension. Original files are unnecessary at runtime. Source/resource content
+changes alter the tooling fingerprint (generator-5), not library semantics.
+No-op staging retains timestamps; removed inputs are removed from the owned
+manifest, and final compilation checks that staged resource bytes still match.
+The WPF temporary type-discovery project is not itself a markup-resource owner.
+
+Missing compiled resources at runtime produce a diagnostic and the default
+layout where recoverable. Arbitrary fork code cannot be isolated from the host.
+WPF compilation does not prove every Binding path is correct: use representative
+render tests. eng/test-alarm-preview-template-lifecycle.ps1 checks no-op/change/
+failure/removal behavior in an existing isolated collection acceptance fork.
+
 Generated metadata adds `AlarmCollectionDescriptor`, `AlarmDefinition.Collections`
 and `AlarmDefinition.HasTestProcedure`. Semantic fingerprints include collection
 shape, item constraints, counts and procedure availability; labels/help remain
 presentation-only. Version-1 inputs retain their historical semantic fingerprint;
 the standard version-2 definition intentionally has a different fingerprint, so
-rebuild existing libraries and matching SDK/extension assets. The generator-3
+rebuild existing libraries and matching SDK/extension assets. The generator-5
 tooling fingerprint also includes presentation metadata. Use the milestone plan
 for acceptance evidence.
 

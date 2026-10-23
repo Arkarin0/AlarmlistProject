@@ -45,8 +45,14 @@ namespace Alarmlist.VisualStudio.UI
 
     internal sealed class CollectionPreviewRecord : ObservableObject
     {
+        internal AlarmCollectionDescriptor Definition { get; }
         public int Position { get; }
         public bool IsInherited { get; }
+        public string DefiningAlarm { get; }
+        public string SourcePath { get; }
+        public int? SourceLine { get; }
+        private string _templateError;
+        public string TemplateError { get => _templateError; internal set { _templateError = value; Notify(); } }
         public IReadOnlyList<CollectionPreviewField> OrderedFields { get; }
         public IReadOnlyDictionary<string, CollectionPreviewField> Fields { get; }
         public string PlainText => string.Join(Environment.NewLine, OrderedFields.Select(field => field.Label + ": " + field.DisplayText));
@@ -54,7 +60,9 @@ namespace Alarmlist.VisualStudio.UI
             .Select(field => field.Label + ": " + field.State));
         public CollectionPreviewRecord(AlarmCollectionDescriptor definition, AnalysisCollectionEntry entry, int position)
         {
-            Position = position; IsInherited = entry.IsInherited;
+            Definition = definition; Position = position; IsInherited = entry.IsInherited;
+            DefiningAlarm = entry.Origin?.Alarm.FullyQualifiedName;
+            SourcePath = entry.Origin?.Location?.FilePath; SourceLine = entry.Origin?.Location?.LineNumber;
             OrderedFields = BindingCollection.Create(definition.Fields.Select(field => new CollectionPreviewField(field,
                 entry.Fields.FirstOrDefault(value => value.Name == field.Name))));
             Fields = new System.Collections.ObjectModel.ReadOnlyDictionary<string, CollectionPreviewField>(OrderedFields.ToDictionary(field => field.Name));
@@ -69,11 +77,16 @@ namespace Alarmlist.VisualStudio.UI
         public object Value { get; }
         public string State { get; }
         public bool IsDefault { get; }
+        public string DefiningAlarm { get; }
+        public string SourcePath { get; }
+        public int? SourceLine { get; }
         public CollectionPreviewField(AlarmFieldDescriptor definition, AnalysisField field)
         {
             Name = definition.Name; Label = definition.Label; Value = field?.TypedValue;
             State = (field?.State ?? AnalysisFieldValueState.Absent).ToString();
             IsDefault = field?.IsDefault ?? false;
+            DefiningAlarm = field?.DefiningAlarm?.FullyQualifiedName;
+            SourcePath = field?.ValueLocation?.FilePath; SourceLine = field?.ValueLocation?.LineNumber;
             DisplayText = field == null || field.State == AnalysisFieldValueState.Absent ? "(absent)"
                 : AlarmPreviewRow.FieldText(field) + (field.State == AnalysisFieldValueState.Deferred ? " (deferred)" : "");
         }

@@ -68,6 +68,62 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             });
         }
         [Fact]
+        public void DeclaredCompiledTemplatesLoadFromTheHostAssembly()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                foreach (var definition in AlarmDefinition.Collections.Where(item => item.TemplateResource != null))
+                {
+                    var origin = new AnalysisAlarmOrigin(0, "Test", null);
+                    var entry = new AnalysisCollectionEntry(false, false, true, new AnalysisCollectionEntryOrigin(origin, definition.Name, 0, null), null,
+                        definition.Fields.Select(field => new AnalysisField(field.Name, true, "value", null, "value", origin, null, false)));
+                    var collection = new AnalysisCollection(definition.Name, true, null, new[] { entry }, new[] { entry }, Array.Empty<AnalysisCollectionEntry>());
+                    var record = new CollectionPreviewCell(definition, collection, true).Items[0];
+                    var fallback = new System.Windows.DataTemplate();
+                    var template = new CollectionRecordTemplateSelector { DefaultTemplate = fallback }.SelectTemplate(record, null);
+                    Assert.True(record.TemplateError == null, record.TemplateError);
+                    Assert.NotSame(fallback, template);
+                    var content = (System.Windows.FrameworkElement)template.LoadContent();
+                    content.DataContext = record;
+                    content.Measure(new System.Windows.Size(300, double.PositiveInfinity));
+                    content.Arrange(new System.Windows.Rect(0, 0, 300, content.DesiredSize.Height));
+                    content.UpdateLayout();
+                    Assert.Contains(Descendants(content).OfType<System.Windows.Controls.TextBlock>(), text => text.Text.Contains("value"));
+                }
+            });
+        }
+        [Fact]
+        public void MissingCompiledTemplateFallsBackWithDiagnostic()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                var definition = new AlarmCollectionDescriptor("Tags", "Complex", "Records", "", 0, null, Definition().Fields.ToArray(),
+                    templateResource: "CollectionTemplates/Missing.xaml", templateKey: "Missing");
+                var record = new CollectionPreviewCell(definition, Collection("A"), true).Items[0];
+                var fallback = new System.Windows.DataTemplate();
+                var selector = new CollectionRecordTemplateSelector { DefaultTemplate = fallback };
+                Assert.Same(fallback, selector.SelectTemplate(record, null));
+                Assert.Contains("using default layout", record.TemplateError);
+                Assert.Equal("A", record.Fields["Item"].DisplayText);
+            });
+        }
+        [Theory]
+        [InlineData("MissingKey")]
+        [InlineData("CollectionVisibility")]
+        public void MissingOrIncorrectResourceTypeUsesReadableFallback(string key)
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                var definition = new AlarmCollectionDescriptor("Tags", "Complex", "Records", "", 0, null, Definition().Fields.ToArray(),
+                    templateResource: "UI/CollectionPreviewResources.xaml", templateKey: key);
+                var record = new CollectionPreviewCell(definition, Collection("A"), true).Items[0];
+                var fallback = new System.Windows.DataTemplate();
+                Assert.Same(fallback, new CollectionRecordTemplateSelector { DefaultTemplate = fallback }.SelectTemplate(record, null));
+                Assert.Contains("using default layout", record.TemplateError);
+                Assert.Equal("A", record.Fields["Item"].DisplayText);
+            });
+        }
+        [Fact]
         public void CompiledComplexCellShowsLabelledCompilerValues()
         {
             InheritanceAdornerTests.RunOnSta(() =>

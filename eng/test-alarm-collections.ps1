@@ -13,6 +13,7 @@ try {
     $generatorDirectory = Join-Path $runRoot 'generator'
     $runtimeDirectory = Join-Path $runRoot 'runtime'
     New-Item -ItemType Directory -Path $generatorDirectory, $runtimeDirectory | Out-Null
+    Copy-Item -LiteralPath (Join-Path $repoRoot 'eng/testassets/AlarmCollections/Preview') -Destination (Join-Path $runtimeDirectory 'Preview') -Recurse
     $generatorProject = Join-Path $generatorDirectory 'CollectionFixtureGenerator.csproj'
     Set-Content -LiteralPath $generatorProject -Encoding utf8 -Value @"
 <Project Sdk="Microsoft.NET.Sdk">

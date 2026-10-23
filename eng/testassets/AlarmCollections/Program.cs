@@ -157,6 +157,9 @@ internal static class Program
         var presentation = copied.CollectionDefinitions.Single(collection => collection.Name == "Tags");
         Check(presentation.DisplayType == "Concatenated" && presentation.Separator == ", " && presentation.PreviewVisible
             && copied.CollectionDefinitions.Single(collection => collection.Name == "Numbers").Symbol == "Number", "Bridge retains collection presentation metadata");
+        var template = copied.CollectionDefinitions.Single(collection => collection.Name == "Checks");
+        Check(template.TemplateResource == "CollectionTemplates/Preview/Checks.xaml" && template.TemplateKey == "ChecksPreview",
+            "Bridge copies only compiled template resource identifiers");
         Check(!ReferenceEquals(copiedEntry.Origin, entry.Origin) && !ReferenceEquals(copiedEntry.Fields[0], entry.Fields[0]), "Bridge owns detached objects");
 
         var identity = new Alarmlist.Libraries.LibraryIdentity("Records", "1.0.0");

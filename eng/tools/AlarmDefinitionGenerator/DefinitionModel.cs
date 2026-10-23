@@ -13,6 +13,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
         public bool HasTestProcedure { get; set; }
         public List<Field> Fields { get; } = new List<Field>();
         public List<CollectionDefinition> Collections { get; } = new List<CollectionDefinition>();
+        public List<PreviewResource> PreviewResources { get; } = new List<PreviewResource>();
         public int Count => Fields.Count;
         public Field this[int index] => Fields[index];
         public IEnumerator<Field> GetEnumerator() => Fields.GetEnumerator();
@@ -32,6 +33,16 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
         public string DisplayType { get; set; }
         public string Symbol { get; set; } = "Bullet";
         public string Separator { get; set; } = ", ";
+        public string TemplateFile { get; set; }
+        public string TemplateKey { get; set; }
         public List<Field> Fields { get; } = new List<Field>();
+    }
+
+    internal sealed class PreviewResource
+    {
+        public string Path { get; set; }
+        public string Hash { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public byte[] Content { get; set; }
     }
 }

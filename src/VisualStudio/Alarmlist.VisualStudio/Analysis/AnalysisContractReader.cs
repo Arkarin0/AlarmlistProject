@@ -215,7 +215,8 @@ namespace Alarmlist.VisualStudio.Analysis
                 Value<string>(collection, "Label"), Value<string>(collection, "Help"), Value<int>(collection, "MinCount"),
                 Value<int?>(collection, "MaxCount"), List(collection, "Fields", Descriptor).ToArray(),
                 Value<bool>(collection, "PreviewVisible"), Value<double>(collection, "PreviewWidth"),
-                Value<string>(collection, "DisplayType"), Value<string>(collection, "Symbol"), Value<string>(collection, "Separator"));
+                Value<string>(collection, "DisplayType"), Value<string>(collection, "Symbol"), Value<string>(collection, "Separator"),
+                Value<string>(collection, "TemplateResource"), Value<string>(collection, "TemplateKey"));
 
         private static AnalysisCollection Collection(object collection) => new AnalysisCollection(Value<string>(collection, "Name"),
             Value<bool>(collection, "IsLocallyDeclared"), Location(Value<object>(collection, "LocalLocation")),
