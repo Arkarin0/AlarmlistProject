@@ -47,10 +47,16 @@ namespace Alarmlist.VisualStudio.Documents
         public bool SetValues(AlmxProjection baseline, AlarmSource original, IReadOnlyDictionary<string, string> values,
             IReadOnlyList<ProcedureValueChange> procedures, IReadOnlyList<PropertyValueChange> alarmProperties,
             IReadOnlyList<PropertyValueChange> fileProperties, IReadOnlyDictionary<string, string> titles, out string error)
+            => SetValues(baseline, original, values, procedures, alarmProperties, fileProperties, titles, Array.Empty<CollectionValueChange>(), out error);
+
+        public bool SetValues(AlmxProjection baseline, AlarmSource original, IReadOnlyDictionary<string, string> values,
+            IReadOnlyList<ProcedureValueChange> procedures, IReadOnlyList<PropertyValueChange> alarmProperties,
+            IReadOnlyList<PropertyValueChange> fileProperties, IReadOnlyDictionary<string, string> titles,
+            IReadOnlyList<CollectionValueChange> collections, out string error)
         {
             return Apply(() =>
             {
-                bool editsAlarm = values.Count != 0 || procedures.Count != 0 || alarmProperties.Count != 0 || titles.Count != 0;
+                bool editsAlarm = values.Count != 0 || procedures.Count != 0 || alarmProperties.Count != 0 || titles.Count != 0 || collections.Count != 0;
                 AlarmSource current = !editsAlarm || original == null ? null : FindCurrent(baseline, original);
                 if (current == null && editsAlarm)
                     throw new InvalidOperationException("Select an alarm to edit its values.");
@@ -61,6 +67,13 @@ namespace Alarmlist.VisualStudio.Documents
                         throw new InvalidOperationException("This field changed in another view. Press Escape to reload its current value.");
                 foreach (string section in procedures.Select(change => change.Section).Concat(titles.Keys).Distinct(StringComparer.OrdinalIgnoreCase))
                     CheckProcedureBaseline(baseline, original, current, section);
+                foreach (var descriptor in collections.Select(change => change.Descriptor).Distinct())
+                {
+                    var previousCollection = new CollectionSource(original, descriptor);
+                    var currentCollection = new CollectionSource(current, descriptor);
+                    if (previousCollection.Error != null || currentCollection.Error != null || previousCollection.GetText(baseline) != currentCollection.GetText(Projection))
+                        throw new InvalidOperationException("This collection changed in another view. Press Escape to reload its entries.");
+                }
                 int index = Projection.Alarms.ToList().IndexOf(current);
                 AlmxProjection updated = Projection;
                 foreach (KeyValuePair<string, string> value in values)
@@ -72,6 +85,12 @@ namespace Alarmlist.VisualStudio.Documents
                 foreach (ProcedureValueChange change in procedures)
                 {
                     SourceEdit edit = _editing.SetProcedureItem(updated, updated.Alarms[index], change);
+                    updated = _editing.Parse(edit.Apply(updated.Text));
+                    if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
+                }
+                foreach (CollectionValueChange change in collections)
+                {
+                    SourceEdit edit = _editing.SetCollectionValue(updated, updated.Alarms[index], change);
                     updated = _editing.Parse(edit.Apply(updated.Text));
                     if (!updated.IsValid) throw new InvalidOperationException(updated.Error);
                 }
@@ -113,6 +132,13 @@ namespace Alarmlist.VisualStudio.Documents
         public bool AddAlarm(IReadOnlyList<KeyValuePair<string, string>> groups, out string error)
             => Apply(() => _editing.AddAlarm(Projection, groups), "Add alarm", out error);
         public bool DeleteAlarm(AlarmSource alarm, out string error) => Apply(() => _editing.DeleteAlarm(Projection, alarm), "Delete alarm", out error);
+
+        public bool AddCollectionItem(AlarmSource alarm, Definition.AlarmCollectionDescriptor descriptor, bool clear, out string error)
+            => Apply(() => _editing.AddCollectionItem(Projection, alarm, descriptor, clear), "Add collection entry", out error);
+        public bool DeleteCollectionItem(AlarmSource alarm, Definition.AlarmCollectionDescriptor descriptor, int index, out string error)
+            => Apply(() => _editing.DeleteCollectionItem(Projection, alarm, descriptor, index), "Delete collection entry", out error);
+        public bool MoveCollectionItem(AlarmSource alarm, Definition.AlarmCollectionDescriptor descriptor, int index, int direction, out string error)
+            => Apply(() => _editing.MoveCollectionItem(Projection, alarm, descriptor, index, direction), "Move collection entry", out error);
 
         public bool SetAbstract(AlmxProjection baseline, AlarmSource original, bool value, out string error)
             => Apply(() =>

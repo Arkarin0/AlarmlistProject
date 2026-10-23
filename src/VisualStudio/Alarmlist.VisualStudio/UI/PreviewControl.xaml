@@ -205,6 +205,25 @@
                   </StackPanel>
                 </DataTemplate></ItemsControl.ItemTemplate>
               </ItemsControl>
+              <ItemsControl ItemsSource="{Binding ResolvedCollections}">
+                <ItemsControl.ItemTemplate><DataTemplate>
+                  <Expander Header="{Binding Label}" IsExpanded="True" Margin="0,0,0,10">
+                    <StackPanel><TextBlock Text="{Binding Summary}" />
+                      <ItemsControl ItemsSource="{Binding Items}"><ItemsControl.ItemTemplate><DataTemplate>
+                        <GroupBox Header="{Binding Label}" Margin="0,4">
+                          <ItemsControl ItemsSource="{Binding Fields}"><ItemsControl.ItemTemplate><DataTemplate>
+                            <StackPanel Margin="4"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                              <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" AutomationProperties.Name="{Binding Name, StringFormat=Resolved collection {0}}" />
+                              <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
+                              <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" />
+                            </StackPanel>
+                          </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </GroupBox>
+                      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel>
+                  </Expander>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
 
      </ScrollViewer>

@@ -215,8 +215,12 @@ Contract 7 copies field descriptors, scalar states, canonical values and primiti
 typed values; generated compiler or enum types never enter the host AppDomain.
 It also copies collection descriptors, procedure availability, local/effective/
 excluded entries, item/field origins and Clear exclusions. The compiler owns
-resolution and typed validation. Collection-enabled host generation is still
-guarded until the metadata-driven collection designer is implemented.
+resolution and typed validation. The metadata-driven collection designer supports
+local scalar rows and flat record fields, sibling completion, local ordering and
+Clear. Inherited/excluded entries remain read-only; focusing defaults never writes
+source. Preview offers collection counts and separate resolved entry details.
+Omitting TestProcedure from a version-2 definition hides its creation/editor and
+built-in preview column while preserving ordinary fields named TestMethod.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.

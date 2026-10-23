@@ -15,6 +15,8 @@ namespace Alarmlist.VisualStudio.UI
         public string Name => _definitions.Any(field => field.Name == "Name") ? Value("Name") : Identity;
         public string this[string column] => Column(column);
         public string TestMethod { get; }
+        public string Collections => !Alarm.IsResolved ? "(unavailable)" : string.Join("; ", Alarm.Collections.Select(collection =>
+            (AlarmDefinition.Collections.FirstOrDefault(item => item.Name == collection.Name)?.Label ?? collection.Name) + ": " + collection.EffectiveEntries.Count));
         public string Identity => Alarm.Origin.FullyQualifiedName ?? "";
         public string Source => AlarmOriginPresentation.Source(Alarm.Origin)
             + (Alarm.Origin.Location == null ? "" : ":" + Alarm.Origin.Location.LineNumber);
@@ -64,6 +66,7 @@ namespace Alarmlist.VisualStudio.UI
                 case nameof(TestMethod): return TestMethod;
                 case nameof(Identity): return Identity;
                 case nameof(Source): return Source;
+                case nameof(Collections): return Collections;
                 default:
                     AlarmFieldDescriptor field = _definitions.FirstOrDefault(item => PreviewColumnLayout.FieldId(item.Name) == column);
                     return field == null ? throw new ArgumentException("Unknown preview column.", nameof(column)) : Value(field.Name);

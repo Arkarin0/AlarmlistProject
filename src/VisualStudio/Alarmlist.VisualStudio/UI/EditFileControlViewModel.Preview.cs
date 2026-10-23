@@ -49,6 +49,7 @@ namespace Alarmlist.VisualStudio.UI
         public void InvalidatePreviewActions() => _previewActionVersion++;
         public IReadOnlyList<ResolvedFieldViewModel> ResolvedFields { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
         public IReadOnlyList<ResolvedSectionViewModel> ResolvedSections { get; private set; } = Array.Empty<ResolvedSectionViewModel>();
+        public IReadOnlyList<ResolvedCollectionViewModel> ResolvedCollections { get; private set; } = Array.Empty<ResolvedCollectionViewModel>();
         public string ResolvedPreviewMessage { get; private set; }
         public string CompiledXml { get; private set; }
         public string XmlPreviewMessage { get; private set; }
@@ -70,12 +71,14 @@ namespace Alarmlist.VisualStudio.UI
                 // navigation validates inputs. Preserve selection/focus in controls.
                 foreach (ResolvedFieldViewModel field in ResolvedFields) field.GoToSourceCommand.Refresh();
                 foreach (ProcedureAnalysisRow row in ResolvedSections.SelectMany(section => section.Items)) row.GoToSourceCommand.Refresh();
+                foreach (var field in ResolvedCollections.SelectMany(collection => collection.Items).SelectMany(item => item.Fields)) field.GoToSourceCommand.Refresh();
                 return;
             }
             _previewState = unavailable == null ? state : null;
             _previewAlarm = unavailable == null ? alarm : null;
             ResolvedFields = Array.Empty<ResolvedFieldViewModel>();
             ResolvedSections = Array.Empty<ResolvedSectionViewModel>();
+            ResolvedCollections = Array.Empty<ResolvedCollectionViewModel>();
             CompiledXml = null;
             PreviewContext = _disposed || state?.Project == null ? null
                 : state.Project.ProjectPath + " (" + state.Project.Configuration + ")";
@@ -94,6 +97,7 @@ namespace Alarmlist.VisualStudio.UI
                 {
                     ResolvedFields = PreviewContent.Fields(alarm, location => PreviewNavigation(state, alarm, location));
                     ResolvedSections = PreviewContent.Sections(alarm, location => PreviewNavigation(state, alarm, location));
+                    ResolvedCollections = PreviewContent.Collections(alarm, location => PreviewNavigation(state, alarm, location));
                 }
                 CompiledXml = snapshot.Success ? state.Response.CompiledXml : null;
                 XmlPreviewMessage = !snapshot.Success ? "Compiled XML is unavailable until all project errors are resolved."
@@ -101,6 +105,7 @@ namespace Alarmlist.VisualStudio.UI
                     : state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML preview.";
             }
             Notify(nameof(ResolvedFields)); Notify(nameof(ResolvedSections)); Notify(nameof(ResolvedPreviewMessage));
+            Notify(nameof(ResolvedCollections));
             Notify(nameof(CompiledXml)); Notify(nameof(XmlPreviewMessage)); Notify(nameof(PreviewContext));
             Notify(nameof(CanUseProjectPreview));
             SelectedPreviewRow?.GoToSourceCommand.Refresh();

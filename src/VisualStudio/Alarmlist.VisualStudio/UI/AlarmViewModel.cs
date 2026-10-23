@@ -59,6 +59,8 @@ namespace Alarmlist.VisualStudio.UI
         public string Label => Definition?.Label ?? Name;
         public bool Multiline => Definition?.Multiline ?? Name == "Title";
         public IReadOnlyList<FieldLiteralChoice> LiteralChoices { get; }
+        public IReadOnlyList<PropertyCompletion> Suggestions { get; private set; } = Array.Empty<PropertyCompletion>();
+        internal void SetSuggestions(IReadOnlyList<PropertyCompletion> suggestions) { Suggestions = suggestions; Notify(nameof(Suggestions)); }
         public bool HasLiteralChoices => LiteralChoices.Count != 0;
         public string FormatHelp => Definition == null ? string.Empty
             : (Definition.Help == null ? "" : Definition.Help + " ") + Definition.Type

@@ -308,6 +308,7 @@ namespace Alarmlist.VisualStudio.UI
                     section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasKindChanges)
                         ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry), !HasPending);
                 RefreshProcedureSearch();
+                RefreshCollections(!identityDraft && alarm?.IsResolved == true ? alarm : null, !HasPending && alarm?.IsResolved == true);
                 if (!ReferenceEquals(_choicesState, state) || !ReferenceEquals(_choicesAlarm, alarm))
                 {
                     _choicesState = state;

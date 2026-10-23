@@ -47,6 +47,7 @@ namespace Alarmlist.VisualStudio.UI
         public bool CanUseProjectPreview => !_disposed && !_busy && _state != null && ReferenceEquals(_state, Current);
         public IReadOnlyList<ResolvedFieldViewModel> ResolvedFields { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
         public IReadOnlyList<ResolvedSectionViewModel> ResolvedSections { get; private set; } = Array.Empty<ResolvedSectionViewModel>();
+        public IReadOnlyList<ResolvedCollectionViewModel> ResolvedCollections { get; private set; } = Array.Empty<ResolvedCollectionViewModel>();
         public string ResolvedPreviewMessage { get; private set; }
         public string CompiledXml { get; private set; }
         public string XmlPreviewMessage { get; private set; }
@@ -162,6 +163,7 @@ namespace Alarmlist.VisualStudio.UI
             AnalysisAlarm alarm = _selected?.Alarm;
             ProjectAnalysisState state = _state;
             ResolvedFields = Array.Empty<ResolvedFieldViewModel>(); ResolvedSections = Array.Empty<ResolvedSectionViewModel>();
+            ResolvedCollections = Array.Empty<ResolvedCollectionViewModel>();
             ResolvedPreviewMessage = state == null ? AlarmTableMessage : alarm == null ? "Select a row in Alarm table to inspect its resolved values."
                 : !alarm.HasEvaluatedValues ? "This alarm could not be evaluated. See live project diagnostics."
                 : state.Response.Snapshot.Success ? BufferGuidance : "This alarm is resolved. Other project errors prevent compiled XML preview.";
@@ -169,6 +171,7 @@ namespace Alarmlist.VisualStudio.UI
             {
                 ResolvedFields = PreviewContent.Fields(alarm, location => Navigation(state, location, alarm));
                 ResolvedSections = PreviewContent.Sections(alarm, location => Navigation(state, location, alarm));
+                ResolvedCollections = PreviewContent.Collections(alarm, location => Navigation(state, location, alarm));
             }
             CompiledXml = state?.Response.Snapshot.Success == true ? state.Response.CompiledXml : null;
             XmlPreviewMessage = state == null ? AlarmTableMessage : !state.Response.Snapshot.Success
@@ -176,6 +179,7 @@ namespace Alarmlist.VisualStudio.UI
                 : CompiledXml == null ? state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML preview."
                 : "Read-only output for the whole project, including shared unsaved ALMX text. No output file is written.";
             Notify(nameof(ResolvedFields)); Notify(nameof(ResolvedSections)); Notify(nameof(ResolvedPreviewMessage));
+            Notify(nameof(ResolvedCollections));
             Notify(nameof(CompiledXml)); Notify(nameof(XmlPreviewMessage));
             RefreshCommands();
         }
@@ -185,6 +189,7 @@ namespace Alarmlist.VisualStudio.UI
             _selected?.GoToSourceCommand.Refresh();
             foreach (ResolvedFieldViewModel field in ResolvedFields) field.GoToSourceCommand.Refresh();
             foreach (ProcedureAnalysisRow row in ResolvedSections.SelectMany(section => section.Items)) row.GoToSourceCommand.Refresh();
+            foreach (var field in ResolvedCollections.SelectMany(collection => collection.Items).SelectMany(item => item.Fields)) field.GoToSourceCommand.Refresh();
         }
         private DelegateCommand Navigation(ProjectAnalysisState state, AnalysisLocation location, AnalysisAlarm alarm = null)
         {

@@ -24,6 +24,9 @@ namespace Alarmlist.VisualStudio.UI
             => BindingCollection.Create(alarm.ProcedureSections.Select(section => new ResolvedSectionViewModel(section,
                 entry => navigate(entry.Origin.Location))));
 
+        public static IReadOnlyList<ResolvedCollectionViewModel> Collections(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate)
+            => BindingCollection.Create(alarm.Collections.Select(collection => new ResolvedCollectionViewModel(collection, navigate)));
+
         public static string[] Cultures(ProjectAnalysisState state, string selected)
         {
             IEnumerable<string> cultures = (state?.Response?.Snapshot?.Resources.Select(resource => resource.Culture) ?? Enumerable.Empty<string>())

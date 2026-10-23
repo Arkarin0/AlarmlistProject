@@ -60,21 +60,23 @@ namespace Alarmlist.VisualStudio.UI
         public Task PendingLoad { get; private set; } = Task.CompletedTask;
         public Task PendingSave => _store?.PendingSave ?? Task.CompletedTask;
         public event EventHandler Changed;
-        internal static string FieldId(string name) => name == "TestMethod" || name == "Identity" || name == "Source" ? "Field:" + name : name;
+        internal static string FieldId(string name) => name == "TestMethod" || name == "Identity" || name == "Source" || name == "Collections" ? "Field:" + name : name;
         internal static string DefaultSortColumn => AlarmDefinition.Fields.Any(field => field.Name == "Name") ? "Name" : "Identity";
         internal static string ColumnLabel(string id) => AlarmDefinition.Fields.FirstOrDefault(field => FieldId(field.Name) == id)?.Label
             ?? (id == "TestMethod" ? "Test method" : id);
         public PreviewColumnLayout() : this(AlarmDefinition.Fields) { }
-        internal PreviewColumnLayout(IReadOnlyList<AlarmFieldDescriptor> fields)
+        internal PreviewColumnLayout(IReadOnlyList<AlarmFieldDescriptor> fields, bool? hasProcedures = null, bool? hasCollections = null)
         {
-            int count = fields.Count + 3;
-            Columns = BindingCollection.Create(fields.Select((field, index) => new PreviewColumn(FieldId(field.Name), field.PreviewWidth,
-                index, Commit, Move, field.Label, field.PreviewVisible, count)).Concat(new[]
-                {
-                    new PreviewColumn("TestMethod", 420, fields.Count, Commit, Move, count: count),
-                    new PreviewColumn("Identity", 220, fields.Count + 1, Commit, Move, count: count),
-                    new PreviewColumn("Source", 180, fields.Count + 2, Commit, Move, count: count)
-                }));
+            bool procedures = hasProcedures ?? AlarmDefinition.HasTestProcedure;
+            bool collections = hasCollections ?? AlarmDefinition.Collections.Count != 0;
+            int count = fields.Count + 2 + (procedures ? 1 : 0) + (collections ? 1 : 0);
+            var columns = fields.Select((field, index) => new PreviewColumn(FieldId(field.Name), field.PreviewWidth,
+                index, Commit, Move, field.Label, field.PreviewVisible, count)).ToList();
+            if (procedures) columns.Add(new PreviewColumn("TestMethod", 420, columns.Count, Commit, Move, count: count));
+            if (collections) columns.Add(new PreviewColumn("Collections", 240, columns.Count, Commit, Move, count: count));
+            columns.Add(new PreviewColumn("Identity", 220, columns.Count, Commit, Move, count: count));
+            columns.Add(new PreviewColumn("Source", 180, columns.Count, Commit, Move, count: count));
+            Columns = BindingCollection.Create(columns);
             ResetCommand = new DelegateCommand(Reset);
         }
         public void SetStore(ProjectUserSetting store)

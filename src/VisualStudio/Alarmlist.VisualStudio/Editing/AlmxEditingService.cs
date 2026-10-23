@@ -29,6 +29,10 @@ namespace Alarmlist.VisualStudio.Editing
         SourceEdit MoveProcedureItem(AlmxProjection projection, AlarmSource alarm, string section, int index, int direction);
         SourceEdit UseLocalProcedureEntries(AlmxProjection projection, AlarmSource alarm, string section);
         SourceEdit MakeProcedureLocalCopy(AlmxProjection projection, AlarmSource alarm, string section, IReadOnlyList<ProcedureValueChange> entries);
+        SourceEdit SetCollectionValue(AlmxProjection projection, AlarmSource alarm, CollectionValueChange change);
+        SourceEdit AddCollectionItem(AlmxProjection projection, AlarmSource alarm, Definition.AlarmCollectionDescriptor descriptor, bool clear);
+        SourceEdit DeleteCollectionItem(AlmxProjection projection, AlarmSource alarm, Definition.AlarmCollectionDescriptor descriptor, int index);
+        SourceEdit MoveCollectionItem(AlmxProjection projection, AlarmSource alarm, Definition.AlarmCollectionDescriptor descriptor, int index, int direction);
     }
 
     [Export(typeof(IAlmxEditingService))]
@@ -123,7 +127,7 @@ namespace Alarmlist.VisualStudio.Editing
             return InsertChild(projection.Text, projection.Root, "<" + alarmName + ">" + newline
                 + fieldIndent + "<" + idName + ">" + identity + "</" + idName + ">" + newline
                 + (hasName ? fieldIndent + "<" + name + ">New alarm</" + name + ">" + newline : "")
-                + fieldIndent + "<" + procedure + ">" + contents + "</" + procedure + ">"
+                + (Definition.AlarmDefinition.HasTestProcedure ? fieldIndent + "<" + procedure + ">" + contents + "</" + procedure + ">" : "")
                 + newline + alarmIndent + "</" + alarmName + ">");
         }
 

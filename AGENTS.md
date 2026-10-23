@@ -100,9 +100,13 @@ overrides remain excluded.
 Iteration 11 adds version-2 collection descriptors and procedure capability
 metadata, preserving the standard version-1 semantic fingerprint while advancing
 the full tooling fingerprint (now generator-3 after the runtime model change).
-Compiler/SDK generation is enabled in iteration 13. Host generation still rejects
-collections and disabled procedures until the collection designer is ready.
-Keep that remaining guard explicit; metadata alone is not designer support.
+Compiler/SDK generation is enabled in iteration 13. Iteration 14 adds host
+collection editing and optional-procedure UI, removing the remaining host guard.
+Collection drafts share the atomic document transaction and reject concurrent
+changes to their source container. Keep local entry identities through moves and
+analysis refresh; inherited/excluded entries remain read-only compiler projections.
+Record completion adds sibling fields without making defaults into source values.
+Preview uses a fixed collection-count column and separate entry details.
 Iteration 12 supplies compiler collection parsing, inherited-first/Clear
 resolution, typed values and output. Record sibling expressions use $(item:FieldName)
 only in record context, including translated expressions; defaults stay literal.
@@ -115,6 +119,10 @@ per-field scalar states and item/Clear origins. Library location maps include
 containers, entries and record fields; reject forged or obsolete artifact maps.
 Use eng/test-alarm-collection-fork.ps1 for isolated procedure-enabled/disabled SDK
 package acceptance on both task hosts, including transactional collection failures.
+Its -Designer option checks both IDE hosts in AlarmlistDefinitionExp; -SkipConsumers
+selects designer-only acceptance. Supply both VisualStudio2022Path and
+VisualStudio2026Path. Run native fixtures sequentially and keep their private
+workspace paths short enough for desktop SDK extraction.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter
 grip, plus collapsible group bodies and procedure search in follow-up iterations.

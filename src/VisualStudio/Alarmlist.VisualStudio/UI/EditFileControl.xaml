@@ -346,7 +346,80 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Expander Header="Test procedure" IsExpanded="True" Margin="0,6,8,0"
+          <ItemsControl ItemsSource="{Binding Collections}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Expander Header="{Binding Label}" IsExpanded="{Binding IsExpanded}" Tag="PreserveDraft" Margin="0,6,8,0"
+                          AutomationProperties.Name="{Binding Name, StringFormat=Collection {0}}">
+                  <Expander.Resources><Style TargetType="ToggleButton"><Setter Property="Tag" Value="PreserveDraft" /></Style></Expander.Resources>
+                  <StackPanel Margin="4,6,0,0">
+                    <TextBlock Text="{Binding Help}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Status}" />
+                    <TextBlock Text="{Binding Error}" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding Inherited}">
+                      <ItemsControl.ItemTemplate><DataTemplate>
+                        <StackPanel Margin="0,4"><TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                          <Button Content="{Binding Origin}" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" />
+                        </StackPanel>
+                      </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <WrapPanel Margin="0,6">
+                      <Button Content="Add entry" Command="{Binding AddCommand}" Click="OnCollectionAction" AutomationProperties.Name="{Binding Name, StringFormat=Add {0} entry}" />
+                      <Button Content="Clear previous entries" Command="{Binding ClearCommand}" Click="OnCollectionAction" AutomationProperties.Name="{Binding Name, StringFormat=Clear {0} entries}" />
+                    </WrapPanel>
+                    <ItemsControl ItemsSource="{Binding Items}">
+                      <ItemsControl.ItemTemplate><DataTemplate>
+                        <Expander IsExpanded="{Binding IsExpanded}" Tag="PreserveDraft" Margin="0,3" AutomationProperties.Name="{Binding Label}">
+                          <Expander.Header>
+                            <StackPanel Orientation="Horizontal">
+                              <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                              <Button Content="Up" Command="{Binding UpCommand}" Click="OnCollectionAction" AutomationProperties.Name="Move collection entry up" />
+                              <Button Content="Down" Command="{Binding DownCommand}" Click="OnCollectionAction" AutomationProperties.Name="Move collection entry down" />
+                              <Button Content="Delete" Command="{Binding DeleteCommand}" Click="OnCollectionAction" AutomationProperties.Name="Delete collection entry" />
+                            </StackPanel>
+                          </Expander.Header>
+                          <StackPanel>
+                          <TextBlock Text="{Binding Error}" TextWrapping="Wrap" />
+                          <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding CanEdit}" Margin="12,4,0,4">
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                              <StackPanel Margin="0,2">
+                                <TextBlock x:Name="CollectionFieldLabel" Text="{Binding Label}" />
+                                <ui:ExpressionTextBox RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
+                                    ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}"
+                                    Suggestions="{Binding Suggestions}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    AutomationProperties.Name="{Binding Name}" AutomationProperties.LabeledBy="{Binding ElementName=CollectionFieldLabel}"
+                                    AutomationProperties.HelpText="{Binding EditHelp}" ToolTip="{Binding EditHelp}" LostKeyboardFocus="OnFieldLostFocus"
+                                    AcceptsReturn="{Binding Multiline}" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" IsUndoEnabled="False">
+                                  <ui:ExpressionTextBox.ContextMenu>
+                                    <ContextMenu>
+                                      <MenuItem Header="Remove local value / use default" Command="{Binding UseInheritedCommand}" />
+                                      <MenuItem Header="Choose literal value" ItemsSource="{Binding LiteralChoices}" Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}">
+                                        <MenuItem.ItemContainerStyle><Style TargetType="MenuItem"><Setter Property="Header" Value="{Binding Label}" /><Setter Property="Command" Value="{Binding ApplyCommand}" /></Style></MenuItem.ItemContainerStyle>
+                                      </MenuItem>
+                                      <Separator />
+                                      <MenuItem Command="ApplicationCommands.Cut" /><MenuItem Command="ApplicationCommands.Copy" /><MenuItem Command="ApplicationCommands.Paste" />
+                                    </ContextMenu>
+                                  </ui:ExpressionTextBox.ContextMenu>
+                                </ui:ExpressionTextBox>
+                              </StackPanel>
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          </StackPanel>
+                        </Expander>
+                      </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Expander Header="Cleared entries" IsExpanded="False" Tag="PreserveDraft" Margin="0,6">
+                      <ItemsControl ItemsSource="{Binding Excluded}"><ItemsControl.ItemTemplate><DataTemplate>
+                        <StackPanel Margin="0,4"><TextBlock Text="{Binding Text}" TextWrapping="Wrap" /><Button Content="{Binding Origin}" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" /></StackPanel>
+                      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </Expander>
+                  </StackPanel>
+                </Expander>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Expander Header="Test procedure" IsExpanded="True" Margin="0,6,8,0" Visibility="{Binding HasTestProcedure, Converter={StaticResource Visibility}}"
                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
             <StackPanel Margin="0,8,0,0">
               <WrapPanel Margin="0,0,0,8">

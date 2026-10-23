@@ -96,6 +96,26 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
+        public void CollectionPreviewUsesCompilerCountsAndCanonicalFieldsWithoutProcedureColumn()
+        {
+            var origin = new AnalysisAlarmOrigin(0, "A", null);
+            var itemOrigin = new AnalysisCollectionEntryOrigin(origin, "Checks", 0, null);
+            var field = new AnalysisField("Count", true, "$(Number)", null, "08", origin, null, false,
+                type: "Int64", typedValue: 8L, canonicalValue: "8");
+            var entry = new AnalysisCollectionEntry(false, false, true, itemOrigin, null, new[] { field });
+            var collection = new AnalysisCollection("Checks", true, null, new[] { entry }, new[] { entry }, Array.Empty<AnalysisCollectionEntry>());
+            var alarm = new AnalysisAlarm(origin, null, true, Array.Empty<AnalysisAlarmOrigin>(), Array.Empty<AnalysisField>(),
+                Array.Empty<AnalysisSection>(), collections: new[] { collection });
+            var row = new AlarmPreviewRow(alarm, null);
+            Assert.Equal("Checks: 1", row.Column("Collections"));
+            var detail = Assert.Single(PreviewContent.Collections(alarm, location => null));
+            Assert.Equal("1 effective entries", detail.Summary);
+            Assert.Equal("8", Assert.Single(Assert.Single(detail.Items).Fields).Value);
+            using var layout = new PreviewColumnLayout(Array.Empty<AlarmFieldDescriptor>(), hasProcedures: false, hasCollections: true);
+            Assert.Equal(new[] { "Collections", "Identity", "Source" }, layout.Columns.Select(column => column.Id));
+        }
+
+        [Fact]
         public void PreferencesKeepSurvivingOrderAndWidthsAndInsertNewColumnsAtDefinitionPositions()
         {
             using (var layout = new PreviewColumnLayout(new[] { Definition("New", visible: false), Definition("Code", "Int64"), Definition("Name") }))

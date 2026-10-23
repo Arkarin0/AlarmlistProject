@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
 Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
-Follow-up iterations 9–13 complete; iterations 14–15 pending as of
+Follow-up iterations 9–14 complete; iteration 15 pending as of
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions.
 Owner decisions were confirmed on 2026-10-21.
@@ -852,3 +852,60 @@ Validation evidence:
   internal _collections member name is rejected at generation.
 - Reviewed diff/docs; git diff --check passed. No publication. Collection
   designer/native gates remain iterations 14–15.
+
+### Iteration 14 implementation and validation (complete)
+
+Added metadata-driven scalar collection rows and expandable record fields, using
+the shared expression editor and explicit literal helpers. Local entries support
+add/delete/move and Clear; inherited and excluded entries remain read-only with
+compiler-provided source navigation. Internal draft identities survive local
+moves and analysis refresh without adding source IDs. Container baseline checks
+protect concurrent XML edits; collection/scalar/parameter drafts commit as one
+buffer transaction. Defaults remain absent until an explicit edit.
+
+Record completion offers $(item:FieldName) siblings and validates captured inputs.
+The shared lexical completion control now recognizes item:. Source navigation can
+select record fields. Disabled TestProcedure removes creation/UI/preview support
+and editing-service commands reject it. Production host generation is enabled.
+Preview adds one fixed Collections count column and expandable read-only entry
+details, using compiler scalar states/canonical values without host parsing.
+
+Validation so far:
+
+- Generator: 74 passed (artifacts/m11-iteration14-generator.log).
+- Initial editor regression run: 586 passed with DirectFieldFormAligns/Theme
+  display checks excluded (artifacts/m11-iteration14-editor.log). Added focused
+  completion/preview checks: 10 passed (artifacts/m11-iteration14-focused.log).
+  Final full regression run: 588 passed
+  (artifacts/m11-iteration14-editor-final.log).
+- Native enabled-procedure fork artifacts/col13/856d1d5a: VS2022 and VS2026 each
+  passed one MetadataCollections scenario. Disabled-procedure fork
+  artifacts/col13/15b3f4a7: both hosts also passed. Reports/logs are results-2022,
+  results-2026 and native-2022.log/native-2026.log in each fork; wrapper
+  artifacts/m11-iteration14-native-final.log. Tests cover inherited read-only
+  values, absent defaults on focus, scalar edits/local ordering/delete/Clear/add,
+  sibling completion, cancellation, typed record edits and resolved detail preview.
+  The dedicated AlarmlistDefinitionExp profiles leave standard deployments alone.
+- Initial native fork 670baf11 failed SDK extraction/resolution with the long
+  MetadataCollections workspace name. Shortening the scenario directory to Col14
+  fixed project creation. Fork 332305c2 then exposed the missing item: completion
+  prefix; added the prefix plus a regression test before the passing native run.
+- No OS theme/DPI checks or publication. The standard definition remains version
+  1 until iteration 15, which adds collection/no-procedure playground samples and
+  integrated fork/downstream acceptance.
+- Expanded native acceptance added draft preservation during collapse and focus
+  recovery after deleting the last local entry. Fork feb327ab caught an unwanted
+  draft commit during collapse: the native focus transfer can target the scroll
+  host, and explicit theme header styles bypass implicit Tag setters. The handler
+  now recognizes collapsed collection ancestors and their header toggles.
+  Final expanded cases passed on both hosts for enabled procedures in
+  artifacts/col13/8d547c32 and disabled procedures in artifacts/col13/26231b8a,
+  one passed scenario per host/fork, zero failures/skips. Wrapper:
+  artifacts/m11-iteration14-native-collapse.log. These supersede the earlier
+  four-case evidence for focus/collapse behavior. Each isolated build had zero
+  warnings/errors. Case-insensitive sibling completion has a focused regression.
+- Final focus/completion/collection regression selection: 54 passed, zero
+  failures/skips (artifacts/m11-iteration14-focus-final.log), including the final
+  shared focus handling and case-insensitive record completion. Reviewed source
+  preservation, notification lifetimes, docs and diff; git diff --check passed.
+  Remaining work is iteration 15's samples and integrated acceptance.

@@ -161,7 +161,7 @@ fork acceptance builds production tools and runs generic metadata-based checks.
 The normal solution regression suites still validate the repository's standard
 definition separately.
 
-## Version-2 collection foundations (staged)
+## Version-2 collections and optional procedures
 
 The parser and generated metadata recognize version-2 definitions containing
 `Field`, `SimpleCollection`, `ComplexCollection` and one optional `TestProcedure`.
@@ -176,11 +176,13 @@ are nonnegative Int32 values and must form a valid range. Nested collections are
 rejected. Collection/ordinary field names share the alarm namespace and follow
 existing reserved-name rules. The generated simple-item descriptor is named Item.
 
-The compiler and SDK accept collection and procedure-disabled definitions. Host
-generation remains guarded until the collection designer is ready; a fork cannot
-yet build a collection-enabled VSIX. The standard checked-in definition stays at
-version 1 during this stage. Internal host fixtures test detached metadata before
-that guard is removed.
+The compiler, SDK and extension accept collection and procedure-disabled
+definitions. The standard checked-in definition stays at version 1 until the
+final playground/acceptance iteration. The designer provides local scalar rows,
+expandable records, sibling completion and read-only inherited/excluded entries.
+Local entry moves preserve internal draft identities; Clear excludes previous
+entries. Defaults remain compiler-owned and are never written merely by focusing
+a field. Preview shows collection counts and separate resolved entry details.
 
 Generated metadata adds `AlarmCollectionDescriptor`, `AlarmDefinition.Collections`
 and `AlarmDefinition.HasTestProcedure`. Semantic fingerprints include collection
@@ -200,8 +202,8 @@ concrete application alarms; ALM0030 is mandatory. Resolved items are exposed by
 
 Run `eng/test-alarm-collections.ps1` for isolated runtime fixtures on net472 and
 net8.0, including procedure-enabled/disabled definitions and minimum cardinality.
-The test-only fixture generator accesses internal host generation; it does not
-remove the production host guard or modify the standard definition. Analysis 7
+The test-only fixture generator accesses internal generation without modifying
+the standard definition. Analysis 7
 and analyzer 5 expose collection descriptors and local/effective/excluded entries
 with typed fields, item origins and Clear exclusions. Library format 3 preserves
 raw expressions and per-item/field navigation locations. Older contracts require
@@ -210,5 +212,8 @@ a rebuild even if their scalar definition fingerprint matches.
 Run `eng/test-alarm-collection-fork.ps1 -DesktopMSBuildPath '<MSBuild.exe>'` for
 isolated compiler/SDK forks with procedures enabled and disabled. It builds real
 packages, checks project and NuGet consumers on both task hosts and verifies
-collection-aware analyzers and prior-output preservation after failures. It does
-not deploy an IDE extension. Native collection acceptance remains a later gate.
+collection-aware analyzers and prior-output preservation after failures. Add
+`-Designer -VisualStudio2022Path '<installation>' -VisualStudio2026Path '<installation>'`
+to include native editing and preview checks on both hosts. These use the dedicated
+AlarmlistDefinitionExp profiles. Add `-SkipConsumers` for designer-only acceptance;
+DesktopMSBuildPath is then optional. Run native tests sequentially.
