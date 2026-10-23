@@ -1,6 +1,8 @@
 # Milestone eleven: generated alarm definitions end to end
 
-Status: iterations 1–8 complete; final acceptance recorded on 2026-10-23.
+Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
+Follow-up iterations 9–15 authorized on 2026-10-23; see the collection/playground
+extension below. Original acceptance does not cover these additions.
 Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
@@ -27,7 +29,7 @@ structure remain reserved specialized concepts. Existing ordinary string fields
 and their default behavior remain unchanged in this repository. Additional fields
 exist in test fixtures, not as new built-in product fields.
 
-Excluded: per-project schema loading, arbitrary CLR/plugin types, custom
+Originally excluded (iterations 1–8): per-project schema loading, arbitrary CLR/plugin types, custom
 collections, local timestamps without offsets, durations, cross-field rules,
 conditional visibility, XML IntelliSense, VS Code support, inherited-entry
 reordering, publication and separate OS theme/DPI display checks.
@@ -560,3 +562,85 @@ collections, VS Code support and inherited-entry reordering remain outside scope
 The two existing test-helper CA1416 warnings remain; no new build warning was
 introduced. The allowance check before completion showed 30% remaining, above
 the owner's 20% pause threshold.
+
+## Authorized follow-up: playground and definition-controlled collections
+
+Authorized 2026-10-23. This extends the original scalar-only scope; it does not
+invalidate the completed iterations above. Continue on the current dev branch.
+The account allowance was 28% remaining at entry; pause at 20% remaining.
+
+### Design contract
+
+- Keep fork-time generation and matching toolsets. Introduce definition version 2
+  with ordinary Field, SimpleCollection, ComplexCollection and optional
+  TestProcedure declarations. Version 1 remains scalar-only with its implicit
+  procedure support. The standard version-2 definition explicitly includes
+  TestProcedure, preserving existing ALMX behavior.
+- SimpleCollection declares Name, scalar Type and existing scalar constraints /
+  enum choices. ComplexCollection declares Name and one or more ordinary scalar
+  Field children. Both support Label, Help, MinCount (default 0), optional MaxCount.
+  Names share the alarm member namespace; record field names are local to their
+  record. Reject nesting, duplicate names, invalid constraints and collisions.
+- Source uses <Tags><Item>value</Item><Clear /></Tags> for simple collections and
+  <Checks><Item><Description>text</Description></Item></Checks> for records. XML
+  names are case-sensitive. Collection declaration order determines collection
+  output/form order; item order is authored order. Emit resolved items without
+  Clear directives. Do not silently discard malformed declared collection content.
+- Missing or empty local containers inherit; local items append. Clear removes
+  all preceding effective items. Duplicate values/records are allowed. Records
+  have no inheritance key and are inherited whole. Only local items can be
+  edited, deleted or reordered. No inherited-entry reordering or keyed merging.
+- Reuse scalar expressions, validation and defaults inside items. Alarm property
+  expressions retain their existing scope. Add explicit $(item:FieldName) sibling
+  record-field references with dependency/cycle diagnostics; no indexes,
+  cross-entry references or aggregates. Inserted values remain literal. Defaults
+  never create items or materialize in source. Count validation uses effective
+  items; abstract/library analysis retains existing deferred consumer validation.
+- TestProcedure is optional once in version 2, under its existing XML name and
+  existing specialized semantics. Disabled procedure content produces an error;
+  creation defaults, templates, completion and designer commands honor capability.
+- Analysis exposes detached collection descriptors, local/effective/excluded
+  items, typed states and origins. Library serialization preserves raw expressions
+  and directives. Coordinate analysis/analyzer/library version transitions when
+  these payloads change and include definitions in fingerprints. Retain rebuild
+  diagnostics and XML/draft access for incompatible tools.
+- Designer uses scalar rows for simple collections, expandable field forms for
+  records and the existing procedure editor. Stable internal draft identities
+  distinguish duplicate entries and survive refresh; do not add source IDs.
+  Preview shows collection counts with a separate detail view, not variable table
+  columns. No host-side scalar parsing or inferred inheritance/provenance.
+- The interactive shortcut defaults to VS2026 and accepts VS2022 / PrepareOnly.
+  Each invocation builds a fresh isolated source copy, matching SDK/VSIX and
+  sample project using a private package feed/cache; deploy to the dedicated
+  AlarmlistDefinitionExp profile. Preserve previous runs and standard examples.
+  Edit the checked-in sample definition and rerun to try another toolset.
+- Out of scope: nested collections, arbitrary CLR types, runtime project schemas,
+  multiple renamed procedure sections, individual inherited-item overrides,
+  aggregate expressions, publication and OS theme/DPI display checks.
+
+### Independently reviewable iterations
+
+| Iteration | Deliverable and dependency | Validation and completion gate |
+| --- | --- | --- |
+| 9 | Record this follow-up contract and repository guidance. | Review paths, consistency and diff; documentation-only commit. |
+| 10 | Interactive scalar-definition launcher and checked-in definition/ALMX samples, using current production capabilities. Depends on 9. | Prepare and compile sample on both task hosts; validate alternate designer on both IDE hosts sequentially, failure behavior and source preservation. |
+| 11 | Version-2 definition model, validation, deterministic metadata generation and compatibility foundations. Depends on 10. | Generator positive/negative/fingerprint tests, baseline build on both frameworks. Keep new runtime declarations guarded until consumed. |
+| 12 | Collection source/resolved models, inheritance, expression/typed/count validation and XML output; optional procedure capability. Depends on 11. | Compiler tests on both frameworks, alternate-definition fixtures, unchanged baseline and transactional task failure checks. |
+| 13 | Coordinated analysis/analyzer/library contracts, SDK packaging and bridge metadata/provenance. Depends on 12. | Both-runtime package/project/library/analyzer tests; mismatch and detached bridge tests; baseline designer remains usable. |
+| 14 | Collection designer edits, drafts, completion, detail preview and optional procedure UI/templates. Depends on 13. | Editor preservation/draft/identity tests, native collection/procedure-disabled scenarios on both IDE hosts. |
+| 15 | Extend playground with collections, authoring docs and integrated fork acceptance. Depends on 14. | Full alternate fork and no-procedure fork acceptance, downstream suites on both runtimes and both IDE hosts; record remaining gates. |
+
+Do not describe generated metadata alone as working collection support. During
+staged implementation, reject definitions requiring unavailable runtime support
+rather than producing a toolset that loses their data. Keep new capabilities
+internal/guarded until the coordinated consumers are implemented.
+
+### Iteration 9 evidence
+
+Reviewed existing generator/XSD, ReferenceableCollection inheritance, procedure
+syntax/resolved types, isolated fork fixture and launcher/package preparation.
+Consulted Roslyn's compiler layer layout and Arcade's SDK/tools layout; retain
+existing project boundaries and shared eng tooling, with no new dependency.
+References: https://github.com/dotnet/roslyn/tree/main/src/Compilers and
+https://github.com/dotnet/arcade/tree/main/src/Microsoft.DotNet.Arcade.Sdk.
+Documentation only; tests not run. Remaining iterations are planned, not complete.

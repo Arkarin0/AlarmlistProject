@@ -90,6 +90,13 @@ NuGet/analyzer checks on both task hosts and enables native preview checks.
 an existing isolated fork. Keep its feeds/caches private and compile verification
 assets against the packaged compiler, not a compiler project reference.
 Do not add runtime per-project schemas or inherited-entry reordering under this scope.
+Milestone 11 follow-up iterations 9–15 authorize an isolated interactive definition
+playground, simple scalar collections, flat scalar-field record collections and
+one optional existing TestProcedure capability. Follow the plan's version-2
+compatibility and staged capability guards; do not advertise metadata-only
+generation as end-to-end collection support. Preserve version-1 behavior and
+inherited-first/Clear semantics. Nested collections and keyed inherited-record
+overrides remain excluded.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter
 grip, plus collapsible group bodies and procedure search in follow-up iterations.
