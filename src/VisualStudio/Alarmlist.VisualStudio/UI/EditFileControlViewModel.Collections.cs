@@ -63,7 +63,7 @@ namespace Alarmlist.VisualStudio.UI
                     : action == CollectionAction.Up ? index - 1 : action == CollectionAction.Down ? index + 1 : Math.Min(index, collection.Items.Count - 1);
                 CollectionFocus = collection.Items.ElementAtOrDefault(focusIndex);
                 collection.IsExpanded = true;
-                if (CollectionFocus != null) CollectionFocus.IsExpanded = true;
+                if (CollectionFocus != null && (action == CollectionAction.Add || action == CollectionAction.Clear)) CollectionFocus.IsExpanded = true;
             }
             collection.RefreshCommands(); Notify(nameof(Error));
         }

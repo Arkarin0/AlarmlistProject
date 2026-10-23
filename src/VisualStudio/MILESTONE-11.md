@@ -4,13 +4,14 @@ Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
 Follow-up iterations 9–15 complete; follow-up acceptance recorded on
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions. Preview follow-up planning (iteration 16) is
-complete; iterations 17–19 are complete and iterations 20–21 remain authorized and
+complete; iterations 17–20 are complete and iteration 21 remains authorized and
 pending. The owner approved the combined preview/designer plan after the
 interactive layout review; completed iteration evidence remains unchanged.
+Execution resumed during iteration 20 after the owner explicitly removed the
+20% allowance stop for this goal. The earlier pause checkpoint remains below.
 Owner decisions were confirmed on 2026-10-21.
-Implementation was authorized on 2026-10-22, with a pause requested when the
-remaining account allowance reaches 20%. Check allowance periodically and before
-starting each iteration; record incomplete work honestly if that threshold is met.
+Implementation was authorized on 2026-10-22. The original 20% allowance pause
+was honored and subsequently waived by the owner for completion of this goal.
 
 ## Outcome and confirmed scope
 
@@ -979,8 +980,8 @@ Validation so far:
 
 Owner direction confirmed 2026-10-23. This section replaces the earlier
 collection-count presentation decision, without changing completed evidence.
-Implementation is now authorized on dev/milestone-11. Retain the 20%
-remaining-allowance pause rule and the exclusion of OS theme/DPI display checks.
+Implementation is authorized on dev/milestone-11. The owner has waived the 20%
+remaining-allowance pause for this goal; OS theme/DPI display checks remain excluded.
 
 ### Confirmed outcome and exclusions
 
@@ -1001,7 +1002,7 @@ remaining-allowance pause rule and the exclusion of OS theme/DPI display checks.
 ### Definition and simple presentation contract
 
 Use one optional Preview child on each collection in the version-2 definition.
-The following syntax is the implementation target; it is not supported yet:
+The following syntax is supported by completed iterations 17–18:
 
 ```xml
 <SimpleCollection Name="Measurements" Type="String" Label="Measurements">
@@ -1286,3 +1287,73 @@ Acceptance evidence so far:
 - Reviewed sample paths, launcher dependency copying and documentation;
   git diff --check passed. Iterations 20–21 retain designer and final combined
   acceptance responsibilities. No push, merge or publication.
+
+### Iteration 20 checkpoint — paused, not complete
+
+Account usage reached 80% used / 20% remaining. Stopped further implementation
+and the native wrapper; no iteration-20 commit or success claim.
+
+Uncommitted changes add a shared bordered entry template with 26-DIP gutter,
+inherited adorners, record-label shared widths, right-aligned actions, command
+icons, individual/bulk expansion, left-aligned multiline tooltip/accessibility
+text and visible states. Model changes retain inherited expansion by compiler
+origin through pending analysis and local expansion through moves. New local
+entries still expand and focus. Clear has no fields and an explicit explanation.
+
+Validation completed before pausing:
+
+- Three focused state/draft/tooltip tests passed
+  (artifacts/m11-iteration20-state-tests.log); earlier model selection: 15 passed.
+- Two parallel WPF selections timed out. Moving the arrow resource declaration
+  did not resolve those timeouts. Collection presentation fixtures were placed
+  in a nonparallel xUnit collection; the subsequent focused selection passed
+  all 28 tests (artifacts/m11-iteration20-layout-serial.log). Broader regression
+  remains necessary to establish the fix beyond that selection.
+- Private fork artifacts/col13/e71d68a6 built with zero warnings/errors and its
+  procedure-enabled VS2022 native case passed, including bulk collapse preserving
+  a draft and multiline accessible help. The wrapper was interrupted at the
+  allowance threshold; remaining IDE/procedure combinations are not accepted.
+  The private template source directory was restored after interruption.
+
+Resume with inspection of the uncommitted diff and remaining native logs. Add
+explicit rendered alignment/adorner, individual-collapse, pending-analysis,
+selection/undo and focus-recovery coverage; review inherited state identity and
+tooltip state presentation. Finish native acceptance on both hosts sequentially,
+update authoring documentation and evidence, and commit iteration 20 only after
+its gates pass. Then perform iteration 21. No push, merge or publication.
+
+### Iteration 20 resumed implementation and evidence (complete)
+
+The owner waived the allowance stop and requested completion. The approved
+layout now applies to simple and complex entries, with a shared 26-DIP gutter,
+InheritedValueAdorner, shared record-label widths, right-aligned local/Source
+actions and four distinct VS command monikers alongside their text labels.
+Individual and bulk collapse keep state/actions visible. New entries expand and
+focus; moves preserve the existing expansion state and recover focus to a visible
+action when the moved row is collapsed. Inherited state uses compiler library,
+source, alarm and entry origins across refreshes, including pending intervals.
+Tooltips/accessibility text follow definition order, preserve raw local drafts
+and invalid inherited expressions, and label defaulted/absent/invalid/deferred
+content without host expression evaluation. Clear remains an explicit directive.
+
+Validation:
+
+- Editor regression: 608 passed, zero failed/skipped
+  (artifacts/m11-iteration20-editor-final.log). Collection presentation fixtures
+  now run without parallel WPF resource initialization; no prior timeout recurred.
+- Final rendered simple/complex alignment selection: two passed
+  (artifacts/m11-iteration20-alignment-final.log). Checks cover shared editor
+  positions, actual inherited adorners, 26-DIP inset, right-aligned actions,
+  distinct icons, simple-label omission, left-aligned tooltip text and accessible
+  help. Individual/bulk collapse retains raw drafts, selection, source bytes,
+  selected alarm and a single undoable eventual commit.
+- Model tests cover duplicate inherited origins, pending analysis, bulk actions,
+  absent/default fields and definition-ordered tooltip states. Native tests add
+  collapsed moves, accessible multiline draft content and new-entry focus.
+- Four native scenarios passed, zero failed/skipped: procedures enabled in
+  artifacts/col13/ed8146b5 and disabled in artifacts/col13/af2a2275, each on
+  VS2022 then VS2026. Both builds had zero warnings/errors; all template sources
+  were restored after packaged-resource validation. Wrapper:
+  artifacts/m11-iteration20-native-final.log.
+- Authoring/playground documentation updated; source/diff review and
+  git diff --check passed. Iteration 21 remains the final combined acceptance.

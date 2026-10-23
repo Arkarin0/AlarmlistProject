@@ -218,7 +218,15 @@ excluded entries, item/field origins and Clear exclusions. The compiler owns
 resolution and typed validation. The metadata-driven collection designer supports
 local scalar rows and flat record fields, sibling completion, local ordering and
 Clear. Inherited/excluded entries remain read-only; focusing defaults never writes
-source. Preview offers collection counts and separate resolved entry details.
+source. Collection entries use aligned bordered rows with inherited adorners and
+right-aligned actions. Collapse individual entries or use Collapse entries/Expand
+entries for the collection; these view actions preserve drafts and source bytes.
+Collapsed headers expose left-aligned tooltips and accessible help, one field per
+line. Local tooltips show draft expressions; inherited tooltips use compiler
+values and distinguish absent, defaulted, invalid and deferred content.
+Preview has one column per collection: List or Concatenated for scalar lists,
+compiled XAML templates for records, and separate resolved entry details. Cells
+initially show ten entries, with explicit expansion and complete clipboard text.
 Omitting TestProcedure from a version-2 definition hides its creation/editor and
 built-in preview column while preserving ordinary fields named TestMethod.
 Unit tests extract the built SDK and VSIX to verify

@@ -38,6 +38,12 @@ rerun the launcher to rebuild matching tools. Both procedure variants use these
 formats. Each cell initially shows up to ten entries and offers expansion;
 copying includes the complete collection even while collapsed.
 Inherited entries remain read-only; collapse and analysis refresh preserve drafts.
+Use an entry arrow or the collection's Collapse entries/Expand entries commands
+to save space. Collapsed headers show one field per tooltip line and retain
+status and actions. New entries open expanded with editing focus. The inherited
+chain marker occupies the same reserved gutter as local entries, and record
+labels align across the collection. Clear remains a directive: earlier effective
+entries are excluded and subsequent entries remain.
 Ratio is deliberately hidden from preview. Source, Identity and TestMethod are
 ordinary custom fields, distinct from the built-in preview columns.
 

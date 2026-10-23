@@ -142,7 +142,7 @@ namespace Alarmlist.VisualStudio
                 || (button.IsLoaded && Keyboard.FocusedElement != null && !IsKeyboardFocusWithin)) return;
             UpdateLayout();
             FrameworkElement target = row == null ? Children(this).OfType<Button>().FirstOrDefault(item => ReferenceEquals(item.Command, collection.AddCommand))
-                : row.IsClear ? Children(this).OfType<Button>().FirstOrDefault(item => ReferenceEquals(item.Command, row.DeleteCommand))
+                : row.IsClear || !row.IsExpanded ? Children(this).OfType<Button>().FirstOrDefault(item => ReferenceEquals(item.Command, row.DeleteCommand))
                 : (FrameworkElement)Children(this).OfType<ExpressionTextBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, row.Fields.FirstOrDefault()));
             if (target == null || !target.IsEnabled || !target.IsVisible) return;
             target.BringIntoView(); target.Focus();

@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Alarmlist.VisualStudio.UnitTests.Editing
 {
+    [Collection("Collection presentation")]
     public sealed class CollectionPreviewTests
     {
         private static AlarmCollectionDescriptor Definition(string mode = "List", string symbol = "Bullet", string separator = ", ")

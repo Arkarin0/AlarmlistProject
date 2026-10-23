@@ -97,6 +97,14 @@ namespace Alarmlist.VisualStudio.UI
         public bool ShowLocalEditor => !IsInherited;
         public string EffectiveValue => IsInherited ? (_valuesCurrent && _analysis.IsValueAvailable ? _analysis.EffectiveValue : _analysis.EffectiveExpression) : string.Empty;
         public string ResolvedValue => _analysis?.EffectiveValue;
+        public string CollectionValueState => HasChanges ? "draft"
+            : !_valuesCurrent ? "pending"
+            : _analysis?.State == AnalysisFieldValueState.Invalid ? "invalid"
+            : _analysis?.State == AnalysisFieldValueState.Deferred ? "deferred"
+            : _analysis?.IsDefault == true ? "defaulted" : !IsPresent ? "absent" : "";
+        public string CollectionTooltipValue => (IsPresent ? EditValue : Definition?.Default != null
+            ? "(absent; default: " + Definition.Default + ")" : "(absent)")
+            + (CollectionValueState.Length == 0 ? "" : " [" + CollectionValueState + "]");
         public bool CanShowResolved => IsScalar && !HasChanges && _valuesCurrent && _analysis?.IsValueAvailable == true;
         public string ValueStatus => !IsScalar ? string.Empty : HasChanges ? "Uncommitted expression."
             : _valuesCurrent && _analysis?.State == AnalysisFieldValueState.Invalid ? "Invalid value; see compiler diagnostics."
@@ -150,6 +158,7 @@ namespace Alarmlist.VisualStudio.UI
             Notify(nameof(IsInherited)); Notify(nameof(ShowLocalEditor)); Notify(nameof(EffectiveValue)); Notify(nameof(OriginText));
             Notify(nameof(ResolvedValue)); Notify(nameof(CanShowResolved)); Notify(nameof(ValueStatus));
             Notify(nameof(EditValue)); Notify(nameof(EditHelp));
+            Notify(nameof(CollectionValueState)); Notify(nameof(CollectionTooltipValue));
             OverrideCommand?.Refresh(); UseInheritedCommand?.Refresh(); GoToSourceCommand?.Refresh();
         }
     }

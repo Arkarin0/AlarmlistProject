@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Alarmlist.VisualStudio.Definition;
+using Alarmlist.VisualStudio.Analysis;
 using Alarmlist.VisualStudio.Documents;
 using Alarmlist.VisualStudio.Editing;
 using Alarmlist.VisualStudio.UI;
@@ -103,6 +104,61 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             view.SetAnalysis(null, false, Array.Empty<PropertyCompletion>(), entry => null);
             Assert.Equal("private draft", first.Fields[0].EditValue);
             Assert.Contains(first.Fields[0].Suggestions, suggestion => suggestion.Insertion == "$(item:Count)");
+        }
+        [Fact]
+        public void BulkCollapsePreservesDraftsAndDuplicateInheritedOriginsThroughPendingAnalysis()
+        {
+            string text = CollectionDocument("<Item><Text>local</Text></Item><Clear/><Item/>");
+            int changes = 0;
+            var view = new CollectionViewModel(CollectionDefinition(), () => changes++, (collection, item, action) => throw new InvalidOperationException(), () => true);
+            view.Load(_editing.Parse(text).Alarms[0], true);
+            var origin = new AnalysisAlarmOrigin(0, "Base", new AnalysisLocation("base.almx", 1, 1, 1, 10, 1));
+            var entries = Enumerable.Range(0, 2).Select(index => new AnalysisCollectionEntry(false, true, true,
+                new AnalysisCollectionEntryOrigin(origin, "Checks", index, null), null,
+                new[] { new AnalysisField("Text", true, "same", null, "same", origin, null, true) })).ToArray();
+            var analysis = new AnalysisCollection("Checks", true, null, Array.Empty<AnalysisCollectionEntry>(), entries, Array.Empty<AnalysisCollectionEntry>());
+            void Analyze(bool current) => view.SetAnalysis(analysis, current, Array.Empty<PropertyCompletion>(), entry => null);
+            Analyze(true);
+            view.Inherited[0].IsExpanded = false;
+            Analyze(false); Analyze(true);
+            Assert.False(view.Inherited[0].IsExpanded);
+            Assert.True(view.Inherited[1].IsExpanded);
+            view.Items[0].Fields[0].EditValue = "$(PrivateDraft)";
+            changes = 0;
+            view.CollapseEntriesCommand.Execute(null);
+            Assert.All(view.Items, item => Assert.False(item.IsExpanded));
+            Assert.All(view.Inherited, item => Assert.False(item.IsExpanded));
+            Assert.Contains("Text: $(PrivateDraft) [draft]", view.Items[0].TooltipText);
+            Assert.Contains(Environment.NewLine + "Count: (absent; default: 7)", view.Items[0].TooltipText);
+            Assert.Empty(view.Items[1].Fields);
+            Assert.Contains("Subsequent entries remain", view.Items[1].TooltipText);
+            Analyze(false);
+            view.ExpandEntriesCommand.Execute(null);
+            Analyze(true);
+            Assert.All(view.Inherited, item => Assert.True(item.IsExpanded));
+            Assert.All(view.Items, item => Assert.True(item.IsExpanded));
+            Assert.Equal("$(PrivateDraft)", view.Items[0].Fields[0].EditValue);
+            Assert.True(view.Items[0].Fields[0].HasChanges);
+            Assert.Equal(0, changes);
+        }
+
+        [Fact]
+        public void CollectionTooltipsUseDefinitionOrderAndEffectiveInheritedStates()
+        {
+            var definition = CollectionDefinition();
+            var origin = new AnalysisAlarmOrigin(0, "Base", null);
+            var entry = new AnalysisCollectionEntry(false, true, false, new AnalysisCollectionEntryOrigin(origin, "Checks", 0, null), null,
+                new[] { new AnalysisField("Count", true, "bad", null, null, origin, null, true, type: "Int64", state: AnalysisFieldValueState.Invalid),
+                    new AnalysisField("Text", true, "$(loc:Key)", null, "$(loc:Key)", origin, null, true, state: AnalysisFieldValueState.Deferred) });
+            var row = new CollectionAnalysisRow(definition, entry, null);
+            Assert.StartsWith("Text: ", row.TooltipText);
+            Assert.Contains(Environment.NewLine + "Count: ", row.TooltipText);
+            Assert.Contains("deferred", row.TooltipText);
+            Assert.Contains("invalid", row.TooltipText);
+            Assert.Contains("Invalid", row.State);
+            var simple = new CollectionViewModel(CollectionDefinition(true), () => { }, (collection, item, action) => { }, () => true);
+            simple.Load(_editing.Parse(CollectionDocument("<Item>raw</Item>")).Alarms[0], true);
+            Assert.DoesNotContain("Value:", simple.Items[0].TooltipText);
         }
     }
 }

@@ -16,6 +16,12 @@ using Xunit.Abstractions;
 
 namespace Alarmlist.VisualStudio.UnitTests.Editing
 {
+    // WPF resource initialization and window measurements must not race other
+    // STA fixtures in the same test host.
+    [CollectionDefinition("Collection presentation", DisableParallelization = true)]
+    public sealed class CollectionPresentationTestCollection { }
+
+    [Collection("Collection presentation")]
     public sealed class CollectionPreviewRenderingTests
     {
         private readonly ITestOutputHelper _output;
