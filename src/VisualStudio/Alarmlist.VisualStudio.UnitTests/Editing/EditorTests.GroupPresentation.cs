@@ -31,10 +31,14 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Same(session.View.ProcedureSections[0].TitleField, heading.DataContext);
                     Assert.Equal("Check Same", heading.Text);
                     Assert.True(InheritedValueBehavior.GetIsInherited(heading));
+                    Assert.Equal(26, heading.Padding.Left);
+                    Assert.True(heading.GetRectFromCharacterIndex(0).Left >= 26);
+                    Assert.IsType<InheritedValueAdorner>(Assert.Single(System.Windows.Documents.AdornerLayer.GetAdornerLayer(heading).GetAdorners(heading)));
                     Assert.True(heading.IsEnabled);
                     Assert.Contains(VisualChildren(group).OfType<TextBlock>(), text => text.Text == "Group ID: Verify");
                     heading.BringIntoView(); Assert.True(heading.Focus());
                     Assert.Equal("Check $(AlarmlistAlarmCode)", heading.Text);
+                    Assert.True(heading.GetRectFromCharacterIndex(0).Left >= 26);
                     Assert.False(session.View.HasPending);
                     Assert.Equal(source, session.Buffer.Current.Text);
                     heading.Text = "Draft $(AlarmlistAlarmCode)";
@@ -93,6 +97,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     {
                         var heading = (ExpressionTextBox)group.Header;
                         Assert.Same(text, heading.Foreground);
+                        Assert.Equal(26, heading.Padding.Left);
                         Assert.True(heading.ActualWidth > 100);
                         Assert.True(heading.ActualWidth < group.ActualWidth);
                         Assert.True(group.ActualWidth <= width);

@@ -1425,3 +1425,25 @@ gates are complete. Trusted compiled fork templates are not sandboxed; binding
 validation requires representative rendering, and the measurements above are
 single-run observations. OS theme/DPI checks remain excluded. No push, merge or
 publication was performed.
+
+### Iteration 22 — label contrast and inherited heading spacing (complete)
+
+Follow-up scope: fix collection-entry text colors and the inherited procedure
+heading marker overlapping its text. Give the explicit collection-entry style
+the dynamic VS tool-window text brush and reserve the same 26-DIP heading inset
+for inherited and local titles. No compiler, draft or source-format changes.
+Validate rendered light/dark resource changes, collapsed/expanded collection
+headers, actual inherited adorners and title text bounds in focused editor tests,
+then run editor regressions. OS theme/DPI changes remain excluded. Commit after
+successful validation; no push or merge.
+
+Focused validation: six rendered tests passed, zero failed/skipped
+(artifacts/m11-iteration22-focused.log). These check resource updates, shared
+title spacing, actual inherited markers, text bounds before/after focus and
+existing draft/undo behavior. No OS theme or DPI settings were changed.
+
+Editor regression: 610 passed, zero failed/skipped
+(artifacts/m11-iteration22-editor.log), using iteration 20's exclusions for the
+three dedicated theme/scale display methods. The focused heading tests use
+in-process resources and rendering only. Diff review and git diff --check passed.
+Native IDE scenarios were not rerun for this two-setter presentation fix.

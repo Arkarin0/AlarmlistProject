@@ -43,6 +43,21 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     var local = collection.Items[0];
                     var localRow = VisualChildren(control).OfType<Expander>().Single(item => ReferenceEquals(item.DataContext, local));
                     var inheritedRow = VisualChildren(control).OfType<Expander>().Single(item => item.DataContext is CollectionAnalysisRow);
+                    foreach (var brush in new[] { System.Windows.Media.Brushes.WhiteSmoke, System.Windows.Media.Brushes.Black })
+                    {
+                        SetThemeBrush(control, "ToolWindowTextBrushKey", brush);
+                        InheritanceAdornerTests.Pump();
+                        foreach (var row in new[] { localRow, inheritedRow })
+                        {
+                            Assert.Same(brush, row.Foreground);
+                            Assert.All(VisualChildren((DependencyObject)row.Header).OfType<TextBlock>(), text => Assert.Same(brush, text.Foreground));
+                            Assert.All(VisualChildren(row).OfType<TextBlock>().Where(text => text.Name == "CollectionFieldLabel"), text => Assert.Same(brush, text.Foreground));
+                            row.IsExpanded = false;
+                            InheritanceAdornerTests.Pump();
+                            Assert.Same(brush, row.Foreground);
+                            row.IsExpanded = true;
+                        }
+                    }
                     var localEditors = VisualChildren(localRow).OfType<ExpressionTextBox>().ToArray();
                     var inheritedEditors = VisualChildren(inheritedRow).OfType<TextBox>().ToArray();
                     Assert.Equal(simple ? 1 : 2, localEditors.Length);
