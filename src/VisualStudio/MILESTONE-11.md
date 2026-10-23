@@ -3,7 +3,8 @@
 Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
 Follow-up iterations 9–15 complete; follow-up acceptance recorded on
 2026-10-23. See the collection/playground extension below. Original acceptance
-does not cover these additions.
+does not cover these additions. Preview follow-up planning (iteration 16) is
+complete; implementation and acceptance in iterations 17–19 remain pending.
 Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
@@ -608,8 +609,9 @@ The account allowance was 28% remaining at entry; pause at 20% remaining.
 - Designer uses scalar rows for simple collections, expandable field forms for
   records and the existing procedure editor. Stable internal draft identities
   distinguish duplicate entries and survive refresh; do not add source IDs.
-  Preview shows collection counts with a separate detail view, not variable table
-  columns. No host-side scalar parsing or inferred inheritance/provenance.
+  Iterations 14–15 delivered collection counts with a separate detail view.
+  The preview follow-up below supersedes that presentation with one column per
+  collection. No host-side scalar parsing or inferred inheritance/provenance.
 - The interactive shortcut defaults to VS2026 and accepts VS2022 / PrepareOnly.
   Each invocation builds a fresh isolated source copy, matching SDK/VSIX and
   sample project using a private package feed/cache; deploy to the dedicated
@@ -970,3 +972,161 @@ Validation so far:
   20% pause threshold. No required implementation or validation gate remains for
   this follow-up. OS display checks remain explicitly excluded; opt-in broader
   live/performance suites and publication were not part of this acceptance run.
+
+## Preview follow-up: collection columns and compiled XAML
+
+Owner direction confirmed 2026-10-23. This section replaces the earlier
+collection-count presentation decision, without changing completed evidence.
+The current request authorizes planning; runtime implementation has not started.
+Continue on dev/milestone-11 when implementation is requested. Retain the 20%
+remaining-allowance pause rule and the exclusion of OS theme/DPI display checks.
+
+### Confirmed outcome and exclusions
+
+- Every declared collection has its own preview column, in both embedded and
+  project/window previews. Labels supply headings; collection declaration order
+  supplies default order. User visibility, width and ordering remain supported.
+- Simple collections support List and Concatenated presentation. Complex
+  collections use compiled WPF DataTemplates, repeated once per effective record.
+  No HTML renderer, browser dependency, custom layout language, separate Table
+  renderer, runtime XAML loading or project-supplied template plugins are added.
+- Preserve compiler evaluation, collection order, duplicates, inherited-first
+  append, Clear, scalar states, origins and optional TestProcedure behavior.
+  This is presentation metadata, not an ALMX or compiled-output format change.
+- Templates are trusted fork source compiled into the matching extension. This
+  is not a sandbox for untrusted XAML. Compiler, tasks, libraries and analyzer
+  execution remain independent of WPF. No new runtime per-project schema.
+
+### Definition and simple presentation contract
+
+Use one optional Preview child on each collection in the version-2 definition.
+The following syntax is the implementation target; it is not supported yet:
+
+```xml
+<SimpleCollection Name="Measurements" Type="String" Label="Measurements">
+  <Preview DisplayType="List" Symbol="Bullet" />
+</SimpleCollection>
+<SimpleCollection Name="Tags" Type="String" Label="Tags">
+  <Preview DisplayType="Concatenated" Separator=", " />
+</SimpleCollection>
+<ComplexCollection Name="Checks" Label="Inspection checks">
+  <Field Name="Name" Type="String" />
+  <Field Name="Value" Type="Decimal" />
+  <Field Name="Unit" Type="String" />
+  <Preview DisplayType="Xaml"
+           TemplateFile="Preview/Checks.xaml" TemplateKey="ChecksPreview" />
+</ComplexCollection>
+```
+
+- List is the simple default; Symbol accepts Bullet (default), Number and None.
+  Concatenated defaults to Separator=", "; preserve explicit empty separators
+  and separator whitespace. No trimming, deduplication or value reordering.
+- Add PreviewVisible and PreviewWidth to collection metadata using ordinary
+  field conventions (true and 180 by default; width range 40–2000). Use Label
+  for headings. Reject duplicate Preview children, unknown display types and
+  settings inapplicable to the selected collection kind or display type.
+- Show compiler-provided display text and distinguish absent, invalid and
+  deferred values. An empty effective collection is distinct from unavailable
+  analysis; do not present an invalid reference chain as an empty list.
+- Existing definitions without Preview remain usable. Complex collections use
+  a built-in compiled record template displaying labelled scalar fields when
+  no custom template is selected. TemplateFile and TemplateKey must occur
+  together; custom selection is optional, not a new required definition field.
+
+### Compiled-template and build contract
+
+- TemplateFile names a fork-owned XAML ResourceDictionary relative to the
+  definition file; TemplateKey selects a string-keyed DataTemplate in it.
+  Reuse a dictionary across collections without duplicate build inclusion.
+  Package it as a WPF Page/BAML resource in the host assembly. No XamlReader
+  path, runtime filesystem lookup or loading from .almproj/.almlib/NuGet alarm
+  packages. The installed VSIX must work without the original template files.
+- Shared eng build integration resolves an explicit template/resource manifest
+  before WPF markup compilation. The current BeforeTargets=CoreCompile hook is
+  too late for discovery; address ordering deliberately. Include declared local
+  resource dependencies in incremental inputs, clean and isolated fork copying.
+  Missing resources and invalid XAML must fail the build without stale outputs.
+- Keep the net8.0 generator platform-neutral: it validates declaration/path/key
+  metadata and emits deterministic descriptors/manifest; WPF compilation and a
+  host-side resource validation check validate actual resource types and keys.
+  Do not execute templates in compiler generation or SDK consumer builds.
+- Preview settings and declared template/resource content affect tooling
+  compatibility, not semantic library fingerprints. Capture deterministic hashes
+  of the same declared inputs for matching toolsets without embedding absolute
+  paths or introducing WPF references into compiler/SDK assemblies. Test edits,
+  removals, no-op builds, clean rebuilds and parallel target-framework builds.
+  Coordinate contract versions only if serialized bridge payloads change;
+  record the exact decision and mismatch tests in the implementation evidence.
+- Publish a small host-owned record presentation contract: Fields indexed by
+  definition name, with DisplayText, compiler-provided typed Value, State and
+  label; plus record position/inherited state and detached origins. Make binding
+  members public where WPF requires it. Never expose compiler objects, mutable
+  document models or live project services to templates.
+- Document one-way bindings such as Fields[Name].DisplayText. Supply reusable
+  theme resources. Templates own record visuals, while the host owns collection
+  repetition, row selection, navigation and expansion. Support ordinary WPF
+  layout/styling/triggers; adding custom converters or code remains explicit fork
+  development, not a new plugin mechanism. Preview is read-only.
+- Build checks validate selected keys and DataTemplate types; representative
+  render tests detect binding errors. Do not claim WPF compilation statically
+  validates every arbitrary binding path. Missing keys/resource failures at
+  runtime show a diagnostic and readable default template where recoverable;
+  never silently blank the collection or promise isolation from faulty fork code.
+
+### Column behavior and compatibility
+
+- Use stable Collection:<name> IDs and template-capable DataGrid cells. Preserve
+  existing scalar/built-in IDs, including Field:Collections. Remove the old
+  aggregate Collections column; ignore its saved preference, retain surviving
+  columns' settings, and append newly discovered collection columns predictably.
+  Reset restores definition defaults. Reconcile obsolete sort selections too.
+- Collection sorting is disabled initially: no sorting by rendered text or
+  invented aggregate ordering. Scalar sorting remains compiler-typed. Search
+  and clipboard/plain-text representations use deterministic field/item text,
+  independent of template visual trees; retain existing search scope otherwise.
+- Preserve compiler-origin detail/navigation access. Column changes, refresh,
+  expansion and template rendering must not save source, materialize defaults,
+  commit drafts or lose selection. Keep invalid/deferred state indicators visible
+  even when a custom record template omits a field.
+- Bound visible entry rendering for large collections and provide explicit
+  expansion plus access to all entries; never silently truncate values. Preserve
+  row virtualization and recycling. Select and document the initial visible limit
+  during implementation using representative large-preview measurements.
+
+### Numbered iterations and acceptance
+
+| Iteration | Deliverable and dependencies | Validation and completion gate |
+| --- | --- | --- |
+| 16 | Record confirmed preview direction, design defaults, exclusions and repository guidance. Depends on completed 15. | Documentation diff, links/path and consistency review; focused documentation commit. No runtime changes or test-pass claim. |
+| 17 | Per-collection columns and simple List/Concatenated end to end: definition validation/generated metadata, cells, stable IDs, saved preference migration, value states, copy text and bounded rendering. Complex records use the built-in compiled template. Depends on 16. | Generator tests; editor column/render/state/migration/draft tests; both-runtime downstream metadata compatibility checks; native simple-column cases on both IDE hosts. Keep custom-template declarations explicitly guarded until 18. Update authoring docs with supported behavior. |
+| 18 | Custom compiled XAML dictionaries, template keys, stable record binding contract, build/resource manifest, tooling fingerprint integration and error fallback. Depends on 17. | Clean/no-op/incremental/failing builds, missing/duplicate/wrong-type resource tests, binding/render fixtures, packaged VSIX checks without source files, compiler/SDK WPF-isolation checks; native custom-template cases on VS2022/2026. Validate edited/deleted resource inputs and matching-toolset rejection. Update authoring docs. |
+| 19 | Playground templates and both simple modes, enabled/disabled procedure samples, launcher copying of declared assets, integrated acceptance and final evidence. Depends on 18. | Existing collection runtime and packaged fork workflows on net472/net8.0 and both MSBuild hosts; native column/template/refresh/draft checks on both IDE hosts sequentially; focused large-preview performance/recycling checks and affected regression suites. Record actual passes, failures, skips and remaining gates separately. |
+
+Each implementation iteration must leave matching compiler/SDK/extension usable,
+include its tests and documentation, and be committed before the next iteration.
+Do not advertise guarded capabilities as working. No push, merge or publication
+is part of this plan. OS theme/DPI display checks remain excluded; functional
+native rendering and focused performance checks are acceptance gates.
+
+### Implementation details to resolve within the iterations
+
+No owner scope decision blocks this plan. Record the exact manifest format,
+resource dependency handling, WPF target ordering, any bridge version transition
+and measured visible-entry limit before finalizing the relevant iteration.
+If implementation requires a scope change, update this section explicitly.
+
+Architectural references: follow the existing [Arcade SDK structure](https://github.com/dotnet/arcade/tree/main/src/Microsoft.DotNet.Arcade.Sdk)
+for shared build integration, preserving this repository's pinned imports. Use
+[WPF DataTemplates](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/data/data-templating-overview)
+for record presentation. Keep the existing compiler/host separation; there is no
+reason to introduce a new compiler architecture for this presentation change.
+
+### Iteration 16 evidence
+
+Reviewed current column construction, saved layout IDs, collection detail models,
+host WPF project and generation target ordering. Recorded the replacement preview
+contract and iterations 17–19, and updated AGENTS.md to supersede the old count-only
+guidance. Reviewed document consistency, referenced local paths and diff;
+git diff --check passed. Runtime
+tests were not run: this iteration changes documentation only. Implementation and
+all acceptance gates for 17–19 remain pending.

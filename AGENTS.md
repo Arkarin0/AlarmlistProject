@@ -106,7 +106,13 @@ Collection drafts share the atomic document transaction and reject concurrent
 changes to their source container. Keep local entry identities through moves and
 analysis refresh; inherited/excluded entries remain read-only compiler projections.
 Record completion adds sibling fields without making defaults into source values.
-Preview uses a fixed collection-count column and separate entry details.
+Iteration 14 implemented a fixed collection-count column and separate entry
+details. The planned iterations 16–19 replace that column with one stable
+Collection:<name> column per collection: List/Concatenated for simple collections
+and compiled WPF DataTemplates for complex collections. Follow the plan's
+presentation contract, saved-column migration and template build/validation gates.
+Templates belong to the rebuilt extension, never runtime project/library inputs;
+keep WPF and template objects out of compiler/SDK analysis boundaries.
 The standard definition now uses version 2 with explicit TestProcedure and the
 original four fields. This changes its semantic fingerprint; rebuild libraries
 and matching tools. The interactive shortcut accepts an explicit SampleFile as
