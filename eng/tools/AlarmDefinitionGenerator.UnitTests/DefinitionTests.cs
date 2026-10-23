@@ -65,6 +65,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator.UnitTests
         [InlineData("<Field Name='Step' Type='String'/>")]
         [InlineData("<Field Name='Clear' Type='String'/>")]
         [InlineData("<Field Name='Collections' Type='String'/>")]
+        [InlineData("<Field Name='_collections' Type='String'/>")]
         [InlineData("<Field Name='GetCollection' Type='String'/>")]
         [InlineData("<Field Name='LocalCollections' Type='String'/>")]
         [InlineData("<Field Name='GetEffectiveCollection' Type='String'/>")]

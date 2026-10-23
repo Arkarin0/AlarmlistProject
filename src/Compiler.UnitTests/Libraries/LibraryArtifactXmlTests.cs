@@ -25,15 +25,17 @@ namespace Alarmlist.Core.UnitTests.Libraries
             Assert.Contains("alarm definition", error.Message);
         }
 
-        [Fact]
-        public void OldLibraryFormatRequiresRebuild()
+        [Theory]
+        [InlineData("1")]
+        [InlineData("2")]
+        public void OldLibraryFormatRequiresRebuild(string version)
         {
             XDocument document = XDocument.Parse(LibraryArtifactXml.Write(Create()));
-            document.Root.SetAttributeValue("FormatVersion", "1");
+            document.Root.SetAttributeValue("FormatVersion", version);
             document.Root.SetAttributeValue("SchemaFingerprint", null);
             var error = Assert.Throws<InvalidDataException>(() => LibraryArtifactXml.Read(document.ToString()));
             Assert.Contains("Rebuild", error.Message);
-            Assert.Contains("format 2", error.Message);
+            Assert.Contains("format 3", error.Message);
         }
 
         [Theory]

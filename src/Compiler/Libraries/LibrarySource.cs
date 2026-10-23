@@ -60,6 +60,19 @@ namespace Alarmlist.Libraries
                     Add(key + "/fields/" + field, alarm.GetFieldLocation(field));
                 for (int propertyIndex = 0; propertyIndex < alarm.Properties.Count; propertyIndex++)
                     Add(key + "/properties/" + Index(propertyIndex), alarm.Properties[propertyIndex].Location);
+                foreach (var collection in alarm.LocalCollections)
+                {
+                    string collectionKey = key + "/collections/" + collection.Descriptor.Name;
+                    Add(collectionKey, collection.Location);
+                    for (int entryIndex = 0; entryIndex < collection.Entries.Count; entryIndex++)
+                    {
+                        string entryKey = collectionKey + "/entries/" + Index(entryIndex);
+                        var entry = collection.Entries[entryIndex];
+                        Add(entryKey, entry is AlarmCollectionItemSyntax item ? item.Location : ((Clear)entry).Location);
+                        if (entry is AlarmCollectionItemSyntax record)
+                            foreach (var field in collection.Descriptor.Fields) Add(entryKey + "/fields/" + field.Name, record.GetFieldLocation(field.Name));
+                    }
+                }
                 for (int groupIndex = 0; groupIndex < alarm.TestProcedure.Groups.Count; groupIndex++)
                 {
                     ProcedureGroupSyntax group = alarm.TestProcedure.Groups[groupIndex];
@@ -104,6 +117,21 @@ namespace Alarmlist.Libraries
                 foreach (string field in new[] { "FullyQualifiedName", "ReferenceName" }.Concat(Alarmlist.Definition.AlarmDefinition.Fields.Select(field => field.Name)))
                     alarm.SetFieldLocation(field, Location(key + "/fields/" + field));
                 Properties(alarm.Properties, key + "/properties");
+                foreach (var collection in alarm.LocalCollections)
+                {
+                    string collectionKey = key + "/collections/" + collection.Descriptor.Name;
+                    collection.Location = Location(collectionKey);
+                    for (int entryIndex = 0; entryIndex < collection.Entries.Count; entryIndex++)
+                    {
+                        string entryKey = collectionKey + "/entries/" + Index(entryIndex);
+                        if (collection.Entries[entryIndex] is AlarmCollectionItemSyntax record)
+                        {
+                            record.Location = Location(entryKey);
+                            foreach (var field in collection.Descriptor.Fields) record.SetFieldLocation(field.Name, Location(entryKey + "/fields/" + field.Name));
+                        }
+                        else ((Clear)collection.Entries[entryIndex]).Location = Location(entryKey);
+                    }
+                }
                 for (int groupIndex = 0; groupIndex < alarm.TestProcedure.Groups.Count; groupIndex++)
                 {
                     ProcedureGroupSyntax group = alarm.TestProcedure.Groups[groupIndex];

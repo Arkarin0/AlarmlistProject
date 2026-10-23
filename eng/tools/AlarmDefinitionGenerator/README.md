@@ -50,7 +50,7 @@ ALM0029 reports mandatory scalar/required/bounds errors. String output retains i
 text; typed output is invariant and canonical. Defaults are literal and are never
 written into authored source.
 
-Analysis 6, analyzer 4 and library format 2 carry matching definition metadata
+Analysis 7, analyzer 5 and library format 3 carry matching definition metadata
 and fingerprints. Rebuild matching tools after definition changes; this is not
 runtime project customization. The field designer, lists, completion and previews
 use metadata. The milestone document records completed acceptance and remaining gates.
@@ -176,12 +176,11 @@ are nonnegative Int32 values and must form a valid range. Nested collections are
 rejected. Collection/ordinary field names share the alarm namespace and follow
 existing reserved-name rules. The generated simple-item descriptor is named Item.
 
-**This is not yet enabled collection runtime support.** Until the coordinated
-compiler/analysis/designer work is complete, the CLI rejects definitions with
-collections or disabled procedures before installing any output. Internal tests
-exercise their descriptors and template adaptation. Version-2 scalar definitions
-with an explicit procedure remain buildable. The standard checked-in definition
-stays at version 1 during this stage.
+The compiler and SDK accept collection and procedure-disabled definitions. Host
+generation remains guarded until the collection designer is ready; a fork cannot
+yet build a collection-enabled VSIX. The standard checked-in definition stays at
+version 1 during this stage. Internal host fixtures test detached metadata before
+that guard is removed.
 
 Generated metadata adds `AlarmCollectionDescriptor`, `AlarmDefinition.Collections`
 and `AlarmDefinition.HasTestProcedure`. Semantic fingerprints include collection
@@ -190,7 +189,7 @@ presentation-only. The standard version-1 semantic fingerprint is preserved, whi
 the generator-3 tooling fingerprint requires rebuilding matching SDK and extension
 assets. Use the milestone plan for the remaining end-to-end acceptance gates.
 
-The compiler runtime foundation now parses and writes local collection containers,
+The compiler parses and writes local collection containers,
 resolves inherited-first entries and Clear, and evaluates item scalar expressions.
 Flat record fields can refer to siblings using `$(item:FieldName)`; references are
 case-insensitive and cycles are errors. Item expressions retain the consuming
@@ -201,6 +200,15 @@ concrete application alarms; ALM0030 is mandatory. Resolved items are exposed by
 
 Run `eng/test-alarm-collections.ps1` for isolated runtime fixtures on net472 and
 net8.0, including procedure-enabled/disabled definitions and minimum cardinality.
-The test-only fixture generator accesses internal generation; it does not remove
-the production CLI guard or modify the standard definition. Library/analysis and
-designer payload integration remain subsequent milestone gates.
+The test-only fixture generator accesses internal host generation; it does not
+remove the production host guard or modify the standard definition. Analysis 7
+and analyzer 5 expose collection descriptors and local/effective/excluded entries
+with typed fields, item origins and Clear exclusions. Library format 3 preserves
+raw expressions and per-item/field navigation locations. Older contracts require
+a rebuild even if their scalar definition fingerprint matches.
+
+Run `eng/test-alarm-collection-fork.ps1 -DesktopMSBuildPath '<MSBuild.exe>'` for
+isolated compiler/SDK forks with procedures enabled and disabled. It builds real
+packages, checks project and NuGet consumers on both task hosts and verifies
+collection-aware analyzers and prior-output preservation after failures. It does
+not deploy an IDE extension. Native collection acceptance remains a later gate.

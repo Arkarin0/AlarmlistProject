@@ -1,9 +1,11 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)][string]$ForkRoot,
-  [Parameter(Mandatory = $true)][string]$DesktopMSBuildPath
+  [Parameter(Mandatory = $true)][string]$DesktopMSBuildPath,
+  [switch]$Collections
 )
 $ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 $work = Join-Path $ForkRoot ('consumer-checks/' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Path $work | Out-Null
 $feed = Join-Path $work 'feed'
@@ -45,6 +47,9 @@ try {
 <Clock>12:34:56.1200</Clock><Instant>2024-02-29T12:34:56.1200+02:00</Instant>
 </Alarm></Alarmlist>
 '@
+    if ($Collections) {
+      $source = $source.Replace('</Alarm>', '<Tags><Item>base</Item></Tags><Numbers><Item>$(ConsumerCode)</Item></Numbers><Checks><Item><Count>$(ConsumerCode)</Count><Copy>$(item:Count)</Copy></Item></Checks></Alarm>')
+    }
     Set-Content 'Library/Library.almx' $source
     foreach ($kind in @('Project', 'Package')) {
       $reference = if ($kind -eq 'Project') { '<ProjectReference Include="../Library/Library.almproj" />' } else { '<PackageReference Include="Fork.Library" Version="1.0.0" />' }
@@ -64,7 +69,7 @@ try {
     }
     Invoke-Checked 'library-pack' 'dotnet' @('msbuild', 'Library/Library.almproj', '-restore', '-t:Pack', "-p:PackageOutputPath=$feed", '-v:minimal', '-nr:false')
     [xml]$library = Get-Content 'Library/bin/Debug/Fork.Library.almlib' -Raw
-    if ($library.DocumentElement.FormatVersion -ne '2' -or !$library.DocumentElement.SchemaFingerprint) { throw 'Library contract/fingerprint missing.' }
+    if ($library.DocumentElement.FormatVersion -ne '3' -or !$library.DocumentElement.SchemaFingerprint) { throw 'Library contract/fingerprint missing.' }
     if (!(Get-Content 'Library/bin/Debug/Fork.Library.almlib' -Raw).Contains('$(ConsumerCode)')) { throw 'Library lost its deferred expression.' }
     foreach ($hostKind in @('Core', 'Desktop')) {
       foreach ($kind in @('Project', 'Package')) {
@@ -88,6 +93,21 @@ try {
       if ((Get-FileHash $output).Hash -ne $previousOutput) { throw 'Failed consumer build replaced its prior output.' }
     }
     Set-Content 'PackageConsumer/Consumer.almproj' $consumer
+    if ($Collections) {
+      $local = Get-Content 'PackageConsumer/Local.almx' -Raw
+      foreach ($hostKind in @('Core', 'Desktop')) {
+        foreach ($case in @(@{ Xml = '<Tags><Item>a</Item><Item>b</Item><Item>c</Item><Item>d</Item></Tags>'; Diagnostic = 'ALM0030' },
+                           @{ Xml = '<Checks><Item><Count>bad</Count></Item></Checks>'; Diagnostic = 'ALM0029' })) {
+          Set-Content 'PackageConsumer/Local.almx' $local.Replace('</Alarm>', $case.Xml + '</Alarm>')
+          $log = "collection-$hostKind-$($case.Diagnostic).log"
+          $arguments = @('PackageConsumer/Consumer.almproj', '-t:Build', '-v:minimal', '-nr:false')
+          if ($hostKind -eq 'Core') { & dotnet msbuild @arguments *> $log } else { & $DesktopMSBuildPath @arguments *> $log }
+          if ($LASTEXITCODE -eq 0 -or !(Get-Content $log -Raw).Contains($case.Diagnostic)) { throw "Expected collection failure missing: $log" }
+          if ((Get-FileHash $output).Hash -ne $previousOutput) { throw 'Failed collection build replaced prior output.' }
+        }
+      }
+      Set-Content 'PackageConsumer/Local.almx' $local
+    }
     if ((Get-Content 'Library/Library.almx' -Raw).Trim() -ne $source.Trim()) { throw 'Build rewrote library source.' }
   } finally { Pop-Location }
 } finally { $env:NUGET_PACKAGES = $previousCache }

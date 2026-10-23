@@ -189,10 +189,12 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<AnalysisAlarmOrigin> ReferenceChain { get; }
         public IReadOnlyList<AnalysisField> Fields { get; }
         public IReadOnlyList<AnalysisSection> ProcedureSections { get; }
+        public IReadOnlyList<AnalysisCollection> Collections { get; }
 
         public AnalysisAlarm(AnalysisAlarmOrigin origin, string referenceName, bool isResolved, IReadOnlyList<AnalysisAlarmOrigin> referenceChain, IReadOnlyList<AnalysisField> fields, IReadOnlyList<AnalysisSection> procedureSections,
             bool isAbstract = false, bool hasEvaluatedValues = true, IReadOnlyList<AnalysisProperty> properties = null,
-            IReadOnlyList<AnalysisLocalizationUse> localizationUses = null, IReadOnlyList<AnalysisLookupUse> lookupUses = null)
+            IReadOnlyList<AnalysisLocalizationUse> localizationUses = null, IReadOnlyList<AnalysisLookupUse> lookupUses = null,
+            IReadOnlyList<AnalysisCollection> collections = null)
         {
             Origin = origin;
             ReferenceName = referenceName;
@@ -205,6 +207,7 @@ namespace Alarmlist.VisualStudio.Analysis
             ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
             Fields = Array.AsReadOnly(fields.ToArray());
             ProcedureSections = Array.AsReadOnly(procedureSections.ToArray());
+            Collections = Array.AsReadOnly((collections ?? Array.Empty<AnalysisCollection>()).ToArray());
         }
     }
 
@@ -233,6 +236,8 @@ namespace Alarmlist.VisualStudio.Analysis
         public string SchemaFingerprint { get; }
         public string ToolingFingerprint { get; }
         public IReadOnlyList<Definition.AlarmFieldDescriptor> FieldDefinitions { get; }
+        public IReadOnlyList<Definition.AlarmCollectionDescriptor> CollectionDefinitions { get; }
+        public bool HasTestProcedure { get; }
         public int ContractVersion { get; }
         public bool Success { get; }
         public IReadOnlyList<AnalysisSource> Sources { get; }
@@ -253,11 +258,14 @@ namespace Alarmlist.VisualStudio.Analysis
             IReadOnlyList<AnalysisTranslation> translations = null, IReadOnlyList<AnalysisLookupFile> lookupFiles = null,
             IReadOnlyList<AnalysisLookupPath> lookupPaths = null, IReadOnlyList<AnalysisLookupList> lookupLists = null,
             IReadOnlyList<AnalysisArgumentBinding> argumentBindings = null, IReadOnlyList<AnalysisLibrary> libraries = null,
-            string schemaFingerprint = null, string toolingFingerprint = null, IReadOnlyList<Definition.AlarmFieldDescriptor> fieldDefinitions = null)
+            string schemaFingerprint = null, string toolingFingerprint = null, IReadOnlyList<Definition.AlarmFieldDescriptor> fieldDefinitions = null,
+            IReadOnlyList<Definition.AlarmCollectionDescriptor> collectionDefinitions = null, bool? hasTestProcedure = null)
         {
             SchemaFingerprint = schemaFingerprint ?? Definition.AlarmDefinition.SchemaFingerprint;
             ToolingFingerprint = toolingFingerprint ?? Definition.AlarmDefinition.ToolingFingerprint;
             FieldDefinitions = Array.AsReadOnly((fieldDefinitions ?? Definition.AlarmDefinition.Fields).ToArray());
+            CollectionDefinitions = Array.AsReadOnly((collectionDefinitions ?? Definition.AlarmDefinition.Collections).ToArray());
+            HasTestProcedure = hasTestProcedure ?? Definition.AlarmDefinition.HasTestProcedure;
             ContractVersion = contractVersion;
             Success = success;
             Sources = Array.AsReadOnly(sources.ToArray());

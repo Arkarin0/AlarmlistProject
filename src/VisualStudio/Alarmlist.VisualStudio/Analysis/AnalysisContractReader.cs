@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
-    /// <summary>Contract 6 adapter. Copies compiler answers without reimplementing resolution.</summary>
+    /// <summary>Contract 7 adapter. Copies compiler answers without reimplementing resolution.</summary>
     internal sealed class AnalysisContractReader
     {
         private readonly Dictionary<Type, Type> _types = new Dictionary<Type, Type>();
@@ -17,12 +17,16 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             Add<AnalysisSnapshot>(assembly, "Alarmlist.Analysis.AnalysisResult");
             FieldInfo version = _types[typeof(AnalysisSnapshot)].GetField("CurrentContractVersion", BindingFlags.Public | BindingFlags.Static);
-            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 6))
-                throw new NotSupportedException("Only analysis contract 6 is supported by this extension. Rebuild matching tools.");
+            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 7))
+                throw new NotSupportedException("Only analysis contract 7 is supported by this extension. Rebuild matching tools.");
             Type definition = assembly.GetType("Alarmlist.Definition.AlarmDefinition");
             if (!Equals(definition?.GetField("ToolingFingerprint")?.GetRawConstantValue(), Definition.AlarmDefinition.ToolingFingerprint))
                 throw new NotSupportedException("The SDK and extension alarm definitions do not match. Rebuild matching tools; XML editing remains available.");
             Add<Definition.AlarmFieldDescriptor>(assembly, "Alarmlist.Definition.AlarmFieldDescriptor");
+            Add<Definition.AlarmCollectionDescriptor>(assembly, "Alarmlist.Definition.AlarmCollectionDescriptor");
+            Add<AnalysisCollection>(assembly, "Alarmlist.Analysis.AnalyzedCollection");
+            Add<AnalysisCollectionEntry>(assembly, "Alarmlist.Analysis.AnalyzedCollectionEntry");
+            Add<AnalysisCollectionEntryOrigin>(assembly, "Alarmlist.Analysis.CollectionEntryOrigin");
             Add<AnalysisFieldValueState>(assembly, "Alarmlist.Definition.AlarmFieldValueState");
             Add<AnalysisResource>(assembly, "Alarmlist.Analysis.AnalyzedResource");
             Add<AnalysisLibrary>(assembly, "Alarmlist.Analysis.AnalyzedLibrary");
@@ -90,11 +94,11 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public AnalysisSnapshot Read(object result)
         {
-            if (result == null || Value<int>(result, "ContractVersion") != 6)
+            if (result == null || Value<int>(result, "ContractVersion") != 7)
                 throw new NotSupportedException("The SDK returned an unsupported analysis contract.");
             if (Value<string>(result, "ToolingFingerprint") != Definition.AlarmDefinition.ToolingFingerprint)
                 throw new NotSupportedException("The SDK returned mismatched alarm metadata. Rebuild matching tools; XML editing remains available.");
-            return new AnalysisSnapshot(6, Value<bool>(result, "Success"), List(result, "Sources", source =>
+            return new AnalysisSnapshot(7, Value<bool>(result, "Success"), List(result, "Sources", source =>
                 new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"), List(source, "Properties", Property),
                     ProcedureCreation(Value<object>(source, "ProcedureCreation")))),
                 List(result, "Alarms", Alarm), List(result, "Diagnostics", diagnostic => new AnalysisDiagnostic(
@@ -112,7 +116,8 @@ namespace Alarmlist.VisualStudio.Analysis
                 List(result, "ArgumentBindings", binding => new AnalysisArgumentBinding(Value<string>(binding, "TemplateKey"),
                     Value<string>(binding, "ArgumentName"), Value<string>(binding, "ListKey"), Location(Value<object>(binding, "Location")),
                     Value<bool>(binding, "IsAvailable"))), List(result, "Libraries", Library), Value<string>(result, "SchemaFingerprint"),
-                    Value<string>(result, "ToolingFingerprint"), List(result, "FieldDefinitions", Descriptor));
+                    Value<string>(result, "ToolingFingerprint"), List(result, "FieldDefinitions", Descriptor),
+                    List(result, "CollectionDefinitions", CollectionDescriptor), Value<bool>(result, "HasTestProcedure"));
         }
 
         private static AnalysisLibraryIdentity LibraryIdentity(object identity) => identity == null ? null
@@ -142,7 +147,8 @@ namespace Alarmlist.VisualStudio.Analysis
                     new AnalysisLocalizationUse(Translation(Value<object>(use, "Translation")), Location(Value<object>(use, "UsageLocation")),
                         Value<string>(use, "Value"), Value<bool>(use, "IsValueAvailable"))), List(alarm, "LookupUses", use =>
                     new AnalysisLookupUse(Value<string>(use, "Expression"), Location(Value<object>(use, "DefinitionLocation")),
-                        Location(Value<object>(use, "UsageLocation")), Value<string>(use, "Value"), Value<bool>(use, "IsValueAvailable"))));
+                        Location(Value<object>(use, "UsageLocation")), Value<string>(use, "Value"), Value<bool>(use, "IsValueAvailable"))),
+                List(alarm, "Collections", Collection));
         }
 
         private static AnalysisTranslation Translation(object translation) => translation == null ? null : new AnalysisTranslation(
@@ -203,6 +209,24 @@ namespace Alarmlist.VisualStudio.Analysis
                 EntryOrigin(Value<object>(entry, "Origin")), Value<bool>(entry, "IsInherited"), EntryOrigin(Value<object>(entry, "ExcludedBy")),
                 Value<string>(entry, "RawText"), Value<bool>(entry, "IsValueAvailable"));
         }
+
+        private static Definition.AlarmCollectionDescriptor CollectionDescriptor(object collection)
+            => new Definition.AlarmCollectionDescriptor(Value<string>(collection, "Name"), Value<string>(collection, "Kind"),
+                Value<string>(collection, "Label"), Value<string>(collection, "Help"), Value<int>(collection, "MinCount"),
+                Value<int?>(collection, "MaxCount"), List(collection, "Fields", Descriptor).ToArray());
+
+        private static AnalysisCollection Collection(object collection) => new AnalysisCollection(Value<string>(collection, "Name"),
+            Value<bool>(collection, "IsLocallyDeclared"), Location(Value<object>(collection, "LocalLocation")),
+            List(collection, "LocalEntries", CollectionEntry), List(collection, "EffectiveEntries", CollectionEntry),
+            List(collection, "ExcludedEntries", CollectionEntry));
+
+        private static AnalysisCollectionEntry CollectionEntry(object entry) => new AnalysisCollectionEntry(Value<bool>(entry, "IsClear"),
+            Value<bool>(entry, "IsInherited"), Value<bool>(entry, "IsValueAvailable"), CollectionOrigin(Value<object>(entry, "Origin")),
+            CollectionOrigin(Value<object>(entry, "ExcludedBy")), List(entry, "Fields", Field));
+
+        private static AnalysisCollectionEntryOrigin CollectionOrigin(object origin) => origin == null ? null
+            : new AnalysisCollectionEntryOrigin(AlarmOrigin(Value<object>(origin, "Alarm")), Value<string>(origin, "Collection"),
+                Value<int>(origin, "Index"), Location(Value<object>(origin, "Location")));
 
         private static AnalysisProperty Property(object property)
             => new AnalysisProperty(Value<string>(property, "Name"), Value<bool>(property, "IsWellKnown"), Value<bool>(property, "IsLocallyDeclared"),

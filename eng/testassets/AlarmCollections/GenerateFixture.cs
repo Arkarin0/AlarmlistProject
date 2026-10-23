@@ -13,5 +13,8 @@ internal static class GenerateFixture
         string source = (string)assembly.GetType("Alarmlist.Tools.AlarmDefinitionGenerator.Program")
             .GetMethod("Generate", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new[] { definition, (object)false });
         File.WriteAllText(args[1], source);
+        string host = (string)assembly.GetType("Alarmlist.Tools.AlarmDefinitionGenerator.Program")
+            .GetMethod("Generate", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new[] { definition, (object)true });
+        File.WriteAllText(Path.Combine(Path.GetDirectoryName(args[1]), "Host.g.cs"), host);
     }
 }

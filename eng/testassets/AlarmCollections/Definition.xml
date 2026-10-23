@@ -1,5 +1,6 @@
 <AlarmDefinition Version="2">
   <Field Name="Code" Type="String" />
+  <Field Name="AlarmDefinition" Type="String" />
   <SimpleCollection Name="Tags" Type="String" MaxCount="3" />
   <SimpleCollection Name="Numbers" Type="Int64" Required="true" Minimum="0" Maximum="10" />
   <ComplexCollection Name="Checks" MaxCount="3">

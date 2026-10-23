@@ -127,7 +127,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator.UnitTests
         [InlineData("compiler")]
         [InlineData("host")]
         [InlineData("template")]
-        public void IncompleteRuntimeCapabilitiesCannotInstallGeneratedOutputs(string role)
+        public void CompilerCapabilitiesAreEnabledWhileIncompleteDesignerCannotInstallOutputs(string role)
         {
             string output = Path.Combine(_directory, "output");
             string template = Path.Combine(_directory, "template.almx");
@@ -138,8 +138,9 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator.UnitTests
                 File.WriteAllText(output, "last complete output");
                 string path = Write(members);
                 string[] arguments = role == "template" ? new[] { path, output, role, template } : new[] { path, output, role };
-                Assert.Equal(1, Program.Main(arguments));
-                Assert.Equal("last complete output", File.ReadAllText(output));
+                Assert.Equal(role == "host" ? 1 : 0, Program.Main(arguments));
+                if (role == "host") Assert.Equal("last complete output", File.ReadAllText(output));
+                else Assert.NotEqual("last complete output", File.ReadAllText(output));
             }
             string supported = Write("<Field Name='Code' Type='Int64'/><TestProcedure/>");
             Assert.Equal(0, Program.Main(role == "template" ? new[] { supported, output, role, template } : new[] { supported, output, role }));

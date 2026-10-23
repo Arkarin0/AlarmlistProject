@@ -108,7 +108,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 AnalysisAvailability state = failure is NotSupportedException || failure is TypeLoadException || failure is MissingMemberException
                     ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.LoadFailed;
                 return new AnalysisResponse(state, "Cannot use analysis compiler " + compilerPath
-                    + ". Restore an SDK supporting analysis contract 6 with captured diagnostic configuration and external analyzers. " + failure.Message);
+                    + ". Restore an SDK supporting analysis contract 7 with captured diagnostic configuration and external analyzers. " + failure.Message);
             }
         }
 

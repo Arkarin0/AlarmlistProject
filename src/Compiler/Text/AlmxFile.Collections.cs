@@ -26,7 +26,7 @@ namespace Alarmlist.Text
                 if (reader.Name == "Clear")
                 {
                     var clear = new Clear { Location = GetLocation(reader, path, version) };
-                    if (reader.ReadElementContentAsString().Length != 0)
+                    if (!string.IsNullOrWhiteSpace(reader.ReadElementContentAsString()))
                         throw CollectionError(reader, "Clear must be empty.");
                     collection.Entries.Add(clear);
                     continue;

@@ -47,7 +47,7 @@ namespace Alarmlist.Analyzers
         internal static Dictionary<string, DiagnosticDescriptor> ReadRules(IAlarmAnalyzer analyzer, HashSet<string> owners)
         {
             if (analyzer.ContractVersion != AlarmAnalyzerContext.CurrentContractVersion)
-                throw new NotSupportedException("Unsupported analyzer contract " + analyzer.ContractVersion + ". Rebuild this analyzer for contract 4 with the matching SDK.");
+                throw new NotSupportedException("Unsupported analyzer contract " + analyzer.ContractVersion + ". Rebuild this analyzer for contract 5 with the matching SDK.");
             var rules = new Dictionary<string, DiagnosticDescriptor>(StringComparer.OrdinalIgnoreCase);
             foreach (DiagnosticDescriptor descriptor in analyzer.SupportedDiagnostics ?? throw new InvalidOperationException("SupportedDiagnostics is null."))
             {

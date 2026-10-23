@@ -5,6 +5,7 @@ using System.Xml;
 using System.Xml.Linq;
 using Alarmlist.Compiler;
 using Alarmlist.Definition;
+using Alarmlist.Libraries;
 using Alarmlist.Syntax;
 using Alarmlist.Text;
 
@@ -50,6 +51,17 @@ internal static class Program
         }
         var empty = Compile("");
         Check(empty.Success && empty.AlarmList.Single().Collections.All(collection => collection.Items.Count == 0), "Absent collections create no items");
+        Check(Compile("<AlarmDefinition>ordinary</AlarmDefinition>").AlarmList.Single().AlarmDefinition == "ordinary", "Ordinary fields cannot shadow collection metadata helpers");
+        if (!AlarmDefinition.HasTestProcedure)
+        {
+            var manual = Snapshot(Alarm("")).Parse();
+            manual.Alarms.Single().TestProcedure.Groups.Add(new ProcedureGroupSyntax("Checks"));
+            Check(!new AlarmCompiler().Compile(new[] { new AlmxFile(manual) }).Success, "Programmatic syntax cannot bypass disabled procedures");
+            bool rejected = false;
+            try { using (var text = new StringWriter()) using (var writer = XmlWriter.Create(text)) AlmxFile.WriteAlarmSyntaxNode(manual.Alarms.Single(), writer); }
+            catch (InvalidOperationException) { rejected = true; }
+            Check(rejected, "Source writing does not silently drop disabled procedure data");
+        }
         var parsed = Snapshot(Alarm("<Checks><Item><Text></Text></Item></Checks><Tags><Item>x</Item><Clear/><Item>y</Item></Tags>")).Parse().Alarms.Single();
         var local = parsed.GetLocalCollection("Checks");
         Check(local.Location.SourceVersion == 42 && local.Entries.OfType<AlarmCollectionItemSyntax>().Single().GetFieldLocation("Text").SourceVersion == 42, "Collection and field source versions");
@@ -89,6 +101,7 @@ internal static class Program
         Check(cleared.Success && cleared.AlarmList.Single().GetCollection("Checks").Items.Count == 0 && cleared.AlarmList.Single().GetCollection("Tags").Items.Count == 1, "Clear removes inherited and preceding local entries and defers excluded contextual evaluation");
         var emptyContainer = new AlarmCompiler().CompileSnapshots(new[] { baseSource, Snapshot(Alarm("<ReferenceName>Base</ReferenceName><Properties><Property Name='P' Value='3'/></Properties><Tags/>")) });
         Check(emptyContainer.Success && emptyContainer.AlarmList.Single().GetCollection("Tags").Items.Count == 2, "Empty container inherits");
+        Check(Compile("<Tags><Item>removed</Item><Clear>\n  </Clear><Item>kept</Item></Tags>").AlarmList.Single().GetCollection("Tags").Items.Count == 1, "Clear permits formatting whitespace");
         Fails("<Tags><Item>a</Item><Item>b</Item><Item>c</Item><Item>d</Item></Tags>", "ALM0030");
         foreach (string value in new[] { "-1", "11", "", "1.5", "9223372036854775808" }) Fails("<Numbers><Item>" + value + "</Item></Numbers>", "ALM0029");
         foreach (string field in new[] { "<Count>11</Count>", "<Enabled>yes</Enabled>", "<Day>2026-02-30</Day>", "<Clock>25:00:00</Clock>", "<Instant>2026-10-23T12:00:00</Instant>", "<Ratio>NaN</Ratio>", "<Priority>Other</Priority>" }) Fails(Record(field), "ALM0029");
@@ -116,6 +129,49 @@ internal static class Program
         var abstractBad = new AlarmCompiler().CompileSnapshots(new[] { Snapshot(Alarm(Record("<Count>bad</Count>"), "Base", true)) });
         Check(!abstractBad.Success, "Known invalid abstract literals fail");
         Check(!Alarmlist.Diagnostics.DiagnosticDescriptors.InvalidCollectionCount.IsConfigurable, "Collection count errors are mandatory");
+        AnalyzeCollections(baseSource, childSource);
         Console.WriteLine(_checks + " collection checks passed; TestProcedure=" + AlarmDefinition.HasTestProcedure);
+    }
+
+    private static void AnalyzeCollections(AlmxTextSnapshot baseSource, AlmxTextSnapshot childSource)
+    {
+        var compiler = new AlarmCompiler();
+        var analysis = compiler.AnalyzeSnapshots(new[] { baseSource, childSource }, includeCompiledXml: true);
+        Check(analysis.ContractVersion == 7 && analysis.CollectionDefinitions.Count == 3 && analysis.HasTestProcedure == AlarmDefinition.HasTestProcedure, "Analysis metadata and capability");
+        Check(analysis.Sources.All(source => (source.ProcedureCreation.Groups.Count != 0) == AlarmDefinition.HasTestProcedure), "Creation defaults honor optional procedures");
+        var child = analysis.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child");
+        var checks = child.Collections.Single(collection => collection.Name == "Checks");
+        var entry = checks.EffectiveEntries.Single();
+        Check(!checks.IsLocallyDeclared && checks.LocalEntries.Count == 0 && entry.IsInherited && entry.Origin.Alarm.FullyQualifiedName == "Base" && entry.Origin.Location.FilePath == "base.almx", "Inherited collection provenance");
+        var count = entry.Fields.Single(field => field.Name == "Count");
+        Check(count.EffectiveExpression == "$(P)" && count.LocalValue == null && (long)count.TypedValue == 4 && count.ValueLocation.SourceVersion == 42, "Detached typed record field and source version");
+        var clearSource = Snapshot(Alarm("<ReferenceName>Base</ReferenceName><Tags><Clear/><Item>local</Item></Tags><Checks><Clear/></Checks>"));
+        var cleared = compiler.AnalyzeSnapshots(new[] { baseSource, clearSource });
+        var tags = cleared.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "A").Collections.Single(collection => collection.Name == "Tags");
+        Check(tags.LocalEntries[0].IsClear && tags.ExcludedEntries.Count == 2 && tags.ExcludedEntries.All(value => value.ExcludedBy.Index == 0 && value.ExcludedBy.Alarm.FullyQualifiedName == "A"), "Clear exclusions retain directive origins");
+        var invalid = compiler.AnalyzeSnapshots(new[] { Snapshot(Alarm("<ReferenceName>Missing</ReferenceName><Tags><Item>local</Item></Tags>")) });
+        Check(!invalid.Alarms.Single().IsResolved && invalid.Alarms.Single().Collections.All(collection => collection.EffectiveEntries.Count == 0), "Invalid chain never advertises effective collections");
+        var copied = new Alarmlist.VisualStudio.Analysis.AnalysisContractReader(typeof(AlarmCompiler).Assembly).Read(analysis);
+        var copiedEntry = copied.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child").Collections.Single(collection => collection.Name == "Checks").EffectiveEntries.Single();
+        Check(copied.CollectionDefinitions.Count == 3 && copied.HasTestProcedure == AlarmDefinition.HasTestProcedure && (long)copiedEntry.Fields.Single(field => field.Name == "Copy").TypedValue == 4, "Bridge copies descriptors and primitive typed record values");
+        Check(!ReferenceEquals(copiedEntry.Origin, entry.Origin) && !ReferenceEquals(copiedEntry.Fields[0], entry.Fields[0]), "Bridge owns detached objects");
+
+        var identity = new Alarmlist.Libraries.LibraryIdentity("Records", "1.0.0");
+        var built = compiler.CreateLibrary(identity, new[] { baseSource }, CompilationContext.Empty);
+        Check(built.Success && built.ArtifactText.Contains("FormatVersion=\"3\""), "Collection library format");
+        Check(built.ArtifactText.Contains("$(item:Count)") && !built.ArtifactText.Contains("$(Literal)"), "Libraries retain raw expressions without default materialization");
+        var context = CompilationContext.Empty.WithLibraries(new Alarmlist.Libraries.LibraryReferenceSet(new[] { identity },
+            new[] { new LibraryTextSnapshot(built.ArtifactText, "records.almlib", 1) }));
+        var consumer = compiler.AnalyzeSnapshots(new[] { childSource }, context, includeCompiledXml: true);
+        var libraryEntry = consumer.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child").Collections.Single(collection => collection.Name == "Checks").EffectiveEntries.Single();
+        Check(consumer.Success && libraryEntry.Origin.Alarm.Library.Id == "Records" && libraryEntry.Origin.Location.FilePath.StartsWith("library://Records/1.0.0/"), "Library record ownership restored");
+        Check((long)libraryEntry.Fields.Single(field => field.Name == "Copy").TypedValue == 4 && libraryEntry.Origin.Location.LineNumber == entry.Origin.Location.LineNumber, "Library expressions and original locations round trip");
+        Check(consumer.Libraries.Single().Sources.Single().Origins.Any(origin => origin.Key.Contains("/collections/Checks/entries/0/fields/Count")), "Library navigation maps record fields");
+        var libraryXml = XDocument.Parse(built.ArtifactText);
+        var originNode = libraryXml.Descendants().First(element => element.Name.LocalName == "Origin" && ((string)element.Attribute("Key"))?.Contains("/collections/Checks") == true);
+        originNode.SetAttributeValue("Key", "alarms/0/collections/Unknown");
+        var invalidContext = CompilationContext.Empty.WithLibraries(new Alarmlist.Libraries.LibraryReferenceSet(new[] { identity },
+            new[] { new LibraryTextSnapshot(libraryXml.ToString(), "bad.almlib", 1) }));
+        Check(!compiler.CompileSnapshots(new[] { childSource }, invalidContext).Success, "Forged collection navigation keys fail");
     }
 }

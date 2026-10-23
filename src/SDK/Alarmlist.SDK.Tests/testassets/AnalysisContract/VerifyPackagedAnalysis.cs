@@ -40,7 +40,7 @@ public sealed class VerifyPackagedAnalysis : Task
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 6, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 7, "Unexpected analysis contract version.");
         Require(((string)Value(result, "SchemaFingerprint")).Length == 64 && ((string)Value(result, "ToolingFingerprint")).Length == 64,
             "Packaged definition fingerprints are missing.");
         Require(Items(result, "FieldDefinitions").Select(field => (string)Value(field, "Name")).SequenceEqual(new[] { "Name", "Code", "Category", "Description" }),
@@ -181,7 +181,7 @@ public sealed class VerifyPackagedAnalysis : Task
             "Library ownership was not detached into analysis.");
         Require((string)Value(Value(Value(Items(imported, "Alarms").Single(), "Origin"), "Library"), "Id") == "PackagedLibrary",
             "Imported alarm ownership was lost.");
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 6 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, and compiled XML preview.");
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 7 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, and compiled XML preview.");
         return true;
     }
 

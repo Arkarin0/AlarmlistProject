@@ -94,7 +94,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Contains("$(loc:Inspection)", keyword.CompiledXml);
                 }
                 AnalysisSnapshot snapshot = response.Snapshot;
-                Assert.Equal(6, snapshot.ContractVersion);
+                Assert.Equal(7, snapshot.ContractVersion);
                 Assert.Equal("de-DE", snapshot.Culture);
                 Assert.Equal("de", Assert.Single(snapshot.Resources).Culture);
                 Assert.Equal(31, snapshot.Resources[0].Version);
@@ -299,7 +299,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.DoesNotContain("<ReferenceName>", xml);
                     Assert.DoesNotContain("<Clear", xml);
                     Assert.True(snapshot.Success);
-                    Assert.Equal(6, snapshot.ContractVersion);
+                    Assert.Equal(7, snapshot.ContractVersion);
                     Assert.Equal(new[] { 4, 9 }, snapshot.Sources.Select(source => source.Version));
                     AnalysisAlarm child = snapshot.Alarms[1];
                     Assert.Equal("Base", Assert.Single(child.ReferenceChain).FullyQualifiedName);
@@ -452,6 +452,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         [InlineData(3)]
         [InlineData(4)]
         [InlineData(5)]
+        [InlineData(6)]
         public void IncompatibleSdkVersionsDoNotInterfereWithACompatibleProject(int contract)
         {
             using (var sdk = new SdkAsset())
@@ -461,7 +462,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 incompatible.ReplaceWithIncompatibleCompiler(contract);
                 BridgeOpenResult result = new SdkAnalysisBridgeFactory().Open(incompatible.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, result.Availability);
-                Assert.Contains("contract 6", result.Message);
+                Assert.Contains("contract 7", result.Message);
                 Assert.Contains(incompatible.CompilerPath, result.Message);
                 Assert.Null(result.Bridge);
                 Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
@@ -482,7 +483,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         {
             using (var sdk = new SdkAsset())
             {
-                sdk.ReplaceWithIncompatibleCompiler(6);
+                sdk.ReplaceWithIncompatibleCompiler(7);
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
@@ -504,6 +505,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 Assert.Equal(Definition.AlarmDefinition.ToolingFingerprint, response.Snapshot.ToolingFingerprint);
                 Assert.Equal(Definition.AlarmDefinition.SchemaFingerprint, response.Snapshot.SchemaFingerprint);
                 Assert.Equal(new[] { "Name", "Code", "Category", "Description" }, response.Snapshot.FieldDefinitions.Select(field => field.Name));
+                Assert.True(response.Snapshot.HasTestProcedure);
+                Assert.Empty(response.Snapshot.CollectionDefinitions);
+                Assert.Empty(response.Snapshot.Alarms[0].Collections);
                 var name = response.Snapshot.Alarms[0].Fields.Single(field => field.Name == "Name");
                 Assert.Equal(AnalysisFieldValueState.Deferred, name.State);
                 Assert.Equal("$(loc:Title)", name.CanonicalValue);
@@ -528,7 +532,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
-                Assert.Contains("contract 6", response.Message);
+                Assert.Contains("contract 7", response.Message);
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
             }
         }

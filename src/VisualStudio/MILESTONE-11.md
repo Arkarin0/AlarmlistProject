@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
 Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
-Follow-up iterations 9–12 complete; iterations 13–15 pending as of
+Follow-up iterations 9–13 complete; iterations 14–15 pending as of
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions.
 Owner decisions were confirmed on 2026-10-21.
@@ -796,3 +796,59 @@ Validation evidence:
   and the need to assert XML exceptions for malformed source. Corrected fixtures
   passed; these initial runs were failures, not acceptance evidence.
 - Reviewed the diff and documentation; git diff --check passed. No publication.
+
+### Iteration 13 implementation and validation (complete)
+
+Coordinated analysis 7, analyzer 5 and library format 3. Detached collection
+descriptors and procedure capability accompany local/effective/excluded entries,
+per-field scalar results and declaration/Clear origins. Invalid reference chains
+have no effective collections. Library source maps now capture and restore
+containers, entries and record fields, including navigation to generated package
+definitions; forged collection origin keys are rejected. Existing normalized
+source serialization preserves expressions and Clear without storing resolved
+consumer values or defaults. Old analysis/analyzer/library versions require a
+rebuild even for the unchanged standard scalar schema.
+
+The SDK bridge validates and copies the new types into serializable host-owned
+objects, retaining the scalar primitive whitelist. Procedure-disabled definitions
+have no creation defaults; source and programmatically constructed syntax both
+reject procedure content instead of silently dropping it. Compiler and template
+generation are now enabled for collections and disabled procedures. Host
+generation remains explicitly guarded until iteration 14 supplies the designer;
+this allows real compiler/SDK package acceptance without advertising an incomplete
+collection VSIX. The standard definition remains version 1 during this stage.
+
+Validation evidence:
+
+- Generator tests: 74 passed (artifacts/m11-iteration13-generator.log).
+- Compiler tests: 666 net472 / 668 net8.0 passed
+  (artifacts/m11-iteration13-compiler.log), including rejection of analyzer 4 and
+  library format 2 in addition to earlier obsolete contracts.
+- eng/test-alarm-collections.ps1 passed on both frameworks, with 70 checks for
+  disabled procedures, 68 enabled and 7 minimum-count checks. Evidence:
+  artifacts/log/Debug/AlarmCollections/c05b00519aa341909560ea07d3620e00;
+  wrapper artifacts/m11-iteration13-collections-final.log. Covers detached bridge
+  copies, library expression/location round trips, forged origins, Clear
+  exclusions and invalid-chain unavailability, plus iteration-12 cases.
+- eng/test-alarm-collection-fork.ps1 passed real package acceptance with procedures
+  enabled (artifacts/col13/28937bd7, consumer-checks/6d57c322) and disabled
+  (artifacts/col13/12b462c2, consumer-checks/7ba32262). Both .NET and desktop
+  MSBuild consumed project and NuGet libraries, ran collection-aware analyzers
+  compiled against the package, and verified typed XML/API results on net472 and
+  net8.0. ALM0030 count and ALM0029 item failures on both hosts preserved previous
+  output. Wrapper: artifacts/m11-iteration13-fork.log. No IDE deployment.
+- Editor unit tests: 578 passed with display checks excluded
+  (artifacts/m11-iteration13-editor-final.log). The initial run had 576 passed / 1
+  failed because the matching-contract mismatch fixture still declared version 6;
+  updated it to 7 and added explicit version-6 rejection before the passing run.
+- Initial new fixture compilation lacked the LibraryTextSnapshot namespace;
+  corrected before successful runtime acceptance. Initial standalone package
+  fixture lacked the Windows PowerShell ZIP assembly; explicitly loading
+  System.IO.Compression.FileSystem fixed it. Initial failures remain in logs.
+- Standard packaged SDK tests passed: 85 net472 / 82 net8.0
+  (artifacts/m11-iteration13-sdk.log). Final focused compiler/fixture reruns also
+  cover programmatic procedure rejection, whitespace-only Clear content and a
+  legal AlarmDefinition field shadowing the new collection helper. The new
+  internal _collections member name is rejected at generation.
+- Reviewed diff/docs; git diff --check passed. No publication. Collection
+  designer/native gates remain iterations 14–15.

@@ -43,12 +43,13 @@ namespace Alarmlist.Analysis
         public IReadOnlyList<AlarmOrigin> ReferenceChain { get; }
         public IReadOnlyList<AnalyzedField> Fields { get; }
         public IReadOnlyList<AnalyzedProcedureSection> ProcedureSections { get; }
+        public IReadOnlyList<AnalyzedCollection> Collections { get; }
 
         internal AnalyzedAlarm(AlarmOrigin origin, string referenceName, bool isResolved,
             IEnumerable<AlarmOrigin> referenceChain, IEnumerable<AnalyzedField> fields,
             IEnumerable<AnalyzedProcedureSection> procedureSections, bool isAbstract,
             bool hasEvaluatedValues, IEnumerable<AnalyzedProperty> properties, IEnumerable<AnalyzedLocalizationUse> localizationUses,
-            IEnumerable<AnalyzedLookupUse> lookupUses)
+            IEnumerable<AnalyzedLookupUse> lookupUses, IEnumerable<AnalyzedCollection> collections)
         {
             Origin = origin;
             ReferenceName = referenceName;
@@ -61,6 +62,7 @@ namespace Alarmlist.Analysis
             ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
             Fields = Array.AsReadOnly(fields.ToArray());
             ProcedureSections = Array.AsReadOnly(procedureSections.ToArray());
+            Collections = Array.AsReadOnly(collections.ToArray());
         }
     }
 

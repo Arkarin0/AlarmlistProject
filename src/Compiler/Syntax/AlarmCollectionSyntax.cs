@@ -55,7 +55,7 @@ namespace Alarmlist.Syntax
 
         /// <summary>Only authored containers, in definition order. Reading does not create source content.</summary>
         public IEnumerable<AlarmCollectionSyntax> LocalCollections
-            => AlarmDefinition.Collections.Where(descriptor => _collections.ContainsKey(descriptor.Name)).Select(descriptor => _collections[descriptor.Name]);
+            => global::Alarmlist.Definition.AlarmDefinition.Collections.Where(descriptor => _collections.ContainsKey(descriptor.Name)).Select(descriptor => _collections[descriptor.Name]);
 
         public AlarmCollectionSyntax GetLocalCollection(string name)
         {
@@ -75,11 +75,11 @@ namespace Alarmlist.Syntax
         {
             var local = GetLocalCollection(name);
             var inherited = Reference?.GetEffectiveCollection(name);
-            return local == null ? inherited ?? Array.Empty<IAlarmCollectionItem>() : local.Entries.ResolveFrom(inherited);
+            return local == null ? inherited ?? global::System.Array.Empty<IAlarmCollectionItem>() : local.Entries.ResolveFrom(inherited);
         }
 
         private static AlarmCollectionDescriptor GetCollectionDescriptor(string name)
-            => AlarmDefinition.Collections.FirstOrDefault(descriptor => descriptor.Name == name)
+            => global::Alarmlist.Definition.AlarmDefinition.Collections.FirstOrDefault(descriptor => descriptor.Name == name)
                 ?? throw new ArgumentException("Unknown alarm collection.", nameof(name));
     }
 }

@@ -29,6 +29,8 @@ namespace Alarmlist.Text
 
         public static bool WriteAlarmSyntaxNode(Syntax.AlarmSyntaxNode alarm, XmlWriter writer)
         {
+            if (!Definition.AlarmDefinition.HasTestProcedure && alarm.TestProcedure.Groups.Count != 0)
+                throw new InvalidOperationException("TestProcedure is disabled in this alarm definition.");
             writer.WriteStartElement(WellKnownNodeNames.Alarm);
             if (alarm.IsAbstract) writer.WriteAttributeString("abstract", "true");
             WriteProperties(alarm.Properties, writer);

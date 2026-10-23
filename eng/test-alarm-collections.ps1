@@ -32,6 +32,15 @@ try {
     <Compile Include="$repoRoot/src/Compiler/**/*.cs" />
     <Compile Include="$repoRoot/src/shared/Configuration/EditorConfigPreamble.cs" />
     <Compile Include="$repoRoot/eng/testassets/AlarmCollections/Program.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisSnapshot.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisCollections.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisContractReader.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisProperty.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisProcedureCreation.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisLocalization.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisLookup.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisLookupList.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisLibrary.cs" />
     <EmbeddedResource Include="$repoRoot/src/Compiler/Lookups/AlarmlistLookup.xsd" LogicalName="Alarmlist.Lookups.AlarmlistLookup.xsd" />
   </ItemGroup>
 </Project>

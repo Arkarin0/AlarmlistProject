@@ -24,10 +24,10 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
             try
             {
                 DefinitionModel fields = Definition.Read(args[0]);
-                // Staged implementation: validation/metadata precede runtime and
-                // designer support. Never build tools that silently lose data.
-                if (fields.Collections.Count != 0 || !fields.HasTestProcedure)
-                    throw new InvalidDataException(args[0] + ": Collection and optional-procedure runtime support is not yet enabled in this toolset.");
+                // Compiler/SDK consumers support the new shapes. Keep the host
+                // gated until the metadata-driven collection designer is ready.
+                if (args[2] == "host" && (fields.Collections.Count != 0 || !fields.HasTestProcedure))
+                    throw new InvalidDataException(args[0] + ": Collection and optional-procedure designer support is not yet enabled in this toolset.");
                 string source = args[2] == "template" ? GenerateTemplate(fields, File.ReadAllText(args[3])) : Generate(fields, args[2] == "host");
                 string path = Path.GetFullPath(args[1]);
                 Directory.CreateDirectory(Path.GetDirectoryName(path));

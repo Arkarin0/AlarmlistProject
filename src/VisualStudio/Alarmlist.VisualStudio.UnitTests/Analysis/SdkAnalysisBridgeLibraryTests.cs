@@ -377,7 +377,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         public void LibraryInputsOwnershipAndDefinitionMapsSurviveDomainUnload()
         {
             string artifact = $"""
-                <AlarmLibrary xmlns="urn:alarmlist:library:1" FormatVersion="2" SchemaFingerprint="{Alarmlist.VisualStudio.Definition.AlarmDefinition.SchemaFingerprint}" Id="Library" Version="1.0.0">
+                <AlarmLibrary xmlns="urn:alarmlist:library:1" FormatVersion="3" SchemaFingerprint="{Alarmlist.VisualStudio.Definition.AlarmDefinition.SchemaFingerprint}" Id="Library" Version="1.0.0">
                   <Dependencies/><Properties><Property Name="q" Value="library default"/></Properties>
                   <Sources><Source Name="Definitions.almx"><Definition>
                     <Alarmlist xmlns=""><Alarm abstract="true"><FullyQualifiedName>Base</FullyQualifiedName><Name>$(p)</Name></Alarm></Alarmlist>

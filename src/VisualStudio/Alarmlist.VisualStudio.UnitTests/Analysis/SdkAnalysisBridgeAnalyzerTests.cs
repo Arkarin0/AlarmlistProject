@@ -236,7 +236,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             string path = Path.Combine(directory, "Rules.dll");
             string source = "public sealed class RuleAnalyzer : Alarmlist.Analyzers.IAlarmAnalyzer, System.IDisposable {"
                 + " private static readonly Alarmlist.Diagnostics.DiagnosticDescriptor Rule = new Alarmlist.Diagnostics.DiagnosticDescriptor(\"TEST001\", \"Test\", \"{0}\", Alarmlist.Diagnostics.DiagnosticSeverity.Warning);"
-                + " public int ContractVersion { get { return 4; } }"
+                + " public int ContractVersion { get { return 5; } }"
                 + " public System.Collections.Generic.IReadOnlyList<Alarmlist.Diagnostics.DiagnosticDescriptor> SupportedDiagnostics { get { return new[] { Rule }; } }"
                 + " public System.Collections.Generic.IEnumerable<Alarmlist.Diagnostics.Diagnostic> Analyze(Alarmlist.Analyzers.AlarmAnalyzerContext context, System.Threading.CancellationToken cancellationToken) {"
                 + body + " } public void Dispose() { " + disposeBody + " } }";
@@ -254,7 +254,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 "public sealed class Rule" + index + " : Alarmlist.Analyzers.IAlarmAnalyzer, System.IDisposable {"
                 + " public Rule" + index + "() { " + (failure == "constructor" && index == 2 ? "throw new System.InvalidOperationException(\"constructor failure\");" : "") + " }"
                 + " private static readonly Alarmlist.Diagnostics.DiagnosticDescriptor Rule = new Alarmlist.Diagnostics.DiagnosticDescriptor(\"TEST" + index + "\", \"Test\", \"{0}\", Alarmlist.Diagnostics.DiagnosticSeverity.Warning);"
-                + " public int ContractVersion { get { return 4; } }"
+                + " public int ContractVersion { get { return 5; } }"
                 + " public System.Collections.Generic.IReadOnlyList<Alarmlist.Diagnostics.DiagnosticDescriptor> SupportedDiagnostics { get { "
                 + (failure == "descriptor" && index == 0 ? "throw new System.InvalidOperationException(\"descriptor failure\");" : "return new[] { Rule };") + " } }"
                 + " public System.Collections.Generic.IEnumerable<Alarmlist.Diagnostics.Diagnostic> Analyze(Alarmlist.Analyzers.AlarmAnalyzerContext context, System.Threading.CancellationToken cancellationToken) {"

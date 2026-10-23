@@ -17,7 +17,7 @@ namespace AlarmDefinitionFork
     {
         private static readonly DiagnosticDescriptor s_success = new DiagnosticDescriptor("FORK001", "Fork verification", "Typed fork analyzer executed.", DiagnosticSeverity.Warning);
         private static readonly DiagnosticDescriptor s_failure = new DiagnosticDescriptor("FORK002", "Fork verification failure", "Fork metadata or typed values differ.", DiagnosticSeverity.Error);
-        public int ContractVersion => 4;
+        public int ContractVersion => 5;
         public IReadOnlyList<DiagnosticDescriptor> SupportedDiagnostics { get; } = Array.AsReadOnly(new[] { s_success, s_failure });
 
         public IEnumerable<Diagnostic> Analyze(AlarmAnalyzerContext context, CancellationToken cancellationToken)
@@ -32,6 +32,12 @@ namespace AlarmDefinitionFork
                 var code = alarm.Fields.Single(field => field.Name == "Code");
                 valid &= code.TypedValue is long value && value == (alarm.Origin.FullyQualifiedName == "Library" ? 8 : 7);
                 valid &= code.IsDefault == (alarm.Origin.FullyQualifiedName == "Local");
+                if (context.CollectionDefinitions.Count != 0 && alarm.Origin.FullyQualifiedName == "Library")
+                {
+                    var record = alarm.Collections.Single(collection => collection.Name == "Checks").EffectiveEntries.Single();
+                    valid &= record.Fields.Single(field => field.Name == "Copy").TypedValue is long copy && copy == 8;
+                    valid &= record.Origin.Alarm.Library != null && context.HasTestProcedure == AlarmDefinition.HasTestProcedure;
+                }
             }
             yield return new Diagnostic(valid ? s_success : s_failure);
         }
@@ -61,6 +67,12 @@ namespace AlarmDefinitionFork
             foreach (var pair in expected) Check(library.Element(pair.Key)?.Value == pair.Value, "Canonical field: " + pair.Key);
             Check(local.Element("Code")?.Value == "7" && local.Element("Price") == null, "Default and optional absence.");
             Check(alarms.All(alarm => alarm.Element("Name") == null && alarm.Element("Category") == null), "Removed fields absent.");
+            Check(alarms.All(alarm => (alarm.Element("TestProcedure") != null) == AlarmDefinition.HasTestProcedure), "Procedure capability respected.");
+            if (AlarmDefinition.Collections.Count != 0)
+            {
+                Check(library.Element("Numbers").Element("Item").Value == "8" && library.Element("Checks").Element("Item").Element("Copy").Value == "8", "Packaged collection expressions and canonical output.");
+                Check(libraryArtifact.ToString().Contains("$(item:Count)"), "Raw sibling expression retained in library.");
+            }
             foreach (var alarm in alarms)
             {
                 var expectedOrder = AlarmDefinition.Fields.Where(field => alarm.Element(field.Name) != null).Select(field => field.Name).ToArray();

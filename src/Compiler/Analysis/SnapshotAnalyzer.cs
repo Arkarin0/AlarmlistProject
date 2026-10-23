@@ -17,7 +17,7 @@ using Alarmlist.Text;
 
 namespace Alarmlist.Analysis
 {
-    internal sealed class SnapshotAnalyzer
+    internal sealed partial class SnapshotAnalyzer
     {
         private static readonly string[] s_fields = Definition.AlarmDefinition.Fields.Select(field => field.Name).ToArray();
         private readonly Dictionary<AlarmSyntaxNode, AlarmOrigin> _alarms = new Dictionary<AlarmSyntaxNode, AlarmOrigin>();
@@ -42,6 +42,7 @@ namespace Alarmlist.Analysis
             {
                 var origin = new AlarmOrigin(index++, alarm.FullyQualifiedName, alarm.Location, alarm.SourceFile?.Library?.Identity);
                 _alarms.Add(alarm, origin);
+                AddCollectionOrigins(alarm, origin);
                 foreach (ProcedureGroupSyntax group in alarm.TestProcedure.Groups) AddEntryOrigins(group.Entries, origin, group.Name);
             }
         }
@@ -161,7 +162,8 @@ namespace Alarmlist.Analysis
                 alarm.IsAbstract, evaluation?.IsAvailable == true, AnalyzeProperties(alarm, alarm.SourceFile, resolved),
                 (evaluation?.LocalizationUses ?? Enumerable.Empty<LocalizationEvaluation>()).Select(use =>
                     new AnalyzedLocalizationUse(new AnalyzedTranslation(use.Key, _evaluation.Culture, use.Entry), use.Location, use.Value)),
-                (evaluation?.LookupUses ?? Enumerable.Empty<LookupEvaluation>()).Select(use => new AnalyzedLookupUse(use)));
+                (evaluation?.LookupUses ?? Enumerable.Empty<LookupEvaluation>()).Select(use => new AnalyzedLookupUse(use)),
+                Definition.AlarmDefinition.Collections.Select(descriptor => AnalyzeCollection(alarm, descriptor, resolved)));
         }
 
         private IEnumerable<AnalyzedProperty> AnalyzeProperties(AlarmSyntaxNode alarm, AlarmSyntaxTree file, bool resolved, string filePath = null)

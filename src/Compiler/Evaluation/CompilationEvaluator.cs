@@ -75,6 +75,8 @@ namespace Alarmlist.Evaluation
                 }
                 _fields.Add(alarm, fields);
                 ParseCollections(alarm);
+                if (!Definition.AlarmDefinition.HasTestProcedure && alarm.TestProcedure.Groups.Count != 0)
+                    Report(DiagnosticDescriptors.InvalidExpression, alarm, alarm.Location, "TestProcedure is disabled in this alarm definition.");
                 var groupNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (ProcedureGroupSyntax group in alarm.TestProcedure.Groups)
                 {

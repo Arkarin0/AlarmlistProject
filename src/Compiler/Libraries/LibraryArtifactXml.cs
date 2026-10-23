@@ -16,7 +16,7 @@ namespace Alarmlist.Libraries
     internal static class LibraryArtifactXml
     {
         internal const string Namespace = "urn:alarmlist:library:1";
-        internal const int FormatVersion = 2;
+        internal const int FormatVersion = 3;
         private static readonly XNamespace s_ns = Namespace;
 
         internal static string Write(LibraryArtifact artifact)
@@ -57,7 +57,7 @@ namespace Alarmlist.Libraries
                 XElement root = ParseXml(text).Root;
                 Check(root, "AlarmLibrary", new[] { "FormatVersion", "SchemaFingerprint", "Id", "Version" },
                     "Dependencies", "Properties", "Sources", "Resources", "Lookups");
-                if (Required(root, "FormatVersion") != "2") throw Invalid("Unsupported library format version. Rebuild this library with the matching SDK (library format 2).");
+                if (Required(root, "FormatVersion") != "3") throw Invalid("Unsupported library format version. Rebuild this library with the matching SDK (library format 3).");
                 if ((string)root.Attribute("SchemaFingerprint") != Alarmlist.Definition.AlarmDefinition.SchemaFingerprint)
                     throw Invalid("The library alarm definition does not match this compiler. Rebuild the library with the matching SDK and alarm definition.");
                 LibraryIdentity identity = Identity(root);

@@ -77,7 +77,7 @@ internal static class Program
         var librarySources = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>Library</FullyQualifiedName><Count>$(Consumer)</Count></Alarm></Alarmlist>", "library.almx", 1) };
         Check(new AlarmCompiler().AnalyzeLibrarySnapshots(librarySources, CompilationContext.Empty).Success, "library consumer values defer");
         var libraryAnalysis = new AlarmCompiler().AnalyzeLibrarySnapshots(librarySources, CompilationContext.Empty);
-        Check(libraryAnalysis.ContractVersion == 6 && libraryAnalysis.SchemaFingerprint == AlarmDefinition.SchemaFingerprint
+        Check(libraryAnalysis.ContractVersion == 7 && libraryAnalysis.SchemaFingerprint == AlarmDefinition.SchemaFingerprint
             && libraryAnalysis.FieldDefinitions.Any(field => field.Name == "Code" && field.Type == "Int64"), "analysis schema metadata");
         Check(libraryAnalysis.Alarms.Single().Fields.Single(field => field.Name == "Count").State == AlarmFieldValueState.Deferred, "analysis consumer field defers");
         var defaultCode = libraryAnalysis.Alarms.Single().Fields.Single(field => field.Name == "Code");
