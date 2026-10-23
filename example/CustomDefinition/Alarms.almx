@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Properties>
+    <Property Name="AlarmNumber" Value="8" />
+    <Property Name="PriceValue" Value="12.50" />
+  </Properties>
+  <Alarm abstract="true">
+    <FullyQualifiedName>Templates.Check</FullyQualifiedName>
+    <Description>Inherited description</Description>
+    <Price>$(PriceValue)</Price>
+    <Ratio>0.125</Ratio>
+    <Enabled>true</Enabled>
+    <Priority>High</Priority>
+    <Day>2026-10-23</Day>
+    <Clock>14:30:00</Clock>
+    <Instant>2026-10-23T14:30:00+02:00</Instant>
+    <TestProcedure>
+      <Group Name="Instructions" Title="Check $(AlarmNumber)">
+        <Step>Inspect the equipment.</Step>
+        <Hint>Inherited entries remain read-only.</Hint>
+      </Group>
+    </TestProcedure>
+  </Alarm>
+  <Alarm>
+    <FullyQualifiedName>Plant.Check</FullyQualifiedName>
+    <ReferenceName>Templates.Check</ReferenceName>
+    <Code>$(AlarmNumber)</Code>
+    <TestProcedure>
+      <Group Name="Instructions">
+        <Step>Record the result.</Step>
+      </Group>
+    </TestProcedure>
+  </Alarm>
+  <!-- Code is absent: the compiler supplies its default without writing it here. -->
+  <Alarm>
+    <FullyQualifiedName>Plant.Defaults</FullyQualifiedName>
+    <Description>Try boolean/enum literal helpers, expressions and numeric bounds.</Description>
+    <Enabled>false</Enabled>
+    <Priority>Low</Priority>
+  </Alarm>
+</Alarmlist>

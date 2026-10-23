@@ -45,10 +45,15 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             File.WriteAllText(workspace.AlarmPath, original);
             using var automation = new UIA3Automation();
             ide.OpenDesigner(workspace.AlarmPath);
+            foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
             Window window = null;
             AutomationElement designer = null;
             VisualStudioSession.Wait(() =>
             {
+                // A new experimental profile can activate its welcome page after
+                // opening our document. Keep this scenario on its owned editor.
+                ide.ActivateDocument(workspace.AlarmPath);
                 window = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.Window)))
                     .Select(item => item.AsWindow()).SingleOrDefault(candidate =>
                         candidate.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))) != null);

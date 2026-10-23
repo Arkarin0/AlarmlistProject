@@ -654,6 +654,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   explicit sample analyzer references, and intentional nonfatal warnings. The
   preparation helper builds both analyzer runtimes into ignored example/.analyzers;
   preserve these references and validate changes through ExamplePlaygroundTests.
+- `scripts/start-custom-definition.bat` prepares the editable samples in
+  `example/CustomDefinition/` using `eng/start-custom-definition.ps1`. It builds
+  an isolated source copy under artifacts/def11, a matching SDK
+  and VSIX, and a private consumer feed/cache; use AlarmlistDefinitionExp instead
+  of replacing standard AlarmlistExp deployments. Preserve prior runs and edits.
+  The default host is VS2026; -VisualStudioVersion 2022 and -PrepareOnly are
+  supported. Definition changes take effect only after rebuilding matching tools.
 - The library shortcuts `scripts/start-library-project-references.bat` and
   `scripts/start-library-packages.bat` share `eng/start-library-example.ps1` and
   open `example/Libraries/Libraries.sln` (VS2026 by default, optional VS2022).
@@ -750,6 +757,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   replacement or navigation can change selection. Hide or dock a persisted floating
   preview before mouse input it could obstruct, except when the scenario explicitly
   tests that window's placement or restoration. Preserve the functional assertions.
+  Fresh-profile metadata tests must activate their owned document when the welcome
+  page takes focus and provide a usable preview viewport before counting virtualized
+  rows. Wait for completion dismissal before cancelling its draft; do not rely on
+  back-to-back native keys or a previously persisted tool-window size.
 - Run WPF editor unit tests, native IDE functional tests and isolated WPF
   measurements sequentially. They share desktop focus even when their project
   files and experimental profiles are isolated; overlapping runs can close menus

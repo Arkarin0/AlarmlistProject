@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AlarmDefinition Version="1">
+  <!-- Edit this file, then rerun scripts/start-custom-definition.bat. -->
+  <Field Name="Description" Type="String" Multiline="true" />
+  <Field Name="Code" Type="Int64" Required="true" Default="7" Minimum="0" Maximum="10" Label="Alarm number" />
+  <Field Name="Price" Type="Decimal" />
+  <Field Name="Ratio" Type="Double" PreviewVisible="false" />
+  <Field Name="Enabled" Type="Boolean" />
+  <Field Name="Priority" Type="Enum">
+    <Value Name="Low" Label="Low priority" />
+    <Value Name="High" Label="High priority" />
+  </Field>
+  <Field Name="Day" Type="Date" />
+  <Field Name="Clock" Type="Time" />
+  <Field Name="Instant" Type="Timestamp" />
+  <Field Name="Source" Type="String" Label="Source field" Default="Ordinary source value" />
+  <Field Name="Identity" Type="String" Label="Identity field" Default="Ordinary identity value" />
+  <Field Name="TestMethod" Type="String" Label="Method field" Default="Ordinary method value" />
+</AlarmDefinition>

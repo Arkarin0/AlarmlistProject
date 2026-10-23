@@ -1,5 +1,9 @@
 # Alarmlist example playground
 
+For fork-time custom fields, use the separate
+[custom-definition playground](CustomDefinition/README.md) and
+`scripts/start-custom-definition.bat`.
+
 For reusable ProjectReference/NuGet libraries, see the independent
 [library playground](Libraries/README.md) with two consumers and a transitive
 dependency graph. Its preparation does not change this North/South playground.

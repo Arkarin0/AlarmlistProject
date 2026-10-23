@@ -1,8 +1,9 @@
 # Milestone eleven: generated alarm definitions end to end
 
 Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
-Follow-up iterations 9–15 authorized on 2026-10-23; see the collection/playground
-extension below. Original acceptance does not cover these additions.
+Follow-up iterations 9–10 complete; iterations 11–15 authorized and pending as of
+2026-10-23. See the collection/playground extension below. Original acceptance
+does not cover these additions.
 Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22, with a pause requested when the
 remaining account allowance reaches 20%. Check allowance periodically and before
@@ -644,3 +645,61 @@ existing project boundaries and shared eng tooling, with no new dependency.
 References: https://github.com/dotnet/roslyn/tree/main/src/Compilers and
 https://github.com/dotnet/arcade/tree/main/src/Microsoft.DotNet.Arcade.Sdk.
 Documentation only; tests not run. Remaining iterations are planned, not complete.
+
+### Iteration 10 implementation and validation (complete)
+
+Added scripts/start-custom-definition.bat, eng/start-custom-definition.ps1 and
+example/CustomDefinition samples/guide. The optional DefinitionFile argument
+selects a separate input without modifying the standard definition. Preparation
+copies source into a unique artifacts/def11 directory, builds matching SDK/VSIX,
+uses a private sample feed/cache, compiles with both task hosts and deploys only
+to AlarmlistDefinitionExp. PrepareOnly omits IDE launch. Earlier runs are retained.
+
+Preparation passed on VS2022 and VS2026 (initial logs under
+artifacts/definition-playground/ff32d28b and 58a7ad33); the batch shortcut was also
+invoked from the scripts directory. The revised short-path run is
+artifacts/def11/a3cf8620. Tool builds reported zero warnings/errors. Both task-host
+sample builds passed; inspected two concrete alarms, Code 8, decimal 12.5,
+boolean/date values, default Code 7 and unchanged source/definition hashes.
+PowerShell parser validation passed. An invalid scalar type supplied through
+DefinitionFile failed with ALMGEN001 before deployment/launch; retained evidence:
+artifacts/definition-playground/invalid-launch.log and 48c981c6/build-tools.log.
+
+Initial native dedicated-profile attempts exposed
+first-start automation delay and nested NuGet paths up to 274 characters. The
+launcher now uses the shorter artifacts/def11 prefix (longest equivalent test
+package path 258). Subsequent native startup reached the designer. Failure captures
+showed the fresh profile's welcome page taking document activation and a small
+default preview dock realizing only one of two virtualized table rows. The draft
+text visible in that screenshot is general guidance, not an active-draft status.
+Metadata native tests now explicitly activate their owned document, hide stale
+floating previews during editor input and size the preview as existing project
+preview tests do. They also wait for completion popup dismissal and cancellation
+instead of sending back-to-back Escape keys. All existing assertions remain.
+Initial reports: ff32d28b TestResults/33596bccb39d472f801c93d0f02471a8 and a3cf8620
+TestResults/2e373f6f6d784e86bb4eb8041d298f30 beneath their
+artifacts/log/Debug/VisualStudioUI directories.
+
+Final native evidence, all under artifacts/def11/a3cf8620:
+
+- VS2022: 2 passed, 0 failed/skipped, native-2022-final.log; TRX directory
+  artifacts/log/Debug/VisualStudioUI/TestResults/5a8f50ab61764e4d955c1a21639fab55.
+- VS2026: metadata fields passed in native-2026.log; preview initially timed out
+  during fresh-profile startup. The preview retry passed (1 passed, 0 skipped)
+  in native-2026-retry.log, TRX directory
+  artifacts/log/Debug/VisualStudioUI/TestResults/7d8d668b74b54cb693be296677aee5d5.
+  Initial report: TestResults/d7ea4f92122e4d5496f7f44b535bc33b. All four distinct
+  field/preview host cases passed in their final results.
+- Native command: isolated eng/test-visualstudio.ps1 -VisualStudioPath
+  '<installed host>' -RootSuffix AlarmlistDefinitionExp -Filter
+  'Area=MetadataFields|Area=MetadataPreview'. The final VS2026 retry selected only
+  Area=MetadataPreview. The native startup wait now allows 180 seconds for a new
+  profile's automation interface; behavior/assertion waits remain 60 seconds.
+- git diff --check passed; standard compiler definition and original North/South
+  sources are unchanged. No OS theme/DPI checks ran. Interactive first-use VS
+  setup remains documented; tests own and close their IDEs. No publication.
+
+Allowance reached 21% remaining, then the account tool reported a renewed window
+with 100% remaining before the pause threshold was reached. Continue to check the
+current allowance before further iterations. No collection runtime changes have
+been made in iteration 10.

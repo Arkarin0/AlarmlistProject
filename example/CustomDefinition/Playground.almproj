@@ -1,0 +1,5 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{504980DB-6BC9-49B1-A3EA-C8EF6C72AF72}</ProjectGuid>
+  </PropertyGroup>
+</Project>

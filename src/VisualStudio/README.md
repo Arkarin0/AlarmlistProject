@@ -810,3 +810,13 @@ checkout-based source-control provider remains unverified; the available Git
 provider's read-only workflow was exercised. Large-file parsing has not been
 benchmarked. See [milestone two](MILESTONE-2.md) for implementation decisions and
 the shared-document references.
+
+## Interactive custom-definition playground
+
+Run `scripts/start-custom-definition.bat` to build matching tools from the editable
+sample definition and open a separate experimental IDE. Pass
+`-VisualStudioVersion 2022` to select VS2022 or `-PrepareOnly` to prepare without
+opening the IDE. See [the playground guide](../../example/CustomDefinition/README.md)
+for sample edits, retained runs and isolation details. This is fork-time tooling
+customization; editing a definition inside an open project does not change its
+runtime schema.

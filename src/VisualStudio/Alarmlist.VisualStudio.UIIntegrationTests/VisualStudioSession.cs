@@ -51,7 +51,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 File.WriteAllText(Path.Combine(directory, "host.txt"), version + "\n" + executable + "\n" + suffix
                     + "\nVersion: " + FileVersionInfo.GetVersionInfo(executable).FileVersion
                     + "\nPID: " + _process.Id + "\nStarted UTC: " + _process.StartTime.ToUniversalTime().ToString("O"));
-                Wait(() => { _dte = (DTE)VisualStudioAutomation.Find(_process.Id); return _dte != null; }, "owned IDE automation");
+                // Initializing a brand-new experimental profile can exceed the
+                // ordinary editor wait. Keep behavioral waits at sixty seconds.
+                Wait(() => { _dte = (DTE)VisualStudioAutomation.Find(_process.Id); return _dte != null; }, "owned IDE automation", 180);
                 Wait(() => _dte.Solution.IsOpen, "empty solution startup");
                 Wait(() =>
                 {
@@ -116,6 +118,22 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             }
         }
 
+        public void ActivateDocument(string path)
+        {
+            Documents documents = _dte.Documents;
+            Document document = null;
+            try
+            {
+                document = documents.Item(path);
+                document.Activate();
+            }
+            finally
+            {
+                if (document != null) Marshal.ReleaseComObject(document);
+                Marshal.ReleaseComObject(documents);
+            }
+        }
+
         public void RequireForeground()
         {
             GetWindowThreadProcessId(GetForegroundWindow(), out uint processId);
@@ -159,7 +177,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             if (System.Threading.Volatile.Read(ref _timedOut) != 0) throw new TimeoutException("The UI case exceeded its configured timeout.");
         }
 
-        public static void Wait(Func<bool> condition, string description)
+        public static void Wait(Func<bool> condition, string description, int timeoutSeconds = 60)
         {
             var timer = Stopwatch.StartNew();
             do
@@ -170,7 +188,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 catch (COMException exception) when (exception.HResult == unchecked((int)0x80010001)
                     || exception.HResult == unchecked((int)0x8001010A) || exception.HResult == unchecked((int)0x80131505)) { }
                 Thread.Sleep(100);
-            } while (timer.Elapsed < TimeSpan.FromSeconds(60));
+            } while (timer.Elapsed < TimeSpan.FromSeconds(timeoutSeconds));
             throw new TimeoutException("Timed out: " + description);
         }
 

@@ -41,9 +41,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             workspace.Build(ide, 2);
             using var automation = new UIA3Automation();
             ide.OpenDesigner(workspace.AlarmPath);
+            foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
             Window window = null;
             VisualStudioSession.Wait(() =>
             {
+                ide.ActivateDocument(workspace.AlarmPath);
                 window = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.Window)))
                     .Select(item => item.AsWindow()).SingleOrDefault(candidate => candidate.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))) != null);
                 return window != null;
@@ -64,9 +67,25 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     .Any(item => item.Name.StartsWith(property + " (", StringComparison.Ordinal)), "completion for " + property);
             }
             ide.RequireForeground(); Assert.True(codeBox.Properties.HasKeyboardFocus.Value);
-            Keyboard.Type(VirtualKeyShort.ESCAPE); Keyboard.Type(VirtualKeyShort.ESCAPE);
+            Keyboard.Type(VirtualKeyShort.ESCAPE);
+            VisualStudioSession.Wait(() => !automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)))
+                .Any(item => item.Name.StartsWith("AlarmlistAlarm", StringComparison.Ordinal)), "completion popup dismissed");
+            codeBox.Focus(); ide.RequireForeground(); Assert.True(codeBox.Properties.HasKeyboardFocus.Value);
+            Keyboard.Type(VirtualKeyShort.ESCAPE);
+            VisualStudioSession.Wait(() => codeBox.Text == "2", "completion draft cancelled");
             Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
+            // A new profile's small dock can virtualize all but one row. Give
+            // the table the same usable viewport as the project-preview tests.
+            EnvDTE.Window preview = ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}");
+            try
+            {
+                preview.IsFloating = true; preview.Width = 1250; preview.Height = 550;
+                preview.Left = window.BoundingRectangle.Left + 10;
+                preview.Top = window.BoundingRectangle.Bottom - 590;
+            }
+            finally { System.Runtime.InteropServices.Marshal.ReleaseComObject(preview); }
             AutomationElement table = null;
             VisualStudioSession.Wait(() =>
             {
