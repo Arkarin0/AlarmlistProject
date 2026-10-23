@@ -440,6 +440,9 @@
                                     AutomationProperties.Name="{Binding Name}" AutomationProperties.LabeledBy="{Binding ElementName=CollectionFieldLabel}"
                                     AutomationProperties.HelpText="{Binding EditHelp}" ToolTip="{Binding EditHelp}" LostKeyboardFocus="OnFieldLostFocus"
                                     AcceptsReturn="{Binding Multiline}" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" IsUndoEnabled="False">
+                                  <ui:ExpressionTextBox.Style><Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type ui:ExpressionTextBox}}"><Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasLiteralChoices}" Value="True"><Setter Property="Margin" Value="0,0,32,0" /></DataTrigger>
+                                  </Style.Triggers></Style></ui:ExpressionTextBox.Style>
                                   <ui:ExpressionTextBox.ContextMenu>
                                     <ContextMenu>
                                       <MenuItem Header="Remove local value / use default" Command="{Binding UseInheritedCommand}" />
@@ -451,6 +454,20 @@
                                     </ContextMenu>
                                   </ui:ExpressionTextBox.ContextMenu>
                                 </ui:ExpressionTextBox>
+                                <Button Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Width="28" Height="27" Content="▾" Tag="PreserveDraft"
+                                        Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}" Click="OnInheritanceActions" Unloaded="OnActionsUnloaded"
+                                        ToolTip="Choose a literal value. Opening this menu preserves the current expression."
+                                        AutomationProperties.Name="{Binding Name, StringFormat=Choose literal for {0}}">
+                                  <Button.ContextMenu>
+                                    <ContextMenu ItemsSource="{Binding LiteralChoices}" Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
+                                      <ContextMenu.ItemContainerStyle><Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                        <Setter Property="Header" Value="{Binding Label}" />
+                                        <Setter Property="Command" Value="{Binding ApplyCommand}" />
+                                        <Setter Property="ToolTip" Value="{Binding Value}" />
+                                      </Style></ContextMenu.ItemContainerStyle>
+                                    </ContextMenu>
+                                  </Button.ContextMenu>
+                                </Button>
                               </Grid>
                             </DataTemplate></ItemsControl.ItemTemplate>
                           </ItemsControl>

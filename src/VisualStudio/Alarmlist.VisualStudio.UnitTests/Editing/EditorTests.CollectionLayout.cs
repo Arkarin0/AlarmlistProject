@@ -16,6 +16,71 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         [Theory]
+        [InlineData(true, "Boolean")]
+        [InlineData(false, "Boolean")]
+        [InlineData(true, "Enum")]
+        [InlineData(false, "Enum")]
+        public void CollectionLiteralDropdownPreservesExpressionsAndCommitsOnlySelectedDraft(bool simple, string type)
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                string name = simple ? "Value" : type == "Boolean" ? "Enabled" : "Priority";
+                string source = CollectionDocument(simple ? "<Item>$(Original)</Item>" : "<Item><" + name + ">$(Original)</" + name + "></Item>");
+                using (var session = new SemanticSession(source))
+                using (var host = ExpressionHost())
+                {
+                    var changed = (Action)Delegate.CreateDelegate(typeof(Action), session.View,
+                        typeof(EditFileControlViewModel).GetMethod("OnDraftChanged", BindingFlags.Instance | BindingFlags.NonPublic));
+                    var descriptor = new Definition.AlarmFieldDescriptor(name, type, false, null, null, null, name, null,
+                        false, true, 100, new[] { "Low", "High" }, new[] { "Low", "High" });
+                    var definition = new Definition.AlarmCollectionDescriptor("Checks", simple ? "Simple" : "Complex", "Checks", null, 0, null, new[] { descriptor });
+                    var collection = new CollectionViewModel(definition, changed, (owner, item, action) => { }, () => true);
+                    typeof(EditFileControlViewModel).GetProperty("Collections").SetValue(session.View, new[] { collection });
+                    collection.Load(session.Model.Projection.Alarms[0], true);
+                    var control = new EditFileControl(session.View) { Width = 950, Height = 850 };
+                    host.RootVisual = control;
+                    InheritanceAdornerTests.Pump();
+                    var field = collection.Items[0].Fields[0];
+                    var editor = VisualChildren(control).OfType<ExpressionTextBox>().Single(item => ReferenceEquals(item.DataContext, field));
+                    var button = VisualChildren(control).OfType<Button>().Single(item => ReferenceEquals(item.DataContext, field));
+                    Assert.True(button.IsVisible);
+                    Assert.True(button.IsTabStop);
+                    Assert.Equal("Choose literal for " + name, AutomationProperties.GetName(button));
+                    Assert.Equal(32, editor.Margin.Right);
+                    editor.BringIntoView(); Assert.True(editor.Focus());
+                    editor.RawText = "$(PrivateDraft)";
+                    InheritanceAdornerTests.Pump();
+                    Assert.True(button.Focus());
+                    button.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, host, 0, System.Windows.Input.Key.Enter)
+                        { RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent });
+                    InheritanceAdornerTests.Pump();
+                    var menu = button.ContextMenu;
+                    Assert.True(menu.IsOpen);
+                    Assert.Equal(type == "Boolean" ? new[] { "true", "false" } : new[] { "Low", "High" },
+                        menu.Items.Cast<FieldLiteralChoice>().Select(choice => choice.Value));
+                    Assert.Equal("$(PrivateDraft)", field.EditValue);
+                    Assert.Equal(source, session.Buffer.Current.Text);
+                    menu.IsOpen = false;
+                    InheritanceAdornerTests.Pump();
+                    Assert.Equal("$(PrivateDraft)", field.EditValue);
+                    button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    InheritanceAdornerTests.Pump();
+                    var choiceItem = Assert.IsType<MenuItem>(menu.ItemContainerGenerator.ContainerFromIndex(1));
+                    Assert.True(choiceItem.Command.CanExecute(choiceItem.CommandParameter));
+                    choiceItem.Command.Execute(choiceItem.CommandParameter);
+                    menu.IsOpen = false;
+                    Assert.Equal(type == "Boolean" ? "false" : "High", field.EditValue);
+                    Assert.Equal(source, session.Buffer.Current.Text);
+                    Assert.True(session.View.CommitPending());
+                    Assert.Equal(1, session.Buffer.Edits);
+                    Assert.Contains(type == "Boolean" ? "false" : "High", session.Buffer.Current.Text);
+                    session.Buffer.Undo();
+                    Assert.Equal(source, session.Buffer.Current.Text);
+                }
+            }, TimeSpan.FromSeconds(30));
+        }
+
+        [Theory]
         [InlineData(true)]
         [InlineData(false)]
         public void CollectionRowsAlignAdornersLabelsAndPreserveDraftSelectionOnCollapse(bool simple)

@@ -1447,3 +1447,27 @@ Editor regression: 610 passed, zero failed/skipped
 three dedicated theme/scale display methods. The focused heading tests use
 in-process resources and rendering only. Diff review and git diff --check passed.
 Native IDE scenarios were not rerun for this two-setter presentation fix.
+
+### Iteration 23 — visible Boolean and Enum collection choices (complete)
+
+Add the ordinary-field literal-choice dropdown to editable simple and complex
+collection fields. Choices come from generated metadata; keep expression entry,
+read-only inherited values, shared label alignment and themed controls. Opening
+or dismissing the menu must preserve drafts and source; selection uses the
+existing explicit draft action. Validate choices, focus/keyboard access, selection
+and undo with rendered editor tests, then run editor regressions. Commit this
+iteration on dev/milestone-11 after validation; no push.
+
+Implemented the existing themed literal-choice menu and PreserveDraft handling
+beside local collection editors, with editor space reserved for the dropdown.
+Inherited controls remain read-only. Updated playground usage instructions.
+Six focused rendered tests passed, including four Boolean/Enum × simple/complex
+cases exercising Enter activation, metadata choices, dismissal without draft
+changes, menu-command selection, explicit commit and undo. Existing alignment,
+theme-resource, inherited-adorner and collapse tests also passed.
+Evidence: artifacts/m11-iteration23-focused.log.
+
+Editor regressions: 614 passed, zero failed/skipped, using the same three display
+method exclusions as iteration 22 (artifacts/m11-iteration23-editor.log).
+Diff review and git diff --check passed. Native IDE scenarios and OS theme/DPI
+checks were not run for this reuse of the existing field-menu interaction.

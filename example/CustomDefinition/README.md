@@ -74,6 +74,12 @@ repository. Runtime Preview uses installed resources, not these copied files.
 See the [template binding contract](../../eng/tools/AlarmDefinitionGenerator/README.md)
 for named fields, states, origins and resource restrictions.
 
+Editable Boolean and Enum collection fields have a dropdown beside their
+expression editor. Enabled offers true/false; Priority offers Low/High. Tab to
+the dropdown and press Enter to open its choices. Opening or dismissing it keeps
+the current expression; choosing a value changes the draft. Inherited entries
+remain read-only.
+
 Previous runs and their edits are preserved. The standard compiler definition,
 North/South examples and AlarmlistExp deployments are not changed. No package is
 published. The standard version-2 definition keeps the four original scalar fields
