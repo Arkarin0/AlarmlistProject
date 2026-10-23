@@ -233,6 +233,29 @@ Open questions:
 - Which operating systems and remote workspaces should be supported, and how
   should required tooling be discovered and the extension distributed?
 
+## TwinCAT XAE Shell64 support
+
+Proposed on 2026-10-23; no milestone assigned.
+
+Investigate hosting the existing Alarmlist extension in the VS2022-based
+TcXaeShell64. Beckhoff's [system requirements](https://infosys.beckhoff.com/content/1033/tc3_overview/6162419083.html)
+distinguish this host from the older VS2017-based, 32-bit TcXaeShell, which is
+excluded from this proposal.
+
+Read-only inspection of a local TcXaeShell64 installation found CPS 17.10, a
+VS17.10 XML editor, NuGet integration, and MSBuild 17.10. These components make
+compatibility plausible, but runtime compatibility has not been verified. The
+current VSIX targets Visual Studio without an explicit TwinCAT shell target.
+
+Validate extension installation, registration, and loading; `.almproj` project
+loading, SDK resolution, NuGet restore, and builds; designer/XML editing,
+IntelliSense, diagnostics, previews, and localization; and coexistence with
+TwinCAT projects in the same solution.
+
+Supported shell versions and required packaging or installation changes remain
+open until compatibility validation is complete. This proposal does not declare
+TwinCAT shell support as implemented or assign it to a milestone.
+
 ## Separate preview view
 
 Proposed on 2026-10-08; no milestone assigned.
