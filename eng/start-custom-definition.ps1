@@ -62,13 +62,28 @@ Push-Location $fork
 try {
   # Repository dependency packages may be reused; custom SDK consumers never share a cache.
   $env:NUGET_PACKAGES = Join-Path $repo '.packages'
+  # Capture from the original definition location, including definitions outside
+  # the checkout. Reuse generator validation and its declared dependency manifest.
+  $generatorProject = Join-Path $fork 'eng/tools/AlarmDefinitionGenerator/AlarmDefinitionGenerator.csproj'
+  Invoke-Checked 'build-generator' 'dotnet' @('build', $generatorProject, '-v:minimal', '-m:1', '-nr:false', "-p:RestorePackagesPath=$env:NUGET_PACKAGES")
+  $generator = Join-Path $fork 'artifacts/bin/AlarmDefinitionGenerator/Debug/net8.0/AlarmDefinitionGenerator.dll'
+  $capturedResources = Join-Path $fork 'imported-preview'
+  Invoke-Checked 'capture-preview' 'dotnet' @($generator, $definition, $capturedResources, 'resources')
+  foreach ($relative in [IO.File]::ReadAllLines((Join-Path $capturedResources 'manifest.txt'))) {
+    foreach ($destination in @('src/Compiler/Definition', 'example/CustomDefinition')) {
+      $target = [IO.Path]::GetFullPath((Join-Path (Join-Path $fork $destination) $relative))
+      if (!$target.StartsWith($fork + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Preview resource escaped playground.' }
+      New-Item -ItemType Directory -Force -Path (Split-Path $target -Parent) | Out-Null
+      Copy-Item -LiteralPath (Join-Path (Join-Path $capturedResources 'CollectionTemplates') $relative) -Destination $target -Force
+    }
+  }
   $extension = Join-Path $fork 'src/VisualStudio/Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj'
   Invoke-Checked 'build-tools' 'dotnet' @('build', $extension, '-v:minimal', '-m:1', '-nr:false', "-p:RestorePackagesPath=$env:NUGET_PACKAGES")
   $packages = @(Get-ChildItem (Join-Path $fork 'artifacts/packages/Debug/NonShipping') -Filter 'Alarmlist.MSBuild.SDK.*.nupkg')
   if ($packages.Count -ne 1) { throw 'Expected exactly one freshly built matching SDK package.' }
   $work = Join-Path $fork 'playground'
   New-Item -ItemType Directory -Path $work | Out-Null
-  Copy-Item -Path (Join-Path $fork 'example/CustomDefinition/*') -Destination $work
+  Copy-Item -Path (Join-Path $fork 'example/CustomDefinition/*') -Destination $work -Recurse
   Copy-Item -LiteralPath $sample -Destination (Join-Path $work 'Alarms.almx') -Force
   $feed = Join-Path $work 'feed'
   New-Item -ItemType Directory -Path $feed | Out-Null

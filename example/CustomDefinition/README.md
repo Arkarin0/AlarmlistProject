@@ -30,7 +30,13 @@ typed parameter expressions. Checks contain flat records: Copy uses
 alarm demonstrates Clear and an empty record receiving literal field defaults.
 Try changing Code or Count to 11 for a bound diagnostic, adding a fourth effective
 tag for a count diagnostic, moving local entries, using boolean/enum helpers, and
-comparing collection counts with the separate entry details in Preview.
+comparing the separate Tags, Measurements and Inspection checks Preview columns.
+Tags use Concatenated with a comma separator; Measurements use a numbered List.
+Inspection checks use the compiled template in `Preview/Checks.xaml`, with the
+shared heading style in `Preview/Palette.xaml`. Edit those original files and
+rerun the launcher to rebuild matching tools. Both procedure variants use these
+formats. Each cell initially shows up to ten entries and offers expansion;
+copying includes the complete collection even while collapsed.
 Inherited entries remain read-only; collapse and analysis refresh preserve drafts.
 Ratio is deliberately hidden from preview. Source, Identity and TestMethod are
 ordinary custom fields, distinct from the built-in preview columns.
@@ -55,6 +61,12 @@ sample values. These checked-in samples are the starting point
 for each run; edits made inside an opened playground stay in that run. Copy wanted
 edits back yourself. The copied definition is for reference: editing it in the
 running playground does not rebuild tools or change the schema at runtime.
+The launcher captures declared template dependencies relative to the selected
+original definition, copies them into the isolated toolset and playground, and
+compiles them into the extension. This also works for definitions outside the
+repository. Runtime Preview uses installed resources, not these copied files.
+See the [template binding contract](../../eng/tools/AlarmDefinitionGenerator/README.md)
+for named fields, states, origins and resource restrictions.
 
 Previous runs and their edits are preserved. The standard compiler definition,
 North/South examples and AlarmlistExp deployments are not changed. No package is

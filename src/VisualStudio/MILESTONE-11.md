@@ -4,7 +4,7 @@ Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
 Follow-up iterations 9–15 complete; follow-up acceptance recorded on
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions. Preview follow-up planning (iteration 16) is
-complete; iterations 17–18 are complete and iterations 19–21 remain authorized and
+complete; iterations 17–19 are complete and iterations 20–21 remain authorized and
 pending. The owner approved the combined preview/designer plan after the
 interactive layout review; completed iteration evidence remains unchanged.
 Owner decisions were confirmed on 2026-10-21.
@@ -1247,3 +1247,42 @@ Validation and evidence:
 - Reviewed source, documentation and diff; git diff --check passed. Playground
   launcher acceptance, designer changes and combined performance/regression gates
   remain iterations 19–21. No OS theme/DPI checks, push or publication.
+
+### Iteration 19 implementation and validation (complete)
+
+Both playground definitions now demonstrate Concatenated tags, numbered List
+measurements and a compiled inspection-record template with a merged palette.
+The launcher uses the generator's validated manifest to copy declared resources
+from the original definition directory into the private compiler/tooling copy and
+the reference playground. Playground directory copying now includes resources.
+The samples and authoring instructions describe the installed-resource behavior.
+
+Acceptance evidence so far:
+
+- PrepareOnly launcher passed with procedures enabled on VS2022
+  (artifacts/def11/6913f857) and disabled on VS2026 (artifacts/def11/a71bcf20),
+  including SDK sample builds on both task runtimes and experimental deployment.
+  Both copied template dictionaries are present in the playground. Logs:
+  artifacts/m11-iteration19-launcher-enabled.log and
+  artifacts/m11-iteration19-launcher-disabled.log. Initial sample validation
+  rejected Preview before record fields; samples were corrected to schema order.
+- Packaged project/library/NuGet/analyzer/API consumers passed on both task hosts
+  for the compiled-template enabled and disabled toolsets from iteration 18:
+  artifacts/col13/3e9d8b14/consumer-checks/9b8e104e and
+  artifacts/col13/38b44f9c/consumer-checks/1f9d3a9d. Native source-unavailable
+  template acceptance and both-framework runtime evidence from iteration 18
+  remain applicable; this iteration does not change runtime presentation code.
+- Two large-preview rendering/recycling scenarios passed. With 1,000 rows and
+  100 entries per row, simple first-layout/scroll measured 1182/21 ms with four
+  realized rows; complex measured 272/31 ms with two realized rows. Assertions
+  verify ten initial entries, complete copying, reused row containers and no
+  expansion-state leakage to recycled rows. Measurements are single-run Debug
+  observations, not benchmark guarantees. Evidence:
+  artifacts/m11-iteration19-rendering-measurement.log.
+- Editor regression: 604 passed, zero failed/skipped
+  (artifacts/m11-iteration19-editor-verified.log). An earlier run was cancelled
+  without a result and rerun with explicit exclusions for the three dedicated
+  simulated theme/scale rendering methods. No OS theme/DPI changes were made.
+- Reviewed sample paths, launcher dependency copying and documentation;
+  git diff --check passed. Iterations 20–21 retain designer and final combined
+  acceptance responsibilities. No push, merge or publication.
