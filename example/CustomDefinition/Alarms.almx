@@ -14,8 +14,14 @@
     <Day>2026-10-23</Day>
     <Clock>14:30:00</Clock>
     <Instant>2026-10-23T14:30:00+02:00</Instant>
+    <Tags><Item>equipment</Item><Item>inspection</Item></Tags>
+    <Numbers><Item>$(AlarmNumber)</Item></Numbers>
+    <Checks>
+      <Item><Text>Inherited check</Text><Count>$(AlarmNumber)</Count><Copy>$(item:Count)</Copy><Enabled>true</Enabled><Priority>High</Priority></Item>
+    </Checks>
     <TestProcedure>
-      <Group Name="Instructions" Title="Check $(AlarmNumber)">
+      <Group Name="Instructions">
+        <Title>Check $(AlarmNumber)</Title>
         <Step>Inspect the equipment.</Step>
         <Hint>Inherited entries remain read-only.</Hint>
       </Group>
@@ -25,6 +31,11 @@
     <FullyQualifiedName>Plant.Check</FullyQualifiedName>
     <ReferenceName>Templates.Check</ReferenceName>
     <Code>$(AlarmNumber)</Code>
+    <Tags><Item>inspection</Item></Tags>
+    <Checks>
+      <!-- Count is absent: the default supplies 7 and Copy resolves to 7. -->
+      <Item><Text>Local check</Text><Copy>$(item:Count)</Copy></Item>
+    </Checks>
     <TestProcedure>
       <Group Name="Instructions">
         <Step>Record the result.</Step>
@@ -37,5 +48,7 @@
     <Description>Try boolean/enum literal helpers, expressions and numeric bounds.</Description>
     <Enabled>false</Enabled>
     <Priority>Low</Priority>
+    <Tags><Item>before clear</Item><Clear /><Item>after clear</Item></Tags>
+    <Checks><Item /></Checks>
   </Alarm>
 </Alarmlist>

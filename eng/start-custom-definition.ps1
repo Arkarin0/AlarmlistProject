@@ -2,6 +2,7 @@
 param(
   [ValidateSet('2022', '2026')][string]$VisualStudioVersion = '2026',
   [string]$DefinitionFile,
+  [string]$SampleFile,
   [switch]$PrepareOnly
 )
 
@@ -12,6 +13,9 @@ $repo = Split-Path $PSScriptRoot -Parent
 if (!$DefinitionFile) { $DefinitionFile = Join-Path $repo 'example/CustomDefinition/AlarmDefinition.xml' }
 $definition = (Resolve-Path -LiteralPath $DefinitionFile).ProviderPath
 if (!(Test-Path -LiteralPath $definition -PathType Leaf)) { throw 'DefinitionFile must be an XML file.' }
+if (!$SampleFile) { $SampleFile = Join-Path $repo 'example/CustomDefinition/Alarms.almx' }
+$sample = (Resolve-Path -LiteralPath $SampleFile).ProviderPath
+if (!(Test-Path -LiteralPath $sample -PathType Leaf)) { throw 'SampleFile must be an XML alarm source file.' }
 $profile = 'AlarmlistDefinitionExp'
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 if (!(Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio Installer (vswhere) was not found.' }
@@ -65,6 +69,7 @@ try {
   $work = Join-Path $fork 'playground'
   New-Item -ItemType Directory -Path $work | Out-Null
   Copy-Item -Path (Join-Path $fork 'example/CustomDefinition/*') -Destination $work
+  Copy-Item -LiteralPath $sample -Destination (Join-Path $work 'Alarms.almx') -Force
   $feed = Join-Path $work 'feed'
   New-Item -ItemType Directory -Path $feed | Out-Null
   Copy-Item -LiteralPath $packages[0].FullName -Destination $feed

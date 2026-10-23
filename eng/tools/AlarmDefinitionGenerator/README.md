@@ -177,8 +177,8 @@ rejected. Collection/ordinary field names share the alarm namespace and follow
 existing reserved-name rules. The generated simple-item descriptor is named Item.
 
 The compiler, SDK and extension accept collection and procedure-disabled
-definitions. The standard checked-in definition stays at version 1 until the
-final playground/acceptance iteration. The designer provides local scalar rows,
+definitions. The standard checked-in version-2 definition explicitly enables
+TestProcedure and preserves the four original scalar fields. The designer provides local scalar rows,
 expandable records, sibling completion and read-only inherited/excluded entries.
 Local entry moves preserve internal draft identities; Clear excludes previous
 entries. Defaults remain compiler-owned and are never written merely by focusing
@@ -187,9 +187,51 @@ a field. Preview shows collection counts and separate resolved entry details.
 Generated metadata adds `AlarmCollectionDescriptor`, `AlarmDefinition.Collections`
 and `AlarmDefinition.HasTestProcedure`. Semantic fingerprints include collection
 shape, item constraints, counts and procedure availability; labels/help remain
-presentation-only. The standard version-1 semantic fingerprint is preserved, while
-the generator-3 tooling fingerprint requires rebuilding matching SDK and extension
-assets. Use the milestone plan for the remaining end-to-end acceptance gates.
+presentation-only. Version-1 inputs retain their historical semantic fingerprint;
+the standard version-2 definition intentionally has a different fingerprint, so
+rebuild existing libraries and matching SDK/extension assets. The generator-3
+tooling fingerprint also includes presentation metadata. Use the milestone plan
+for acceptance evidence.
+
+For example, a fork definition can declare all three capabilities independently:
+
+```xml
+<AlarmDefinition Version="2">
+  <Field Name="Description" Type="String" />
+  <SimpleCollection Name="Tags" Type="String" MaxCount="3" />
+  <ComplexCollection Name="Checks">
+    <Field Name="Text" Type="String" />
+    <Field Name="Count" Type="Int64" Default="7" Minimum="0" />
+    <Field Name="Copy" Type="Int64" />
+  </ComplexCollection>
+  <TestProcedure />
+</AlarmDefinition>
+```
+
+Its source entries use these shapes:
+
+```xml
+<Tags><Item>first</Item><Clear /><Item>kept</Item></Tags>
+<Checks>
+  <Item><Text>Inspection</Text><Count>$(Number)</Count><Copy>$(item:Count)</Copy></Item>
+  <Item><Text>Default count</Text><Copy>$(item:Count)</Copy></Item>
+</Checks>
+```
+
+Place the containers inside an Alarm and supply Number through the existing
+parameter mechanism. Empty/missing local containers inherit; local items append.
+Clear excludes all preceding entries, including inherited ones. Duplicate items
+are allowed. Records inherit whole: there is no record key, field merging across
+records, inherited-entry reordering, nesting, indexing or aggregation. Sibling
+references are case-insensitive and apply only within the current record.
+An omitted record field can use a literal default; an explicitly empty field or
+simple Item is still an authored value and follows its scalar validation rules.
+Defaults never add entries. MinCount/MaxCount apply to the final effective list.
+
+The ready-to-run [custom-definition playground](../../../example/CustomDefinition/README.md)
+contains scalar/collection/procedure samples and a separate procedure-disabled
+definition/source pair. Run scripts/start-custom-definition.bat to build matching
+tools in an isolated copy and open it in Visual Studio.
 
 The compiler parses and writes local collection containers,
 resolves inherited-first entries and Clear, and evaluates item scalar expressions.

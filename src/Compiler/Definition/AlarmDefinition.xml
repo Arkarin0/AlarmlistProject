@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<AlarmDefinition Version="1">
+<AlarmDefinition Version="2">
   <Field Name="Name" Type="String" Multiline="true" PreviewWidth="200" />
   <Field Name="Code" Type="String" Multiline="true" PreviewWidth="100" />
   <Field Name="Category" Type="String" Multiline="true" PreviewWidth="130" />
   <Field Name="Description" Type="String" Multiline="true" PreviewWidth="300" />
+  <TestProcedure />
 </AlarmDefinition>

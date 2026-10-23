@@ -29,8 +29,8 @@ namespace Alarmlist.VisualStudio.UI
             Label = "Entry " + (index + 1);
             Fields = BindingCollection.Create(entry.Fields.Select(field => new ResolvedFieldViewModel(
                 definition?.Fields.FirstOrDefault(item => item.Name == field.Name)?.Label ?? field.Name,
-                AlarmPreviewRow.FieldText(field), entry.IsInherited, entry.Origin.Alarm,
-                field.ValueLocation ?? entry.Origin.Location, navigate(field.ValueLocation ?? entry.Origin.Location), field)));
+                AlarmPreviewRow.FieldText(field), entry.IsInherited, field.DefiningAlarm,
+                field.ValueLocation, navigate(field.ValueLocation), field)));
         }
     }
 }

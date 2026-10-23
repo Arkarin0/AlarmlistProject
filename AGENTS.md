@@ -98,7 +98,7 @@ generation as end-to-end collection support. Preserve version-1 behavior and
 inherited-first/Clear semantics. Nested collections and keyed inherited-record
 overrides remain excluded.
 Iteration 11 adds version-2 collection descriptors and procedure capability
-metadata, preserving the standard version-1 semantic fingerprint while advancing
+metadata, preserving version-1 input semantic fingerprints while advancing
 the full tooling fingerprint (now generator-3 after the runtime model change).
 Compiler/SDK generation is enabled in iteration 13. Iteration 14 adds host
 collection editing and optional-procedure UI, removing the remaining host guard.
@@ -107,6 +107,11 @@ changes to their source container. Keep local entry identities through moves and
 analysis refresh; inherited/excluded entries remain read-only compiler projections.
 Record completion adds sibling fields without making defaults into source values.
 Preview uses a fixed collection-count column and separate entry details.
+The standard definition now uses version 2 with explicit TestProcedure and the
+original four fields. This changes its semantic fingerprint; rebuild libraries
+and matching tools. The interactive shortcut accepts an explicit SampleFile as
+well as DefinitionFile; the checked-in procedure-disabled pair demonstrates both.
+Never strip a user's chosen source automatically to fit a different definition.
 Iteration 12 supplies compiler collection parsing, inherited-first/Clear
 resolution, typed values and output. Record sibling expressions use $(item:FieldName)
 only in record context, including translated expressions; defaults stay literal.

@@ -8,8 +8,9 @@ scripts/start-custom-definition.bat -VisualStudioVersion 2022
 ```
 
 Add `-PrepareOnly` to build, verify and deploy without opening the IDE. The
-optional `-DefinitionFile <path>` selects another definition; relative paths are
-resolved from the calling directory. The companion sample alarms must still be
+optional `-DefinitionFile <path>` selects another definition and `-SampleFile <path>`
+selects the alarm source copied into the playground as Alarms.almx. Relative paths
+are resolved from the calling directory. The companion sample alarms must be
 valid for that definition. The shortcut works from any working directory. It requires Git, the repository's
 .NET tooling and the selected Visual Studio installation with MSBuild.
 
@@ -21,20 +22,41 @@ runtimes. Build logs and `playground.json` identify each run. It deploys only to
 First use of this separate experimental profile may require Visual Studio setup.
 
 Open `Alarms.almx` in the generated solution. `Plant.Check` demonstrates inherited
-fields, typed parameter expressions and procedures; `Plant.Defaults` demonstrates
-an absent Code with a compiler-supplied default. Try changing Code to 11 for a
-bound diagnostic, using boolean/enum helpers, and comparing the typed preview.
+fields, typed parameter expressions, collections and procedures; `Plant.Defaults`
+demonstrates absent Code and record fields with compiler-supplied defaults.
+Tags allow duplicate strings and show inherited-first ordering. Numbers contain
+typed parameter expressions. Checks contain flat records: Copy uses
+`$(item:Count)` and inherits the consuming alarm's parameter scope. The Defaults
+alarm demonstrates Clear and an empty record receiving literal field defaults.
+Try changing Code or Count to 11 for a bound diagnostic, adding a fourth effective
+tag for a count diagnostic, moving local entries, using boolean/enum helpers, and
+comparing collection counts with the separate entry details in Preview.
+Inherited entries remain read-only; collapse and analysis refresh preserve drafts.
 Ratio is deliberately hidden from preview. Source, Identity and TestMethod are
 ordinary custom fields, distinct from the built-in preview columns.
 
-To change the toolset, edit **this directory's original AlarmDefinition.xml** and
-rerun the shortcut. Update the original Alarms.almx too if your changed definition
-requires different sample values. These checked-in samples are the starting point
+To try the same feature **without procedures**, run from the repository root:
+
+```powershell
+scripts/start-custom-definition.bat -DefinitionFile example/CustomDefinition/AlarmDefinition.NoProcedures.xml -SampleFile example/CustomDefinition/Alarms.NoProcedures.xml
+```
+
+Add `-VisualStudioVersion 2022` or `-PrepareOnly` as needed. This second definition
+omits TestProcedure; its companion alarm source contains no procedure elements.
+The procedure editor and built-in Test method column disappear. The ordinary
+TestMethod field remains. Supplying procedure content to this definition is a
+compiler error. The two sample XML files are explicit alternatives; the launcher
+does not strip content from your chosen source to make it compile.
+
+To change the toolset, edit **the original definition selected for your run**
+(AlarmDefinition.xml by default) and rerun the shortcut with the same options.
+Update the chosen sample source too if your changed definition requires different
+sample values. These checked-in samples are the starting point
 for each run; edits made inside an opened playground stay in that run. Copy wanted
 edits back yourself. The copied definition is for reference: editing it in the
 running playground does not rebuild tools or change the schema at runtime.
 
 Previous runs and their edits are preserved. The standard compiler definition,
 North/South examples and AlarmlistExp deployments are not changed. No package is
-published. Currently this sample demonstrates scalar definitions; collection
-examples will be added with the collection implementation.
+published. The standard version-2 definition keeps the four original scalar fields
+and explicitly enables TestProcedure; collections are opt-in fork definitions.

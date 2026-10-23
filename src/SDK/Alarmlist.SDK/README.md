@@ -35,8 +35,10 @@ retains its implicit procedure capability.
 Analysis and analyzer inputs expose `CollectionDefinitions`, `HasTestProcedure`
 and per-alarm `Collections` with local/effective/excluded entries, typed scalar
 states, declaration origins and the Clear directive that excluded an entry.
-Libraries preserve this source and its navigation locations. Collection-enabled
-VSIX generation remains guarded until the designer iteration is complete.
+Libraries preserve this source and its navigation locations. Matching VSIX tools
+provide collection editing and detail preview; version-2 definitions can omit
+TestProcedure entirely. The standard definition explicitly retains it. Rebuild
+libraries and matching tools when changing definition versions or semantic fields.
 
 Definition changes are repository build inputs, not per-project configuration.
 The compiler supports typed expressions; designer fields, lists, completion and

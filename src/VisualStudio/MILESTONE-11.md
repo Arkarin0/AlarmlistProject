@@ -1,7 +1,7 @@
 # Milestone eleven: generated alarm definitions end to end
 
 Status: iterations 1–8 complete; original acceptance recorded on 2026-10-23.
-Follow-up iterations 9–14 complete; iteration 15 pending as of
+Follow-up iterations 9–15 complete; follow-up acceptance recorded on
 2026-10-23. See the collection/playground extension below. Original acceptance
 does not cover these additions.
 Owner decisions were confirmed on 2026-10-21.
@@ -909,3 +909,64 @@ Validation so far:
   shared focus handling and case-insensitive record completion. Reviewed source
   preservation, notification lifetimes, docs and diff; git diff --check passed.
   Remaining work is iteration 15's samples and integrated acceptance.
+
+### Iteration 15 implementation and validation (complete)
+
+The standard definition is now version 2 with the original four string fields and
+explicit TestProcedure. ALMX behavior stays the same; its semantic fingerprint is
+now fa0563f730677abd484c1f50a0c8c4aaa84c84a85e13c841db4a61b266658bbc, so
+libraries/toolsets must be rebuilt together. Version-1 input compatibility remains
+covered by the generator tests.
+
+Extended example/CustomDefinition with Tags, Numbers and flat Checks, inherited
+and local entries, duplicate values, Clear, typed parameters, sibling references
+and absent defaults. Corrected the sample's procedure title to a Title element.
+Added explicit AlarmDefinition.NoProcedures.xml / Alarms.NoProcedures.xml
+alternatives. The launcher accepts SampleFile and copies it as Alarms.almx; it
+never removes content from a chosen source to force compatibility. Updated the
+authoring/playground/SDK guides. A final review also removed an inferred item
+location from defaulted-field preview navigation; only compiler field origins are
+used, covered by a regression test.
+
+Validation so far:
+
+- Full solution command: dotnet test AlarmlistProject.slnx --filter
+  'FullyQualifiedName!~DirectFieldFormAligns&FullyQualifiedName!~Theme'. Exit 0,
+  2,433 passed, zero failed, 98 opt-in cases skipped. Breakdown: generator 74;
+  compiler 666 net472 / 668 net8.0; task unit 91 each; task integration 4 each;
+  SDK 85 net472 / 82 net8.0; editor unit 589; packaged extension integration 13
+  each; performance infrastructure 53. The skipped cases were 80 opt-in native
+  cases and 18 opt-in benchmark/live-performance cases. OS display checks were
+  excluded as requested. Log: artifacts/m11-iteration15-solution.log. Native
+  collection cases are run separately below, not claimed by this solution run.
+- eng/test-alarm-collections.ps1 passed: disabled 70, enabled 68 and minimum-count
+  7 checks on each framework. Evidence:
+  artifacts/log/Debug/AlarmCollections/d3606c995d1f4edd8c872c3a20a42df3 and
+  artifacts/m11-iteration15-collections.log.
+- Executed scripts/start-custom-definition.bat -PrepareOnly from scripts/ for
+  VS2026: artifacts/def11/fc3102af, log artifacts/m11-iteration15-playground.log.
+  Executed eng/start-custom-definition.ps1 with VisualStudioVersion 2022,
+  DefinitionFile example/CustomDefinition/AlarmDefinition.NoProcedures.xml,
+  SampleFile example/CustomDefinition/Alarms.NoProcedures.xml and PrepareOnly:
+  artifacts/def11/c49e6bea, log artifacts/m11-iteration15-playground-no-procedures.log.
+  Both runs built samples with .NET and desktop MSBuild and deployed dedicated
+  profiles without launching an IDE. Output inspection verified two concrete
+  alarms, inherited tag ordering/duplicates, Count/Copy values 8 and 7, default
+  Code/Count 7, Clear removal, enabled/disabled procedure output and retained
+  ordinary TestMethod fields. Source SHA-256 comparisons matched both originals.
+- Combined fork acceptance passed via eng/test-alarm-collection-fork.ps1 with
+  DesktopMSBuildPath, Designer, VisualStudio2022Path and VisualStudio2026Path.
+  Enabled procedures: artifacts/col13/537a8ab9, consumer-checks/cd377f3f.
+  Disabled procedures: artifacts/col13/8874b7b7, consumer-checks/693373aa.
+  Both forks passed project/NuGet library consumption, packaged API verification
+  on net472/net8.0, analyzer execution and transactional failure preservation on
+  .NET/desktop MSBuild. Both forks also passed MetadataCollections on VS2022 and
+  VS2026: four passed native cases, zero failures/skips. Native reports are in
+  each fork's results-2022/results-2026 and native-2022.log/native-2026.log.
+  Wrapper: artifacts/m11-iteration15-fork-full.log. Builds had zero warnings/errors.
+- PowerShell parser validation, authoring-guide relative links, sample output and
+  diff review passed; git diff --check passed. No generated outputs are tracked.
+  Account allowance was 49% remaining at final acceptance, above the requested
+  20% pause threshold. No required implementation or validation gate remains for
+  this follow-up. OS display checks remain explicitly excluded; opt-in broader
+  live/performance suites and publication were not part of this acceptance run.

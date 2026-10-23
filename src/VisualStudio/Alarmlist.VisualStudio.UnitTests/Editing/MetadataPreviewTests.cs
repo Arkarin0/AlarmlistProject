@@ -116,6 +116,20 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
+        public void CollectionDefaultDoesNotInventAFieldNavigationLocation()
+        {
+            var location = new AnalysisLocation("source.almx", 3, 2, 3, 9, 1);
+            var origin = new AnalysisAlarmOrigin(0, "A", location);
+            var field = new AnalysisField("Count", false, null, null, "7", null, null, false, type: "Int64", isDefault: true);
+            var entry = new AnalysisCollectionEntry(false, false, true, new AnalysisCollectionEntryOrigin(origin, "Checks", 0, location),
+                null, new[] { field });
+            AnalysisLocation requested = location;
+            var item = new ResolvedCollectionItemViewModel(0, entry, null, target => { requested = target; return null; });
+            Assert.Null(requested);
+            Assert.Equal("Definition default.", Assert.Single(item.Fields).OriginText);
+        }
+
+        [Fact]
         public void PreferencesKeepSurvivingOrderAndWidthsAndInsertNewColumnsAtDefinitionPositions()
         {
             using (var layout = new PreviewColumnLayout(new[] { Definition("New", visible: false), Definition("Code", "Int64"), Definition("Name") }))
