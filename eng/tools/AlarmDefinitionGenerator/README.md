@@ -94,6 +94,18 @@ labels are presentation only. Field names must be unique ignoring case. Identity
 reference, parameters, procedure structure, generated API members and the
 `Alarmlist` prefix are reserved; the generator reports unsupported names.
 
+Enum values may specify `LabelKey="Priority.High"` to reference a project RESX
+caption. Keys use the existing localization-key syntax and are case-sensitive.
+The compiler resolves all declared keys for concrete application cultures using
+the existing resource precedence and parent-culture fallback. Missing captions
+produce configurable warning ALM0031 once per key/culture, even for unused choices;
+NoWarn and warning promotion apply. Library builds defer this check to consumers,
+and keyword builds do not warn. Captions remain literal text, without expression
+or placeholder evaluation. Label keys change the tooling fingerprint, not the
+semantic library fingerprint. Enum tokens and compiled output remain unchanged.
+Designer caption presentation is delivered in iteration 25; iteration 24 supplies
+metadata, validation and detached translation results only.
+
 | Type | Accepted literal examples and behavior |
 | --- | --- |
 | String | Exact text, including whitespace. `Multiline="true"` is available. |

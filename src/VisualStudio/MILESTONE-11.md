@@ -1471,3 +1471,61 @@ Editor regressions: 614 passed, zero failed/skipped, using the same three displa
 method exclusions as iteration 22 (artifacts/m11-iteration23-editor.log).
 Diff review and git diff --check passed. Native IDE scenarios and OS theme/DPI
 checks were not run for this reuse of the existing field-menu interaction.
+
+## Authorized follow-up: multilingual enum captions and Alarm Summary
+
+Iterations 24–27 are authorized. Preserve completed evidence above. Work on
+dev/milestone-11, commit each validated iteration, and pause when any reported
+account allowance window has 20% or less remaining. This replaces the earlier
+waiver for this new goal. No push, merge, publication, PDF generation or OS
+theme/DPI checks. Goal started with 98% remaining in the reported window.
+
+| Iteration | Deliverable and acceptance |
+| --- | --- |
+| 24 | Optional enum Value LabelKey referencing project RESX; generated metadata and tooling fingerprint only; compiler-owned culture/resource fallback and ALM0031 warnings for every missing configured key per concrete application culture. Test generator, missing/empty/ambiguous resources, policy and unchanged output on both frameworks. |
+| 25 | Shared caption presentation for ordinary and collection dropdowns, resolved summary values, inherited displays and effective tooltips. Custom template DisplayText translates, Value stays the token. Copy captions; search captions/tokens; retain declaration-order sorting. Test refresh, keyboard selection and draft/selection/collapse/undo preservation. |
+| 26 | English/German playground resources, parent fallback and missing-caption sample; document semantics and verify RESX/XLIFF. Both-framework compiler/SDK checks, editor regressions and sequential VS2022/2026 native acceptance with procedures enabled/disabled. |
+| 27 | Rename user-facing Preview to Alarm Summary, project command to Show Alarm Summary, and related language/scope/accessibility wording. Explain summary templates are independent of printed/PDF layout. Preserve internal IDs, commands, preferences and project properties; validate editor/project entry points and package registration. |
+
+Caption resolution follows the selected alarm culture and existing compiler
+resource precedence, including library resources. Captions are literal text,
+without expression or placeholder evaluation. Fallback is Label then Name;
+keyword mode uses fallback without missing-caption warnings. Concrete application
+analysis/build checks all configured keys, even unused choices; library builds
+defer warnings to consumption. ALM0031 follows warning suppression/promotion.
+Reuse detached translation results; never resolve cultures or read RESX in the
+host. Keep semantic library fingerprints and compiled enum tokens unchanged.
+Unavailable analysis uses fallback captions. Editable expressions and local draft
+tooltips remain raw; absent/invalid/deferred states stay distinct. Field/collection
+labels, help and Boolean captions are outside this localization scope.
+
+### Iteration 24 implementation and validation (complete)
+
+Added Value/@LabelKey to the definition schema and generated ValueLabelKeys
+metadata, advancing the tooling generation fingerprint to generator-6 while
+preserving semantic fingerprints. Existing internal descriptor construction
+remains source compatible through an optional final argument. Caption keys follow
+the existing case-sensitive resource-key grammar. Ordinary and collection keys
+are included in detached analysis translations even when absent from RESX.
+
+Application evaluation checks all configured keys through ResourceCatalogue and
+reports configurable ALM0031 warnings once per key/culture. Keyword and library
+analysis skip the warning. No expression evaluation or new resource I/O was added.
+The initial compiler run exposed a legacy assertion that every built-in diagnostic
+was non-configurable; it now explicitly permits only the new warning.
+
+Validation so far: generator 91 passed; compiler 671 net472 / 673 net8.0 passed;
+task units 91 per framework passed. Generated collection fixtures passed both
+frameworks: 79 procedure-disabled, 77 enabled and seven minimum-count checks.
+These include actual compilation/analysis checks for missing captions, NoWarn,
+warnings-as-errors, library deferral, absent analysis translations and unchanged
+compiled enum tokens. Logs: artifacts/m11-iteration24-{generator,compiler-final,
+tasks,runtime}.log. Runtime evidence:
+artifacts/log/Debug/AlarmCollections/e842e693c57843b1b33aa8dfaadc725e.
+SDK downstream validation passed: 85 net472 / 82 net8.0; editor regressions 614
+passed, zero failed/skipped, with the same three display-method exclusions as
+iteration 23. Logs: artifacts/m11-iteration24-{sdk,editor}.log. Commands used
+dotnet test on the generator, compiler, task, SDK and editor test projects and
+eng/test-alarm-collections.ps1 for the generated runtime fixture. Diff review and
+git diff --check passed. Native caption presentation remains an iteration-26 gate;
+the host still displays the existing labels at this iteration boundary.

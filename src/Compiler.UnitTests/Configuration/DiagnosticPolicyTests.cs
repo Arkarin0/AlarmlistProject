@@ -89,7 +89,10 @@ namespace Alarmlist.Core.UnitTests.Configuration
             Assert.Null(analyzed.CompiledXml);
             Assert.Equal("ALM0002", Assert.Single(analyzed.Diagnostics).Id);
             foreach (var field in typeof(DiagnosticDescriptors).GetFields())
-                Assert.False(((DiagnosticDescriptor)field.GetValue(null)).IsConfigurable);
+            {
+                var descriptor = (DiagnosticDescriptor)field.GetValue(null);
+                Assert.Equal(descriptor.Id == DiagnosticWellKnownIds.MissingEnumCaption, descriptor.IsConfigurable);
+            }
         }
 
         [Fact]

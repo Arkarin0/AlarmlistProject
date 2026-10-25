@@ -13,7 +13,7 @@
     <Field Name="Instant" Type="Timestamp" />
     <Field Name="Price" Type="Decimal" />
     <Field Name="Ratio" Type="Double" />
-    <Field Name="Priority" Type="Enum"><Value Name="Low" /><Value Name="High" /></Field>
+    <Field Name="Priority" Type="Enum"><Value Name="Low" LabelKey="Priority.Low" /><Value Name="High" LabelKey="Priority.High" /></Field>
     <Preview DisplayType="Xaml" TemplateFile="Preview/Checks.xaml" TemplateKey="ChecksPreview" />
   </ComplexCollection>
 </AlarmDefinition>

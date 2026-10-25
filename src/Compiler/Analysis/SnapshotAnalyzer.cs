@@ -68,7 +68,9 @@ namespace Alarmlist.Analysis
             return new AnalysisResult(sources, analyzer.GetAnalyzedAlarms(binding), diagnostics,
                 analyzer._evaluation.Culture, context.Resources.Select(resource => new AnalyzedResource(resource)),
                 catalogue.Entries.Select(entry => new AnalyzedResourceEntry(entry, catalogue.IsAmbiguous(entry))),
-                catalogue.Entries.Select(entry => entry.Key).Where(ResourceCatalogue.IsValidKey).Distinct(StringComparer.Ordinal).Select(key =>
+                catalogue.Entries.Select(entry => entry.Key).Concat(Definition.AlarmDefinition.Fields
+                    .Concat(Definition.AlarmDefinition.Collections.SelectMany(collection => collection.Fields))
+                    .SelectMany(field => field.ValueLabelKeys)).Where(ResourceCatalogue.IsValidKey).Distinct(StringComparer.Ordinal).Select(key =>
                 {
                     catalogue.TryResolve(key, analyzer._evaluation.Culture, out ResourceTranslation translation);
                     return new AnalyzedTranslation(key, analyzer._evaluation.Culture, translation?.Entry);

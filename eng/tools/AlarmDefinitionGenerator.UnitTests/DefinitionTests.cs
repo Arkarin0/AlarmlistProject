@@ -40,6 +40,35 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator.UnitTests
         }
 
         [Theory]
+        [InlineData("")]
+        [InlineData("with space")]
+        [InlineData("$(loc:Priority.High)")]
+        [InlineData("1Priority")]
+        public void InvalidEnumCaptionKeysAreRejected(string key)
+        {
+            Assert.Throws<InvalidDataException>(() => Definition.Read(Write("<Field Name='Priority' Type='Enum'><Value Name='High' LabelKey='" + key + "'/></Field>")));
+        }
+
+        [Fact]
+        public void EnumCaptionKeysChangeOnlyToolingFingerprintAndGenerateForBothHosts()
+        {
+            string xml = "<Field Name='Priority' Type='Enum'><Value Name='Low'/><Value Name='High' Label='High priority' LabelKey='Priority.High'/></Field>";
+            var fields = Definition.Read(Write(xml));
+            Assert.Equal(new string[] { null, "Priority.High" }, fields[0].ValueLabelKeys);
+            string first = Program.Generate(fields, false);
+            string second = Program.Generate(Definition.Read(Write(xml.Replace("Priority.High", "Priority.Other"))), false);
+            string Fingerprint(string source, string name) => Regex.Match(source, name + " = \"([^\"]+)\"").Groups[1].Value;
+            Assert.Equal(Fingerprint(first, "SchemaFingerprint"), Fingerprint(second, "SchemaFingerprint"));
+            Assert.NotEqual(Fingerprint(first, "ToolingFingerprint"), Fingerprint(second, "ToolingFingerprint"));
+            foreach (bool host in new[] { false, true })
+            {
+                string generated = Program.Generate(fields, host);
+                Assert.Contains("IReadOnlyList<string> ValueLabelKeys", generated);
+                Assert.Contains("new string[] { null, \"Priority.High\" }", generated);
+            }
+        }
+
+        [Theory]
         [InlineData("String", "Default='hello &amp; world' Multiline='true'")]
         [InlineData("Int64", "Default='9223372036854775807' Minimum='-9223372036854775808'")]
         [InlineData("Decimal", "Default='79228162514264337593543950335' Minimum='0'")]

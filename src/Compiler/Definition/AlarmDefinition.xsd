@@ -28,6 +28,7 @@
         <xs:complexType>
           <xs:attribute name="Name" type="xs:string" use="required" />
           <xs:attribute name="Label" type="xs:string" />
+          <xs:attribute name="LabelKey" type="xs:string" />
         </xs:complexType>
       </xs:element>
     </xs:sequence>

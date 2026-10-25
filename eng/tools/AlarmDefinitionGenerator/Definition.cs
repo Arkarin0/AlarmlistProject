@@ -27,6 +27,7 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
         public decimal PreviewWidth { get; set; }
         public string[] Values { get; set; }
         public string[] ValueLabels { get; set; }
+        public string[] ValueLabelKeys { get; set; }
     }
 
     internal static class Definition
@@ -161,8 +162,11 @@ namespace Alarmlist.Tools.AlarmDefinitionGenerator
                     Multiline = Boolean(element, "Multiline", false), PreviewVisible = Boolean(element, "PreviewVisible", true),
                     PreviewWidth = (decimal?)element.Attribute("PreviewWidth") ?? 180,
                     Values = element.Elements("Value").Select(value => (string)value.Attribute("Name")).ToArray(),
-                    ValueLabels = element.Elements("Value").Select(value => (string)value.Attribute("Label") ?? (string)value.Attribute("Name")).ToArray()
+                    ValueLabels = element.Elements("Value").Select(value => (string)value.Attribute("Label") ?? (string)value.Attribute("Name")).ToArray(),
+                    ValueLabelKeys = element.Elements("Value").Select(value => (string)value.Attribute("LabelKey")).ToArray()
                 };
+                if (field.ValueLabelKeys.Any(key => key != null && !Regex.IsMatch(key, @"\A[A-Za-z_][A-Za-z0-9_.-]*\z")))
+                    Fail("Enum LabelKey must be a valid localization resource key.");
                 if (field.PreviewWidth < 40 || field.PreviewWidth > 2000) Fail("PreviewWidth must be between 40 and 2000.");
                 if (field.Multiline && field.Type != "String") Fail("Only String fields may be multiline.");
                 if (field.Type == "Enum" ? field.Values.Length == 0 : field.Values.Length != 0) Fail("Only Enum fields require and accept Value declarations.");

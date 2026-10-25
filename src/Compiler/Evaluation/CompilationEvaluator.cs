@@ -43,6 +43,9 @@ namespace Alarmlist.Evaluation
             Diagnostics.AddRange(_lookups.Diagnostics);
             if (!LocalizationCulture.TryGetSelection(context.Culture, out _culture))
                 Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidLocalizationCulture, context.Culture));
+            if (!allowDeferredValues && _culture != LocalizationCulture.Keyword && _culture != null)
+                Diagnostics.AddRange(EnumCaptionValidation.Validate(Definition.AlarmDefinition.Fields.Concat(
+                    Definition.AlarmDefinition.Collections.SelectMany(collection => collection.Fields)), _resources, _culture));
             _order = tree.Alarms.ToList();
             ValidateProperties(context.Properties);
             foreach (var library in (tree.LibraryGraph?.Artifacts ?? Array.Empty<Alarmlist.Libraries.LibraryArtifact>())

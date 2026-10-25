@@ -50,6 +50,26 @@ internal static class Program
             return;
         }
         var empty = Compile("");
+        Check(!empty.Diagnostics.Any(diagnostic => diagnostic.Id == "ALM0031"), "Keyword builds do not warn about enum captions");
+        var captionContext = new CompilationContext(Array.Empty<ResxTextSnapshot>(), "de-DE");
+        var missingCaptions = Compile("", captionContext);
+        Check(missingCaptions.Success && missingCaptions.Diagnostics.Count(diagnostic => diagnostic.Id == "ALM0031") == 2,
+            "All configured enum captions warn even without selected collection records");
+        Check(!Compile("", captionContext.WithDiagnosticOptions(new Alarmlist.Diagnostics.DiagnosticOptions(treatWarningsAsErrors: true))).Success,
+            "Missing caption warnings participate in build failure policy");
+        Check(!Compile("", captionContext.WithDiagnosticOptions(new Alarmlist.Diagnostics.DiagnosticOptions(noWarn: new[] { "ALM0031" }))).Diagnostics.Any(diagnostic => diagnostic.Id == "ALM0031"),
+            "Missing caption warnings can be suppressed");
+        var captionCompiler = new AlarmCompiler();
+        var captionSources = new[] { Snapshot(Alarm(Record("<Priority>High</Priority>"))) };
+        Check(!captionCompiler.AnalyzeLibrarySnapshots(captionSources, captionContext).Diagnostics.Any(diagnostic => diagnostic.Id == "ALM0031"), "Library caption validation defers");
+        var missingAnalysis = captionCompiler.AnalyzeSnapshots(captionSources, captionContext);
+        Check(missingAnalysis.Translations.Count(translation => translation.Key.StartsWith("Priority.") && !translation.IsAvailable) == 2,
+            "Missing caption keys cross analysis as unavailable translations");
+        var translatedContext = new CompilationContext(new[] { new ResxTextSnapshot(
+            "<root><data name='Priority.Low'><value>Niedrig</value></data><data name='Priority.High'><value>Hoch</value></data></root>", "Captions.de.resx", 1, "de") }, "de-DE");
+        var translatedAnalysis = captionCompiler.AnalyzeSnapshots(captionSources, translatedContext, includeCompiledXml: true);
+        Check(!translatedAnalysis.Diagnostics.Any(diagnostic => diagnostic.Id == "ALM0031") && translatedAnalysis.CompiledXml.Contains("<Priority>High</Priority>"),
+            "Translated captions do not change compiled enum tokens");
         Check(empty.Success && empty.AlarmList.Single().Collections.All(collection => collection.Items.Count == 0), "Absent collections create no items");
         Check(Compile("<AlarmDefinition>ordinary</AlarmDefinition>").AlarmList.Single().AlarmDefinition == "ordinary", "Ordinary fields cannot shadow collection metadata helpers");
         if (!AlarmDefinition.HasTestProcedure)

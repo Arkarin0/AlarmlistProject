@@ -90,6 +90,12 @@ NuGet/analyzer checks on both task hosts and enables native preview checks.
 an existing isolated fork. Keep its feeds/caches private and compile verification
 assets against the packaged compiler, not a compiler project reference.
 Do not add runtime per-project schemas or inherited-entry reordering under this scope.
+Enum Value LabelKey metadata references project RESX captions. Follow milestone 11
+iterations 24–26: compiler-owned culture/resource fallback, literal caption text,
+and configurable ALM0031 warnings for all missing configured keys in concrete
+application cultures. Keyword/library builds defer caption warnings. Keep stored
+tokens, compiled values and semantic fingerprints unchanged; transport detached
+translation results and never resolve resource inheritance in the host.
 Milestone 11 follow-up iterations 9–15 authorize an isolated interactive definition
 playground, simple scalar collections, flat scalar-field record collections and
 one optional existing TestProcedure capability. Follow the plan's version-2
@@ -99,7 +105,7 @@ inherited-first/Clear semantics. Nested collections and keyed inherited-record
 overrides remain excluded.
 Iteration 11 adds version-2 collection descriptors and procedure capability
 metadata, preserving version-1 input semantic fingerprints while advancing
-the full tooling fingerprint (now generator-5 after compiled preview resources).
+the full tooling fingerprint (now generator-6 after enum caption resource keys).
 Compiler/SDK generation is enabled in iteration 13. Iteration 14 adds host
 collection editing and optional-procedure UI, removing the remaining host guard.
 Collection drafts share the atomic document transaction and reject concurrent
