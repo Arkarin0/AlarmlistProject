@@ -1616,3 +1616,44 @@ draft preservation, clipboard actions and source navigation. Diff/links and
 git diff --check passed. Iterations 24–27 are complete; the latest allowance
 check showed 76% remaining, above the requested stop. No push, merge, publication
 or OS theme/DPI checks were performed.
+
+## Authorized follow-up: iterations 28–29
+
+Implement on dev/milestone-11; commit each validated iteration, without pushing.
+Pause at 20% account allowance remaining. Starting allowance: 73% remaining.
+Preserve earlier evidence. No OS theme/DPI checks or publication.
+
+28 — Make both custom-definition sample RESX files compatible with the native
+resource editor using the four standard headers. Preserve caption values and the
+intentional missing German key. Exercise the actual samples with the framework
+RESX reader and native VS2022/2026 resource editors, including caption editing and
+Summary refresh. Revalidate isolated sample copying and multilingual builds.
+Existing generated playgrounds and their edits are preserved.
+
+29 — Project > Show Alarm Summary creates a new session-only window pinned to the
+selected project on every invocation. Keep the general-purpose View command and
+its existing identity. Pinned windows display project names (numbered duplicates)
+and full paths, without a scope selector. Each owns filter/sort/selection/tab
+state; language and saved columns remain shared per project. Reuse shared project
+analysis. Unload clears results without retargeting; reload restores them. Test
+multiple projects/duplicates, focused command routing, settings, drafts, source
+navigation and disposal, with sequential native validation on both IDEs.
+
+### Iteration 28 implementation and validation (complete)
+
+Added the template's standard RESX headers and xml:space="preserve" to both
+playground resources. Native collection acceptance now copies those actual files,
+opens both in Resource Explorer and edits the German caption there before checking
+Summary refresh. Added two framework ResXResourceReader regression cases; both
+passed (artifacts/m11-iteration28-resx.log). Native runner build passed with zero
+warnings/errors (artifacts/m11-iteration28-runner.log). No compiler behavior changed.
+All four isolated native cases passed on VS2022/VS2026, procedures enabled and
+disabled (artifacts/col13/c85c5895 and 4838dfb4; native-2022/native-2026 logs and
+TRX reports). Each opened English/German samples, edited/saved a caption in the
+native resource editor and observed Summary refresh with source/enum tokens
+preserved. Both launchers passed -PrepareOnly (artifacts/def11/055a4765 enabled,
+19f425d5 disabled), building keyword/en/de-DE outputs with dotnet and desktop
+MSBuild. Copied resource hashes match the checked-in samples. Logs:
+artifacts/m11-iteration28-{native,playground-enabled,playground-disabled}.log.
+Diff review and git diff --check passed. Existing generated playgrounds were
+not rewritten; README documents safe header-only repair or a fresh launcher run.

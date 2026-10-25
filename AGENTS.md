@@ -716,6 +716,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   of replacing standard AlarmlistExp deployments. Preserve prior runs and edits.
   The default host is VS2026; -VisualStudioVersion 2022 and -PrepareOnly are
   supported. Definition changes take effect only after rebuilding matching tools.
+  Sample RESX files must include the standard resmimetype/version/reader/writer
+  headers used by the translations item template. Compiler acceptance alone does
+  not establish native Resource Explorer compatibility; preserve reader and
+  native editor coverage for editable resource samples (milestone 11 iteration 28).
 - The library shortcuts `scripts/start-library-project-references.bat` and
   `scripts/start-library-packages.bat` share `eng/start-library-example.ps1` and
   open `example/Libraries/Libraries.sln` (VS2026 by default, optional VS2022).

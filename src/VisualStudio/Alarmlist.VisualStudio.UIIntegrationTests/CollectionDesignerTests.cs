@@ -38,11 +38,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             project.Root.Add(new XElement("PropertyGroup", new XElement("AlarmlistCultures", "keyword;en;de-DE")));
             project.Save(projectPath);
             string captionsPath = Path.Combine(workspace.ProjectDirectory, "Translations.de.resx");
-            void WriteCaptions(string high) => File.WriteAllText(captionsPath,
-                "<root><data name='Priority.Low'><value>Niedrig</value></data><data name='Priority.High'><value>" + high + "</value></data></root>");
-            WriteCaptions("Hoch");
-            File.WriteAllText(Path.Combine(workspace.ProjectDirectory, "Translations.en.resx"),
-                "<root><data name='Priority.Low'><value>Low priority</value></data><data name='Priority.High'><value>High priority</value></data></root>");
+            foreach (string culture in new[] { "de", "en" })
+                File.Copy(Path.Combine(repository, "example/CustomDefinition/Translations." + culture + ".resx"),
+                    Path.Combine(workspace.ProjectDirectory, "Translations." + culture + ".resx"));
             var child = new XElement("Alarm", new XElement("FullyQualifiedName", "UI.Collections"), new XElement("ReferenceName", "UI.Base"),
                 new XElement("Tags", new XElement("Item", "duplicate"), new XElement("Item", "duplicate")),
                 new XElement("Checks", new XElement("Item", new XElement("Copy", "$(item:Count)"), new XElement("Priority", "High"))));
@@ -150,10 +148,39 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Contains("Count: 8", System.Windows.Forms.Clipboard.GetText());
             string beforeLanguage = ide.ReadText(workspace.AlarmPath);
             LocalizationResourceTests.SelectCulture(ide, window, "de-DE");
-            VisualStudioSession.Wait(() => table.FindAllDescendants(cf => cf.ByAutomationId("EnumCaption")).Any(item => item.Name == "Hoch"),
+            VisualStudioSession.Wait(() => table.FindAllDescendants(cf => cf.ByAutomationId("EnumCaption")).Any(item => item.Name == "Hohe Priorität"),
                 "compiled template displays German enum caption using parent culture");
-            WriteCaptions("Sehr hoch");
-            VisualStudioSession.Wait(() => table.FindAllDescendants(cf => cf.ByAutomationId("EnumCaption")).Any(item => item.Name == "Sehr hoch"),
+            foreach (EnvDTE.Window tool in ide.Automation.Windows) if (tool.Caption == "Alarm Summary") tool.Visible = false;
+            foreach (string culture in new[] { "en", "de" })
+            {
+                string resourcePath = Path.Combine(workspace.ProjectDirectory, "Translations." + culture + ".resx");
+                ide.Automation.ItemOperations.OpenFile(resourcePath, EnvDTE.Constants.vsViewKindPrimary).Activate();
+                window.SetForeground();
+                AutomationElement resources = null;
+                string caption = culture == "en" ? "High priority" : "Hohe Priorität";
+                VisualStudioSession.Wait(() =>
+                {
+                    resources = window.FindFirstDescendant(cf => cf.ByAutomationId("resourceTable").And(cf.ByControlType(ControlType.DataGrid)));
+                    return resources?.FindFirstDescendant(cf => cf.ByName(caption).And(cf.ByControlType(ControlType.Text))) != null;
+                }, "sample RESX opens in native resource editor: " + culture);
+                if (culture == "de")
+                {
+                    var draft = ResourceEditorTests.BeginEdit(ide, resources, caption);
+                    ResourceEditorTests.ReplaceDraft(ide, draft, "Sehr hoch");
+                    ResourceEditorTests.RequireFieldFocus(ide, draft); Keyboard.Type(VirtualKeyShort.TAB);
+                    VisualStudioSession.Wait(() => XDocument.Load(captionsPath).Root.Elements("data")
+                        .Single(item => (string)item.Attribute("name") == "Priority.High").Element("value").Value == "Sehr hoch", "native caption edit saved");
+                }
+                ide.Automation.Documents.Item(resourcePath).Close(EnvDTE.vsSaveChanges.vsSaveChangesNo);
+            }
+            ide.ActivateDocument(workspace.AlarmPath);
+            ide.Automation.ExecuteCommand("View.AlarmlistPreview");
+            VisualStudioSession.Wait(() =>
+            {
+                window.FindFirstDescendant(cf => cf.ByName("Alarm table summary").And(cf.ByControlType(ControlType.TabItem)))?.Patterns.SelectionItem.Pattern.Select();
+                table = window.FindFirstDescendant(cf => cf.ByName("Resolved alarm table").And(cf.ByControlType(ControlType.DataGrid)));
+                return table?.FindAllDescendants(cf => cf.ByAutomationId("EnumCaption")).Any(item => item.Name == "Sehr hoch") == true;
+            },
                 "saved RESX refresh updates compiled template caption");
             table.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem)).First().Patterns.SelectionItem.Pattern.Select();
             window.FindFirstDescendant(cf => cf.ByName("Copy selected summary rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();

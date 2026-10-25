@@ -90,6 +90,11 @@ and de-DE outputs; warnings do not fail builds unless promoted to errors.
 Stored enum values remain Low/High in every output. The custom record template
 shows the translated Priority caption. Existing XLIFF export/import includes the
 caption RESX keys even without a corresponding alarm expression.
+Both resource files include the standard RESX headers and open in Visual Studio's
+resource editor. Re-run the shortcut to obtain corrected files in a new playground;
+existing playgrounds and their edits are preserved. Older copies missing headers
+can be repaired by copying the four `resheader` elements from these samples,
+without replacing their translations.
 
 Previous runs and their edits are preserved. The standard compiler definition,
 North/South examples and AlarmlistExp deployments are not changed. No package is
