@@ -80,6 +80,17 @@ the dropdown and press Enter to open its choices. Opening or dismissing it keeps
 the current expression; choosing a value changes the draft. Inherited entries
 remain read-only.
 
+Enum captions use the project's selected language and the supplied
+Translations.en.resx / Translations.de.resx files. Choose en for English, or
+de-DE to see parent-culture fallback to German. Priority.Low is deliberately
+missing in German: the fallback label appears and ALM0031 warns once for the key.
+Add that entry to remove the warning. Keyword mode uses the definition labels.
+The shortcut copies these resources with the playground and builds keyword, en
+and de-DE outputs; warnings do not fail builds unless promoted to errors.
+Stored enum values remain Low/High in every output. The custom record template
+shows the translated Priority caption. Existing XLIFF export/import includes the
+caption RESX keys even without a corresponding alarm expression.
+
 Previous runs and their edits are preserved. The standard compiler definition,
 North/South examples and AlarmlistExp deployments are not changed. No package is
 published. The standard version-2 definition keeps the four original scalar fields

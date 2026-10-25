@@ -157,7 +157,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "South preview language persists after reload");
         }
 
-        private static void SelectCulture(VisualStudioSession ide, Window window, string culture)
+        internal static void SelectCulture(VisualStudioSession ide, Window window, string culture)
         {
             AutomationElement toolbar = null;
             VisualStudioSession.Wait(() => (toolbar = window.FindFirstDescendant(cf => cf.ByName("Alarmlist").And(cf.ByControlType(ControlType.ToolBar)))) != null,

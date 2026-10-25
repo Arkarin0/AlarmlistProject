@@ -11,6 +11,7 @@ using FlaUI.Core.WindowsAPI;
 using FlaUI.UIA3;
 using Xunit;
 using Xunit.Abstractions;
+using Alarmlist.VisualStudio.Testing;
 
 namespace Alarmlist.VisualStudio.UIIntegrationTests
 {
@@ -31,15 +32,27 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             bool procedures = definition.Element("TestProcedure") != null;
             Assert.NotNull(definition.Elements("SimpleCollection").Single(item => (string)item.Attribute("Name") == "Tags"));
             workspace.CreateProject(ide, build: false);
+            ide.Automation.Solution.Close(false);
+            string projectPath = Path.Combine(workspace.ProjectDirectory, "Plant.almproj");
+            var project = XDocument.Load(projectPath);
+            project.Root.Add(new XElement("PropertyGroup", new XElement("AlarmlistCultures", "keyword;en;de-DE")));
+            project.Save(projectPath);
+            string captionsPath = Path.Combine(workspace.ProjectDirectory, "Translations.de.resx");
+            void WriteCaptions(string high) => File.WriteAllText(captionsPath,
+                "<root><data name='Priority.Low'><value>Niedrig</value></data><data name='Priority.High'><value>" + high + "</value></data></root>");
+            WriteCaptions("Hoch");
+            File.WriteAllText(Path.Combine(workspace.ProjectDirectory, "Translations.en.resx"),
+                "<root><data name='Priority.Low'><value>Low priority</value></data><data name='Priority.High'><value>High priority</value></data></root>");
             var child = new XElement("Alarm", new XElement("FullyQualifiedName", "UI.Collections"), new XElement("ReferenceName", "UI.Base"),
                 new XElement("Tags", new XElement("Item", "duplicate"), new XElement("Item", "duplicate")),
-                new XElement("Checks", new XElement("Item", new XElement("Copy", "$(item:Count)"))));
+                new XElement("Checks", new XElement("Item", new XElement("Copy", "$(item:Count)"), new XElement("Priority", "High"))));
             foreach (var field in definition.Elements("Field")) child.Add(new XElement((string)field.Attribute("Name"), MetadataDesignerTests.Literal(field)));
             var parent = new XElement("Alarm", new XAttribute("abstract", "true"), new XElement("FullyQualifiedName", "UI.Base"),
                 new XElement("Tags", new XElement("Item", "inherited")));
             if (procedures) parent.Add(new XElement("TestProcedure", new XElement("Group", new XAttribute("Name", "Checks"), new XElement("Step", "Existing procedure"))));
             string original = new XDocument(new XElement("Alarmlist", child, parent)).ToString();
             File.WriteAllText(workspace.AlarmPath, original);
+            VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
             using var automation = new UIA3Automation();
             ide.OpenDesigner(workspace.AlarmPath);
             foreach (EnvDTE.Window tool in ide.Automation.Windows) if (tool.Caption == "Alarmlist Preview") tool.Visible = false;
@@ -135,6 +148,22 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().Contains("Tags\tNumbers\tChecks"), "one clipboard column per collection");
             Assert.Contains("after clear", System.Windows.Forms.Clipboard.GetText());
             Assert.Contains("Count: 8", System.Windows.Forms.Clipboard.GetText());
+            string beforeLanguage = ide.ReadText(workspace.AlarmPath);
+            LocalizationResourceTests.SelectCulture(ide, window, "de-DE");
+            VisualStudioSession.Wait(() => table.FindAllDescendants(cf => cf.ByAutomationId("EnumCaption")).Any(item => item.Name == "Hoch"),
+                "compiled template displays German enum caption using parent culture");
+            WriteCaptions("Sehr hoch");
+            VisualStudioSession.Wait(() => table.FindAllDescendants(cf => cf.ByAutomationId("EnumCaption")).Any(item => item.Name == "Sehr hoch"),
+                "saved RESX refresh updates compiled template caption");
+            table.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem)).First().Patterns.SelectionItem.Pattern.Select();
+            window.FindFirstDescendant(cf => cf.ByName("Copy selected preview rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
+            VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().Contains("Priority: Sehr hoch"), "copy uses translated collection caption");
+            Assert.Equal(beforeLanguage, ide.ReadText(workspace.AlarmPath));
+            Assert.Contains("<Priority>High</Priority>", File.ReadAllText(workspace.OutputPath));
+            LocalizationResourceTests.SelectCulture(ide, window, "en");
+            VisualStudioSession.Wait(() => table.FindAllDescendants(cf => cf.ByAutomationId("EnumCaption")).Any(item => item.Name == "High priority"), "English enum caption");
+            LocalizationResourceTests.SelectCulture(ide, window, "keyword");
+            VisualStudioSession.Wait(() => table.FindAllDescendants(cf => cf.ByAutomationId("EnumCaption")).Any(item => item.Name == "High"), "keyword uses definition fallback");
             if (definition.Elements("ComplexCollection").Any(collection => collection.Element("Preview")?.Attribute("TemplateFile") != null))
             {
                 Assert.NotNull(table.FindFirstDescendant(cf => cf.ByName("Custom collection record")));

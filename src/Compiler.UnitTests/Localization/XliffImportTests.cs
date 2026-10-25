@@ -52,6 +52,22 @@ namespace Alarmlist.Core.UnitTests.Localization
         }
 
         [Fact]
+        public void EnumCaptionKeysRoundTripWithoutAlarmExpressionUsages()
+        {
+            var source = Resource("en", Entry("Priority.Low", "Low priority"), Entry("Priority.High", "High priority"));
+            var target = Resource("de", Entry("Priority.High", "Hoch"));
+            var export = XliffExport.Create(new[] { source, target }, "de");
+            Assert.Contains("Priority.Low", export.Xliff);
+            var input = Translate(export, root => Target(root, "Priority.Low", "Niedrig"));
+            var result = XliffImport.Preview(new[] { source, target }, new[] { input });
+            Assert.True(result.Success);
+            var file = Assert.Single(result.Files);
+            var resources = new ResourceCatalogue(new[] { source, new ResxTextSnapshot(file.Text, file.FilePath, 2, "de") });
+            Assert.True(resources.TryResolve("Priority.Low", "de-DE", out var caption));
+            Assert.Equal("Niedrig", caption.Entry.Value);
+        }
+
+        [Fact]
         public void NamedAndLookupOccurrencesCanReorderWithoutRescanningLiteralText()
         {
             var source = Resource("en", Entry("A", "In {path}, {value} {value} $(list:Wires#W1) {{literal}}"));

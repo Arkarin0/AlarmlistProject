@@ -7,8 +7,8 @@
   <Field Name="Ratio" Type="Double" PreviewVisible="false" />
   <Field Name="Enabled" Type="Boolean" />
   <Field Name="Priority" Type="Enum">
-    <Value Name="Low" Label="Low priority" />
-    <Value Name="High" Label="High priority" />
+    <Value Name="Low" Label="Low priority" LabelKey="Priority.Low" />
+    <Value Name="High" Label="High priority" LabelKey="Priority.High" />
   </Field>
   <Field Name="Day" Type="Date" />
   <Field Name="Clock" Type="Time" />
@@ -23,7 +23,7 @@
     <Field Name="Count" Type="Int64" Required="true" Default="7" Minimum="0" Maximum="10" />
     <Field Name="Copy" Type="Int64" Help="Try $(item:Count) to use another field in this record." />
     <Field Name="Enabled" Type="Boolean" />
-    <Field Name="Priority" Type="Enum"><Value Name="Low" /><Value Name="High" /></Field>
+    <Field Name="Priority" Type="Enum"><Value Name="Low" Label="Low priority" LabelKey="Priority.Low" /><Value Name="High" Label="High priority" LabelKey="Priority.High" /></Field>
     <Preview DisplayType="Xaml" TemplateFile="Preview/Checks.xaml" TemplateKey="ChecksPreview" />
   </ComplexCollection>
 </AlarmDefinition>

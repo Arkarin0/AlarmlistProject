@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- de-DE falls back to de. Priority.Low is deliberately missing: ALM0031. -->
+  <data name="Priority.High"><value>Hohe Priorität</value></data>
+</root>

@@ -7,6 +7,7 @@
       <TextBlock Text="{Binding Fields[Text].DisplayText}" TextWrapping="Wrap" />
       <TextBlock><Run Text="Count: " /><Run Text="{Binding Fields[Count].DisplayText, Mode=OneWay}" /></TextBlock>
       <TextBlock><Run Text="Copy: " /><Run Text="{Binding Fields[Copy].DisplayText, Mode=OneWay}" /></TextBlock>
+      <TextBlock Text="{Binding Fields[Priority].DisplayText}" AutomationProperties.AutomationId="EnumCaption" />
     </StackPanel>
   </DataTemplate>
 </ResourceDictionary>

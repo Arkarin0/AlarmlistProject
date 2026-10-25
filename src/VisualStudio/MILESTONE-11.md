@@ -1549,3 +1549,37 @@ additional scalar inheritance and simple formatting checks
 (artifacts/m11-iteration25-editor.log). It uses the same three display-method
 exclusions as iteration 24. Diff review and git diff --check passed. Native
 language/resource-refresh acceptance remains in 26.
+
+### Iteration 26 samples and combined acceptance (complete)
+
+Both playground definitions now declare enum caption keys. English/German RESX
+files demonstrate de-DE parent fallback and intentionally missing Priority.Low;
+the existing launcher copies the resources with the playground. Sample build
+cultures are keyword, en and de-DE. Custom templates display Priority.DisplayText.
+Added XLIFF round-trip coverage for caption keys without alarm expression usages.
+The isolated native collection scenario now checks installed custom-template
+captions, German parent fallback, saved RESX refresh, English/keyword switching,
+translated clipboard content and unchanged ALMX/compiled enum tokens. Procedures
+enabled/disabled and both IDE hosts were checked as required gates.
+
+Compiler/XLIFF regression passed 672 net472 / 674 net8.0 tests; the native runner
+built with zero warnings/errors (artifacts/m11-iteration26-{compiler,runner}.log).
+Full fork consumer checks passed with procedures enabled (artifacts/col13/cedbcdc2,
+consumer-checks/92b3fff6) and disabled (artifacts/col13/371bf367,
+consumer-checks/d1c14dce), using both dotnet and desktop MSBuild. Enabled native
+checks passed on VS2022 and VS2026 with template sources unavailable. The first
+disabled VS2022 run stopped at the foreground-input safeguard when another
+process gained focus, after German caption/resource-refresh checks. No product or
+safeguard change was needed; the same compiled test passed on retry. Original
+failure evidence and retry logs remain in the disabled fork.
+
+Disabled VS2026 also passed; all four native cases passed with original template
+sources unavailable. Both interactive launchers passed with -PrepareOnly: VS2022
+enabled in artifacts/def11/b16aabbc and VS2026 disabled in artifacts/def11/83236259.
+Their copied RESX inputs built keyword/en/de-DE output under both task hosts,
+reporting the intentionally missing Priority.Low ALM0031 warning. Logs:
+artifacts/m11-iteration26-playground-{enabled,disabled}.log and each fork's
+build-sample-{core,desktop}.log. Existing standard SDK regression (85/82) and
+editor regression (624) remain valid from iterations 24/25; this iteration adds
+samples/tests only. Diff review and git diff --check passed. No OS theme/DPI
+checks were performed; no new acceptance blocker remains for this iteration.
