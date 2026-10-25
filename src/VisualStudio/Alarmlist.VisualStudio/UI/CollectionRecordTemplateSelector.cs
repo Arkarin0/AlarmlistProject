@@ -33,7 +33,7 @@ namespace Alarmlist.VisualStudio.UI
             catch (Exception error) when (error is IOException || error is InvalidDataException || error is XamlParseException || error is ArgumentException
                 || error is InvalidOperationException || error is InvalidCastException)
             {
-                record.TemplateError = "Preview template unavailable; using default layout. " + error.Message;
+                record.TemplateError = "Summary template unavailable; using default layout. " + error.Message;
                 return DefaultTemplate;
             }
         }

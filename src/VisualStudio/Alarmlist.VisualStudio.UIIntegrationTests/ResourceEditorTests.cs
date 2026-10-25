@@ -125,7 +125,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             // Previous preview scenarios can persist a floating tool window over
             // this cell. Normalize only the owned IDE before real mouse input.
             foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             table.Focus();
             AutomationElement cell = FindValue(table, before);
             Assert.NotNull(cell);

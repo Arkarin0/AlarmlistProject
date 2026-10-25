@@ -174,7 +174,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         {
             // A restored floating preview can cover the designer in screenshots.
             foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             string original = ide.ReadText(workspace.AlarmPath);
             foreach (string name in new[] { "Startup", "Shutdown" })
             {

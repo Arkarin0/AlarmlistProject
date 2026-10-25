@@ -113,7 +113,7 @@ changing package references. Missing or invalid dependencies clear stale results
 saved-file recovery triggers analysis again. Inputs and package selections are
 revalidated before results are published or used for editor actions. Reference
 choices and preview source labels show library identity/version and can be searched
-by library name. Concrete imported alarms appear in the project preview table;
+by library name. Concrete imported alarms appear in the project summary table;
 deferred values remain unavailable. Navigation into a referenced project opens
 its actual source. Package navigation opens a generated, read-only definition
 with portable origin information; it does not expose the original formatting or
@@ -160,16 +160,22 @@ preview; unsaved lookup XML remains private. Metadata provides selection guidanc
 without automatic defaults or range validation. See the [format specification](HMI-LOOKUPS.md)
 and the [North/South sample walkthrough](../../example/README.md#try-reusable-instructions-and-hmi-lookups).
 
-Open **View > Other Windows > Alarmlist Preview** for the dockable preview window.
+Open **View > Other Windows > Alarm Summary** for the dockable summary window.
+It inspects resolved alarm data. Collection templates customize this summary;
+document and PDF layouts are defined separately. The summary is not a print or
+publication preview. Existing command names (`View.AlarmlistPreview`,
+`Alarmlist.PreviewProject`), tool-window identity and saved column preferences
+remain compatible. Definition XML continues to use `Preview`, `PreviewVisible`
+and `PreviewWidth`; `AlarmlistCulture` remains the saved summary language.
 Its **Alarm table**, **Selected alarm** and **Compiled XML** tabs replace the
 designer's embedded preview sections. **Scope** defaults to **Follow active editor**,
 following its selected alarm and linked-project context. Choose a project to keep
-the preview independent of editors, or right-click a loaded Alarmlist project in
-Solution Explorer and choose **Preview alarms**. No editor or Build is required.
+the summary independent of editors, or right-click a loaded Alarmlist project in
+Solution Explorer and choose **Show Alarm Summary**. No editor or Build is required.
 Explicit project scope survives editor switches/closure and window hide; unloading
 that project clears its results and retains the selected identity until reload or
 another choice. The window's language selector works without an editor and uses
-the same CPS preview setting as the native Alarmlist toolbar.
+the same CPS summary setting as the native Alarmlist toolbar.
 
 Both scopes include shared unsaved ALMX text. Follow-active mode clears during
 that editor's unapplied field drafts; explicit project mode continues to show the
@@ -193,7 +199,7 @@ available even with all columns hidden. Preferences are shared across the projec
 ALMX previews and saved in `<project>.almproj.user`, independently of configuration.
 Unrelated user properties are preserved; save failures leave the session layout
 usable and show an error. Loose files use session preferences.
-In narrow preview windows, the count and row actions wrap below the filter so
+In narrow summary windows, the count and row actions wrap below the filter so
 the filter remains usable; resizing keeps its text and keyboard focus.
 Copying revalidates saved resources/lookups and source snapshots first. Errors
 mark unavailable row values and disable compiled XML. See the scope-specific draft
@@ -224,11 +230,11 @@ entries for the collection; these view actions preserve drafts and source bytes.
 Collapsed headers expose left-aligned tooltips and accessible help, one field per
 line. Local tooltips show draft expressions; inherited tooltips use compiler
 values and distinguish absent, defaulted, invalid and deferred content.
-Preview has one column per collection: List or Concatenated for scalar lists,
+Alarm Summary has one column per collection: List or Concatenated for scalar lists,
 compiled XAML templates for records, and separate resolved entry details. Cells
 initially show ten entries, with explicit expansion and complete clipboard text.
 Omitting TestProcedure from a version-2 definition hides its creation/editor and
-built-in preview column while preserving ordinary fields named TestMethod.
+built-in summary column while preserving ordinary fields named TestMethod.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
@@ -255,7 +261,7 @@ Content is recaptured before publication and navigation to reject stale results.
 Run `eng/test-visualstudio.ps1 -Filter 'Area=Localization'` with the documented
 host path/profile options to exercise saved-resource behavior in the owned IDE.
 
-The **Preview language** selector lives in the native **Alarmlist** toolbar,
+The **Summary language** selector lives in the native **Alarmlist** toolbar,
 separate from the designer. It follows the active ALMX editor and its selected
 project context, including linked files and XML views. Visual Studio manages its
 docking and customization; it is also available under **View > Toolbars > Alarmlist**.
@@ -343,7 +349,7 @@ from document contents. **Open With > XML (Text) Editor** remains available.
 Filter the alarm list by name or identifier, select an alarm, and edit its local
 `FullyQualifiedName`, `Name`, `Code`, `Category`, `Description`, or `ReferenceName`.
 The list becomes a selector when the designer pane is narrow.
-Both show resolved names in the current preview culture, including inherited
+Both show resolved names in the current summary culture, including inherited
 names. When current values are unavailable, they fall back to raw expressions or
 identifiers. Filtering matches displayed names, local raw expressions and
 identifiers. Analysis refreshes preserve an actively edited alarm and its drafts.
@@ -413,7 +419,7 @@ Input/SDK failures appear separately as analysis-unavailable warnings without AL
 codes. Neither live analysis nor its navigation saves files or writes compiled output;
 existing Build diagnostics remain owned by MSBuild.
 
-Use the preview window's **Selected alarm** tab to inspect the selected alarm's identity,
+Use the summary window's **Selected alarm** tab to inspect the selected alarm's identity,
 effective scalar values, and surviving procedure-group entries in execution
 order. Chain adorners mark inherited values; **Go to source** follows each value's
 SDK origin after revalidating the inputs. Missing values and empty sections are

@@ -71,7 +71,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             // the concrete alarm explicitly instead of relying on initial selection.
             // A persisted floating preview must not intercept later mouse input.
             foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             window.SetForeground();
             designer.Focus(); ide.RequireForeground(); designer.Click();
             AutomationElement child = null;
@@ -264,7 +264,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             // focus succeeds. Normalize only the owned IDE before mouse input.
             if (!keyboard)
                 foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                    if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                    if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             TextBox cell = Box(window, scope + " name of par1");
             Focus(ide, cell);
             if (keyboard) Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);

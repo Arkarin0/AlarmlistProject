@@ -12,6 +12,10 @@ Execution resumed during iteration 20 after the owner explicitly removed the
 Owner decisions were confirmed on 2026-10-21.
 Implementation was authorized on 2026-10-22. The original 20% allowance pause
 was honored and subsequently waived by the owner for completion of this goal.
+Later follow-ups 22–27 are complete, including multilingual enum captions and
+Alarm Summary terminology. For the multilingual-caption/Summary goal (24–27), the owner
+re-enabled the 20% remaining-allowance stop; that current rule supersedes the
+earlier goal's waiver. See the follow-up evidence at the end of this document.
 
 ## Outcome and confirmed scope
 
@@ -1583,3 +1587,32 @@ build-sample-{core,desktop}.log. Existing standard SDK regression (85/82) and
 editor regression (624) remain valid from iterations 24/25; this iteration adds
 samples/tests only. Diff review and git diff --check passed. No OS theme/DPI
 checks were performed; no new acceptance blocker remains for this iteration.
+
+### Iteration 27 Alarm Summary terminology (complete)
+
+Renamed the window, project action, language/scope controls, accessible names and
+related guidance/errors to Alarm Summary. Added visible and accessible guidance
+that collection templates customize resolved-data inspection independently of
+document/PDF layouts. Internal command names/IDs, tool-window GUID, XML attributes,
+project properties and saved column settings remain unchanged. Updated current
+authoring/SDK/extension documentation and native UI selectors; historical milestone
+evidence retains its original terminology. Added rendered guidance/tab coverage
+and native project-window caption/help assertions. Editor, package and sequential
+native entry-point/language/preference checks passed as recorded below.
+
+Focused summary/column/project tests passed 22 cases. The final editor regression
+passed 625 cases with the same three display-method exclusions as iteration 26;
+package/consumer integration passed 13 per framework. Native runner build had
+zero warnings/errors. Logs: artifacts/m11-iteration27-{focused,editor,package,
+runner}.log. Sequential native Area=Preview|Area=PreviewTable acceptance passed
+all three VS2022 cases (TRX directory
+artifacts/log/Debug/VisualStudioUI/TestResults/18be4077e5de405e96d84f5c8b57a440).
+All three VS2026 cases also passed (TRX directory
+artifacts/log/Debug/VisualStudioUI/TestResults/6eced69b4c8a4bb1aac3bc255c45ba37).
+Native logs: artifacts/m11-iteration27-native{2022,2026}.log. Both hosts exercised
+the existing View.AlarmlistPreview command, renamed project-menu entry, window
+caption and purpose text, language switching, project-specific column persistence,
+draft preservation, clipboard actions and source navigation. Diff/links and
+git diff --check passed. Iterations 24–27 are complete; the latest allowance
+check showed 76% remaining, above the requested stop. No push, merge, publication
+or OS theme/DPI checks were performed.

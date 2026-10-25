@@ -55,7 +55,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
             using var automation = new UIA3Automation();
             ide.OpenDesigner(workspace.AlarmPath);
-            foreach (EnvDTE.Window tool in ide.Automation.Windows) if (tool.Caption == "Alarmlist Preview") tool.Visible = false;
+            foreach (EnvDTE.Window tool in ide.Automation.Windows) if (tool.Caption == "Alarm Summary") tool.Visible = false;
             Window window = null;
             VisualStudioSession.Wait(() =>
             {
@@ -138,13 +138,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             AutomationElement table = null;
             VisualStudioSession.Wait(() =>
             {
-                var tab = window.FindFirstDescendant(cf => cf.ByName("Alarm table preview").And(cf.ByControlType(ControlType.TabItem)));
+                var tab = window.FindFirstDescendant(cf => cf.ByName("Alarm table summary").And(cf.ByControlType(ControlType.TabItem)));
                 tab?.Patterns.SelectionItem.Pattern.Select();
                 table = window.FindFirstDescendant(cf => cf.ByName("Resolved alarm table").And(cf.ByControlType(ControlType.DataGrid)));
                 return table?.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem)).Length > 0;
-            }, "collection preview columns");
+            }, "collection summary columns");
             table.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem)).First().Patterns.SelectionItem.Pattern.Select();
-            window.FindFirstDescendant(cf => cf.ByName("Copy selected preview rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
+            window.FindFirstDescendant(cf => cf.ByName("Copy selected summary rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
             VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().Contains("Tags\tNumbers\tChecks"), "one clipboard column per collection");
             Assert.Contains("after clear", System.Windows.Forms.Clipboard.GetText());
             Assert.Contains("Count: 8", System.Windows.Forms.Clipboard.GetText());
@@ -156,7 +156,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => table.FindAllDescendants(cf => cf.ByAutomationId("EnumCaption")).Any(item => item.Name == "Sehr hoch"),
                 "saved RESX refresh updates compiled template caption");
             table.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem)).First().Patterns.SelectionItem.Pattern.Select();
-            window.FindFirstDescendant(cf => cf.ByName("Copy selected preview rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
+            window.FindFirstDescendant(cf => cf.ByName("Copy selected summary rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
             VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().Contains("Priority: Sehr hoch"), "copy uses translated collection caption");
             Assert.Equal(beforeLanguage, ide.ReadText(workspace.AlarmPath));
             Assert.Contains("<Priority>High</Priority>", File.ReadAllText(workspace.OutputPath));
@@ -171,11 +171,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             }
             VisualStudioSession.Wait(() =>
             {
-                var tab = window.FindFirstDescendant(cf => cf.ByName("Selected alarm preview").And(cf.ByControlType(ControlType.TabItem)));
+                var tab = window.FindFirstDescendant(cf => cf.ByName("Selected alarm summary").And(cf.ByControlType(ControlType.TabItem)));
                 tab?.Patterns.SelectionItem.Pattern.Select();
                 return window.FindAllDescendants(cf => cf.ByName("Resolved collection Copy").And(cf.ByControlType(ControlType.Edit))).Any(item => item.AsTextBox().Text == "8");
             }, "compiler-resolved record preview");
-            foreach (EnvDTE.Window tool in ide.Automation.Windows) if (tool.Caption == "Alarmlist Preview") tool.Visible = false;
+            foreach (EnvDTE.Window tool in ide.Automation.Windows) if (tool.Caption == "Alarm Summary") tool.Visible = false;
             ide.ActivateDocument(workspace.AlarmPath);
             while (Source().Element("Tags").Elements().Any())
             {

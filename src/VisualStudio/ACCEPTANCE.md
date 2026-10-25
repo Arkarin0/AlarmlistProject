@@ -70,7 +70,7 @@ high contrast or mixed-monitor DPI behavior from UIA/bitmap checks.
    unsupported markup/resource locations continue to use XML. Correct a saved Build
    error without rebuilding: its stale row must not select an unrelated alarm.
 9. Close all ALMX editors, then right-click an Alarmlist project and choose
-   **Preview alarms**. Verify the project table, selected-row details, XML and
+   **Show Alarm Summary**. Verify the project table, selected-row details, XML and
    language selector. Switch projects containing a linked ALMX file: membership,
    translated values and column preferences must follow the explicit project.
    Shared unsaved XML edits update the report, while private designer field drafts
@@ -120,7 +120,7 @@ for the current validation results and outstanding gates.
 ## Linked contexts and provenance
 
 For localization, use the isolated fixtures retained by the `Area=Localization`
-functional cases. Choose **Preview language** on the native **Alarmlist** toolbar:
+functional cases. Choose **Summary language** on the native **Alarmlist** toolbar:
 keyword displays complete `$(loc:Key)` tokens; de-DE may use a saved de translation.
 Verify that each project's choice survives solution reopen without altering build
 cultures or compiled output. Change the language while an ALMX field has a draft;
@@ -141,7 +141,7 @@ Retain the separate minimum-VS2022, theme, DPI and speech verification limits.
    context selected, the designer should ask for a project context instead of
    guessing which project's `Base` to use.
 2. Choose North in **Analysis project context**. Select `Shared.Child`, open
-   **View > Other Windows > Alarmlist Preview**, select **Selected alarm**, and
+   **View > Other Windows > Alarm Summary**, select **Selected alarm**, and
    check the following values.
 
    | Field | North | South | Origin |

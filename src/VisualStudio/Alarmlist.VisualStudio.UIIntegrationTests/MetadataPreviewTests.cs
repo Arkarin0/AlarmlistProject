@@ -42,7 +42,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             using var automation = new UIA3Automation();
             ide.OpenDesigner(workspace.AlarmPath);
             foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             Window window = null;
             VisualStudioSession.Wait(() =>
             {
@@ -89,7 +89,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             AutomationElement table = null;
             VisualStudioSession.Wait(() =>
             {
-                var tab = window.FindFirstDescendant(cf => cf.ByName("Alarm table preview").And(cf.ByControlType(ControlType.TabItem)));
+                var tab = window.FindFirstDescendant(cf => cf.ByName("Alarm table summary").And(cf.ByControlType(ControlType.TabItem)));
                 tab?.Patterns.SelectionItem.Pattern.Select();
                 table = window.FindFirstDescendant(cf => cf.ByName("Resolved alarm table").And(cf.ByControlType(ControlType.DataGrid)));
                 return table?.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem)).Length == 2;
@@ -103,13 +103,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             string first = (string)code.Attribute("Type") == "String" ? "UI.Ten" : "UI.Two";
             VisualStudioSession.Wait(() => Rows()[0].Name.StartsWith(first + " —", StringComparison.Ordinal), "typed metadata sorting");
             Rows()[0].Patterns.SelectionItem.Pattern.Select(); Rows()[1].Patterns.SelectionItem.Pattern.AddToSelection();
-            window.FindFirstDescendant(cf => cf.ByName("Copy selected preview rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
+            window.FindFirstDescendant(cf => cf.ByName("Copy selected summary rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
             string headers = string.Join("\t", fields.Where(field => (string)field.Attribute("PreviewVisible") != "false")
                 .Select(field => (string)field.Attribute("Label") ?? (string)field.Attribute("Name")).Concat(new[] { "Test method", "Identity", "Source" }));
             VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().StartsWith(headers + "\r\n", StringComparison.Ordinal), "metadata clipboard headers and order");
             string copied = System.Windows.Forms.Clipboard.GetText();
             Assert.Contains("UI.Two", copied); Assert.Contains("UI.Ten", copied);
-            var filter = window.FindFirstDescendant(cf => cf.ByName("Filter preview alarms").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
+            var filter = window.FindFirstDescendant(cf => cf.ByName("Filter summary alarms").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
             filter.Text = "UI.Ten";
             VisualStudioSession.Wait(() => Rows().Length == 1, "dynamic preview filter");
             Rows()[0].Patterns.SelectionItem.Pattern.Select();

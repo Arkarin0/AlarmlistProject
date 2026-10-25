@@ -119,6 +119,12 @@ and compiled WPF DataTemplates for complex collections. Follow the plan's
 presentation contract, saved-column migration and template build/validation gates.
 Templates belong to the rebuilt extension, never runtime project/library inputs;
 keep WPF and template objects out of compiler/SDK analysis boundaries.
+Milestone 11 iteration 27 names the user-facing window Alarm Summary and the
+project action Show Alarm Summary. Summary templates describe resolved data
+inspection, independently of document/PDF layout. Preserve existing internal
+Preview identifiers, command names/IDs, window GUID, XML presentation attributes,
+AlarmlistCulture and AlarmlistPreviewColumnLayout for compatibility. Use summary
+wording in user-facing language, scope, accessibility, messages and documentation.
 Designer iteration 20 uses procedure-style collection entries with a shared
 26-DIP adorner gutter, shared record-label widths and right-aligned actions.
 Collapse and expansion preserve drafts; collapsed tooltips use current draft or

@@ -50,7 +50,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             // A restored floating preview can cover the mode selector and turn
             // its mouse click into an unrelated preview action.
             foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             window.SetForeground();
             designer.Focus();
             ide.RequireForeground();

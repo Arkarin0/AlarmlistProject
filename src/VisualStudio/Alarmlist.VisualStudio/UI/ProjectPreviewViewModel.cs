@@ -34,7 +34,7 @@ namespace Alarmlist.VisualStudio.UI
         public PreviewScope SelectedScope { get => Scopes.FirstOrDefault(scope => SamePath(scope.ProjectPath, _projectPath)); set { if (value != null) SelectProject(value.ProjectPath); } }
         public bool IsProjectSelected => _projectPath != null;
         public string ProjectPath => _projectPath;
-        public string ScopeGuidance => "Choose a project to keep its preview open when editors close, or follow the active editor. Project preview includes shared unsaved ALMX text; unapplied designer field edits are excluded.";
+        public string ScopeGuidance => "Choose a project to keep its summary open when editors close, or follow the active editor. Project summary includes shared unsaved ALMX text; unapplied designer field edits are excluded.";
         public string PreviewContext => Current?.Project is AnalysisProject project ? project.ProjectPath + " (" + project.Configuration + ")" : _projectPath;
         public string BufferGuidance => "Current project sources, including shared unsaved ALMX text. Unapplied designer field edits are excluded.";
         public PreviewColumnLayout PreviewColumns { get; } = new PreviewColumnLayout();
@@ -167,7 +167,7 @@ namespace Alarmlist.VisualStudio.UI
             ResolvedCollections = Array.Empty<ResolvedCollectionViewModel>();
             ResolvedPreviewMessage = state == null ? AlarmTableMessage : alarm == null ? "Select a row in Alarm table to inspect its resolved values."
                 : !alarm.HasEvaluatedValues ? "This alarm could not be evaluated. See live project diagnostics."
-                : state.Response.Snapshot.Success ? BufferGuidance : "This alarm is resolved. Other project errors prevent compiled XML preview.";
+                : state.Response.Snapshot.Success ? BufferGuidance : "This alarm is resolved. Other project errors prevent compiled XML.";
             if (alarm?.HasEvaluatedValues == true)
             {
                 ResolvedFields = PreviewContent.Fields(alarm, location => Navigation(state, location, alarm), EnumCaptions.From(state));
@@ -177,7 +177,7 @@ namespace Alarmlist.VisualStudio.UI
             CompiledXml = state?.Response.Snapshot.Success == true ? state.Response.CompiledXml : null;
             XmlPreviewMessage = state == null ? AlarmTableMessage : !state.Response.Snapshot.Success
                 ? "Compiled XML is unavailable until all project errors are resolved."
-                : CompiledXml == null ? state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML preview."
+                : CompiledXml == null ? state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML."
                 : "Read-only output for the whole project, including shared unsaved ALMX text. No output file is written.";
             Notify(nameof(ResolvedFields)); Notify(nameof(ResolvedSections)); Notify(nameof(ResolvedPreviewMessage));
             Notify(nameof(ResolvedCollections));
@@ -232,9 +232,9 @@ namespace Alarmlist.VisualStudio.UI
 
         public IReadOnlyList<string> PreviewCultures { get; private set; } = BindingCollection.Create(new[] { "keyword" });
         public bool CanChangePreviewCulture => !_disposed && !_cultureBusy && Current?.Project != null && !Current.Project.IsPreviewCultureGlobal;
-        public string CultureGuidance => _cultureBusy ? "Updating the project preview language."
-            : Current?.Project?.IsPreviewCultureGlobal == true ? "Preview language is fixed by a global project property."
-            : "Preview language is saved in this project; build cultures are unchanged.";
+        public string CultureGuidance => _cultureBusy ? "Updating the project summary language."
+            : Current?.Project?.IsPreviewCultureGlobal == true ? "Summary language is fixed by a global project property."
+            : "Summary language is saved in this project; build cultures are unchanged.";
         public string SelectedPreviewCulture
         {
             get => Current?.Response?.Snapshot?.Culture ?? Current?.Project?.Context.Culture ?? "keyword";

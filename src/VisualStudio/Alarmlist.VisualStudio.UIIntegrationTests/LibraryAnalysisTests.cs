@@ -46,9 +46,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             window.SetForeground();
             SelectDesigner(window);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
-            SelectPreviewTab(window, "Selected alarm preview");
+            SelectPreviewTab(window, "Selected alarm summary");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Known value", "library preview evaluates available values");
-            SelectPreviewTab(window, "Compiled XML preview");
+            SelectPreviewTab(window, "Compiled XML");
             VisualStudioSession.Wait(() => PreviewValue(window, "Compiled project XML") != null, "library XML preview is present");
             Assert.Equal("", PreviewValue(window, "Compiled project XML").Text);
 
@@ -57,7 +57,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.OpenDesigner(workspace.AlarmPath);
             SelectDesigner(window);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
-            SelectPreviewTab(window, "Alarm table preview");
+            SelectPreviewTab(window, "Alarm table summary");
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Reusable — (deferred)"), "deferred library preview value");
             Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
             Assert.False(File.Exists(workspace.OutputPath));
@@ -96,10 +96,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             window.SetForeground();
             SelectDesigner(window);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
-            SelectPreviewTab(window, "Alarm table preview");
+            SelectPreviewTab(window, "Alarm table summary");
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Consumer — Saved library"),
                 "saved out-of-solution library analysis without Build");
-            SelectPreviewTab(window, "Selected alarm preview");
+            SelectPreviewTab(window, "Selected alarm summary");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Saved library", "inherited library preview");
             window.FindFirstDescendant(cf => cf.ByName("Go to source for resolved Name").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
             VisualStudioSession.Wait(() => string.Equals(ide.Automation.ActiveDocument?.FullName, sourcePath, StringComparison.OrdinalIgnoreCase),
@@ -108,7 +108,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.Documents.Item(sourcePath).Close(EnvDTE.vsSaveChanges.vsSaveChangesNo);
             ide.OpenDesigner(workspace.AlarmPath);
             SelectDesigner(window);
-            SelectPreviewTab(window, "Alarm table preview");
+            SelectPreviewTab(window, "Alarm table summary");
             var loadedLibrary = ide.Automation.Solution.AddFromFile(libraryPath);
             Assert.Equal(libraryPath, loadedLibrary.FullName, ignoreCase: true);
             VisualStudioSession.Wait(() => VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, sourcePath,
@@ -118,7 +118,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 consumerSaved.Replace("</Alarmlist>", "<Alarm><FullyQualifiedName>Marker</FullyQualifiedName><Name>Consumer draft marker</Name></Alarm></Alarmlist>")), "consumer XML draft editor");
             ide.OpenDesigner(workspace.AlarmPath);
             SelectDesigner(window);
-            SelectPreviewTab(window, "Alarm table preview");
+            SelectPreviewTab(window, "Alarm table summary");
             string[] draftRows = Array.Empty<string>();
             VisualStudioSession.Wait(() =>
             {
@@ -135,7 +135,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             SetLoaded(false);
             ide.OpenDesigner(workspace.AlarmPath);
             SelectDesigner(window);
-            SelectPreviewTab(window, "Alarm table preview");
+            SelectPreviewTab(window, "Alarm table summary");
             File.WriteAllText(sourcePath, source.Replace("Saved library", "Saved update"));
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Consumer — Saved update"), "saved library refresh without Build");
             File.Delete(sourcePath);
@@ -145,7 +145,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             SetLoaded(true);
             ide.OpenDesigner(workspace.AlarmPath);
             SelectDesigner(window);
-            SelectPreviewTab(window, "Alarm table preview");
+            SelectPreviewTab(window, "Alarm table summary");
             File.WriteAllText(sourcePath, source.Replace("Saved library", "Reloaded library"));
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Consumer — Reloaded library"), "library reload retains consumer refresh");
             Assert.False(File.Exists(workspace.OutputPath));

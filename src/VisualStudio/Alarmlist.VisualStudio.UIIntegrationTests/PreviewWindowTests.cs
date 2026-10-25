@@ -50,11 +50,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             // A previous scenario can persist a floating preview over the native
             // toolbar. Dock it before mouse input targets the language selector.
             ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").IsFloating = false;
-            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Alarmlist Preview").And(cf.ByControlType(ControlType.Window))) == null, "preview docking animation");
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Alarm Summary").And(cf.ByControlType(ControlType.Window))) == null, "preview docking animation");
             SelectCulture(ide, window, "en");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Inspect 001", "tool window follows preview culture");
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "selected-alarm-preview.png"));
-            SelectPreviewTab(window, "Compiled XML preview");
+            SelectPreviewTab(window, "Compiled XML");
             VisualStudioSession.Wait(() => PreviewValue(window, "Compiled project XML")?.Text.Contains("Inspect 001") == true, "whole-project XML preview");
             Assert.Contains("Other alarm", PreviewValue(window, "Compiled project XML").Text);
 
@@ -73,7 +73,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => PreviewValue(window, "Compiled project XML")?.Text.Contains("Inspect 001") == true, "cancelled draft restores preview");
 
             ide.OpenDesigner(otherPath);
-            SelectPreviewTab(window, "Selected alarm preview");
+            SelectPreviewTab(window, "Selected alarm summary");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Other alarm", "active-document switch");
             ide.OpenDesigner(workspace.AlarmPath);
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Inspect 001", "original active-document preview");
@@ -86,7 +86,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllBytes(workspace.OutputPath));
             ide.Automation.Documents.CloseAll(vsSaveChanges.vsSaveChangesNo);
-            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Open an ALMX document or choose a project in Preview scope.")) != null, "closed-document preview clears");
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Open an ALMX document or choose a project in Summary scope.")) != null, "closed-document preview clears");
             ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").Visible = false;
             ide.OpenDesigner(otherPath);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");

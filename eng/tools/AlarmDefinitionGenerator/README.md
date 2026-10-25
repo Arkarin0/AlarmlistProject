@@ -139,7 +139,7 @@ Focusing a field never writes defaults or inherited values into source.
 
 Optional metadata includes `Label`, `Help`, `Multiline` (String only),
 `PreviewVisible` (default true), and `PreviewWidth` (40–2000, default 180).
-New preview columns use these defaults; surviving saved preferences retain their
+New summary columns use these defaults; surviving saved preferences retain their
 order, width and visibility. Use Reset columns to restore definition defaults.
 
 `eng/test-alarm-definition-designer.ps1` accepts `-VisualStudio2022Path` and
@@ -199,19 +199,24 @@ TestProcedure and preserves the four original scalar fields. The designer provid
 expandable records, sibling completion and read-only inherited/excluded entries.
 Local entry moves preserve internal draft identities; Clear excludes previous
 entries. Defaults remain compiler-owned and are never written merely by focusing
-a field. Preview gives each collection its own column and retains resolved entry
+a field. Alarm Summary gives each collection its own column and retains resolved entry
 details. Simple collections default to bulleted lists; use a Preview child with
 DisplayType="List" and Symbol="Bullet", "Number" or "None", or
 DisplayType="Concatenated" with Separator=", " (empty separators are allowed).
 Complex collections use a built-in compiled record template by default, or a
 fork-owned compiled XAML template selected with TemplateFile and TemplateKey.
 Collection PreviewVisible and PreviewWidth use the ordinary field defaults and
-limits. Preview presentation changes tooling compatibility, not library semantics.
+limits. Summary presentation changes tooling compatibility, not library semantics.
 Cells initially show ten entries, with an expansion action; copying includes all
 entries. Collection columns cannot be sorted. Existing column preferences survive
 removal of the old aggregate Collections column.
 
-### Compiled complex-collection preview templates
+### Compiled complex-collection summary templates
+
+The Visual Studio window is named **Alarm Summary**. Templates customize resolved
+data inspection, independently of generated document/PDF layouts. Existing XML
+names (`Preview`, `PreviewVisible`, `PreviewWidth`) and template binding contracts
+remain unchanged for compatibility.
 
 Add this child after the collection's Field declarations:
 

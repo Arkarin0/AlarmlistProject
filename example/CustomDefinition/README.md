@@ -30,7 +30,7 @@ typed parameter expressions. Checks contain flat records: Copy uses
 alarm demonstrates Clear and an empty record receiving literal field defaults.
 Try changing Code or Count to 11 for a bound diagnostic, adding a fourth effective
 tag for a count diagnostic, moving local entries, using boolean/enum helpers, and
-comparing the separate Tags, Measurements and Inspection checks Preview columns.
+comparing the separate Tags, Measurements and Inspection checks summary columns.
 Tags use Concatenated with a comma separator; Measurements use a numbered List.
 Inspection checks use the compiled template in `Preview/Checks.xaml`, with the
 shared heading style in `Preview/Palette.xaml`. Edit those original files and
@@ -44,8 +44,8 @@ status and actions. New entries open expanded with editing focus. The inherited
 chain marker occupies the same reserved gutter as local entries, and record
 labels align across the collection. Clear remains a directive: earlier effective
 entries are excluded and subsequent entries remain.
-Ratio is deliberately hidden from preview. Source, Identity and TestMethod are
-ordinary custom fields, distinct from the built-in preview columns.
+Ratio is deliberately hidden from the summary. Source, Identity and TestMethod are
+ordinary custom fields, distinct from the built-in summary columns.
 
 To try the same feature **without procedures**, run from the repository root:
 
@@ -70,7 +70,7 @@ running playground does not rebuild tools or change the schema at runtime.
 The launcher captures declared template dependencies relative to the selected
 original definition, copies them into the isolated toolset and playground, and
 compiles them into the extension. This also works for definitions outside the
-repository. Runtime Preview uses installed resources, not these copied files.
+repository. Runtime Alarm Summary uses installed resources, not these copied files.
 See the [template binding contract](../../eng/tools/AlarmDefinitionGenerator/README.md)
 for named fields, states, origins and resource restrictions.
 

@@ -158,7 +158,7 @@ Configurations default to `Debug|AnyCPU` and `Release|AnyCPU`. A consumer can
 replace these defaults by declaring its own `ProjectConfiguration` items with
 `Configuration` and `Platform` metadata. The `.almproj.user` file is imported
 for CPS user settings such as Show All Files and the hidden, configuration-independent
-`AlarmlistPreviewColumnLayout`. The Preview window writes column visibility/order/width
+`AlarmlistPreviewColumnLayout`. The Alarm Summary window writes column visibility/order/width
 through CPS to this user file; these preferences do not change source or compiler
 output. Design-time builds do not compile
 or write output. Normal IDE builds always invoke MSBuild to reflect removed or
@@ -196,7 +196,7 @@ or disable default items and list your inputs explicitly:
 | `EnableDefaultAlarmlistLookupItems` | `true` |
 | `AlarmlistLookupSchema` | Packaged `tools/Schemas/AlarmlistLookup.xsd` (evaluated absolute path) |
 | `AlarmlistCultures` | `keyword` (semicolon-separated build list) |
-| `AlarmlistCulture` | `keyword` (independent shared preview selection) |
+| `AlarmlistCulture` | `keyword` (independent shared summary selection) |
 | `AlarmlistXliffSourceCulture` | `en` (export source language) |
 | `AlarmlistXliffTargetCultures` | Required for export; semicolon-separated real cultures |
 | `AlarmlistXliffOutputPath` | `$(MSBuildProjectDirectory)/xliff` |
@@ -705,7 +705,7 @@ trim and normalize entries, rejecting unsupported cultures, duplicates, and empt
 entries within a list. Output paths are
 `<OutputPath>/<culture>/<CompiledAlarmlistFileName>`, including `keyword`.
 The filename must be a basename. `AlarmlistCulture` selects the independent
-IDE preview selection; it does not alter the build list. The designer's Preview
+IDE summary selection; it does not alter the build list. The designer's Summary
 language selector persists this shared property through CPS and uses saved RESX
 contents. Resource drafts stay private until saved.
 

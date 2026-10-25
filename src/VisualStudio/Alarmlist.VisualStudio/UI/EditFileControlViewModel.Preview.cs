@@ -54,7 +54,7 @@ namespace Alarmlist.VisualStudio.UI
         public string CompiledXml { get; private set; }
         public string XmlPreviewMessage { get; private set; }
         public string PreviewContext { get; private set; }
-        public string BufferGuidance => "Includes shared unsaved ALMX text. Commit or cancel this editor's drafts to see current preview values.";
+        public string BufferGuidance => "Includes shared unsaved ALMX text. Commit or cancel this editor's drafts to see current summary values.";
 
         private void RefreshPreview(ProjectAnalysisState state, AnalysisAlarm alarm)
         {
@@ -92,7 +92,7 @@ namespace Alarmlist.VisualStudio.UI
                     : alarm.IsAbstract ? "Abstract template: raw expressions remain editable; this alarm is excluded from compiled output."
                     : !alarm.HasEvaluatedValues ? "Evaluated values are unavailable. See live project diagnostics."
                     : snapshot.Success ? "Resolved values from current project sources, including unsaved XML edits."
-                    : "This alarm is resolved. Other project errors prevent compiled XML preview.";
+                    : "This alarm is resolved. Other project errors prevent compiled XML.";
                 if (alarm?.HasEvaluatedValues == true && !alarm.IsAbstract)
                 {
                     ResolvedFields = PreviewContent.Fields(alarm, location => PreviewNavigation(state, alarm, location), EnumCaptions.From(state));
@@ -102,7 +102,7 @@ namespace Alarmlist.VisualStudio.UI
                 CompiledXml = snapshot.Success ? state.Response.CompiledXml : null;
                 XmlPreviewMessage = !snapshot.Success ? "Compiled XML is unavailable until all project errors are resolved."
                     : CompiledXml != null ? "Read-only output for the whole project, including unsaved XML edits. No output file is written."
-                    : state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML preview.";
+                    : state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML.";
             }
             Notify(nameof(ResolvedFields)); Notify(nameof(ResolvedSections)); Notify(nameof(ResolvedPreviewMessage));
             Notify(nameof(ResolvedCollections));

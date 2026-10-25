@@ -58,7 +58,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             preview.Height = 550;
             preview.Left = window.BoundingRectangle.Left + 10;
             preview.Top = window.BoundingRectangle.Bottom - 590;
-            SelectPreviewTab(window, "Alarm table preview");
+            SelectPreviewTab(window, "Alarm table summary");
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 2, "concrete alarm rows");
             Assert.Contains(PreviewRows(window), row => row.Name.Contains("$(loc:Inspection)"));
             SelectCulture(ide, window, "en");
@@ -66,7 +66,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             AutomationElement table = PreviewTable(window);
             table.FindFirstDescendant(cf => cf.ByName("Name").And(cf.ByControlType(ControlType.HeaderItem))).Patterns.Invoke.Pattern.Invoke();
             VisualStudioSession.Wait(() => PreviewRows(window).First().Name == "B — Other alarm", "descending name sort");
-            TextBox filter = window.FindFirstDescendant(cf => cf.ByName("Filter preview alarms").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
+            TextBox filter = window.FindFirstDescendant(cf => cf.ByName("Filter summary alarms").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
             filter.Text = "001";
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 1, "resolved-value filter");
             Assert.Equal("A — Inspect 001", PreviewRows(window)[0].Name);
@@ -84,7 +84,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 2, "cleared filter");
             PreviewRows(window).Single(row => row.Name.StartsWith("A —", StringComparison.Ordinal)).Patterns.SelectionItem.Pattern.Select();
             PreviewRows(window).Single(row => row.Name.StartsWith("B —", StringComparison.Ordinal)).Patterns.SelectionItem.Pattern.AddToSelection();
-            window.FindFirstDescendant(cf => cf.ByName("Copy selected preview rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
+            window.FindFirstDescendant(cf => cf.ByName("Copy selected summary rows").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
             VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().Contains("Other alarm\t002\t\t\t\tB\tOther.almx:"), "copied selected rows");
             string copied = System.Windows.Forms.Clipboard.GetText();
             Assert.StartsWith("Name\tCode\tCategory\tDescription\tTest method\tIdentity\tSource\r\nOther alarm", copied);
@@ -102,7 +102,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_C);
             VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().Contains("Other alarm\t002")
                 && !System.Windows.Forms.Clipboard.GetText().Contains("Inspect 001"), "Ctrl+C copies one selected row");
-            SelectPreviewTab(window, "Selected alarm preview");
+            SelectPreviewTab(window, "Selected alarm summary");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Other alarm", "table selection drives alarm details");
             TextBox detail = PreviewValue(window, "Resolved Name");
             detail.Focus();
@@ -110,7 +110,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ResourceEditorTests.RequireFieldFocus(ide, detail);
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_C);
             VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText() == "Other alarm", "validated detail text copy");
-            SelectPreviewTab(window, "Alarm table preview");
+            SelectPreviewTab(window, "Alarm table summary");
             Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
             PreviewRows(window).Single(row => row.Name.StartsWith("B —", StringComparison.Ordinal)).Click();
             RequireTableFocus(ide, table);
@@ -134,7 +134,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         private static void CheckPreviewColumns(VisualStudioSession ide, UiTestWorkspace workspace, Window window, string projectPath, string userPath, string otherPath, string source)
         {
             string projectBefore = File.ReadAllText(projectPath);
-            AutomationElement chooser = window.FindFirstDescendant(cf => cf.ByName("Preview columns"));
+            AutomationElement chooser = window.FindFirstDescendant(cf => cf.ByName("Summary columns"));
             chooser.Patterns.ExpandCollapse.Pattern.Expand();
             AutomationElement showName = window.FindFirstDescendant(cf => cf.ByName("Show Name column"));
             showName.Patterns.Toggle.Pattern.Toggle();
@@ -150,7 +150,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => PreviewHeaders(window).First().Name == "Test method", "reordered report header");
             Assert.DoesNotContain(PreviewTable(window).FindAllDescendants(cf => cf.ByControlType(ControlType.HeaderItem)), header => header.Name == "Name");
             PreviewRows(window).First().Patterns.SelectionItem.Pattern.Select();
-            window.FindFirstDescendant(cf => cf.ByName("Copy selected preview rows")).AsButton().Invoke();
+            window.FindFirstDescendant(cf => cf.ByName("Copy selected summary rows")).AsButton().Invoke();
             VisualStudioSession.Wait(() => System.Windows.Forms.Clipboard.GetText().StartsWith("Test method\tCode\tCategory\tDescription\tIdentity\tSource\r\n", StringComparison.Ordinal), "visible column clipboard order");
             var methodBounds = PreviewHeaders(window).Single(header => header.Name == "Test method").BoundingRectangle;
             ide.RequireForeground();
@@ -201,9 +201,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.OpenDesigner(workspace.AlarmPath); SelectDesigner(window);
             VisualStudioSession.Wait(() => PreviewHeaders(window).FirstOrDefault()?.Name == "Test method", "restored project-user layout");
             Assert.Equal(layout, SavedLayout(userPath));
-            chooser = window.FindFirstDescendant(cf => cf.ByName("Preview columns")); chooser.Patterns.ExpandCollapse.Pattern.Expand();
+            chooser = window.FindFirstDescendant(cf => cf.ByName("Summary columns")); chooser.Patterns.ExpandCollapse.Pattern.Expand();
             VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Show Name column")).Patterns.Toggle.Pattern.ToggleState == ToggleState.Off, "restored column visibility");
-            window.FindFirstDescendant(cf => cf.ByName("Reset preview column layout")).AsButton().Invoke();
+            window.FindFirstDescendant(cf => cf.ByName("Reset summary column layout")).AsButton().Invoke();
             VisualStudioSession.Wait(() => SavedLayout(userPath).StartsWith("1;Name,1,200;Code,1,100;", StringComparison.Ordinal), "reset user layout");
             chooser.Patterns.ExpandCollapse.Pattern.Collapse();
             Assert.Equal(projectBefore, File.ReadAllText(projectPath)); Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));

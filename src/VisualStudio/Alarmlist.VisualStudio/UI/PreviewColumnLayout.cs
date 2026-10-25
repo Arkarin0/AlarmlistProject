@@ -55,7 +55,7 @@ namespace Alarmlist.VisualStudio.UI
         private bool _disposed;
         public IReadOnlyList<PreviewColumn> Columns { get; }
         public IEnumerable<PreviewColumn> OrderedColumns => Columns.OrderBy(column => column.Order);
-        public string Status => _store?.Error ?? (_store == null ? "Column layout is available for this preview session." : "Column preferences apply to this project and user.");
+        public string Status => _store?.Error ?? (_store == null ? "Column layout is available for this summary session." : "Column preferences apply to this project and user.");
         public string Error => _store?.Error;
         public DelegateCommand ResetCommand { get; }
         public Task PendingLoad { get; private set; } = Task.CompletedTask;

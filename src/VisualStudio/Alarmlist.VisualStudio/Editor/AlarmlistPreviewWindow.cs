@@ -28,7 +28,7 @@ namespace Alarmlist.VisualStudio.Editor
 
         public AlarmlistPreviewWindow() : base(null)
         {
-            Caption = "Alarmlist Preview";
+            Caption = "Alarm Summary";
             Content = _control;
             _context.Changed += OnContextChanged;
             _control.Loaded += OnLoaded;

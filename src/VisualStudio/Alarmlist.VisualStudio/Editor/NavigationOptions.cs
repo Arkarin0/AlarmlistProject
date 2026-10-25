@@ -14,7 +14,7 @@ namespace Alarmlist.VisualStudio.Editor
     {
         [Category("Navigation")]
         [DisplayName("Open ALMX sources in")]
-        [Description("Choose Designer or XML for Go to source, preview and diagnostic links. Unsupported source locations use XML. Find continues to use XML.")]
+        [Description("Choose Designer or XML for Go to source, summary and diagnostic links. Unsupported source locations use XML. Find continues to use XML.")]
         [DefaultValue(SourceNavigationView.Designer)]
         public SourceNavigationView SourceView { get; set; } = SourceNavigationView.Designer;
     }

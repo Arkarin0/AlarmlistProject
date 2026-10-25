@@ -46,7 +46,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             using var automation = new UIA3Automation();
             ide.OpenDesigner(workspace.AlarmPath);
             foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             Window window = null;
             AutomationElement designer = null;
             VisualStudioSession.Wait(() =>

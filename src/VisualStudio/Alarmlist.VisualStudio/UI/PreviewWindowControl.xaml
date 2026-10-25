@@ -12,7 +12,7 @@
    <Label Content="_Scope" Target="{Binding ElementName=ScopeSelector}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" VerticalAlignment="Center" />
    <ui:PreviewSelectorComboBox x:Name="ScopeSelector" Grid.Column="1" ItemsSource="{Binding Scopes}" SelectedItem="{Binding SelectedScope}" DisplayMemberPath="Label"
              Style="{DynamicResource {x:Static shell:VsResourceKeys.ComboBoxStyleKey}}"
-             AutomationProperties.Name="Preview scope" ToolTip="{Binding ScopeGuidance}" AutomationProperties.HelpText="{Binding ScopeGuidance}">
+             AutomationProperties.Name="Summary scope" ToolTip="{Binding ScopeGuidance}" AutomationProperties.HelpText="{Binding ScopeGuidance}">
     <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem">
      <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
     </Style></ComboBox.ItemContainerStyle>
@@ -20,7 +20,7 @@
    <ui:PreviewSelectorComboBox x:Name="LanguageSelector" Grid.Column="2" Margin="8,0,0,0" MinWidth="95" DataContext="{Binding DataContext, ElementName=Preview}"
              ItemsSource="{Binding PreviewCultures}" SelectedItem="{Binding SelectedPreviewCulture}" IsEnabled="{Binding CanChangePreviewCulture, FallbackValue=False}"
              Style="{DynamicResource {x:Static shell:VsResourceKeys.ComboBoxStyleKey}}"
-             AutomationProperties.Name="Project preview language" ToolTip="{Binding CultureGuidance}" AutomationProperties.HelpText="{Binding CultureGuidance}" />
+             AutomationProperties.Name="Project summary language" ToolTip="{Binding CultureGuidance}" AutomationProperties.HelpText="{Binding CultureGuidance}" />
   </Grid>
   <ui:PreviewControl x:Name="Preview" DataContext="{x:Null}" />
  </DockPanel>

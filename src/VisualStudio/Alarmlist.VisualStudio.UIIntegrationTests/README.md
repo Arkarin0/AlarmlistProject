@@ -60,7 +60,7 @@ Resource Explorer saves a committed cell automatically on the verified VS2022
 Alarmlist
 still consumes only saved files and does not trigger saves itself.
 The resource-creation case waits for Resource Explorer initialization before
-closing its new document. Native-cell cases hide a restored Alarmlist Preview
+closing its new document. Native-cell cases hide a restored Alarm Summary
 window only in their owned IDE so a persisted floating pane cannot cover the
 cell. Foreground and focused-field guards still precede keyboard input.
 
@@ -116,7 +116,7 @@ try {
 }
 ```
 
-The `Area=Preview` cases verify the dockable Alarmlist Preview window, active
+The `Area=Preview` cases verify the dockable Alarm Summary window, active
 document/culture changes, draft preservation, source navigation and close/reopen.
 `Area=PreviewTable` covers concrete rows, culture-aware values, sorting/filtering,
 multiple-row copy, table-to-detail selection, source navigation and draft clearing.
