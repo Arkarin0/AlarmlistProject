@@ -9,14 +9,25 @@
  <DockPanel>
   <Grid DockPanel.Dock="Top" Margin="8,8,8,0">
    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-   <Label Content="_Scope" Target="{Binding ElementName=ScopeSelector}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" VerticalAlignment="Center" />
-   <ui:PreviewSelectorComboBox x:Name="ScopeSelector" Grid.Column="1" ItemsSource="{Binding Scopes}" SelectedItem="{Binding SelectedScope}" DisplayMemberPath="Label"
+   <Label Content="_Scope" Target="{Binding ElementName=ScopeSelector}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" VerticalAlignment="Center">
+    <Label.Style><Style TargetType="Label"><Style.Triggers><DataTrigger Binding="{Binding IsPinned}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Label.Style>
+   </Label>
+   <Grid Grid.Column="1">
+    <Grid.Style><Style TargetType="Grid"><Style.Triggers><DataTrigger Binding="{Binding IsPinned}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Grid.Style>
+   <ui:PreviewSelectorComboBox x:Name="ScopeSelector" ItemsSource="{Binding Scopes}" SelectedItem="{Binding SelectedScope}" DisplayMemberPath="Label"
              Style="{DynamicResource {x:Static shell:VsResourceKeys.ComboBoxStyleKey}}"
              AutomationProperties.Name="Summary scope" ToolTip="{Binding ScopeGuidance}" AutomationProperties.HelpText="{Binding ScopeGuidance}">
     <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem">
      <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
     </Style></ComboBox.ItemContainerStyle>
    </ui:PreviewSelectorComboBox>
+   </Grid>
+   <TextBlock Grid.ColumnSpan="2" Text="{Binding PinnedProjectLabel}" ToolTip="{Binding ProjectPath}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+              AutomationProperties.Name="Pinned summary project" AutomationProperties.HelpText="{Binding ProjectPath}">
+    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" />
+     <Style.Triggers><DataTrigger Binding="{Binding IsPinned}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
+    </Style></TextBlock.Style>
+   </TextBlock>
    <ui:PreviewSelectorComboBox x:Name="LanguageSelector" Grid.Column="2" Margin="8,0,0,0" MinWidth="95" DataContext="{Binding DataContext, ElementName=Preview}"
              ItemsSource="{Binding PreviewCultures}" SelectedItem="{Binding SelectedPreviewCulture}" IsEnabled="{Binding CanChangePreviewCulture, FallbackValue=False}"
              Style="{DynamicResource {x:Static shell:VsResourceKeys.ComboBoxStyleKey}}"

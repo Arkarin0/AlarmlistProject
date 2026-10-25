@@ -24,6 +24,7 @@ namespace Alarmlist.VisualStudio.UI
         }
         private IPreviewView View => DataContext as IPreviewView;
         internal void ShowAlarmTable() => PreviewTabs.SelectedIndex = 0;
+        internal int SelectedTabIndex { get => PreviewTabs.SelectedIndex; set => PreviewTabs.SelectedIndex = value; }
 
         private void OnPreviewToolbarSizeChanged(object sender, SizeChangedEventArgs args)
         {

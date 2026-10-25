@@ -16,6 +16,9 @@ Later follow-ups 22–27 are complete, including multilingual enum captions and
 Alarm Summary terminology. For the multilingual-caption/Summary goal (24–27), the owner
 re-enabled the 20% remaining-allowance stop; that current rule supersedes the
 earlier goal's waiver. See the follow-up evidence at the end of this document.
+Iterations 28–29 are complete: editor-compatible RESX samples and dedicated
+project-pinned Summary windows. Their goal retained the 20% allowance stop and
+completed above it; validation and recovery evidence is recorded below.
 
 ## Outcome and confirmed scope
 
@@ -1657,3 +1660,45 @@ MSBuild. Copied resource hashes match the checked-in samples. Logs:
 artifacts/m11-iteration28-{native,playground-enabled,playground-disabled}.log.
 Diff review and git diff --check passed. Existing generated playgrounds were
 not rewritten; README documents safe header-only repair or a fresh launcher run.
+
+### Iteration 29 implementation and validation (complete)
+
+The existing general window retains its GUID and command. A separate registered
+multi-instance, transient window reuses its presentation/lifecycle and shared
+project analysis; each project-menu invocation allocates a session identity and
+numbered caption. Pinned view models reject retargeting and render a read-only
+project label with full-path help. Hide/detach captures only filter/sort/selection
+identities and tab index, then disposes subscriptions and analysis adapters.
+Language and column persistence remain project-owned. This follows the VSSDK
+[multi-instance tool-window pattern](https://learn.microsoft.com/en-us/visualstudio/extensibility/creating-a-multi-instance-tool-window).
+Focused model/BAML tests passed 20 cases. Full editor regression passed 632 cases
+with the same three display-method exclusions as iteration 27. Package/consumer
+integration passed 13 cases per framework; native runner build had zero warnings
+and errors. Logs: artifacts/m11-iteration29-{focused,editor,package,runner}.log.
+Initial restricted build returned failure without diagnostics;
+the normal approved test invocation built successfully. Initial test-only await
+warnings were annotated consistently with nearby persistence tests.
+
+The first VS2022 pinned-window run exposed lower-cased shell canonical paths in
+captions. Project selection now retains the captured project's display spelling.
+The native fixture also gives floating windows a deterministic usable viewport.
+Both existing general Summary scenarios passed in that run; the revised pinned
+scenario passed separately, including hide/reopen, duplicate views, shared
+language/columns, private draft preservation, focused toolbar routing, project
+unload/reload, source navigation, closing a duplicate and IDE restart. Logs:
+artifacts/m11-iteration29-native2022{,-retry}.log. Passing pinned TRX directory:
+artifacts/log/Debug/VisualStudioUI/TestResults/b11625539df547dca0037e04b6e9f409.
+
+VS2026 passed the three existing Summary/table scenarios. Its first pinned test
+stopped at the keyboard foreground safeguard when another process gained focus;
+the unchanged test passed on retry, including restart. No safeguard was relaxed.
+Logs: artifacts/m11-iteration29-native2026{,-retry}.log; passing retry TRX directory:
+artifacts/log/Debug/VisualStudioUI/TestResults/38284ea0ffa44a9eab79cb89309bb5ef.
+
+The final VS2022 table regression also passed (one case), completing the same four
+functional scenarios on both IDE hosts sequentially. Log:
+artifacts/m11-iteration29-table2022.log; TRX directory:
+artifacts/log/Debug/VisualStudioUI/TestResults/393b647fee3141bc80db746ea5417d10.
+Diff, links and git diff --check passed. No remaining scoped acceptance blocker.
+OS theme/DPI checks remained excluded. Latest allowance check: 62% remaining.
+No push, merge or publication was performed.

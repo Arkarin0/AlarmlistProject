@@ -169,13 +169,24 @@ remain compatible. Definition XML continues to use `Preview`, `PreviewVisible`
 and `PreviewWidth`; `AlarmlistCulture` remains the saved summary language.
 Its **Alarm table**, **Selected alarm** and **Compiled XML** tabs replace the
 designer's embedded preview sections. **Scope** defaults to **Follow active editor**,
-following its selected alarm and linked-project context. Choose a project to keep
-the summary independent of editors, or right-click a loaded Alarmlist project in
-Solution Explorer and choose **Show Alarm Summary**. No editor or Build is required.
+following its selected alarm and linked-project context. Choose a project in Scope
+to keep this general-purpose summary independent of editors.
 Explicit project scope survives editor switches/closure and window hide; unloading
 that project clears its results and retains the selected identity until reload or
 another choice. The window's language selector works without an editor and uses
 the same CPS summary setting as the native Alarmlist toolbar.
+
+Right-click a loaded Alarmlist project and choose **Show Alarm Summary** to open
+a **new dedicated window on every invocation**, without an editor or Build.
+Its title identifies the project, with numbered duplicates; the read-only pinned
+project label exposes the full path in its tooltip and accessible help. It cannot
+follow another editor or change project scope. Open separate windows to compare
+projects or different filtered views of the same project. Each retains its own
+filter, sorting, selected row and tab when hidden; language and saved column
+layout remain shared per project. Unloading clears results without retargeting;
+reloading restores the pinned context. Closing releases the view, and dedicated
+windows are session-only: they are not restored after an IDE restart. The View
+menu still opens the original general-purpose window.
 
 Both scopes include shared unsaved ALMX text. Follow-active mode clears during
 that editor's unapplied field drafts; explicit project mode continues to show the

@@ -50,32 +50,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(0, ide.Automation.Documents.Count);
             using var automation = new UIA3Automation();
             Window window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
-            window.SetForeground(); ide.Automation.ExecuteCommand("View.SolutionExplorer");
-            AutomationElement projectNode = null;
-            VisualStudioSession.Wait(() => (projectNode = window.FindFirstDescendant(cf => cf.ByName("Plant").And(cf.ByControlType(ControlType.TreeItem)))) != null, "project node");
-            projectNode.AsTreeItem().Select(); projectNode.Focus();
-            VisualStudioSession.Wait(() => ide.Automation.Commands.Item("{c37b75da-f827-4d1a-837f-7f766368d478}", 0x0201).IsAvailable, "project preview command without an editor");
-            ide.RequireForeground(); Assert.True(projectNode.Properties.HasKeyboardFocus.Value);
-            Assert.False(projectNode.BoundingRectangle.IsEmpty);
-            projectNode.RightClick();
-            AutomationElement menu = null;
-            try
-            {
-                VisualStudioSession.Wait(() => (menu = automation.GetDesktop().FindFirstDescendant(cf => cf.ByProcessId(ide.ProcessId)
-                    .And(cf.ByName("Show Alarm Summary")).And(cf.ByControlType(ControlType.MenuItem)))) != null, "project context menu entry");
-                window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "project-preview-menu.png"));
-                menu.Patterns.Invoke.Pattern.Invoke();
-            }
-            finally
-            {
-                if (automation.GetDesktop().FindFirstDescendant(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.Menu))) != null)
-                { ide.RequireForeground(); Keyboard.Type(VirtualKeyShort.ESCAPE); }
-            }
+            window.SetForeground(); ide.Automation.ExecuteCommand("View.AlarmlistPreview");
             EnvDTE.Window preview = ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}");
             Assert.Equal("Alarm Summary", preview.Caption);
             preview.IsFloating = true; preview.Width = 1250; preview.Height = 550;
             preview.Left = window.BoundingRectangle.Left + 10;
             preview.Top = window.BoundingRectangle.Bottom - 590;
+            SelectProjectPreviewChoice(window, "Summary scope", plant);
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 2, "whole project preview without an editor");
             Assert.NotNull(window.FindFirstDescendant(cf => cf.ByName("Inspect resolved alarm data. Collection templates customize this summary; document and PDF layouts are defined separately.")));
             Assert.Equal(0, ide.Automation.Documents.Count);

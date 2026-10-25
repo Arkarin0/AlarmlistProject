@@ -120,6 +120,9 @@ The `Area=Preview` cases verify the dockable Alarm Summary window, active
 document/culture changes, draft preservation, source navigation and close/reopen.
 `Area=PreviewTable` covers concrete rows, culture-aware values, sorting/filtering,
 multiple-row copy, table-to-detail selection, source navigation and draft clearing.
+`Area=PinnedSummary` creates dedicated windows for two projects and a duplicate,
+checks independent filters/selection/tabs, shared settings, source/draft behavior,
+unload/reload and closing, then restarts the IDE to verify session-only lifetime.
 
 Filter by `VSVersion=2022`, `VSVersion=2026`, or `Area=LiveDiagnostics` (combine
 with `&`). Unconfigured hosts skip; an explicitly configured missing or wrong

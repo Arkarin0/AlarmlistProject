@@ -71,13 +71,17 @@ high contrast or mixed-monitor DPI behavior from UIA/bitmap checks.
    error without rebuilding: its stale row must not select an unrelated alarm.
 9. Close all ALMX editors, then right-click an Alarmlist project and choose
    **Show Alarm Summary**. Verify the project table, selected-row details, XML and
-   language selector. Switch projects containing a linked ALMX file: membership,
-   translated values and column preferences must follow the explicit project.
+   language selector. Repeat for the same and another project: each invocation
+   must open a dedicated pinned window with independent filter/selection/tab state.
+   Projects containing a linked ALMX file must retain their own membership and
+   translated values; duplicate windows share project language/column preferences.
    Shared unsaved XML edits update the report, while private designer field drafts
    stay unapplied and excluded. Closing or switching editors must keep project
    scope. Unload/reload the selected project and hide/reopen the window; obsolete
    results/actions must clear and the explicit project identity must remain.
-   Switch back to Follow active editor and verify its draft/close behavior.
+   Close one duplicate without affecting the others; restart the IDE and verify
+   dedicated windows are not restored. Open the general-purpose window through
+   View > Other Windows > Alarm Summary and verify Follow active editor behavior.
 
 ## Milestone-four property workflow
 

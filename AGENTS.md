@@ -630,12 +630,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   prioritizing key prefixes, and inserts exact SDK-provided spelling. Never
   extend matching to translated text or template argument names, change compiler
   key identity, or bypass saved-input validation; see milestone seven's follow-up.
-- Resolved previews use SDK effective fields and surviving procedure entries.
-  The dockable Alarmlist Preview window defaults to Follow active editor through
+- Resolved summaries use SDK effective fields and surviving procedure entries.
+  The general-purpose Alarm Summary window defaults to Follow active editor through
   a weak DocumentFrame context, or explicitly selects a loaded project. Project >
-  Preview alarms pins that project without opening an editor; keep its identity
-  across editor switches/closure and window hide, never silently fall back after
-  unload. Detach on hide/close and invalidate pending actions on scope changes.
+  Show Alarm Summary creates a new session-only pinned window on each invocation
+  (milestone 11 iteration 29). Keep the general window's existing GUID/commands.
+  Dedicated windows have read-only project scope and independent filter, sort,
+  selection and tab state; language and saved columns remain shared per project.
+  Keep pinned identity across editor switches/closure and window hide; never
+  silently fall back after unload. Detach on hide/close, retaining only lightweight
+  view state, and invalidate pending actions on scope changes.
   Keep previews outside the designer; reuse CPS-owned captured project analysis
   without creating another compiler, project subscription or dummy editor.
   The alarm table excludes abstract templates and uses immutable notifying rows
