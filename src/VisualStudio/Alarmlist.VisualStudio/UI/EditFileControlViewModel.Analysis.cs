@@ -301,14 +301,18 @@ namespace Alarmlist.VisualStudio.UI
                 RefreshProperties(state, alarm);
                 RefreshPreview(state, alarm);
                 bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
+                var captions = EnumCaptions.From(state);
                 foreach (AlarmFieldViewModel field in Fields)
+                {
+                    field.SetCaptions(captions);
                     field.SetAnalysis(!identityDraft && alarm?.IsResolved == true
                         ? alarm.Fields.FirstOrDefault(item => item.Name == field.Name) : null, !HasPending);
+                }
                 foreach (ProcedureSectionViewModel section in ProcedureSections)
                     section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasKindChanges)
                         ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry), !HasPending);
                 RefreshProcedureSearch();
-                RefreshCollections(!identityDraft && alarm?.IsResolved == true ? alarm : null, !HasPending && alarm?.IsResolved == true);
+                RefreshCollections(!identityDraft && alarm?.IsResolved == true ? alarm : null, !HasPending && alarm?.IsResolved == true, captions);
                 if (!ReferenceEquals(_choicesState, state) || !ReferenceEquals(_choicesAlarm, alarm))
                 {
                     _choicesState = state;

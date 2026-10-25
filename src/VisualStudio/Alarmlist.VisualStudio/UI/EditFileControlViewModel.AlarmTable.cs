@@ -66,9 +66,10 @@ namespace Alarmlist.VisualStudio.UI
             {
                 AnalysisAlarm selected = _selectedPreviewRow?.Alarm;
                 _tableState = current;
+                var captions = EnumCaptions.From(current);
                 _allPreviewRows = current == null ? (IReadOnlyList<AlarmPreviewRow>)Array.Empty<AlarmPreviewRow>()
                     : BindingCollection.Create(current.Response.Snapshot.Alarms.Where(alarm => !alarm.IsAbstract)
-                        .Select(alarm => new AlarmPreviewRow(alarm, TableNavigation(current, alarm.Origin.Location))));
+                        .Select(alarm => new AlarmPreviewRow(alarm, TableNavigation(current, alarm.Origin.Location), captions: captions)));
                 _selectedPreviewRow = _allPreviewRows.FirstOrDefault(row => SameAlarm(row.Alarm, selected));
                 RebuildTableRows();
             }

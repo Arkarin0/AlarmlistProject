@@ -67,11 +67,11 @@ namespace Alarmlist.VisualStudio.UI
             }
             collection.RefreshCommands(); Notify(nameof(Error));
         }
-        private void RefreshCollections(AnalysisAlarm alarm, bool current)
+        private void RefreshCollections(AnalysisAlarm alarm, bool current, EnumCaptions captions = null)
         {
             foreach (var collection in Collections)
                 collection.SetAnalysis(alarm?.Collections.FirstOrDefault(value => value.Name == collection.Name), current,
-                    CompletionProperties, entry => CollectionNavigation(collection.Name, entry));
+                    CompletionProperties, entry => CollectionNavigation(collection.Name, entry), captions);
         }
         private DelegateCommand CollectionNavigation(string name, AnalysisCollectionEntry entry)
         {

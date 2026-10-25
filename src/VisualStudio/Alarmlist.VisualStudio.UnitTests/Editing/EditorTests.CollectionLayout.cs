@@ -32,7 +32,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     var changed = (Action)Delegate.CreateDelegate(typeof(Action), session.View,
                         typeof(EditFileControlViewModel).GetMethod("OnDraftChanged", BindingFlags.Instance | BindingFlags.NonPublic));
                     var descriptor = new Definition.AlarmFieldDescriptor(name, type, false, null, null, null, name, null,
-                        false, true, 100, new[] { "Low", "High" }, new[] { "Low", "High" });
+                        false, true, 100, new[] { "Low", "High" }, new[] { "Low", "High" }, new[] { "Priority.Low", "Priority.High" });
                     var definition = new Definition.AlarmCollectionDescriptor("Checks", simple ? "Simple" : "Complex", "Checks", null, 0, null, new[] { descriptor });
                     var collection = new CollectionViewModel(definition, changed, (owner, item, action) => { }, () => true);
                     typeof(EditFileControlViewModel).GetProperty("Collections").SetValue(session.View, new[] { collection });
@@ -50,6 +50,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     editor.BringIntoView(); Assert.True(editor.Focus());
                     editor.RawText = "$(PrivateDraft)";
                     InheritanceAdornerTests.Pump();
+                    field.SetCaptions(EnumCaptionPresentationTests.German);
                     Assert.True(button.Focus());
                     button.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, host, 0, System.Windows.Input.Key.Enter)
                         { RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent });
@@ -60,6 +61,14 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                         menu.Items.Cast<FieldLiteralChoice>().Select(choice => choice.Value));
                     Assert.Equal("$(PrivateDraft)", field.EditValue);
                     Assert.Equal(source, session.Buffer.Current.Text);
+                    if (type == "Enum")
+                    {
+                        Assert.Equal("Hoch", ((MenuItem)menu.ItemContainerGenerator.ContainerFromIndex(1)).Header);
+                        field.SetCaptions(EnumCaptions.Fallback);
+                        InheritanceAdornerTests.Pump();
+                        Assert.Equal("High", ((MenuItem)menu.ItemContainerGenerator.ContainerFromIndex(1)).Header);
+                        Assert.Equal("$(PrivateDraft)", field.EditValue);
+                    }
                     menu.IsOpen = false;
                     InheritanceAdornerTests.Pump();
                     Assert.Equal("$(PrivateDraft)", field.EditValue);

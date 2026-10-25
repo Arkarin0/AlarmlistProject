@@ -95,9 +95,9 @@ namespace Alarmlist.VisualStudio.UI
                     : "This alarm is resolved. Other project errors prevent compiled XML preview.";
                 if (alarm?.HasEvaluatedValues == true && !alarm.IsAbstract)
                 {
-                    ResolvedFields = PreviewContent.Fields(alarm, location => PreviewNavigation(state, alarm, location));
+                    ResolvedFields = PreviewContent.Fields(alarm, location => PreviewNavigation(state, alarm, location), EnumCaptions.From(state));
                     ResolvedSections = PreviewContent.Sections(alarm, location => PreviewNavigation(state, alarm, location));
-                    ResolvedCollections = PreviewContent.Collections(alarm, location => PreviewNavigation(state, alarm, location));
+                    ResolvedCollections = PreviewContent.Collections(alarm, location => PreviewNavigation(state, alarm, location), EnumCaptions.From(state));
                 }
                 CompiledXml = snapshot.Success ? state.Response.CompiledXml : null;
                 XmlPreviewMessage = !snapshot.Success ? "Compiled XML is unavailable until all project errors are resolved."

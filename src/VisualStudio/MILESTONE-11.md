@@ -1529,3 +1529,23 @@ dotnet test on the generator, compiler, task, SDK and editor test projects and
 eng/test-alarm-collections.ps1 for the generated runtime fixture. Diff review and
 git diff --check passed. Native caption presentation remains an iteration-26 gate;
 the host still displays the existing labels at this iteration boundary.
+
+### Iteration 25 implementation and validation (complete)
+
+Added one detached-translation caption formatter shared by scalar/collection
+choice menus, resolved field/table/detail displays, inherited entries and custom
+template DisplayText. Value retains the typed token. Local expression/draft
+tooltips remain raw. Choice objects and commands retain identity across caption
+refreshes; unavailable/keyword translations use definition fallbacks. Copy uses
+captions, search includes captions and raw tokens, and typed sorting is unchanged.
+The table shares one translation dictionary across rows per analysis refresh.
+
+The first focused build found a test-only internal enum exposed by a public test
+method; the first run then found incorrect test column IDs and caption setup
+before a draft-driven fallback refresh. Corrected those fixtures. The focused
+selection subsequently passed 39 tests (artifacts/m11-iteration25-focused-verified.log).
+The final editor regression passed 624 tests, zero failed/skipped, including
+additional scalar inheritance and simple formatting checks
+(artifacts/m11-iteration25-editor.log). It uses the same three display-method
+exclusions as iteration 24. Diff review and git diff --check passed. Native
+language/resource-refresh acceptance remains in 26.

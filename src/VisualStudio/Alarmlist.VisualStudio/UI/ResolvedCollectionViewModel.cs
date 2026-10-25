@@ -11,12 +11,12 @@ namespace Alarmlist.VisualStudio.UI
         public string Label { get; }
         public string Summary => Items.Count + " effective entries";
         public IReadOnlyList<ResolvedCollectionItemViewModel> Items { get; }
-        public ResolvedCollectionViewModel(AnalysisCollection collection, Func<AnalysisLocation, DelegateCommand> navigate)
+        public ResolvedCollectionViewModel(AnalysisCollection collection, Func<AnalysisLocation, DelegateCommand> navigate, EnumCaptions captions = null)
         {
             var definition = AlarmDefinition.Collections.FirstOrDefault(item => item.Name == collection.Name);
             Label = definition?.Label ?? collection.Name;
             Items = BindingCollection.Create(collection.EffectiveEntries.Select((entry, index) => new ResolvedCollectionItemViewModel(
-                index, entry, definition, navigate)));
+                index, entry, definition, navigate, captions)));
         }
     }
     internal sealed class ResolvedCollectionItemViewModel : ObservableObject
@@ -24,12 +24,12 @@ namespace Alarmlist.VisualStudio.UI
         public string Label { get; }
         public IReadOnlyList<ResolvedFieldViewModel> Fields { get; }
         public ResolvedCollectionItemViewModel(int index, AnalysisCollectionEntry entry, AlarmCollectionDescriptor definition,
-            Func<AnalysisLocation, DelegateCommand> navigate)
+            Func<AnalysisLocation, DelegateCommand> navigate, EnumCaptions captions = null)
         {
             Label = "Entry " + (index + 1);
             Fields = BindingCollection.Create(entry.Fields.Select(field => new ResolvedFieldViewModel(
                 definition?.Fields.FirstOrDefault(item => item.Name == field.Name)?.Label ?? field.Name,
-                AlarmPreviewRow.FieldText(field), entry.IsInherited, field.DefiningAlarm,
+                (captions ?? EnumCaptions.Fallback).Display(definition?.Fields.FirstOrDefault(item => item.Name == field.Name), field), entry.IsInherited, field.DefiningAlarm,
                 field.ValueLocation, navigate(field.ValueLocation), field)));
         }
     }

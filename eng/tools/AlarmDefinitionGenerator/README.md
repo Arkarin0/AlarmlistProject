@@ -103,8 +103,13 @@ NoWarn and warning promotion apply. Library builds defer this check to consumers
 and keyword builds do not warn. Captions remain literal text, without expression
 or placeholder evaluation. Label keys change the tooling fingerprint, not the
 semantic library fingerprint. Enum tokens and compiled output remain unchanged.
-Designer caption presentation is delivered in iteration 25; iteration 24 supplies
-metadata, validation and detached translation results only.
+The designer and summary display captions for valid resolved enum values and
+choice menus, following the selected project culture. Missing/currently unavailable
+translations use Label, then Name. Editable expressions and local draft tooltips
+remain raw. Custom templates bind translated DisplayText and stable token Value.
+Copy uses displayed captions; search accepts captions and tokens, while sorting
+retains enum declaration order. Saving RESX or changing culture refreshes captions
+without materializing defaults or committing drafts.
 
 | Type | Accepted literal examples and behavior |
 | --- | --- |

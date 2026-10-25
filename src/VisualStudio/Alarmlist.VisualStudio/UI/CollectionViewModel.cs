@@ -66,7 +66,7 @@ namespace Alarmlist.VisualStudio.UI
             RefreshCommands(); Notify(nameof(Error));
         }
         public void SetAnalysis(AnalysisCollection analysis, bool current, IReadOnlyList<PropertyCompletion> suggestions,
-            Func<AnalysisCollectionEntry, DelegateCommand> navigation)
+            Func<AnalysisCollectionEntry, DelegateCommand> navigation, EnumCaptions captions = null)
         {
             Status = current && analysis != null ? analysis.EffectiveEntries.Count + " effective entries"
                 : "Effective entries unavailable while analysis or edits are pending.";
@@ -76,24 +76,25 @@ namespace Alarmlist.VisualStudio.UI
                     ?? analysis?.LocalEntries.FirstOrDefault(item => item.Origin.Index == index);
                 foreach (var field in Items[index].Fields)
                 {
+                    field.SetCaptions(captions);
                     field.SetAnalysis(entry?.Fields.FirstOrDefault(value => value.Name == field.Name), current);
                     field.SetSuggestions(Definition.Kind == "Complex" ? BindingCollection.Create(suggestions.Concat(Definition.Fields
                         .Where(other => other.Name != field.Name).Select(other => new PropertyCompletion("$(item:" + other.Name + ")", "", "field in this record")))) : suggestions);
                 }
             }
             Inherited = current && analysis != null ? BindingCollection.Create(analysis.EffectiveEntries.Where(entry => entry.IsInherited)
-                .Select(entry => InheritedRow(entry, navigation(entry)))) : Array.Empty<CollectionAnalysisRow>();
+                .Select(entry => InheritedRow(entry, navigation(entry), captions))) : Array.Empty<CollectionAnalysisRow>();
             Excluded = current && analysis != null ? BindingCollection.Create(analysis.ExcludedEntries
-                .Select(entry => new CollectionAnalysisRow(Definition, entry, navigation(entry)))) : Array.Empty<CollectionAnalysisRow>();
+                .Select(entry => new CollectionAnalysisRow(Definition, entry, navigation(entry), captions: captions))) : Array.Empty<CollectionAnalysisRow>();
             Notify(nameof(Status)); Notify(nameof(Inherited)); Notify(nameof(Excluded)); RefreshCommands();
         }
-        private CollectionAnalysisRow InheritedRow(AnalysisCollectionEntry entry, DelegateCommand navigation)
+        private CollectionAnalysisRow InheritedRow(AnalysisCollectionEntry entry, DelegateCommand navigation, EnumCaptions captions)
         {
             var key = Tuple.Create(entry.Origin.Alarm.Library?.Id ?? "", entry.Origin.Location?.FilePath ?? entry.Origin.Alarm.Location?.FilePath ?? "",
                 entry.Origin.Alarm.FullyQualifiedName, entry.Origin.Index);
             bool expanded = !_inheritedExpansion.TryGetValue(key, out bool saved) || saved;
             _inheritedExpansion[key] = expanded;
-            return new CollectionAnalysisRow(Definition, entry, navigation, expanded, value => _inheritedExpansion[key] = value);
+            return new CollectionAnalysisRow(Definition, entry, navigation, expanded, value => _inheritedExpansion[key] = value, captions);
         }
         public void RefreshCommands()
         {
@@ -167,12 +168,12 @@ namespace Alarmlist.VisualStudio.UI
         public string Origin { get; }
         public DelegateCommand GoToSourceCommand { get; }
         public CollectionAnalysisRow(AlarmCollectionDescriptor definition, AnalysisCollectionEntry entry, DelegateCommand navigation,
-            bool expanded = true, Action<bool> expansionChanged = null)
+            bool expanded = true, Action<bool> expansionChanged = null, EnumCaptions captions = null)
         {
             _expanded = expanded; _expansionChanged = expansionChanged;
             IsSimple = definition.Kind == "Simple"; IsInherited = entry.IsInherited;
             Label = "Entry " + (entry.Origin.Index + 1);
-            Fields = new CollectionPreviewRecord(definition, entry, entry.Origin.Index + 1).OrderedFields;
+            Fields = new CollectionPreviewRecord(definition, entry, entry.Origin.Index + 1, captions).OrderedFields;
             TooltipText = string.Join(Environment.NewLine, Fields.Select(field =>
             {
                 var value = entry.Fields.FirstOrDefault(candidate => candidate.Name == field.Name);
@@ -183,7 +184,7 @@ namespace Alarmlist.VisualStudio.UI
             State = (IsInherited ? "Inherited" : "Local") + (entry.ExcludedBy == null ? "" : " · Cleared")
                 + string.Join("", Fields.Where(field => field.State == "Invalid" || field.State == "Deferred")
                     .Select(field => " · " + field.Label + ": " + field.State));
-            Text = string.Join("; ", entry.Fields.Select(field => field.Name + ": " + AlarmPreviewRow.FieldText(field)));
+            Text = string.Join("; ", Fields.Select(field => field.Name + ": " + field.DisplayText));
             Origin = (entry.IsInherited ? "Inherited from " : "Declared in ") + entry.Origin.Alarm.FullyQualifiedName
                 + (entry.ExcludedBy == null ? "" : "; cleared by " + entry.ExcludedBy.Alarm.FullyQualifiedName);
             GoToSourceCommand = navigation;

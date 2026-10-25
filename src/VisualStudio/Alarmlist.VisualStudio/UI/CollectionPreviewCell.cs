@@ -24,11 +24,11 @@ namespace Alarmlist.VisualStudio.UI
         public string DisplayText => Format(VisibleItems);
         public string FullText => Format(Items);
 
-        public CollectionPreviewCell(AlarmCollectionDescriptor definition, AnalysisCollection collection, bool resolved)
+        public CollectionPreviewCell(AlarmCollectionDescriptor definition, AnalysisCollection collection, bool resolved, EnumCaptions captions = null)
         {
             _definition = definition;
             Items = BindingCollection.Create((resolved && collection != null ? collection.EffectiveEntries : Array.Empty<AnalysisCollectionEntry>())
-                .Select((entry, index) => new CollectionPreviewRecord(definition, entry, index + 1)));
+                .Select((entry, index) => new CollectionPreviewRecord(definition, entry, index + 1, captions)));
             StateText = !resolved || collection == null ? "(unavailable)" : Items.Count == 0 ? "(empty)" : "";
             ToggleCommand = new DelegateCommand(() => IsExpanded = !IsExpanded);
         }
@@ -58,13 +58,13 @@ namespace Alarmlist.VisualStudio.UI
         public string PlainText => string.Join(Environment.NewLine, OrderedFields.Select(field => field.Label + ": " + field.DisplayText));
         public string StateText => string.Join("; ", OrderedFields.Where(field => field.State != "Valid" && field.State != "Absent")
             .Select(field => field.Label + ": " + field.State));
-        public CollectionPreviewRecord(AlarmCollectionDescriptor definition, AnalysisCollectionEntry entry, int position)
+        public CollectionPreviewRecord(AlarmCollectionDescriptor definition, AnalysisCollectionEntry entry, int position, EnumCaptions captions = null)
         {
             Definition = definition; Position = position; IsInherited = entry.IsInherited;
             DefiningAlarm = entry.Origin?.Alarm.FullyQualifiedName;
             SourcePath = entry.Origin?.Location?.FilePath; SourceLine = entry.Origin?.Location?.LineNumber;
             OrderedFields = BindingCollection.Create(definition.Fields.Select(field => new CollectionPreviewField(field,
-                entry.Fields.FirstOrDefault(value => value.Name == field.Name))));
+                entry.Fields.FirstOrDefault(value => value.Name == field.Name), captions)));
             Fields = new System.Collections.ObjectModel.ReadOnlyDictionary<string, CollectionPreviewField>(OrderedFields.ToDictionary(field => field.Name));
         }
     }
@@ -80,7 +80,7 @@ namespace Alarmlist.VisualStudio.UI
         public string DefiningAlarm { get; }
         public string SourcePath { get; }
         public int? SourceLine { get; }
-        public CollectionPreviewField(AlarmFieldDescriptor definition, AnalysisField field)
+        public CollectionPreviewField(AlarmFieldDescriptor definition, AnalysisField field, EnumCaptions captions = null)
         {
             Name = definition.Name; Label = definition.Label; Value = field?.TypedValue;
             State = (field?.State ?? AnalysisFieldValueState.Absent).ToString();
@@ -88,7 +88,7 @@ namespace Alarmlist.VisualStudio.UI
             DefiningAlarm = field?.DefiningAlarm?.FullyQualifiedName;
             SourcePath = field?.ValueLocation?.FilePath; SourceLine = field?.ValueLocation?.LineNumber;
             DisplayText = field == null || field.State == AnalysisFieldValueState.Absent ? "(absent)"
-                : AlarmPreviewRow.FieldText(field) + (field.State == AnalysisFieldValueState.Deferred ? " (deferred)" : "");
+                : (captions ?? EnumCaptions.Fallback).Display(definition, field) + (field.State == AnalysisFieldValueState.Deferred ? " (deferred)" : "");
         }
     }
 }

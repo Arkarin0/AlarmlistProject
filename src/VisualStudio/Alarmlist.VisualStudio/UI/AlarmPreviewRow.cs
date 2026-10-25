@@ -12,6 +12,7 @@ namespace Alarmlist.VisualStudio.UI
     {
         internal AnalysisAlarm Alarm { get; }
         private readonly IReadOnlyList<AlarmFieldDescriptor> _definitions;
+        private readonly EnumCaptions _captions;
         public string Name => _definitions.Any(field => field.Name == "Name") ? Value("Name") : Identity;
         public string this[string column] => Column(column);
         public string TestMethod { get; }
@@ -33,13 +34,14 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand GoToSourceCommand { get; }
 
         public AlarmPreviewRow(AnalysisAlarm alarm, DelegateCommand navigation, IReadOnlyList<AlarmFieldDescriptor> definitions = null,
-            IReadOnlyList<AlarmCollectionDescriptor> collections = null)
+            IReadOnlyList<AlarmCollectionDescriptor> collections = null, EnumCaptions captions = null)
         {
             Alarm = alarm;
+            _captions = captions ?? EnumCaptions.Fallback;
             _definitions = definitions ?? AlarmDefinition.Fields;
             CollectionCells = new System.Collections.ObjectModel.ReadOnlyDictionary<string, CollectionPreviewCell>(
                 (collections ?? AlarmDefinition.Collections).ToDictionary(item => item.Name,
-                    item => new CollectionPreviewCell(item, alarm.Collections.FirstOrDefault(value => value.Name == item.Name), alarm.IsResolved)));
+                    item => new CollectionPreviewCell(item, alarm.Collections.FirstOrDefault(value => value.Name == item.Name), alarm.IsResolved, _captions)));
             GoToSourceCommand = navigation;
             TestMethod = !alarm.HasEvaluatedValues ? "(unavailable)" : string.Join("\r\n\r\n", alarm.ProcedureSections.Select(section =>
                 ProcedureText((section.Title.IsValueAvailable ? section.Title.EffectiveValue : "(unavailable)") + ":", section)));
@@ -53,7 +55,7 @@ namespace Alarmlist.VisualStudio.UI
                 (entry.Kind == AnalysisStepKind.Instruction ? "• " : entry.Kind + ": ") + (entry.IsValueAvailable ? entry.Text : "(unavailable)")));
         }
 
-        private string Value(string name) => !Alarm.IsResolved ? "(unavailable)" : FieldText(Alarm.Fields.FirstOrDefault(item => item.Name == name));
+        private string Value(string name) => !Alarm.IsResolved ? "(unavailable)" : _captions.Display(_definitions.FirstOrDefault(field => field.Name == name), Alarm.Fields.FirstOrDefault(item => item.Name == name));
         internal static string FieldText(AnalysisField field)
         {
             if (field == null || field.State == AnalysisFieldValueState.Absent) return "";
@@ -77,6 +79,8 @@ namespace Alarmlist.VisualStudio.UI
         }
 
         internal bool Matches(string filter) => _definitions.Select(field => Value(field.Name)).Concat(new[] { TestMethod, Identity, SourcePath, Source })
+            .Concat(Alarm.Fields.Select(FieldText)).Concat(CollectionCells.Values.Select(cell => cell.FullText))
+            .Concat(Alarm.Collections.SelectMany(collection => collection.EffectiveEntries).SelectMany(entry => entry.Fields).Select(FieldText))
             .Any(value => value?.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0);
 
         internal static IEnumerable<AlarmPreviewRow> Sort(IEnumerable<AlarmPreviewRow> rows, string column, bool descending)

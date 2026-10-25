@@ -109,9 +109,10 @@ namespace Alarmlist.VisualStudio.UI
             {
                 InvalidatePreviewActions();
                 _state = available;
+                var captions = EnumCaptions.From(available);
                 _allRows = available == null ? (IReadOnlyList<AlarmPreviewRow>)Array.Empty<AlarmPreviewRow>()
                     : BindingCollection.Create(available.Response.Snapshot.Alarms.Where(alarm => !alarm.IsAbstract)
-                        .Select(alarm => new AlarmPreviewRow(alarm, Navigation(available, alarm.Origin.Location))));
+                        .Select(alarm => new AlarmPreviewRow(alarm, Navigation(available, alarm.Origin.Location), captions: captions)));
                 _selected = _allRows.FirstOrDefault(row => _selection != null && row.Alarm.Origin.Index == _selection.Item2
                     && row.Identity == _selection.Item3 && SamePath(row.SourcePath, _selection.Item1));
                 RebuildRows();
@@ -169,9 +170,9 @@ namespace Alarmlist.VisualStudio.UI
                 : state.Response.Snapshot.Success ? BufferGuidance : "This alarm is resolved. Other project errors prevent compiled XML preview.";
             if (alarm?.HasEvaluatedValues == true)
             {
-                ResolvedFields = PreviewContent.Fields(alarm, location => Navigation(state, location, alarm));
+                ResolvedFields = PreviewContent.Fields(alarm, location => Navigation(state, location, alarm), EnumCaptions.From(state));
                 ResolvedSections = PreviewContent.Sections(alarm, location => Navigation(state, location, alarm));
-                ResolvedCollections = PreviewContent.Collections(alarm, location => Navigation(state, location, alarm));
+                ResolvedCollections = PreviewContent.Collections(alarm, location => Navigation(state, location, alarm), EnumCaptions.From(state));
             }
             CompiledXml = state?.Response.Snapshot.Success == true ? state.Response.CompiledXml : null;
             XmlPreviewMessage = state == null ? AlarmTableMessage : !state.Response.Snapshot.Success

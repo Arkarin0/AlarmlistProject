@@ -54,6 +54,7 @@ namespace Alarmlist.VisualStudio.UI
         private AnalysisField _analysis;
         private bool _valuesCurrent;
         private bool _hasEditDraft;
+        private EnumCaptions _captions = EnumCaptions.Fallback;
         public string Name { get; }
         public AlarmFieldDescriptor Definition { get; }
         public string Label => Definition?.Label ?? Name;
@@ -95,8 +96,9 @@ namespace Alarmlist.VisualStudio.UI
         public bool IsReference => Name == "ReferenceName";
         public bool IsInherited => !HasChanges && _analysis?.IsInherited == true;
         public bool ShowLocalEditor => !IsInherited;
-        public string EffectiveValue => IsInherited ? (_valuesCurrent && _analysis.IsValueAvailable ? _analysis.EffectiveValue : _analysis.EffectiveExpression) : string.Empty;
-        public string ResolvedValue => _analysis?.EffectiveValue;
+        public string EffectiveValue => IsInherited ? (_valuesCurrent && _analysis.IsValueAvailable ? ResolvedValue : _analysis.EffectiveExpression) : string.Empty;
+        public string ResolvedValue => Definition?.Type == "Enum" && _analysis?.State == AnalysisFieldValueState.Valid
+            ? _captions.Display(Definition, _analysis) : _analysis?.EffectiveValue;
         public string CollectionValueState => HasChanges ? "draft"
             : !_valuesCurrent ? "pending"
             : _analysis?.State == AnalysisFieldValueState.Invalid ? "invalid"
@@ -132,6 +134,13 @@ namespace Alarmlist.VisualStudio.UI
                 definition.Type == "Enum" ? definition.ValueLabels[index] : value,
                 new DelegateCommand(() => ApplyLiteral(value)))).ToArray());
         }
+        internal void SetCaptions(EnumCaptions captions)
+        {
+            _captions = captions ?? EnumCaptions.Fallback;
+            if (Definition?.Type == "Enum")
+                foreach (var choice in LiteralChoices) choice.SetLabel(_captions.Caption(Definition, choice.Value));
+            Notify(nameof(ResolvedValue)); Notify(nameof(EffectiveValue));
+        }
         private void ApplyLiteral(string value)
         {
             // A deliberate literal choice may override an identical inherited
@@ -166,8 +175,9 @@ namespace Alarmlist.VisualStudio.UI
     internal sealed class FieldLiteralChoice : ObservableObject
     {
         public string Value { get; }
-        public string Label { get; }
+        public string Label { get; private set; }
         public DelegateCommand ApplyCommand { get; }
+        internal void SetLabel(string label) { if (Label == label) return; Label = label; Notify(nameof(Label)); }
         public FieldLiteralChoice(string value, string label, DelegateCommand applyCommand)
         { Value = value; Label = label; ApplyCommand = applyCommand; }
     }

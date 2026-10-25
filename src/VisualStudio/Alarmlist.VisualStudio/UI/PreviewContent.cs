@@ -13,19 +13,19 @@ namespace Alarmlist.VisualStudio.UI
         private static readonly IReadOnlyDictionary<string, string> s_cultureNames = CultureInfo.GetCultures(CultureTypes.AllCultures)
             .Where(culture => culture.Name.Length != 0).ToDictionary(culture => culture.Name, culture => culture.Name, StringComparer.OrdinalIgnoreCase);
 
-        public static IReadOnlyList<ResolvedFieldViewModel> Fields(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate)
+        public static IReadOnlyList<ResolvedFieldViewModel> Fields(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate, EnumCaptions captions = null)
             => BindingCollection.Create(new[] { new ResolvedFieldViewModel("FullyQualifiedName", alarm.Origin.FullyQualifiedName,
                 false, alarm.Origin, alarm.Origin.Location, navigate(alarm.Origin.Location)) }
                 .Concat(alarm.Fields.Select(field => new ResolvedFieldViewModel(Definition.AlarmDefinition.Fields.FirstOrDefault(item => item.Name == field.Name)?.Label ?? field.Name,
-                    field.State == AnalysisFieldValueState.Absent ? null : AlarmPreviewRow.FieldText(field),
+                    field.State == AnalysisFieldValueState.Absent ? null : (captions ?? EnumCaptions.Fallback).Display(Definition.AlarmDefinition.Fields.FirstOrDefault(item => item.Name == field.Name), field),
                     field.IsInherited, field.DefiningAlarm, field.ValueLocation, navigate(field.ValueLocation), field))));
 
         public static IReadOnlyList<ResolvedSectionViewModel> Sections(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate)
             => BindingCollection.Create(alarm.ProcedureSections.Select(section => new ResolvedSectionViewModel(section,
                 entry => navigate(entry.Origin.Location))));
 
-        public static IReadOnlyList<ResolvedCollectionViewModel> Collections(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate)
-            => BindingCollection.Create(alarm.Collections.Select(collection => new ResolvedCollectionViewModel(collection, navigate)));
+        public static IReadOnlyList<ResolvedCollectionViewModel> Collections(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate, EnumCaptions captions = null)
+            => BindingCollection.Create(alarm.Collections.Select(collection => new ResolvedCollectionViewModel(collection, navigate, captions)));
 
         public static string[] Cultures(ProjectAnalysisState state, string selected)
         {
