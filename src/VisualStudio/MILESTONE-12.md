@@ -1,8 +1,11 @@
 # Milestone twelve: XML IntelliSense and native Shared Projects
 
-Status: planning only, 2026-10-26. The owner confirmed the two topics and the
-file/project scope below. Implementation has not been requested or started.
-Iteration 0 records this plan; iterations 1–8 are proposed implementation work.
+Status: implementation authorized on 2026-10-27; iteration 1 complete.
+Iterations 2–8 remain to be implemented and validated.
+The owner confirmed the scope and recommended defaults and activated the goal
+on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
+check usage throughout and stop before crossing that threshold. Do not merge or
+push without instruction. Iteration 0 records planning; iterations 1–8 are authorized.
 Existing milestone acceptance and outstanding release gates remain unchanged.
 
 ## Outcome and confirmed scope
@@ -20,8 +23,8 @@ Confirmed by the owner on 2026-10-26:
 - Shared-project support means native Visual Studio Shared Projects, rather than
   only hand-authored imports or linked files.
 
-The remaining interaction and implementation choices are proposals in this plan;
-the scope confirmation does not imply approval of every detail below.
+The owner accepted the recommended defaults on 2026-10-27. Technical integration
+choices remain subject to iteration 1's feasibility evidence.
 
 ## Existing implementation and architectural boundaries
 
@@ -164,7 +167,7 @@ fixtures sequentially, use idle experimental profiles and never close a user's I
 The original iteration numbers above remain stable. Execute 1–8 in order;
 dependencies in the table identify the technical prerequisites. The following
 breakdown makes each commit boundary reviewable without postponing behavior tests
-to iteration 8. This is a planning refinement, not implementation authorization.
+to iteration 8. Implementation was subsequently authorized on 2026-10-27.
 
 #### 1 — Native feasibility and design contract
 
@@ -300,10 +303,9 @@ to iteration 8. This is a planning refinement, not implementation authorization.
   with shipped behavior, and remaining limitations are explicit. No iteration is
   called complete solely because its implementation is present.
 
-### Proposed defaults awaiting confirmation
+### Accepted defaults — 2026-10-27
 
-The earlier discussion recommended the following defaults. The owner's request
-to refine iterations does not by itself confirm these product choices:
+The owner authorized the following recommended defaults with implementation:
 
 - Use the opening consumer as the initial shared-file context when it is known;
   retain an explicit selection while the document stays open. For ambiguous opens,
@@ -313,30 +315,87 @@ to refine iterations does not by itself confirm these product choices:
   imports. Distinct-file declaration conflicts remain compiler errors. The handling
   of conflicting item metadata must be decided with the build-contract evidence.
 
-Iteration 1 can investigate technical feasibility before these are confirmed;
-dependent production behavior must follow the agreed decisions.
+Iteration 1 investigates technical feasibility; dependent production behavior
+must follow these agreed decisions.
 
-## Open decisions and implementation questions
+## Decision disposition
 
-1. XML-only consumer selector: proposed reuse of the existing editor project
-   selection where available, with a native-editor-compatible UI for standalone
-   XML views. Decide placement, default selection and whether selection persists.
-   Multiple consumers must never be selected by arbitrary enumeration order.
-2. Shared Project creation: proposed dedicated Alarmlist Shared Project template.
-   Prove whether native Shared Project infrastructure can host the item types
-   directly or requires an Alarmlist-specific project factory/flavor. Do not
-   declare generic import-only support equivalent to native support.
-3. Imported-item duplicates: choose a documented physical-file policy consistent
-   with existing MSBuild/compiler behavior, without weakening declaration checks.
-4. Determine whether existing detached metadata is sufficient for structural and
-   semantic completion. If contract additions are necessary, plan a coordinated
-   compiler/SDK/host transition and package tests; do not invent a version now.
-5. Identify supported MSBuild completion extension points and XML schema
-   association on both hosts. Keep the implementation choice open until the
-   native feasibility results exist. Also choose measured latency thresholds.
+1. XML-only consumer selector: reuse existing project selection where available,
+   with a native-editor-compatible UI for standalone XML views. Initial selection
+   and document-lifetime retention follow the accepted defaults; placement remains
+   an iteration 7 integration detail. Never choose by arbitrary enumeration order.
+2. Shared Project creation: dedicated Alarmlist Shared Project template accepted.
+   Native CodeSharing hosting and consumer reference management are exercised in
+   iteration 1; final Alarmlist template/item registration belongs to iteration 6.
+   Do not declare generic import-only support equivalent to native support.
+3. Imported-item duplicates: equivalent physical inputs are included once per
+   consumer; conflicting compiler-relevant metadata is an explicit error. Add
+   build/capture parity coverage in iteration 5 without weakening declaration checks.
+4. Existing detached metadata is sufficient for the currently identified
+   candidates; no version change is planned. If a concrete missing semantic fact
+   requires additions, coordinate compiler/SDK/host contracts and package tests.
+5. Native MSBuild/namespaced lookup baselines coexist with the ALMX completion
+   provider. Automatic installed schema/candidate discovery is iteration 4 work;
+   timing acceptance is defined in the integration decisions below.
 
-Resolve required product decisions before their dependent iterations. Technical
-choices can be settled through the feasibility work within the confirmed scope.
+Product defaults are resolved. Technical implementation follows the integration
+decisions below and each iteration's own validation gates.
+
+## Iteration 1 integration decisions
+
+- Use the existing XML text view and legacy `ICompletionSourceProvider` /
+  `ICompletionBroker` integration, with an ALMX-specific command filter and native
+  completion presenter. The native XML host supports this API on both installed
+  hosts. Roslyn's async completion source was inspected for snapshot/cancellation
+  layering; adopting its provider wholesale would replace a different language
+  host. This local API choice preserves native XML services and adds no Roslyn
+  dependency. The current vertical slice completes only the ALMX root name.
+- Explicit invocation handles List Members, Complete Word and Auto Complete.
+  Completion insertion uses a custom edit transaction, preserves source on disk,
+  and rejects a stale/read-only snapshot. Full grammar, automatic triggers and
+  incremental-session refresh remain iteration 2 work.
+- Native lookup completion recognizes the authoritative namespaced XSD when that
+  schema is open in the IDE. Native MSBuild completion works in namespaced
+  `.almproj` XML. These are coexistence baselines, not automatic association for
+  installed lookup inputs or namespace-free ALMX/project files. Iteration 4 must
+  supply automatic extension-local schema/candidate discovery, without modifying
+  machine-global schema caches or requiring source markers. Preserve the native
+  providers for contexts they already support.
+- Existing host descriptors and detached analysis expose scalar/collection types,
+  procedure capability, resources, references and lookup/argument catalogues.
+  No contract version change is currently required. Extend host lexical context
+  and candidate adapters in iterations 2–3; re-evaluate only if a concrete missing
+  compiler-owned fact is found.
+- CPS `SharedImports` and `SharedProjectReferences` enable native shared-reference
+  management. The isolated fixture adds them to its consumer, imports ordinary
+  `.projitems` and uses installed CodeSharing targets for the `.shproj`. Production
+  SDK capabilities/template registration remain iterations 5–6. The prototype
+  reuses the installed C# Shared Project container and sets
+  `SharedProjectAppliesTo=Alarmlist`; it does not compile ALMX as C#. The installed
+  Shared Project tooling is an IDE prerequisite, not a consumer-build prerequisite.
+  A dedicated Alarmlist template must retain native Shared Project behavior.
+- The accepted consumer context will be buffer/document scoped, initially supplied
+  by the opening hierarchy when unambiguous, and shown in the existing designer
+  selector plus a native editor-compatible selector for standalone XML. Losing
+  membership clears the selected consumer; it never selects the next enumerated
+  project. View changes preserve private drafts. Implement in iteration 7.
+- Duplicate identity is the normalized absolute physical path, compared using
+  existing Windows path semantics. Equivalent repeated items compile once per
+  consumer, preserving first inclusion order. Conflicting compiler-relevant
+  metadata for the same item/path is an explicit capture/build error; different
+  input kinds are not silently merged. Do not deduplicate alarm/key declarations
+  across distinct files. Implement/test in iteration 5, including default globs.
+- Performance acceptance: in iteration 8, measure at least 20 warm explicit
+  completion requests per XML surface with a 1,000-alarm input; require p95
+  invocation-to-visible-list latency at most 1,000 ms. Record first-use latency
+  separately, retain the 100 ms native polling resolution in the report, and test
+  cancellation/stale insertion separately from timing. Candidate acquisition must
+  not build projects or perform synchronous dependency capture on the UI thread.
+  Record lifecycle cleanup via view/session detachment and functional unload/
+  reopen checks; whole-process memory alone is not proof of collectibility.
+
+No additional product decision is required to continue under the accepted defaults.
+These choices do not waive any later iteration's essential gates.
 
 ## Actual evidence and remaining gates
 
@@ -348,7 +407,7 @@ choices can be settled through the feasibility work within the confirmed scope.
 - Owner confirmed all three XML file types and native Shared Projects.
 - Validation: documentation diff, relative links and consistency reviewed.
   Tests/builds were not run because this iteration changes documentation only.
-- Implementation iterations 1–8 have not started. Their planned validation is
+- At this planning checkpoint implementation iterations 1–8 had not started. Their planned validation is
   acceptance criteria, not evidence of passing tests or available native support.
 - Remaining gates: required design decisions, both-host feasibility, all scoped
   implementation/acceptance checks, and separately recorded release gates.
@@ -361,4 +420,47 @@ choices can be settled through the feasibility work within the confirmed scope.
   product decisions from technical feasibility work.
 - Validation: documentation diff, local Markdown links and iteration/status
   consistency reviewed. Tests/builds were not run (documentation-only change).
-- Implementation remains unstarted; the owner's current request is planning.
+- At this refinement checkpoint implementation remained unstarted.
+
+### Iteration 1 — native feasibility and design contract, 2026-10-27
+
+Implemented the ALMX root-completion vertical slice using the native completion
+presenter and an explicit insertion transaction, with lexical span tests. Added
+isolated native Shared Project and lookup/MSBuild schema coexistence probes.
+Accepted the owner's recommended defaults and recorded the 15% remaining-allowance
+stop. No production SDK capabilities, shared template, compiler contract or
+library-format changes are included in this iteration.
+
+Validation (commands run from the repository root):
+
+- `dotnet build src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist.VisualStudio.UI.IntegrationTests.csproj --no-restore -v minimal`: passed.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj --no-restore -v minimal --logger trx`: **656 passed**, no failures/skips, net472. Includes 11 new lexical context cases.
+- `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj --no-restore -v minimal --logger trx`: **13 passed per framework**, net472/net8.0, no failures/skips.
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File eng/test-visualstudio.ps1 -VisualStudioPath '<selected installed host>' -Filter 'Area=XmlCompletion|Area=SharedProjectFeasibility'`: **3 passed per host** in final sequential VS2022/VS2026 runs, no failures/skips. Installed hosts: 17.14.36930.0 and 18.10.12224.181. The fixture deployed/verified the built VSIX in idle AlarmlistExp profiles and closed only its owned IDEs.
+- Shared-reference tests verify native selection, saved Add/Remove imports,
+  consumer builds, North/South resolution from one shared physical source and
+  retained shared files. Root-completion tests verify embedded/standalone XML,
+  one Undo and unchanged disk bytes. Schema baselines verify native lookup Path
+  and MSBuild PropertyGroup suggestions and insertion.
+- Native artifacts under `artifacts/log/Debug/VisualStudioUI/`: VS2022
+  SharedProjectFeasibility `375adc94ae9a44fbad42eb1017745337`, XmlCompletion
+  `8e9e58afe78c4d14a279ef4c1eea1060`; VS2026 SharedProjectFeasibility
+  `e62462d514494a898c94a0a5a0ffbaac`, XmlCompletion
+  `54b647b05eb7445b9287b7c8b883075d`, NativeSchemaBaseline
+  `6dbb9d63eb2f488aa639eeff681638ec`.
+- First-use command-to-visible-item measurements: VS2022 embedded 103 ms /
+  standalone 808 ms; VS2026 embedded 717 ms / standalone 373 ms. These two
+  samples per host establish a baseline, not iteration 8's warm p95 acceptance.
+- Earlier exploratory runs exposed a completion readiness check matching the
+  toolbar rather than the popup, a decorated native accessible name and an OK
+  button outside the reference-manager content subtree. Corrected the probes;
+  final runs above pass. A concurrent test-project rebuild was also blocked by
+  its running testhost; subsequent native runs/builds were sequential. Initial
+  source build threading warnings were fixed before final validation.
+- Documentation links and `git diff --check`: passed. Working tree started clean.
+
+No remaining scoped iteration-1 blocker. Full structural/semantic completion,
+automatic installed lookup/project support, production shared-input integration,
+context/lifecycle checks and final performance acceptance remain iterations 2–8.
+Prior milestones' manual/vendor/release gates remain unchanged. Latest allowance
+check during iteration 1: 70% remaining, above the owner's 15% stop.

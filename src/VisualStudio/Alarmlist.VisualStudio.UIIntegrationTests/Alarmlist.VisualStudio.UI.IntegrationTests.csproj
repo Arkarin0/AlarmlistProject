@@ -11,6 +11,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="../../Compiler/Lookups/AlarmlistLookup.xsd" Link="testassets/AlarmlistLookup.xsd" CopyToOutputDirectory="PreserveNewest" />
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
     <Content Include="../../../example/Libraries/**/Labels.en.resx"
              Exclude="../../../example/Libraries/**/bin/**;../../../example/Libraries/**/obj/**;../../../example/Libraries/**/.*/**"

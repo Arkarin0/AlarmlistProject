@@ -22,6 +22,14 @@ modes. The designer and embedded Visual Studio source view share one document
 buffer, including edits made from additional windows. The
 [milestone-two design](MILESTONE-2.md) records its architecture and references.
 
+[Milestone twelve](MILESTONE-12.md) adds XML IntelliSense and native Shared
+Projects in stages. Its first vertical slice offers **Alarmlist (ALMX root)**
+through List Members/Complete Word at the start of an ALMX XML document. Tab or
+Enter inserts `Alarmlist`; Undo restores the previous text without saving. Full
+ALMX grammar/expression completion and automatic lookup/project XML support are
+subsequent iterations. Shared Project probes are isolated tests; the production
+SDK/templates do not yet advertise native Shared Project support.
+
 The [milestone-three plan](MILESTONE-3.md) covers project-wide reference analysis,
 inherited fields with WPF chain-icon adorners, inherited test-procedure rows,
 live diagnostics, and resolved preview. It recommends section-level local copies
