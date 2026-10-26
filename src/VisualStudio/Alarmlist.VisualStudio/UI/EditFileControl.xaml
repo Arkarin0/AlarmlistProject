@@ -28,14 +28,14 @@
               <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                             Tag="PreserveDraft" HorizontalContentAlignment="Stretch" Padding="8,7"
                             Background="Transparent" Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
-                            AutomationProperties.Name="{Binding Label, StringFormat=Toggle {0} collection}">
+                            AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource TemplatedParent}, StringFormat=Toggle {0} collection}">
                 <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
                   <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter /></Border>
                 </ControlTemplate></ToggleButton.Template>
                 <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                   <TextBlock Style="{StaticResource ScopeArrow}" VerticalAlignment="Center" />
-                  <StackPanel Grid.Column="1"><TextBlock Text="{Binding Label}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                    <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+                  <StackPanel Grid.Column="1"><TextBlock Text="{TemplateBinding Header}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding (ui:StickyCollectionHeader.Detail), RelativeSource={RelativeSource TemplatedParent}}" TextWrapping="Wrap" />
                   </StackPanel>
                 </Grid>
               </ToggleButton>
@@ -103,6 +103,7 @@
       </Style.Triggers>
     </Style>
     <Style x:Key="ProcedureGroup" TargetType="GroupBox">
+      <Setter Property="ui:StickyCollectionHeader.IsEnabled" Value="True" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
       <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
       <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
@@ -112,9 +113,10 @@
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="GroupBox">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-          <Border Grid.RowSpan="2" Margin="0,12,0,0" BorderThickness="1" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" />
-          <Border Margin="10,0,10,0" Background="{TemplateBinding Background}">
-            <ContentPresenter ContentSource="Header" />
+          <Border Grid.RowSpan="2" BorderThickness="1" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" />
+          <Border x:Name="CollectionHeader" Panel.ZIndex="1" Margin="1,1,1,0" Padding="9,4,9,0"
+                  BorderThickness="0,0,0,1" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}">
+            <AdornerDecorator><ContentPresenter ContentSource="Header" /></AdornerDecorator>
           </Border>
           <ContentPresenter Grid.Row="1" Margin="{TemplateBinding Padding}" />
         </Grid>
@@ -412,7 +414,7 @@
           <ItemsControl ItemsSource="{Binding Collections}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Expander Header="{Binding Label}" Style="{StaticResource CollectionGroup}" IsExpanded="{Binding IsExpanded}"
+                <Expander Header="{Binding Label}" Style="{StaticResource CollectionGroup}" IsExpanded="{Binding IsExpanded}" ui:StickyCollectionHeader.Detail="{Binding Status}"
                           AutomationProperties.Name="{Binding Name, StringFormat=Collection {0}}">
                   <Expander.Resources><Style TargetType="ToggleButton"><Setter Property="Tag" Value="PreserveDraft" /></Style></Expander.Resources>
                   <StackPanel Grid.IsSharedSizeScope="True">
@@ -519,7 +521,8 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Expander Header="Test procedure" IsExpanded="True" Margin="0,6,8,0" Visibility="{Binding HasTestProcedure, Converter={StaticResource Visibility}}"
+          <Expander Header="Test procedure" Style="{StaticResource CollectionGroup}" ui:StickyCollectionHeader.Detail="{Binding ProcedureSections.Count, StringFormat={}{0} groups}"
+                    IsExpanded="True" Visibility="{Binding HasTestProcedure, Converter={StaticResource Visibility}}"
                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
             <StackPanel Margin="0,8,0,0">
               <WrapPanel Margin="0,0,0,8">
@@ -554,6 +557,7 @@
                   <DataTemplate>
                     <GroupBox Style="{StaticResource ProcedureGroup}" Margin="0,0,0,16" AutomationProperties.Name="{Binding Name, StringFormat=Procedure group {0}}">
                       <GroupBox.Header>
+                        <StackPanel>
                         <ui:ExpressionTextBox DataContext="{Binding TitleField}" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
                             ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" MinHeight="26" Style="{StaticResource ProcedureHeading}"
                             IsEnabled="{Binding DataContext.CanEditTitle, RelativeSource={RelativeSource AncestorType=GroupBox}}"
@@ -574,13 +578,14 @@
                             </ContextMenu>
                           </ui:ExpressionTextBox.ContextMenu>
                         </ui:ExpressionTextBox>
-                      </GroupBox.Header>
-                      <StackPanel>
                         <TextBlock Text="{Binding Name, StringFormat=Group ID: {0}}" TextWrapping="Wrap" Margin="0,0,0,6" />
                         <ToggleButton Content="{Binding ExpansionText}" IsChecked="{Binding IsExpanded}" Tag="PreserveDraft"
                                       HorizontalAlignment="Left" Margin="0,0,0,6" Padding="6,3"
                                       AutomationProperties.Name="{Binding Name, StringFormat=Expand procedure group {0}}"
                                       ToolTip="Show or hide this group's entries. Private drafts are preserved." />
+                        </StackPanel>
+                      </GroupBox.Header>
+                      <StackPanel>
                         <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource Visibility}}">
                         <WrapPanel Margin="0,0,0,6">
                           <ToggleButton IsChecked="{Binding ShowCleared}" IsEnabled="{Binding HasExcluded}"

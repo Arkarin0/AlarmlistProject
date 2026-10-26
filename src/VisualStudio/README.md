@@ -243,6 +243,9 @@ Its collapsible name/count header stays at the top of the alarm-properties scrol
 area while that collection is visible, then leaves with its group as the next
 collection arrives. All collections share the existing scrollbar. Keyboard focus
 reveals editors underneath the pinned header without changing their contents.
+This also applies to Test procedure: its header remains above the current group's
+editable title, ID and collapse control. Nested headers share the available top
+space and leave with their owning group as you scroll to the next one.
 Collapsed headers expose left-aligned tooltips and accessible help, one field per
 line. Local tooltips show draft expressions; inherited tooltips use compiler
 values and distinguish absent, defaulted, invalid and deferred content.

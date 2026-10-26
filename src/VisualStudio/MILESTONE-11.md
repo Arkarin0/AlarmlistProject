@@ -21,6 +21,8 @@ project-pinned Summary windows. Their goal retained the 20% allowance stop and
 completed above it; validation and recovery evidence is recorded below.
 Iteration 30 is complete: bordered designer collections with bounded sticky
 headers, validated on both IDE hosts with procedures enabled and disabled.
+Iteration 31 is complete: Test procedure and its nested group headers use the
+same bounded sticky behavior, validated on both IDE hosts.
 
 ## Outcome and confirmed scope
 
@@ -1747,3 +1749,59 @@ artifacts/m11-iteration30-native.log. All checks passed without retries.
 Diff/links and git diff --check passed. No remaining scoped blocker. OS theme/DPI
 checks stayed excluded; no push, merge or publication. Final allowance check:
 90% remaining, above the requested 20% stop.
+
+## Iteration 31 — sticky Test procedure and group headers (complete)
+
+Extend iteration 30 to the optional Test procedure collection and each procedure
+group. The outer collection header stays at the viewport top; the current group's
+editable title, stable ID and collapse control pin immediately beneath it. Bound
+both headers to their own containers, retaining inherited title adorners, draft/
+undo behavior, search navigation and one shared scrollbar. Simple/complex lists
+retain iteration 30 behavior. No compiler/SDK or source-format changes.
+
+Validate nested transitions, focus, collapse, inherited titles and lifecycle in
+rendered editor tests, plus sequential native procedure scenarios on VS2022/2026
+and collection regressions. Record evidence and commit on dev/milestone-11 without
+pushing. Retain 20% allowance stop and exclude OS theme/DPI display checks.
+
+Implementation generalizes the existing header tracker to headered controls and
+reserves each sticky ancestor's rendered height. Test procedure uses the shared
+collection template; group headers contain the editable title, stable ID and
+collapse action, with a local adorner layer. Only the innermost sticky group
+adjusts focus scrolling. No duplicate title editors or source mutations.
+
+Focused tests passed 7 cases; the final editor regression passed 636 cases with
+the same three display-method exclusions as iteration 30. Package checks passed
+13 per framework. Logs: artifacts/m11-iteration31-{focused,editor-final,package}.log.
+The initial native VS2022 run found that a group ID declared directly in its
+control template was omitted from UI Automation. Moved ID/collapse controls into
+the actual Header content and retained the assertion; the final editor regression
+passed after the fix. Original failure evidence remains in
+artifacts/log/Debug/VisualStudioUI/TestResults/4349ec2df7d94afcabdceed3c1681e7a.
+Native procedure reruns passed on VS2022 and VS2026, including title navigation,
+cleared drafts, group authoring/search and three long nested sticky groups. Logs:
+artifacts/m11-iteration31-native2022-retry.log and native2026.log. TRX directories:
+artifacts/log/Debug/VisualStudioUI/TestResults/4fd4c86f85584d68b2b7a54ad8fb46ed and
+f74c7f7116d5470dbe64fe7651923259.
+
+Generated-collection regression initially passed VS2022 in artifacts/col13/ba8c8c66;
+VS2026 correctly refused deployment because the user's AlarmlistDefinitionExp
+playground was open. No existing IDE was changed or closed. Added an optional
+validated -RootSuffix parameter to the fixture (default unchanged) to use an idle
+profile. All four cases passed in AlarmlistExp: procedures enabled in
+artifacts/col13/5ca762b0 and disabled in artifacts/col13/db725077. Both builds had
+zero warnings/errors. Native logs and results-2022/results-2026 TRX reports remain
+in each fork; outer log: artifacts/m11-iteration31-collections-idle.log.
+The disabled VS2026 case took six minutes and temporarily stopped returning UIA
+data. Read-only window/heap diagnostics were captured in artifacts/m11-iteration31-hang;
+the unchanged case resumed and passed without intervention or forced shutdown.
+This is functional evidence, not a latency measurement. Standard deployment
+restoration and procedure verification passed sequentially on both hosts (one
+case each). Logs: artifacts/m11-iteration31-standard2022.log and
+artifacts/m11-iteration31-standard2026.log. TRX directories under
+artifacts/log/Debug/VisualStudioUI/TestResults:
+63ca0d96316f4dfa9d2e2920e8e1eaa2 and b56f339724af4e6697fcfa4260d3a3c0.
+The user's open custom-definition playground remained untouched.
+Diff and git diff --check passed. No remaining scoped acceptance blocker.
+OS theme/DPI checks remained excluded. Final allowance check: 74% remaining,
+above the requested 20% stop. No push, merge or publication was performed.

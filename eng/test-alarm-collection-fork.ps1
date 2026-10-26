@@ -4,7 +4,9 @@ param(
     [switch]$Designer,
     [switch]$SkipConsumers,
     [string]$VisualStudio2022Path,
-    [string]$VisualStudio2026Path
+    [string]$VisualStudio2026Path,
+    [ValidatePattern('^[A-Za-z][A-Za-z0-9_]*$')]
+    [string]$RootSuffix = 'AlarmlistDefinitionExp'
 )
 $ErrorActionPreference = 'Stop'
 if (!$SkipConsumers -and !$DesktopMSBuildPath) { throw 'DesktopMSBuildPath is required for consumer acceptance.' }
@@ -49,7 +51,7 @@ foreach ($procedure in @($true, $false)) {
         $settings = @{
             ALARMLIST_RUN_UI_VS_TESTS = '1'
             ALARMLIST_TEST_COLLECTION_DEFINITION = '1'
-            ALARMLIST_VS_ROOT_SUFFIX = 'AlarmlistDefinitionExp'
+            ALARMLIST_VS_ROOT_SUFFIX = $RootSuffix
             ALARMLIST_VS2022_PATH = $VisualStudio2022Path
             ALARMLIST_VS2026_PATH = $VisualStudio2026Path
         }

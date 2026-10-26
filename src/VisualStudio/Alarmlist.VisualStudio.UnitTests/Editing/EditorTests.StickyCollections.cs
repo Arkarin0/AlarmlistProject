@@ -33,7 +33,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     var control = new EditFileControl(session.View) { Width = 950, Height = 650 };
                     host.RootVisual = control; InheritanceAdornerTests.Pump();
                     var scroll = (ScrollViewer)control.FindName("AlarmAreaScroll");
-                    var group = VisualChildren(control).OfType<Expander>().Single(StickyCollectionHeader.GetIsEnabled);
+                    var group = VisualChildren(control).OfType<Expander>().Single(item => StickyCollectionHeader.GetIsEnabled(item) && ReferenceEquals(item.DataContext, collection));
                     var header = (FrameworkElement)group.Template.FindName("CollectionHeader", group);
                     var viewport = VisualChildren(scroll).OfType<ScrollContentPresenter>().First();
                     var editor = VisualChildren(group).OfType<ExpressionTextBox>().First();

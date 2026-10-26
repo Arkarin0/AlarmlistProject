@@ -135,6 +135,10 @@ Keep sticky headers bounded by their owning group in the existing alarm scroll
 area; reuse the actual header for collapse and automation. Detach scroll/layout
 subscriptions on unload and reveal keyboard-focused editors beneath the header
 without committing drafts. Do not introduce per-collection scrolling.
+Iteration 31 applies the same behavior to Test procedure and its nested groups.
+Pin each group header below its sticky parent, keeping editable titles, inherited
+title adorners, stable group IDs and collapse controls visible together. Keep
+all collection kinds consistent; do not limit sticky headers to generated lists.
 The standard definition now uses version 2 with explicit TestProcedure and the
 original four fields. This changes its semantic fingerprint; rebuild libraries
 and matching tools. The interactive shortcut accepts an explicit SampleFile as
@@ -156,6 +160,10 @@ Its -Designer option checks both IDE hosts in AlarmlistDefinitionExp; -SkipConsu
 selects designer-only acceptance. Supply both VisualStudio2022Path and
 VisualStudio2026Path. Run native fixtures sequentially and keep their private
 workspace paths short enough for desktop SDK extraction.
+The collection-fork fixture accepts -RootSuffix to use a different idle experimental
+profile when the usual playground is open. Never close an existing user IDE to
+deploy tests. If using AlarmlistExp, restore its standard extension afterward via
+the ordinary native fixture's deployment preparation on both hosts.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter
 grip, plus collapsible group bodies and procedure search in follow-up iterations.
