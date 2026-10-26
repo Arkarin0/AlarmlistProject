@@ -1,8 +1,33 @@
 # Future feature notes
 
-Status: ideas for future development, recorded on 2026-09-24. These notes capture
-intent and open design questions; they do not define implemented behavior,
-committed milestones, or a delivery schedule.
+Status reviewed on 2026-10-26 against milestone records and current source.
+This file tracks implemented features and future ideas; it does not authorize
+implementation or define a delivery schedule.
+
+**Implemented** means the scoped feature exists, not that every manual, vendor,
+or release gate has passed. Linked milestones retain the validation evidence and
+remaining gates. Original proposals and dated planning updates below are design
+history; current status summaries and milestone contracts supersede provisional
+syntax, open questions and statements about future work in that history.
+
+| Feature | Current status | Record |
+| --- | --- | --- |
+| Well-known and custom properties | Implemented | [Milestone 4](src/VisualStudio/MILESTONE-4.md) |
+| Localization, RESX and XLIFF exchange | Implemented; vendor/manual/release gates remain | [Milestone 5](src/VisualStudio/MILESTONE-5.md) |
+| NuGet alarm libraries and project references | Implemented | [Milestone 9](src/VisualStudio/MILESTONE-9.md) |
+| Visual Studio Code | Proposed; unassigned | Proposal below |
+| TwinCAT XAE Shell64 | Proposed; runtime compatibility unverified | Proposal below |
+| Separate preview and alarm-list table | Implemented as Alarm Summary | [Milestone 5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [11](src/VisualStudio/MILESTONE-11.md) |
+| Procedure GroupBoxes, editable headings and splitter grip | Implemented, including collapse/search | [Milestone 10](src/VisualStudio/MILESTONE-10.md) |
+| External alarm analyzers | Implemented, including NuGet analyzer packages | [Milestone 6](src/VisualStudio/MILESTONE-6.md), [9](src/VisualStudio/MILESTONE-9.md) |
+| EditorConfig and diagnostic severity | Implemented; .globalconfig excluded | [Milestone 6](src/VisualStudio/MILESTONE-6.md) |
+| Warnings as errors and NoWarn | Implemented for configurable diagnostics | [Milestone 6](src/VisualStudio/MILESTONE-6.md) |
+| Visual Studio Shared Projects | Proposed; unassigned | Proposal below |
+| Custom procedure groups and creation defaults | Implemented | [Milestone 8](src/VisualStudio/MILESTONE-8.md) |
+| IntelliSense | Implemented in applicable designer fields; broader XML support remains future work | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md) |
+| External alarm-definition generation | Implemented for supported scalars and collections | [Milestone 11](src/VisualStudio/MILESTONE-11.md) |
+
+## Historical implementation and planning updates
 
 Implementation update (2026-10-18): [milestone nine](src/VisualStudio/MILESTONE-9.md)
 implements reusable alarm libraries, project references and NuGet distribution,
@@ -54,6 +79,12 @@ implementation and remaining acceptance gates are recorded in the plan's
 [implementation record](src/VisualStudio/MILESTONE-4.md#implementation-record).
 
 ## Well-known properties and custom properties
+
+**Implemented:** scoped custom parameters, well-known values, abstract alarms,
+compiler evaluation and designer completion. See [milestone four](src/VisualStudio/MILESTONE-4.md)
+for implementation evidence and its separately recorded acceptance gates.
+
+### Original proposal and design history
 
 Introduce `wellknownProperties`: predefined values that can be referenced in ALMX
 input using an MSBuild-like property expression, such as `$(PropertyName)`.
@@ -109,7 +140,15 @@ templates. Localization remains later work.
 
 ## Localization
 
-Planning decisions (2026-10-07; not implemented):
+**Implemented:** RESX localization, language selection, raw/resolved editing,
+multi-culture builds, missing-translation error `ALM0016`, designer completion
+and XLIFF import/export. [Milestone five](src/VisualStudio/MILESTONE-5.md) also
+records implemented HMI lookups, named lists and formatted arguments. Vendor
+round trips and documented manual/release gates remain pending; CAB is cancelled.
+
+### Original proposal and design history
+
+Planning decisions recorded on 2026-10-07, before implementation:
 
 The [milestone-five iteration plan](src/VisualStudio/MILESTONE-5.md) sequences
 implementation and validation. Iterations 1-7 establish the RESX compiler/build
@@ -187,6 +226,13 @@ Remaining design details:
 
 ## NuGet packages and alarm libraries
 
+**Implemented:** `OutputType=Library`, deferred consumer resolution, packaged
+resources/lookups, restore/pack and native reference management. The
+[milestone-nine contract](src/VisualStudio/MILESTONE-9-DESIGN.md) resolves the
+questions below; milestone eleven adds generated-definition compatibility rules.
+
+### Original proposal and design history
+
 Support distributing reusable alarm lists through NuGet packages. A package
 contains a compiled alarm list with localization expressions still unresolved.
 The consuming project translates these expressions using its selected language
@@ -258,6 +304,14 @@ TwinCAT shell support as implemented or assign it to a milestone.
 
 ## Separate preview view
 
+**Implemented:** a dockable tool window, now named **Alarm Summary**, with
+dedicated project-pinned windows. See [milestone five](src/VisualStudio/MILESTONE-5.md),
+[milestone seven](src/VisualStudio/MILESTONE-7.md) and
+[milestone eleven](src/VisualStudio/MILESTONE-11.md), iterations 27–29.
+Existing internal Preview identifiers remain unchanged.
+
+### Original proposal and design history
+
 Proposed on 2026-10-08; no milestone assigned.
 
 Extract the existing preview section from the designer UI into a separate view.
@@ -274,6 +328,14 @@ Open questions:
 
 ## Alarm-list table preview
 
+**Implemented in Alarm Summary:** resolved rows, scope selection, sorting,
+persisted column preferences, multiline procedures and generated collection
+presentation. See [milestone seven](src/VisualStudio/MILESTONE-7.md) and
+[milestone eleven](src/VisualStudio/MILESTONE-11.md). Summary templates inspect
+resolved data independently of document/PDF layout.
+
+### Original proposal and design history
+
 Proposed on 2026-10-08; no milestone assigned.
 
 Add an Excel-style table preview of the alarm list, with one alarm per row and
@@ -289,6 +351,13 @@ Open questions:
 - Which sorting, filtering, column arrangement, and copy operations are useful?
 
 ## Procedure groups and splitter UI refinements
+
+**Implemented:** GroupBoxes, one editable heading, distinct always-visible
+read-only group IDs and a themed splitter grip, plus group collapse and procedure
+search. [Milestone ten](src/VisualStudio/MILESTONE-10.md), iterations 1–5, records
+scoped acceptance on both supported IDE hosts and separate historical gates.
+
+### Original proposal and design history
 
 Assigned on 2026-10-21 to [milestone ten](src/VisualStudio/MILESTONE-10.md).
 Its confirmed contract supersedes the presentation questions below: title-like
@@ -311,6 +380,14 @@ changing the existing group or localization semantics.
 
 ## External alarm analyzers
 
+**Implemented:** explicit analyzer references, build/live analysis and diagnostic
+policy in [milestone six](src/VisualStudio/MILESTONE-6.md), with NuGet analyzer
+packages and native package presentation in [milestone nine](src/VisualStudio/MILESTONE-9.md).
+Matching analyzer contracts are required; milestone eleven extends the contract
+for generated fields and collections.
+
+### Original proposal and design history
+
 Proposed on 2026-10-08; no milestone assigned.
 
 Provide an extension interface for external alarm analyzers, similar to adding
@@ -330,6 +407,13 @@ Open questions:
   and analyzer failures be handled?
 
 ## EditorConfig and diagnostic severity
+
+**Implemented:** captured saved EditorConfig inputs, per-source settings,
+per-rule severity and shared build/live-analysis policy in
+[milestone six](src/VisualStudio/MILESTONE-6.md). Mandatory compiler errors cannot
+be suppressed or demoted. Optional `.globalconfig` support remains outside scope.
+
+### Original proposal and design history
 
 Proposed on 2026-10-09; no milestone assigned. The examples below describe future
 consumer behavior, not settings implemented by this document.
@@ -369,6 +453,13 @@ Open questions:
 
 ## Warnings as errors and NoWarn
 
+**Implemented:** `TreatWarningsAsErrors`, `WarningsAsErrors`,
+`WarningsNotAsErrors` and `NoWarn` in [milestone six](src/VisualStudio/MILESTONE-6.md).
+Policy order is rule default, file severity, NoWarn, then warning promotion.
+`ALM0001` remains mandatory: the historical example below cannot suppress it.
+
+### Original proposal and design history
+
 Proposed on 2026-10-09; no milestone assigned.
 
 Add warning controls to consumer `.almproj` projects, following the C# project
@@ -398,6 +489,13 @@ the property requires explicit Alarmlist compiler/task integration. See
 and [configuration precedence](https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/configuration-files#precedence).
 
 ## Project references
+
+**Implemented:** ProjectReference library consumption, transitive dependencies,
+consumer resolution, native reference management and saved-dependency analysis
+refresh in [milestone nine](src/VisualStudio/MILESTONE-9.md). Shared Projects
+remain a separate, unimplemented proposal.
+
+### Original proposal and design history
 
 Proposed on 2026-10-09; no milestone assigned.
 
@@ -433,6 +531,13 @@ active consumer for parameters/culture/EditorConfig, and how duplicate inclusion
 and source navigation behave. Validate command-line builds as well as the IDE.
 
 ## Custom procedure groups
+
+**Implemented:** case-insensitive stable identities, expression-capable titles,
+inheritance/Clear semantics and creation-only EditorConfig defaults in
+[milestone eight](src/VisualStudio/MILESTONE-8.md). Instructions and Reset are
+defaults rather than fixed compiler sections; settings do not rewrite existing alarms.
+
+### Original proposal and design history
 
 Accepted on 2026-10-13 for [milestone eight](src/VisualStudio/MILESTONE-8.md).
 That plan governs the named Group XML transition, case-insensitive identities,
@@ -491,6 +596,16 @@ the Roslyn options-provider API alone does not add support to `.almproj`.
 
 ## IntelliSense
 
+**Partially implemented:** applicable designer fields support reference names,
+well-known/custom properties, localization keywords, lookup/named-list expressions
+and argument suggestions. See [milestone four](src/VisualStudio/MILESTONE-4.md),
+[five](src/VisualStudio/MILESTONE-5.md) and [seven](src/VisualStudio/MILESTONE-7.md).
+Generated scalar/collection fields reuse expression controls and completion in
+[milestone eleven](src/VisualStudio/MILESTONE-11.md). Broader ALMX XML-editor
+IntelliSense remains unimplemented and unassigned.
+
+### Original proposal and design history
+
 Provide IntelliSense in input fields wherever it is applicable, including:
 
 - Suggestions appropriate to the field being edited.
@@ -510,13 +625,22 @@ broader XML IntelliSense have no assigned milestone.
 
 ## Generate syntax nodes from an external definition
 
-Assigned on 2026-10-21 to [milestone eleven](src/VisualStudio/MILESTONE-11.md).
-The plan governs fork-time end-to-end generation, typed scalar expressions,
-metadata-driven designer/preview support, defaults/validation and coordinated
-contract transitions. Custom collections and per-project schemas are excluded.
-Implemented and validated on 2026-10-23 within that scalar scope; see the milestone
-evidence and [definition authoring guide](eng/tools/AlarmDefinitionGenerator/README.md).
-The proposal and open questions below are retained as design history.
+**Implemented in [milestone eleven](src/VisualStudio/MILESTONE-11.md), including
+the completed collection and designer/Summary follow-ups.** A versioned XML
+definition drives compiler models, parsing/output, typed expressions,
+analysis/analyzer metadata, SDK integration and designer/Summary fields.
+Supported shapes include typed scalars, simple scalar collections and flat
+scalar-field record collections, with optional TestProcedure capability.
+Follow-ups add collection Summary templates, localized enum captions and an
+isolated definition playground. See the
+[definition authoring guide](eng/tools/AlarmDefinitionGenerator/README.md).
+
+Runtime per-project schemas, nested collections, keyed inherited-record overrides
+and inherited-entry reordering remain excluded. Matching rebuilt tools and
+libraries are required under the plan's compatibility contracts. Its evidence
+and separate release/manual gates remain authoritative.
+
+### Original proposal and design history
 
 Introduce a source-file generator that creates syntax nodes from an external
 definition, following the approach used by Roslyn. Useful references are Roslyn's
