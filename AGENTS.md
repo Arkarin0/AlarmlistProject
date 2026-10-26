@@ -130,6 +130,11 @@ Designer iteration 20 uses procedure-style collection entries with a shared
 Collapse and expansion preserve drafts; collapsed tooltips use current draft or
 compiler effective values, left-aligned with one field per line. View actions
 never materialize defaults or save source. Follow the milestone's acceptance gates.
+Iteration 30 encloses designer collections and their cleared entries in one border.
+Keep sticky headers bounded by their owning group in the existing alarm scroll
+area; reuse the actual header for collapse and automation. Detach scroll/layout
+subscriptions on unload and reveal keyboard-focused editors beneath the header
+without committing drafts. Do not introduce per-collection scrolling.
 The standard definition now uses version 2 with explicit TestProcedure and the
 original four fields. This changes its semantic fingerprint; rebuild libraries
 and matching tools. The interactive shortcut accepts an explicit SampleFile as

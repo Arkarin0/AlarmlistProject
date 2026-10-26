@@ -238,6 +238,11 @@ Clear. Inherited/excluded entries remain read-only; focusing defaults never writ
 source. Collection entries use aligned bordered rows with inherited adorners and
 right-aligned actions. Collapse individual entries or use Collapse entries/Expand
 entries for the collection; these view actions preserve drafts and source bytes.
+Each collection has an enclosing border, including its Cleared entries section.
+Its collapsible name/count header stays at the top of the alarm-properties scroll
+area while that collection is visible, then leaves with its group as the next
+collection arrives. All collections share the existing scrollbar. Keyboard focus
+reveals editors underneath the pinned header without changing their contents.
 Collapsed headers expose left-aligned tooltips and accessible help, one field per
 line. Local tooltips show draft expressions; inherited tooltips use compiler
 values and distinguish absent, defaulted, invalid and deferred content.

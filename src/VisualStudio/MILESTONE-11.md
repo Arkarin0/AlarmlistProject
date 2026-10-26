@@ -19,6 +19,8 @@ earlier goal's waiver. See the follow-up evidence at the end of this document.
 Iterations 28–29 are complete: editor-compatible RESX samples and dedicated
 project-pinned Summary windows. Their goal retained the 20% allowance stop and
 completed above it; validation and recovery evidence is recorded below.
+Iteration 30 is complete: bordered designer collections with bounded sticky
+headers, validated on both IDE hosts with procedures enabled and disabled.
 
 ## Outcome and confirmed scope
 
@@ -1702,3 +1704,46 @@ artifacts/log/Debug/VisualStudioUI/TestResults/393b647fee3141bc80db746ea5417d10.
 Diff, links and git diff --check passed. No remaining scoped acceptance blocker.
 OS theme/DPI checks remained excluded. Latest allowance check: 62% remaining.
 No push, merge or publication was performed.
+
+## Iteration 30 — bordered collections and sticky headers (complete)
+
+Approved scope: enclose each simple/complex collection, its commands and cleared
+entries in a theme-aware border. Keep the collection name and effective count in
+a collapsible header pinned within that group's bounds in the existing alarm
+scroll area; the next group replaces it. Preserve shared entry alignment,
+inherited adorners, source bytes, drafts, undo and selection. No compiler/SDK or
+source-format change. Detach scroll/layout subscriptions when unloaded.
+
+Validation gate: rendered editor tests for short/long/empty/collapsed groups,
+group transitions, resize/content changes, focused editors and lifecycle; relevant
+editor/package regressions and sequential VS2022/VS2026 collection scenarios.
+OS theme/DPI display checks excluded. Work on dev/milestone-11, commit after
+validation and do not push. Stop at 20% allowance remaining (97% at start).
+
+Implementation: a shared collection Expander template supplies the enclosing
+border, opaque themed header, name/count and subordinate cleared-entry separator.
+StickyCollectionHeader translates the real header inside its group; no duplicated
+controls, separate scroll area or analysis subscription. It updates for scroll and
+layout changes, reveals keyboard-focused editors and detaches on unload.
+
+Focused rendered tests passed 9 cases (artifacts/m11-iteration30-focused.log).
+Full editor regression passed 635 cases with the same three OS-display-method
+exclusions as iteration 29 (artifacts/m11-iteration30-editor.log). Package checks
+passed 13 per framework (artifacts/m11-iteration30-package.log). New rendered
+cases cover simple/complex drafts and undo, group transitions and bounds, resize,
+entry collapse, empty groups, content changes, removal and unload/reload.
+Native acceptance passed all four cases sequentially on VS2022/VS2026, procedures
+enabled (artifacts/col13/a5ab6924) and disabled (artifacts/col13/b17536dd). Each
+fixture built with zero warnings/errors; native-2022.log, native-2026.log and
+results-2022/results-2026 TRX reports retain the results. The long-list checks
+extend the existing collection editing/resource/template scenario rather than
+replacing it: actual UIA header positions remain at the shared viewport top for
+both scalar and record collections, bounded within their group, with source bytes
+unchanged and collapse still working. Existing scenarios also verify inherited
+entries, drafts, move/delete/add focus, Clear, completion and saved-resource refresh.
+Command: eng/test-alarm-collection-fork.ps1 -Designer -SkipConsumers with both
+VisualStudio2022Path and VisualStudio2026Path; outer log:
+artifacts/m11-iteration30-native.log. All checks passed without retries.
+Diff/links and git diff --check passed. No remaining scoped blocker. OS theme/DPI
+checks stayed excluded; no push, merge or publication. Final allowance check:
+90% remaining, above the requested 20% stop.

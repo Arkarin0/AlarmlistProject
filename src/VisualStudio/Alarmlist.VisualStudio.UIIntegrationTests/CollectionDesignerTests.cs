@@ -212,6 +212,45 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             }
             VisualStudioSession.Wait(() => Collection("Tags").FindFirstDescendant(cf => cf.ByName("Add Tags entry")).Properties.HasKeyboardFocus.Value,
                 "deleting last row returns focus to Add entry");
+
+            // Long simple and complex groups exercise the same real scroll host.
+            ide.Automation.Documents.Item(workspace.AlarmPath).Close(EnvDTE.vsSaveChanges.vsSaveChangesNo);
+            child.Add(new XElement("Numbers", Enumerable.Range(0, 24).Select(index => new XElement("Item", index % 10))));
+            child.Element("Checks").Add(Enumerable.Range(0, 2).Select(index => new XElement("Item", new XElement("Text", "Additional record " + index))));
+            string longSource = new XDocument(new XElement("Alarmlist", new XElement(child), new XElement(parent))).ToString();
+            File.WriteAllText(workspace.AlarmPath, longSource);
+            ide.OpenDesigner(workspace.AlarmPath);
+            VisualStudioSession.Wait(() => Collection("Numbers")?.FindAllDescendants(cf => cf.ByControlType(ControlType.Edit)).Length >= 24,
+                "long collection fixture loaded");
+            var scroll = window.FindFirstDescendant(cf => cf.ByName("Alarm settings content"));
+            var numbersHeader = Collection("Numbers").FindFirstDescendant(cf => cf.ByName("Toggle Numbers collection"));
+            var checksHeader = Collection("Checks").FindFirstDescendant(cf => cf.ByName("Toggle Checks collection"));
+            bool pinnedNumbers = false, pinnedChecks = false;
+            for (int percent = 0; percent <= 100; percent += 4)
+            {
+                scroll.Patterns.Scroll.Pattern.SetScrollPercent(-1, percent);
+                VisualStudioSession.Wait(() => Math.Abs(scroll.Patterns.Scroll.Pattern.VerticalScrollPercent.Value - percent) < 1,
+                    "collection scroll position");
+                foreach (var pair in new[] { (Name: "Numbers", Header: numbersHeader), (Name: "Checks", Header: checksHeader) })
+                {
+                    var bounds = Collection(pair.Name).BoundingRectangle;
+                    var viewport = scroll.BoundingRectangle;
+                    if (bounds.Top < viewport.Top - 80 && bounds.Bottom > viewport.Top + pair.Header.BoundingRectangle.Height + 30)
+                    {
+                        VisualStudioSession.Wait(() => Math.Abs(pair.Header.BoundingRectangle.Top - viewport.Top) < 5,
+                            pair.Name + " header stays at scroll viewport top");
+                        if (pair.Name == "Numbers") pinnedNumbers = true; else pinnedChecks = true;
+                        Assert.True(pair.Header.BoundingRectangle.Bottom <= bounds.Bottom);
+                    }
+                }
+            }
+            Assert.True(pinnedNumbers); Assert.True(pinnedChecks);
+            Assert.Equal(longSource, ide.ReadText(workspace.AlarmPath));
+            Assert.Equal(longSource, File.ReadAllText(workspace.AlarmPath));
+            checksHeader.Patterns.Toggle.Pattern.Toggle();
+            Assert.Equal(ExpandCollapseState.Collapsed, Collection("Checks").Patterns.ExpandCollapse.Pattern.ExpandCollapseState.Value);
+            checksHeader.Patterns.Toggle.Pattern.Toggle();
+            Assert.Equal(longSource, ide.ReadText(workspace.AlarmPath));
         }
     }
 }
