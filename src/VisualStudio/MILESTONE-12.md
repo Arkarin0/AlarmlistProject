@@ -159,6 +159,163 @@ fixtures sequentially, use idle experimental profiles and never close a user's I
 | 7 — Shared document context and lifecycle | Common consumer selection across designer/XML, unsaved ALMX fan-out, consumer-specific diagnostics/navigation and completion, import watches and cleanup. | 3–6 | Two-consumer automated unit/native scenarios on both hosts: different candidates/effective values, shared buffer/Undo, drafts surviving view/context changes, save/rename/import loss/recovery, configuration switches and unload during pending analysis. Summary remains project-pinned; no stale insertion or cross-consumer results. |
 | 8 — Combined acceptance and usage docs | Persistent small shared-project example, user documentation and final regression evidence. | 2–7 | Repeat packaged command-line/desktop tests and both-host end-to-end shared XML/designer workflow. Record completion latency/cancellation and lifecycle measurements against a reproducible baseline; agree acceptance thresholds in iteration 1. Record residual manual/vendor/release gates separately. |
 
+### Iteration execution details
+
+The original iteration numbers above remain stable. Execute 1–8 in order;
+dependencies in the table identify the technical prerequisites. The following
+breakdown makes each commit boundary reviewable without postponing behavior tests
+to iteration 8. This is a planning refinement, not implementation authorization.
+
+#### 1 — Native feasibility and design contract
+
+- Inspect existing native XML command routing, project selection and reference
+  management, plus relevant upstream Roslyn/Arcade patterns. Inspect installed
+  Shared Project support and completion APIs on each supported IDE host.
+- Build the smallest isolated test fixture proving ALMX completion, lookup schema
+  association, MSBuild completion coexistence and native shared-reference
+  integration. Use one shared source and two consumers; keep prototype-only assets
+  out of production registration unless they form a supported vertical slice.
+- Record the chosen integration points, required installed components, deployment
+  assets and any compiler/SDK/host contract changes. Resolve consumer-selector,
+  template and duplicate-policy decisions before dependent implementation.
+- Define repeatable completion/lifecycle measurements and acceptance thresholds
+  from the baseline. Identify exact native scenarios and automation entry points.
+- **Exit:** both-host feasibility evidence and an updated design contract in this
+  document. Existing packaged extension remains usable. If an essential feature
+  cannot be proved, record the blocker and revise the plan before proceeding.
+
+#### 2 — ALMX structural completion
+
+- Implement tolerant XML caret-context and replacement-span handling, then wire
+  completion to the existing XML text view and command chain.
+- Supply valid structural names, attributes and literal candidates from fixed
+  ALMX grammar plus generated descriptors. Include collections, record fields and
+  optional procedure capability without hard-coding the standard four fields.
+- Cover prefixes, incomplete tags/quotes, comments, namespaces, escaped values,
+  read-only content and document-version changes. Insert only the selected text;
+  opening or dismissing completion must never change source.
+- **Validation:** focused editor tests, generated-definition checks and sequential
+  native tests on both hosts for Split/XML and standalone XML views, keyboard
+  invocation/commit/dismissal, Undo/Redo and ordinary XML editing coexistence.
+- **Exit:** useful structure completion with no project analysis dependency;
+  native XML behavior and designer drafts remain intact. Document triggers and
+  commit keys with the feature.
+
+#### 3 — ALMX semantic completion
+
+- Extract reusable detached candidate construction from existing designer logic
+  only where required; retain compiler-owned semantics and existing public
+  contracts unless iteration 1 established a coordinated contract transition.
+- Map XML position to file/alarm/record scope. Offer applicable references,
+  properties/parameters, localization keys/arguments, lookups and named lists.
+  Record sibling suggestions are restricted to their record context.
+- Tie requests to document version, selected consumer and compatible analysis
+  generation. Cancel or reject stale requests and insertions; structure completion
+  remains available while semantic analysis is unavailable.
+- **Validation:** scope and candidate parity tests against existing designer
+  behavior, unsaved ALMX refresh, selected-project isolation, escaped/nested
+  expression cases and native insertion/Undo on both hosts.
+- **Exit:** semantic XML completion and designer completion use consistent input
+  semantics; invalid or stale analysis cannot supply another consumer's candidates.
+
+#### 4 — Lookup and project XML completion
+
+- Associate lookup completion with the authoritative packaged lookup XSD using
+  the supported mechanism proven in iteration 1. Do not alter authored files to
+  activate it or interpret literal lookup metadata as expressions.
+- Extend native MSBuild completion with the supported Alarmlist items, properties
+  and metadata, including shared-import authoring. Record the supported contexts
+  explicitly; retain native general MSBuild suggestions.
+- Include required schema/completion assets in packaging and add checks that
+  prevent drift between shipped assets and authoritative definitions.
+- **Validation:** editor and package-consumer tests, both-host lookup/project XML
+  keyboard scenarios, incomplete/invalid XML and unrelated XML/MSBuild regression
+  checks. Verify installed artifacts rather than only project output directories.
+- **Exit:** all three confirmed XML file types have documented, installed
+  completion behavior; any platform limitation is an explicit unresolved gate.
+
+#### 5 — Shared input build contract
+
+- Implement and document `.projitems` inclusion of ALMX, resources and lookups,
+  import-relative paths, consumer conditions and existing item metadata.
+- Apply the agreed physical-file duplicate policy consistently to build and
+  analysis capture, preserving declaration diagnostics and deterministic order.
+  Test conflicting metadata instead of silently choosing whichever import wins.
+- Capture imported items and discovery/watch inputs using existing SDK/analysis
+  boundaries. Do not execute shared project targets during IDE input capture.
+- **Validation:** isolated packaged consumers on net472/net8.0 plus desktop
+  MSBuild; two consumers with different parameters/cultures/resources, default-glob
+  overlap, repeated imports, missing/restored imports, conditional inclusion,
+  paths with spaces, library output and Build/Rebuild/Clean output preservation.
+- **Exit:** evaluated input sets and resolved output agree between build and
+  analysis. Consumers build independently of the `.shproj` being loaded; shared
+  sources produce no separate artifact. Include SDK usage documentation.
+
+#### 6 — Native Shared Project management
+
+- Add the supported Alarmlist Shared Project creation/template path and native
+  project registration selected in iteration 1.
+- Connect Add/Remove Shared Project reference to persisted consumer imports.
+  Display owned shared items and their consumer projections in Solution Explorer.
+- Support adding, opening, renaming and removing items with correct ownership;
+  reference removal must preserve the physical shared files.
+- **Validation:** packaged VSIX/template tests and sequential native scenarios on
+  both hosts: create two consumers, add/remove shared reference, edit items,
+  save/reopen solution and unload/reload. Run existing library/NuGet reference
+  regressions; verify command-line builds after IDE-authored reference changes.
+- **Exit:** native Shared Project workflows persist correctly and support all
+  three shared input types. Include user-facing creation/reference instructions.
+
+#### 7 — Shared document context and lifecycle
+
+- Implement the agreed consumer selection across designer, embedded XML and
+  standalone XML views; show unavailable/ambiguous context explicitly.
+- Fan out committed buffer changes and unsaved ALMX edits to every owning
+  consumer while retaining one physical buffer/Undo history and private drafts.
+  Keep resource/lookup saved-input behavior and Summary project pinning.
+- Attribute diagnostics/navigation to the consumer; recover watches after import
+  failure, reference removal, item rename and configuration changes. Cancel pending
+  work and detach subscriptions when documents/projects close or unload.
+- **Validation:** unit concurrency/lifecycle tests and both-host two-consumer
+  scenarios with differing candidates, effective values and diagnostics. Verify
+  context switching with drafts, shared Undo/Redo, pending-analysis unload,
+  failed-capture recovery and stale completion/navigation rejection.
+- **Exit:** no arbitrary consumer choice, cross-consumer result leakage or stale
+  edit; drafts survive view/context operations. Document context selection rules.
+
+#### 8 — Combined acceptance and usage docs
+
+- Add a small persistent Shared Project example with two consumers and shared
+  ALMX, translations and lookups; preparation must preserve user-edited sources.
+- Exercise the installed SDK/extension together: create/reference shared inputs,
+  use completion in all three file types, edit unsaved ALMX, switch consumers,
+  inspect diagnostics/Summary, save, build, reopen and remove a reference.
+- Run the relevant compiler/task/SDK downstream suites for any changed contracts
+  on both frameworks, extension unit/package suites and the combined native
+  scenarios on both hosts. Reuse prior passing evidence unless integration changes
+  require repetition; record exact commands and artifact versions.
+- Measure completion responsiveness, cancellation and lifecycle cleanup using
+  iteration 1's baseline and thresholds. Retain separately deferred release gates.
+- **Exit:** all scoped essential gates pass with evidence, examples/docs agree
+  with shipped behavior, and remaining limitations are explicit. No iteration is
+  called complete solely because its implementation is present.
+
+### Proposed defaults awaiting confirmation
+
+The earlier discussion recommended the following defaults. The owner's request
+to refine iterations does not by itself confirm these product choices:
+
+- Use the opening consumer as the initial shared-file context when it is known;
+  retain an explicit selection while the document stays open. For ambiguous opens,
+  require a choice and keep context-free structural completion available.
+- Provide an **Alarmlist Shared Project** template for ALMX, resources and lookups.
+- Include the same physical file once per consumer for equivalent repeated
+  imports. Distinct-file declaration conflicts remain compiler errors. The handling
+  of conflicting item metadata must be decided with the build-contract evidence.
+
+Iteration 1 can investigate technical feasibility before these are confirmed;
+dependent production behavior must follow the agreed decisions.
+
 ## Open decisions and implementation questions
 
 1. XML-only consumer selector: proposed reuse of the existing editor project
@@ -195,3 +352,13 @@ choices can be settled through the feasibility work within the confirmed scope.
   acceptance criteria, not evidence of passing tests or available native support.
 - Remaining gates: required design decisions, both-host feasibility, all scoped
   implementation/acceptance checks, and separately recorded release gates.
+
+### Iteration 0 — planning refinement, 2026-10-26
+
+- Expanded iterations 1–8 into concrete work, per-iteration validation and exit
+  criteria while retaining their existing identifiers and dependencies.
+- Recorded the three recommended defaults as unconfirmed proposals, separating
+  product decisions from technical feasibility work.
+- Validation: documentation diff, local Markdown links and iteration/status
+  consistency reviewed. Tests/builds were not run (documentation-only change).
+- Implementation remains unstarted; the owner's current request is planning.
