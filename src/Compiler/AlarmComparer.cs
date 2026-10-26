@@ -13,11 +13,7 @@ namespace Alarmlist.Compiler
     {
         public bool Equals(AlarmSyntaxNode x, AlarmSyntaxNode y)
         {
-            return
-                x.Name == y.Name &&
-                x.Description == y.Description &&
-                x.Code == y.Code &&
-                x.Category == y.Category;
+            return Definition.AlarmDefinition.Fields.All(field => x.GetEffectiveFieldValue(field.Name) == y.GetEffectiveFieldValue(field.Name));
             //    Equals(x.SolutionList,y.SolutionList);            
         }
 
@@ -26,10 +22,9 @@ namespace Alarmlist.Compiler
             unchecked
             {
                 var hash = 17;
-                hash = hash * 31 + (obj.Name?.GetHashCode() ?? 0);
-                hash = hash * 31 + (obj.Description?.GetHashCode() ?? 0);
-                hash = hash * 31 + (obj.Code?.GetHashCode() ?? 0);
-                return hash * 31 + (obj.Category?.GetHashCode() ?? 0);
+                foreach (var field in Definition.AlarmDefinition.Fields)
+                    hash = hash * 31 + (obj.GetEffectiveFieldValue(field.Name)?.GetHashCode() ?? 0);
+                return hash;
             }
         }
 

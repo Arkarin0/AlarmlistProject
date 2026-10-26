@@ -43,12 +43,13 @@ namespace Alarmlist.Analysis
         public IReadOnlyList<AlarmOrigin> ReferenceChain { get; }
         public IReadOnlyList<AnalyzedField> Fields { get; }
         public IReadOnlyList<AnalyzedProcedureSection> ProcedureSections { get; }
+        public IReadOnlyList<AnalyzedCollection> Collections { get; }
 
         internal AnalyzedAlarm(AlarmOrigin origin, string referenceName, bool isResolved,
             IEnumerable<AlarmOrigin> referenceChain, IEnumerable<AnalyzedField> fields,
             IEnumerable<AnalyzedProcedureSection> procedureSections, bool isAbstract,
             bool hasEvaluatedValues, IEnumerable<AnalyzedProperty> properties, IEnumerable<AnalyzedLocalizationUse> localizationUses,
-            IEnumerable<AnalyzedLookupUse> lookupUses)
+            IEnumerable<AnalyzedLookupUse> lookupUses, IEnumerable<AnalyzedCollection> collections)
         {
             Origin = origin;
             ReferenceName = referenceName;
@@ -61,11 +62,17 @@ namespace Alarmlist.Analysis
             ReferenceChain = Array.AsReadOnly(referenceChain.ToArray());
             Fields = Array.AsReadOnly(fields.ToArray());
             ProcedureSections = Array.AsReadOnly(procedureSections.ToArray());
+            Collections = Array.AsReadOnly(collections.ToArray());
         }
     }
 
     public sealed class AnalyzedField
     {
+        public string Type { get; }
+        public Definition.AlarmFieldValueState State { get; }
+        public string CanonicalValue { get; }
+        public object TypedValue { get; }
+        public bool IsDefault { get; }
         public string Name { get; }
         public bool IsPresent => LocalLocation != null;
         public string LocalValue { get; }
@@ -79,8 +86,13 @@ namespace Alarmlist.Analysis
 
         internal AnalyzedField(string name, string localValue, SourceLocation localLocation,
             string effectiveValue, AlarmOrigin definingAlarm, SourceLocation valueLocation, bool isInherited,
-            string effectiveExpression, bool isValueAvailable)
+            string effectiveExpression, bool isValueAvailable, Definition.AlarmFieldValue resolvedValue = null, string type = "String")
         {
+            Type = type;
+            State = resolvedValue?.State ?? (isValueAvailable ? (effectiveValue == null ? Definition.AlarmFieldValueState.Absent : Definition.AlarmFieldValueState.Valid) : Definition.AlarmFieldValueState.Deferred);
+            CanonicalValue = resolvedValue?.CanonicalText ?? (isValueAvailable ? effectiveValue : null);
+            TypedValue = resolvedValue?.Value ?? (isValueAvailable && type == "String" ? effectiveValue : null);
+            IsDefault = resolvedValue?.IsDefault == true;
             Name = name;
             LocalValue = localValue;
             LocalLocation = localLocation;

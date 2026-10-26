@@ -18,6 +18,28 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         [Fact]
+        public void AlarmSummaryExplainsItsPurposeAndKeepsExistingViewControls()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession())
+                using (var host = ExpressionHost())
+                {
+                    var control = new PreviewControl { DataContext = session.View, Width = 1000, Height = 650 };
+                    host.RootVisual = control; InheritanceAdornerTests.Pump();
+                    Assert.Equal("Alarm Summary", AutomationProperties.GetName(control));
+                    string guidance = AutomationProperties.GetHelpText(control);
+                    Assert.Equal("Inspect resolved alarm data. Collection templates customize this summary; document and PDF layouts are defined separately.", guidance);
+                    Assert.Equal(guidance, ((TextBlock)control.FindName("SummaryGuidance")).Text);
+                    var tabs = (TabControl)control.FindName("PreviewTabs");
+                    Assert.Equal(new[] { "Alarm table", "Selected alarm", "Compiled XML" }, tabs.Items.Cast<TabItem>().Select(tab => tab.Header));
+                    Assert.Equal(new[] { "Alarm table summary", "Selected alarm summary", "Compiled XML" }, tabs.Items.Cast<TabItem>().Select(AutomationProperties.GetName));
+                    Assert.Equal(0, session.Buffer.Edits);
+                }
+            });
+        }
+
+        [Fact]
         public async Task ResolvedPreviewShowsCompleteValuesOriginsAndSurvivingExecutionOrderAsync()
         {
             using (var session = new SemanticSession(WithProcedure(ChildAlarm,

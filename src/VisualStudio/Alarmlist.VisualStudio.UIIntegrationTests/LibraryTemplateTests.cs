@@ -42,9 +42,23 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             // configuration-scoped output. Otherwise VS can display its native
             // save-changes prompt while the next editor is receiving focus.
             var apply = page.FindFirstDescendant(cf => cf.ByAutomationId("12321").And(cf.ByControlType(ControlType.Button))).AsButton();
-            Assert.True(apply.IsEnabled);
-            apply.Invoke();
-            VisualStudioSession.Wait(() => !apply.IsEnabled, "library identity properties applied");
+            VisualStudioSession.Wait(() =>
+            {
+                // VS2026 can show its save prompt as the last cell loses focus,
+                // before Apply is invoked. Accept only that known owned prompt.
+                var prompt = page.FindAllDescendants(cf => cf.ByControlType(ControlType.Window))
+                    .FirstOrDefault(candidate => candidate.FindAllDescendants(cf => cf.ByControlType(ControlType.Text))
+                        .Any(text => text.Name.Contains("Eigenschaftenseiten") || text.Name.Contains("property pages")));
+                if (prompt != null)
+                {
+                    var yes = prompt.FindFirstDescendant(cf => cf.ByAutomationId("6").And(cf.ByControlType(ControlType.Button)))?.AsButton();
+                    if (yes?.IsEnabled == true) yes.Invoke();
+                    return false;
+                }
+                if (!page.IsEnabled) return false;
+                if (apply.IsEnabled) apply.Invoke();
+                return !apply.IsEnabled;
+            }, "library identity properties applied");
             SetProperty("Library filename", "Reusable.almlib");
             page.FindFirstDescendant(cf => cf.ByAutomationId("1").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
             ide.Automation.ExecuteCommand("File.SaveAll");

@@ -31,7 +31,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     foreach (string key in new[] { "ToolWindowBackgroundBrushKey", "ComboBoxBackgroundBrushKey" }) SetThemeBrush(control, key, background);
                     ((TabControl)control.FindName("PreviewTabs")).SelectedIndex = 0;
                     host.RootVisual = control; InheritanceAdornerTests.Pump();
-                    TextBox filter = VisualChildren(control).OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Filter preview alarms");
+                    TextBox filter = VisualChildren(control).OfType<TextBox>().Single(box => AutomationProperties.GetName(box) == "Filter summary alarms");
                     Assert.True(filter.ActualWidth >= 180, "The report filter must retain usable typing space.");
                     Assert.True(filter.Focus()); filter.Text = "Child";
                     control.Width = width == 900 ? 440 : 900; InheritanceAdornerTests.Pump();
@@ -56,7 +56,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     RenderPreview(control, palette + "-preview-columns", scale);
                     session.Field("Code").Value = "Private draft";
                     InheritanceAdornerTests.Pump();
-                    Button copy = VisualChildren(control).OfType<Button>().Single(button => AutomationProperties.GetName(button) == "Copy selected preview rows");
+                    Button copy = VisualChildren(control).OfType<Button>().Single(button => AutomationProperties.GetName(button) == "Copy selected summary rows");
                     Assert.False(copy.IsEnabled); Assert.True(ToolTipService.GetShowOnDisabled(copy));
                     Assert.Contains("Select rows", UIElementAutomationPeer.CreatePeerForElement(copy).GetHelpText());
                     var help = new ToolTip { Content = copy.ToolTip, PlacementTarget = copy, Style = (Style)control.FindResource(typeof(ToolTip)) };

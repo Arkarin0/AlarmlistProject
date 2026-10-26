@@ -17,9 +17,9 @@ using Alarmlist.Text;
 
 namespace Alarmlist.Analysis
 {
-    internal sealed class SnapshotAnalyzer
+    internal sealed partial class SnapshotAnalyzer
     {
-        private static readonly string[] s_fields = { "Name", "Code", "Category", "Description" };
+        private static readonly string[] s_fields = Definition.AlarmDefinition.Fields.Select(field => field.Name).ToArray();
         private readonly Dictionary<AlarmSyntaxNode, AlarmOrigin> _alarms = new Dictionary<AlarmSyntaxNode, AlarmOrigin>();
         private readonly Dictionary<ITestProcedureItem, ProcedureEntryOrigin> _entries = new Dictionary<ITestProcedureItem, ProcedureEntryOrigin>();
         private readonly Dictionary<string, Dictionary<AlarmSyntaxNode, SectionResolution>> _sections = new Dictionary<string, Dictionary<AlarmSyntaxNode, SectionResolution>>(StringComparer.OrdinalIgnoreCase);
@@ -42,6 +42,7 @@ namespace Alarmlist.Analysis
             {
                 var origin = new AlarmOrigin(index++, alarm.FullyQualifiedName, alarm.Location, alarm.SourceFile?.Library?.Identity);
                 _alarms.Add(alarm, origin);
+                AddCollectionOrigins(alarm, origin);
                 foreach (ProcedureGroupSyntax group in alarm.TestProcedure.Groups) AddEntryOrigins(group.Entries, origin, group.Name);
             }
         }
@@ -67,7 +68,9 @@ namespace Alarmlist.Analysis
             return new AnalysisResult(sources, analyzer.GetAnalyzedAlarms(binding), diagnostics,
                 analyzer._evaluation.Culture, context.Resources.Select(resource => new AnalyzedResource(resource)),
                 catalogue.Entries.Select(entry => new AnalyzedResourceEntry(entry, catalogue.IsAmbiguous(entry))),
-                catalogue.Entries.Select(entry => entry.Key).Where(ResourceCatalogue.IsValidKey).Distinct(StringComparer.Ordinal).Select(key =>
+                catalogue.Entries.Select(entry => entry.Key).Concat(Definition.AlarmDefinition.Fields
+                    .Concat(Definition.AlarmDefinition.Collections.SelectMany(collection => collection.Fields))
+                    .SelectMany(field => field.ValueLabelKeys)).Where(ResourceCatalogue.IsValidKey).Distinct(StringComparer.Ordinal).Select(key =>
                 {
                     catalogue.TryResolve(key, analyzer._evaluation.Culture, out ResourceTranslation translation);
                     return new AnalyzedTranslation(key, analyzer._evaluation.Culture, translation?.Entry);
@@ -137,9 +140,22 @@ namespace Alarmlist.Analysis
                 AlarmSyntaxNode source = resolved ? alarm.GetFieldSource(field) : null;
                 string value = null;
                 bool available = evaluation != null && evaluation.TryGetField(field, out value);
+                var descriptor = Definition.AlarmDefinition.Fields.Single(item => item.Name == field);
+                Definition.AlarmFieldValue scalar = evaluation?.GetFieldValue(field);
+                if (scalar?.State == Definition.AlarmFieldValueState.Deferred && scalar.EvaluatedText == null) available = false;
+                if (scalar == null)
+                {
+                    string raw = source?.GetLocalFieldValue(field);
+                    PropertyExpression expression = raw == null ? null : PropertyExpression.Parse(raw);
+                    scalar = resolved && expression != null && !expression.Tokens.Any()
+                        ? Definition.AlarmFieldValue.Resolve(descriptor, raw, expression.Evaluate(_ => null), false, false)
+                        : new Definition.AlarmFieldValue(field, raw, null, null, null,
+                            resolved && (raw == null || expression != null) ? Definition.AlarmFieldValueState.Deferred : Definition.AlarmFieldValueState.Invalid, false);
+                }
                 return new AnalyzedField(field, alarm.GetLocalFieldValue(field), alarm.GetFieldLocation(field),
                     value, source == null ? null : _alarms[source],
-                    source?.GetFieldLocation(field), source != null && !ReferenceEquals(source, alarm), source?.GetLocalFieldValue(field), available);
+                    source?.GetFieldLocation(field), source != null && !ReferenceEquals(source, alarm), source?.GetLocalFieldValue(field), available,
+                    scalar, descriptor.Type);
             });
 
             return new AnalyzedAlarm(_alarms[alarm], alarm.ReferenceName, resolved, chain, fields,
@@ -148,7 +164,8 @@ namespace Alarmlist.Analysis
                 alarm.IsAbstract, evaluation?.IsAvailable == true, AnalyzeProperties(alarm, alarm.SourceFile, resolved),
                 (evaluation?.LocalizationUses ?? Enumerable.Empty<LocalizationEvaluation>()).Select(use =>
                     new AnalyzedLocalizationUse(new AnalyzedTranslation(use.Key, _evaluation.Culture, use.Entry), use.Location, use.Value)),
-                (evaluation?.LookupUses ?? Enumerable.Empty<LookupEvaluation>()).Select(use => new AnalyzedLookupUse(use)));
+                (evaluation?.LookupUses ?? Enumerable.Empty<LookupEvaluation>()).Select(use => new AnalyzedLookupUse(use)),
+                Definition.AlarmDefinition.Collections.Select(descriptor => AnalyzeCollection(alarm, descriptor, resolved)));
         }
 
         private IEnumerable<AnalyzedProperty> AnalyzeProperties(AlarmSyntaxNode alarm, AlarmSyntaxTree file, bool resolved, string filePath = null)

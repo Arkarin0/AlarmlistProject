@@ -7,7 +7,7 @@
     <Delete Files="@(_AlarmlistOldTemplateManifest);$(CreateTemplateManifestsCacheFile)" />
   </Target>
   <!-- Keep the project template pinned to the SDK package produced by this build. -->
-  <Target Name="PrepareAlarmlistTemplates" BeforeTargets="GetVsixSourceItems" DependsOnTargets="ResolveProjectReferences">
+  <Target Name="PrepareAlarmlistTemplates" BeforeTargets="GetVsixSourceItems" DependsOnTargets="ResolveProjectReferences;BuildAlarmlistDefinitionGenerator">
     <MSBuild Projects="$(MSBuildThisFileDirectory)../../src/SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj"
              Targets="GetSdkPackagePath" Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
       <Output TaskParameter="TargetOutputs" ItemName="_AlarmlistTemplateSdk" />
@@ -19,6 +19,11 @@
       <_AlarmlistTemplateFile Include="Templates/**/*" />
     </ItemGroup>
     <Copy SourceFiles="@(_AlarmlistTemplateFile)" DestinationFiles="@(_AlarmlistTemplateFile->'$(_AlarmlistTemplateRoot)%(RecursiveDir)%(Filename)%(Extension)')" />
+    <ItemGroup>
+      <_AlarmlistSourceTemplate Include="Templates/**/*.almx" />
+    </ItemGroup>
+    <Exec Command="&quot;$(_AlarmlistDotNet)&quot; &quot;@(_AlarmlistGeneratorOutput)&quot; &quot;$(AlarmlistDefinitionFile)&quot; &quot;$(_AlarmlistTemplateRoot)%(_AlarmlistSourceTemplate.RecursiveDir)%(_AlarmlistSourceTemplate.Filename)%(_AlarmlistSourceTemplate.Extension)&quot; template &quot;%(_AlarmlistSourceTemplate.Identity)&quot;" />
+    <Delete Files="$(_AlarmlistTemplateRoot)%(_AlarmlistSourceTemplate.RecursiveDir)%(_AlarmlistSourceTemplate.Filename)%(_AlarmlistSourceTemplate.Extension).lock" />
     <ReadLinesFromFile File="Templates/Projects/Alarmlist/Alarmlist.almproj">
       <Output TaskParameter="Lines" ItemName="_AlarmlistProjectTemplateLines" />
     </ReadLinesFromFile>

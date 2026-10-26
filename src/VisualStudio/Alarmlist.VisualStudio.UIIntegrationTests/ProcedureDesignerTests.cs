@@ -166,15 +166,58 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == beforeCopy, "section copy Undo restores source exactly");
             CheckGroupAuthoring(ide, workspace, window);
             CheckCreationDefaults(ide, workspace, window);
+            CheckStickyProcedureHeaders(ide, workspace, window);
             Assert.Equal(disk, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllText(workspace.OutputPath));
+        }
+
+        private static void CheckStickyProcedureHeaders(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
+        {
+            string source = new XDocument(new XElement("Alarmlist", new XElement("Alarm", new XElement("FullyQualifiedName", "Sticky"),
+                new XElement("TestProcedure", Enumerable.Range(1, 3).Select(group => new XElement("Group", new XAttribute("Name", "Stage" + group),
+                    new XElement("Title", "Stage " + group), Enumerable.Range(1, 15).Select(index => new XElement("Step", "Step " + index)))))))).ToString();
+            VisualStudioSession.Wait(() => VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, workspace.AlarmPath, source), "sticky procedure fixture");
+            ide.OpenDesigner(workspace.AlarmPath);
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Sticky").And(cf.ByControlType(ControlType.ListItem))) != null,
+                "sticky alarm selection");
+            window.FindFirstDescendant(cf => cf.ByName("Sticky").And(cf.ByControlType(ControlType.ListItem))).Patterns.SelectionItem.Pattern.Select();
+            AutomationElement outer = null;
+            VisualStudioSession.Wait(() => (outer = window.FindFirstDescendant(cf => cf.ByName("Toggle Test procedure collection"))) != null
+                && window.FindFirstDescendant(cf => cf.ByName("Procedure group Stage3")) != null, "sticky procedure groups");
+            var scroll = window.FindFirstDescendant(cf => cf.ByName("Alarm settings content"));
+            var seen = new System.Collections.Generic.HashSet<string>();
+            for (int percent = 0; percent <= 100; percent += 4)
+            {
+                scroll.Patterns.Scroll.Pattern.SetScrollPercent(-1, percent);
+                VisualStudioSession.Wait(() => Math.Abs(scroll.Patterns.Scroll.Pattern.VerticalScrollPercent.Value - percent) < 1, "procedure scroll position");
+                foreach (string name in new[] { "Stage1", "Stage2", "Stage3" })
+                {
+                    var group = window.FindFirstDescendant(cf => cf.ByName("Procedure group " + name));
+                    var title = group.FindFirstDescendant(cf => cf.ByName("Procedure group title"));
+                    var viewport = scroll.BoundingRectangle;
+                    var bounds = group.BoundingRectangle;
+                    if (bounds.Top < viewport.Top - 100 && bounds.Bottom > viewport.Top + 180)
+                    {
+                        VisualStudioSession.Wait(() => Math.Abs(outer.BoundingRectangle.Top - viewport.Top) < 5
+                            && title.BoundingRectangle.Top >= outer.BoundingRectangle.Bottom
+                            && title.BoundingRectangle.Top <= outer.BoundingRectangle.Bottom + 10, "nested sticky headers for " + name);
+                        Assert.True(group.FindFirstDescendant(cf => cf.ByName("Group ID: " + name)).BoundingRectangle.Bottom <= bounds.Bottom);
+                        seen.Add(name);
+                    }
+                }
+            }
+            Assert.Equal(3, seen.Count);
+            var collapse = window.FindFirstDescendant(cf => cf.ByName("Expand procedure group Stage3"));
+            collapse.Patterns.Toggle.Pattern.Toggle(); collapse.Patterns.Toggle.Pattern.Toggle();
+            outer.Patterns.Toggle.Pattern.Toggle(); outer.Patterns.Toggle.Pattern.Toggle();
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
         }
 
         private static void CheckGroupAuthoring(VisualStudioSession ide, UiTestWorkspace workspace, Window window)
         {
             // A restored floating preview can cover the designer in screenshots.
             foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             string original = ide.ReadText(workspace.AlarmPath);
             foreach (string name in new[] { "Startup", "Shutdown" })
             {

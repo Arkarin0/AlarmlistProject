@@ -6,6 +6,7 @@
     <TargetFrameworks />
     <TargetFramework>net472</TargetFramework>
     <OutputType>Library</OutputType>
+    <AlarmlistDefinitionRole>host</AlarmlistDefinitionRole>
     <UseWPF>true</UseWPF>
     <IsPackable>false</IsPackable>
     <GeneratePkgDefFile>true</GeneratePkgDefFile>

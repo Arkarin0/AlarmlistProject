@@ -19,13 +19,14 @@ namespace Alarmlist.Core
 
         public static Compiler.Alarm CreateAlarmFromSyntaxNode(Alarmlist.Syntax.AlarmSyntaxNode node)
         {
-            var alarm = new Compiler.Alarm(
-                fullyQualifiedName: node.FullyQualifiedName,
-                name: node.Name,
-                code: node.Code,
-                description: node.Description,
-                category: node.Category,
-                testProcedure: CreateTestProcedureFromSyntaxNode(node.ResolvedTestProcedures));
+            var values = Definition.AlarmDefinition.Fields.Select(field =>
+            {
+                string raw = node.GetEffectiveFieldValue(field.Name);
+                return Definition.AlarmFieldValue.Resolve(field, raw, raw ?? field.Default, false, raw == null && field.Default != null);
+            }).ToArray();
+            if (values.Any(value => value.State == Definition.AlarmFieldValueState.Invalid))
+                throw new ArgumentException("The syntax node contains invalid scalar values. Use AlarmCompiler to evaluate expressions and report diagnostics.", nameof(node));
+            var alarm = new Compiler.Alarm(node.FullyQualifiedName, Array.AsReadOnly(values), CreateTestProcedureFromSyntaxNode(node.ResolvedTestProcedures));
 
 
             return alarm;

@@ -67,8 +67,20 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 designer = window?.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)));
                 return designer != null;
             }, "loaded designer window");
+            // XML replacement leaves the caret near the abstract template. Select
+            // the concrete alarm explicitly instead of relying on initial selection.
+            // A persisted floating preview must not intercept later mouse input.
+            foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
+                if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             window.SetForeground();
             designer.Focus(); ide.RequireForeground(); designer.Click();
+            AutomationElement child = null;
+            VisualStudioSession.Wait(() => (child = window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
+                .SingleOrDefault(item => item.FindFirstDescendant(cf => cf.ByName("UI.Property").And(cf.ByControlType(ControlType.Text))) != null)) != null,
+                "concrete parameter-test alarm");
+            child.Patterns.SelectionItem.Pattern.Select();
+            Focus(ide, Box(window, "Filter alarms"));
+            VisualStudioSession.Wait(() => Box(window, "FullyQualifiedName")?.Text == "UI.Property", "selected concrete alarm");
             TextBox code = null;
             VisualStudioSession.Wait(() => (code = Box(window, "Code"))?.Text == "001", "file fallback before Build");
             Focus(ide, code);
@@ -252,7 +264,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             // focus succeeds. Normalize only the owned IDE before mouse input.
             if (!keyboard)
                 foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                    if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                    if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             TextBox cell = Box(window, scope + " name of par1");
             Focus(ide, cell);
             if (keyboard) Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);

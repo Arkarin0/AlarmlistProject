@@ -3,6 +3,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Automation;
 using Microsoft.VisualStudio.OLE.Interop;
 using Alarmlist.VisualStudio.UI;
 using Microsoft.VisualStudio;
@@ -14,7 +15,7 @@ using Constants = Microsoft.VisualStudio.OLE.Interop.Constants;
 namespace Alarmlist.VisualStudio.Editor
 {
     [Guid(WindowGuid)]
-    public sealed class AlarmlistPreviewWindow : ToolWindowPane, IVsSelectionEvents, IOleCommandTarget
+    public class AlarmlistPreviewWindow : ToolWindowPane, IVsSelectionEvents, IOleCommandTarget
     {
         public const string WindowGuid = "2c7f1b33-66f5-4831-96b1-c11cd1e28769";
         internal const int ShowCommand = 0x0200;
@@ -25,10 +26,13 @@ namespace Alarmlist.VisualStudio.Editor
         private string _projectPath;
         private IVsMonitorSelection _selection;
         private uint _cookie;
+        private ProjectPreviewViewModel.ViewState _viewState;
+        private int _selectedTab;
+        protected virtual bool IsPinned => false;
 
         public AlarmlistPreviewWindow() : base(null)
         {
-            Caption = "Alarmlist Preview";
+            Caption = "Alarm Summary";
             Content = _control;
             _context.Changed += OnContextChanged;
             _control.Loaded += OnLoaded;
@@ -46,14 +50,19 @@ namespace Alarmlist.VisualStudio.Editor
         private void OnUnloaded(object sender, RoutedEventArgs args) { ThreadHelper.ThrowIfNotOnUIThread(); StopTracking(); }
         private void OnContextChanged(object sender, EventArgs args)
         {
-            if (_project?.IsProjectSelected != true) _control.PreviewView.DataContext = _context.Source;
+            if (!IsPinned && _project?.IsProjectSelected != true) _control.PreviewView.DataContext = _context.Source;
         }
 
-        internal void SelectProject(string path)
+        internal void InitializePinnedProject(ProjectSummaryIdentity identity)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            _projectPath = path;
-            _project?.SelectProject(path);
+            if (!IsPinned || _projectPath != null) throw new InvalidOperationException("A pinned summary can only be initialized once.");
+            _projectPath = identity.ProjectPath;
+            Caption = identity.Caption;
+            AutomationProperties.SetAutomationId(_control, "ProjectAlarmSummary" + identity.Id);
+            AutomationProperties.SetName(_control, Caption);
+            if (Frame is IVsWindowFrame frame) ErrorHandler.ThrowOnFailure(frame.SetProperty((int)__VSFPROPID.VSFPROPID_Caption, Caption));
+            if (_control.IsLoaded) StartTracking();
         }
 
         private void OnScopeChanged(object sender, EventArgs args)
@@ -77,23 +86,31 @@ namespace Alarmlist.VisualStudio.Editor
         private void StartTracking()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            if (_selection != null) return;
-            _selection = GetService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
-            if (_selection == null) return;
+            if (_project != null || (IsPinned && _projectPath == null)) return;
+            if (!IsPinned)
+            {
+                _selection = GetService(typeof(SVsShellMonitorSelection)) as IVsMonitorSelection;
+                if (_selection == null) return;
+            }
             var components = (IComponentModel)GetService(typeof(SComponentModel));
-            _project = new ProjectPreviewViewModel(components.GetService<VsDesignerAnalysisFactory>().CreateProjectPreview());
+            _project = new ProjectPreviewViewModel(components.GetService<VsDesignerAnalysisFactory>().CreateProjectPreview(), IsPinned ? _projectPath : null);
             _project.ScopeChanged += OnScopeChanged;
             _control.DataContext = _project;
-            _project.SelectProject(_projectPath);
-            ErrorHandler.ThrowOnFailure(_selection.AdviseSelectionEvents(this, out _cookie));
-            ErrorHandler.ThrowOnFailure(_selection.GetCurrentElementValue((uint)VSConstants.VSSELELEMID.SEID_DocumentFrame, out object frame));
-            SelectDocument(frame);
+            if (IsPinned) OnScopeChanged(this, EventArgs.Empty); else _project.SelectProject(_projectPath);
+            _project.RestoreViewState(_viewState);
+            if (_viewState != null) _control.PreviewView.SelectedTabIndex = _selectedTab;
+            if (_selection != null)
+            {
+                ErrorHandler.ThrowOnFailure(_selection.AdviseSelectionEvents(this, out _cookie));
+                ErrorHandler.ThrowOnFailure(_selection.GetCurrentElementValue((uint)VSConstants.VSSELELEMID.SEID_DocumentFrame, out object frame));
+                SelectDocument(frame);
+            }
         }
 
         private void SelectDocument(object value)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            if (_project?.IsProjectSelected == true) return;
+            if (IsPinned || _project?.IsProjectSelected == true) return;
             object view = null;
             if (value is IVsWindowFrame frame) frame.GetProperty((int)__VSFPROPID.VSFPROPID_DocView, out view);
             _context.Select(view as IPreviewDocument);
@@ -137,6 +154,11 @@ namespace Alarmlist.VisualStudio.Editor
         private void StopTracking()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            if (_project != null)
+            {
+                _viewState = _project.CaptureViewState();
+                _selectedTab = _control.PreviewView.SelectedTabIndex;
+            }
             if (_selection != null) _selection.UnadviseSelectionEvents(_cookie);
             _selection = null;
             _cookie = 0;
@@ -166,6 +188,7 @@ namespace Alarmlist.VisualStudio.Editor
                 _control.Unloaded -= OnUnloaded;
                 _context.Changed -= OnContextChanged;
                 _context.Dispose();
+                _viewState = null;
             }
             base.Dispose(disposing);
         }

@@ -122,6 +122,38 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
+        public void RecordSiblingCompletionRecognizesItemPrefixAndRequiresCurrentInputs()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var host = ExpressionHost())
+                {
+                    bool current = true;
+                    var box = new ExpressionTextBox
+                    {
+                        Suggestions = BindingCollection.Create(new[] { new PropertyCompletion("$(item:Count)", "", "record field") }),
+                        ValidateSuggestions = () => System.Threading.Tasks.Task.FromResult(current)
+                    };
+                    host.RootVisual = box;
+                    InheritanceAdornerTests.Pump();
+                    Assert.True(box.Focus());
+                    box.Text = "$(item:c";
+                    box.CaretIndex = box.Text.Length;
+                    InheritanceAdornerTests.Pump();
+                    Assert.True(box.IsCompletionOpen);
+                    Assert.True(box.HandleCompletionKey(Key.Enter, ModifierKeys.None));
+                    InheritanceAdornerTests.Pump();
+                    Assert.Equal("$(item:Count)", box.RawText);
+                    current = false;
+                    box.Text = "$(item:C";
+                    box.CaretIndex = box.Text.Length;
+                    InheritanceAdornerTests.Pump();
+                    Assert.False(box.IsCompletionOpen);
+                }
+            });
+        }
+
+        [Fact]
         public void ParameterDraftSurvivesAnalysisAndSuppressesOldValuesAndCompletion()
         {
             using (var session = new SemanticSession(PropertyChild))

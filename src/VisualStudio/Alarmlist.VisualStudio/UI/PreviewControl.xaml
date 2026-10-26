@@ -5,9 +5,11 @@
  xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
  Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
  Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
- AutomationProperties.Name="Alarmlist Preview" PreviewKeyDown="OnPreviewKeyDown">
+ AutomationProperties.Name="Alarm Summary"
+ AutomationProperties.HelpText="Inspect resolved alarm data. Collection templates customize this summary; document and PDF layouts are defined separately."
+ PreviewKeyDown="OnPreviewKeyDown">
  <UserControl.Resources><ResourceDictionary>
-  <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /><ResourceDictionary Source="EditorHelpResources.xaml" /></ResourceDictionary.MergedDictionaries>
+  <ResourceDictionary.MergedDictionaries><ResourceDictionary Source="ProcedurePreviewResources.xaml" /><ResourceDictionary Source="EditorHelpResources.xaml" /><ResourceDictionary Source="CollectionPreviewResources.xaml" /></ResourceDictionary.MergedDictionaries>
   <Style TargetType="TextBox">
    <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
    <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
@@ -71,7 +73,7 @@
   </Style>
  </ResourceDictionary></UserControl.Resources>
  <Grid Margin="8">
-  <TextBlock Text="Open an ALMX document or choose a project in Preview scope." TextWrapping="Wrap">
+  <TextBlock Text="Open an ALMX document or choose a project in Summary scope." TextWrapping="Wrap">
    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed" />
     <Style.Triggers><DataTrigger Binding="{Binding}" Value="{x:Null}"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
    </Style></TextBlock.Style>
@@ -82,15 +84,16 @@
    </Style.Triggers></Style></DockPanel.Style>
    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,4">
     <DockPanel>
-     <TextBlock DockPanel.Dock="Right" Text="{Binding SelectedPreviewCulture, StringFormat=Preview language: {0}}" Margin="12,0,0,0" />
+     <TextBlock DockPanel.Dock="Right" Text="{Binding SelectedPreviewCulture, StringFormat=Summary language: {0}}" Margin="12,0,0,0" />
      <TextBlock Text="{Binding PreviewContext}" TextTrimming="CharacterEllipsis" ToolTip="{Binding PreviewContext}" />
     </DockPanel>
     <TextBlock Text="{Binding BufferGuidance}" TextWrapping="Wrap" Margin="0,3,0,0" />
+    <TextBlock x:Name="SummaryGuidance" Text="{Binding Path=(AutomationProperties.HelpText), RelativeSource={RelativeSource AncestorType=UserControl}}" TextWrapping="Wrap" Margin="0,3,0,0" />
     <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
    </StackPanel>
    <TabControl x:Name="PreviewTabs" Background="{Binding Background, RelativeSource={RelativeSource AncestorType=UserControl}}"
-               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="Preview views" SelectedIndex="1">
-    <TabItem Header="Alarm table" AutomationProperties.Name="Alarm table preview">
+               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="Summary views" SelectedIndex="1">
+    <TabItem Header="Alarm table" AutomationProperties.Name="Alarm table summary">
      <DockPanel Margin="8">
       <StackPanel DockPanel.Dock="Top">
        <ui:LiveStatusTextBlock Text="{Binding PreviewColumns.Error}" TextWrapping="Wrap">
@@ -98,11 +101,11 @@
          <DataTrigger Binding="{Binding PreviewColumns.Error}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
         </Style.Triggers></Style></ui:LiveStatusTextBlock.Style>
        </ui:LiveStatusTextBlock>
-       <Expander x:Name="ColumnsChooser" Header="Columns" AutomationProperties.Name="Preview columns" Margin="0,0,0,6"
+       <Expander x:Name="ColumnsChooser" Header="Columns" AutomationProperties.Name="Summary columns" Margin="0,0,0,6"
                  Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                 ToolTip="Show, hide, reorder or resize preview columns. These preferences belong to this project and user.">
+                 ToolTip="Show, hide, reorder or resize summary columns. These preferences belong to this project and user.">
         <StackPanel Margin="6">
-         <DockPanel Margin="0,0,0,6"><Button DockPanel.Dock="Right" Content="Reset layout" Command="{Binding PreviewColumns.ResetCommand}" AutomationProperties.Name="Reset preview column layout" ToolTip="Show all columns in their original order and widths." />
+         <DockPanel Margin="0,0,0,6"><Button DockPanel.Dock="Right" Content="Reset layout" Command="{Binding PreviewColumns.ResetCommand}" AutomationProperties.Name="Reset summary column layout" ToolTip="Restore the default column visibility, order and widths." />
           <ui:LiveStatusTextBlock Text="{Binding PreviewColumns.Status}" TextWrapping="Wrap" VerticalAlignment="Center" /></DockPanel>
          <ScrollViewer MaxHeight="235" VerticalScrollBarVisibility="Auto">
           <ItemsControl ItemsSource="{Binding PreviewColumns.Columns}"><ItemsControl.ItemTemplate><DataTemplate>
@@ -123,14 +126,14 @@
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
         <DockPanel>
          <TextBlock Text="Filter alarms" VerticalAlignment="Center" Margin="0,0,8,0" />
-         <TextBox Text="{Binding AlarmTableFilter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter preview alarms" ToolTip="Filter resolved values, identities and source paths" />
+         <TextBox Text="{Binding AlarmTableFilter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filter summary alarms" ToolTip="Filter resolved values, identities and source paths" />
         </DockPanel>
         <WrapPanel x:Name="PreviewTableActions" Grid.Column="1" Margin="8,0,0,0">
          <TextBlock Text="{Binding AlarmTableCount}" VerticalAlignment="Center" Margin="0,0,8,0" />
          <Button Content="Go to source" Click="OnGoToSource" Margin="0,0,6,0" Style="{StaticResource TableAction}" AutomationProperties.Name="Go to selected alarm source"
-                 ToolTip="Select a row from the current preview, then go to its source. Enter in the table also goes to source." ToolTipService.ShowOnDisabled="True" />
-         <Button Content="Copy selected rows" Click="OnCopyRows" Style="{StaticResource TableAction}" AutomationProperties.Name="Copy selected preview rows"
-                 ToolTip="Select rows from the current preview to copy the visible columns in display order. Ctrl+C in the table also copies them." ToolTipService.ShowOnDisabled="True" />
+                 ToolTip="Select a row from the current summary, then go to its source. Enter in the table also goes to source." ToolTipService.ShowOnDisabled="True" />
+         <Button Content="Copy selected rows" Click="OnCopyRows" Style="{StaticResource TableAction}" AutomationProperties.Name="Copy selected summary rows"
+                 ToolTip="Select rows from the current summary to copy the visible columns in display order. Ctrl+C in the table also copies them." ToolTipService.ShowOnDisabled="True" />
         </WrapPanel>
        </Grid>
        <ui:LiveStatusTextBlock Text="{Binding AlarmTableMessage}" TextWrapping="Wrap">
@@ -170,19 +173,11 @@
         <Setter Property="VerticalContentAlignment" Value="Top" />
         <Setter Property="BorderThickness" Value="0" />
        </Style></DataGrid.CellStyle>
-       <DataGrid.Columns>
-        <DataGridTextColumn Header="Name" Binding="{Binding Name}" SortMemberPath="Name" Width="200" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Code" Binding="{Binding Code}" SortMemberPath="Code" Width="100" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Category" Binding="{Binding Category}" SortMemberPath="Category" Width="130" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Description" Binding="{Binding Description}" SortMemberPath="Description" Width="300" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Test method" Binding="{Binding TestMethod}" SortMemberPath="TestMethod" Width="420" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Identity" Binding="{Binding Identity}" SortMemberPath="Identity" Width="220" ElementStyle="{StaticResource ReportCellText}" />
-        <DataGridTextColumn Header="Source" Binding="{Binding Source}" SortMemberPath="Source" Width="180" ElementStyle="{StaticResource ReportCellText}" />
-       </DataGrid.Columns>
+
       </DataGrid>
      </DockPanel>
     </TabItem>
-    <TabItem Header="Selected alarm" AutomationProperties.Name="Selected alarm preview">
+    <TabItem Header="Selected alarm" AutomationProperties.Name="Selected alarm summary">
      <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8">
 
             <StackPanel Margin="0,6,0,0">
@@ -213,11 +208,30 @@
                   </StackPanel>
                 </DataTemplate></ItemsControl.ItemTemplate>
               </ItemsControl>
+              <ItemsControl ItemsSource="{Binding ResolvedCollections}">
+                <ItemsControl.ItemTemplate><DataTemplate>
+                  <Expander Header="{Binding Label}" IsExpanded="True" Margin="0,0,0,10">
+                    <StackPanel><TextBlock Text="{Binding Summary}" />
+                      <ItemsControl ItemsSource="{Binding Items}"><ItemsControl.ItemTemplate><DataTemplate>
+                        <GroupBox Header="{Binding Label}" Margin="0,4">
+                          <ItemsControl ItemsSource="{Binding Fields}"><ItemsControl.ItemTemplate><DataTemplate>
+                            <StackPanel Margin="4"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                              <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" AutomationProperties.Name="{Binding Name, StringFormat=Resolved collection {0}}" />
+                              <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
+                              <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" />
+                            </StackPanel>
+                          </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </GroupBox>
+                      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </StackPanel>
+                  </Expander>
+                </DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
             </StackPanel>
 
      </ScrollViewer>
     </TabItem>
-    <TabItem Header="Compiled XML" AutomationProperties.Name="Compiled XML preview">
+    <TabItem Header="Compiled XML" AutomationProperties.Name="Compiled XML">
      <DockPanel Margin="8">
       <ui:LiveStatusTextBlock DockPanel.Dock="Top" Text="{Binding XmlPreviewMessage}" TextWrapping="Wrap" Margin="0,0,0,6" />
       <TextBox Text="{Binding CompiledXml, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas"

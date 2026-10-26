@@ -28,7 +28,7 @@ namespace Alarmlist.VisualStudio.UI
                     FocusGroup(name);
                 }
                 Notify(nameof(Error));
-            }), () => CanUseAnalysis && CurrentAlarm()?.IsResolved == true && NewGroupName.Trim().Length != 0);
+            }), () => HasTestProcedure && CanUseAnalysis && CurrentAlarm()?.IsResolved == true && NewGroupName.Trim().Length != 0);
         }
 
         private void InitializeGroupCommands(ProcedureSectionViewModel section)

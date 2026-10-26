@@ -113,7 +113,7 @@ changing package references. Missing or invalid dependencies clear stale results
 saved-file recovery triggers analysis again. Inputs and package selections are
 revalidated before results are published or used for editor actions. Reference
 choices and preview source labels show library identity/version and can be searched
-by library name. Concrete imported alarms appear in the project preview table;
+by library name. Concrete imported alarms appear in the project summary table;
 deferred values remain unavailable. Navigation into a referenced project opens
 its actual source. Package navigation opens a generated, read-only definition
 with portable origin information; it does not expose the original formatting or
@@ -160,16 +160,33 @@ preview; unsaved lookup XML remains private. Metadata provides selection guidanc
 without automatic defaults or range validation. See the [format specification](HMI-LOOKUPS.md)
 and the [North/South sample walkthrough](../../example/README.md#try-reusable-instructions-and-hmi-lookups).
 
-Open **View > Other Windows > Alarmlist Preview** for the dockable preview window.
+Open **View > Other Windows > Alarm Summary** for the dockable summary window.
+It inspects resolved alarm data. Collection templates customize this summary;
+document and PDF layouts are defined separately. The summary is not a print or
+publication preview. Existing command names (`View.AlarmlistPreview`,
+`Alarmlist.PreviewProject`), tool-window identity and saved column preferences
+remain compatible. Definition XML continues to use `Preview`, `PreviewVisible`
+and `PreviewWidth`; `AlarmlistCulture` remains the saved summary language.
 Its **Alarm table**, **Selected alarm** and **Compiled XML** tabs replace the
 designer's embedded preview sections. **Scope** defaults to **Follow active editor**,
-following its selected alarm and linked-project context. Choose a project to keep
-the preview independent of editors, or right-click a loaded Alarmlist project in
-Solution Explorer and choose **Preview alarms**. No editor or Build is required.
+following its selected alarm and linked-project context. Choose a project in Scope
+to keep this general-purpose summary independent of editors.
 Explicit project scope survives editor switches/closure and window hide; unloading
 that project clears its results and retains the selected identity until reload or
 another choice. The window's language selector works without an editor and uses
-the same CPS preview setting as the native Alarmlist toolbar.
+the same CPS summary setting as the native Alarmlist toolbar.
+
+Right-click a loaded Alarmlist project and choose **Show Alarm Summary** to open
+a **new dedicated window on every invocation**, without an editor or Build.
+Its title identifies the project, with numbered duplicates; the read-only pinned
+project label exposes the full path in its tooltip and accessible help. It cannot
+follow another editor or change project scope. Open separate windows to compare
+projects or different filtered views of the same project. Each retains its own
+filter, sorting, selected row and tab when hidden; language and saved column
+layout remain shared per project. Unloading clears results without retargeting;
+reloading restores the pinned context. Closing releases the view, and dedicated
+windows are session-only: they are not restored after an IDE restart. The View
+menu still opens the original general-purpose window.
 
 Both scopes include shared unsaved ALMX text. Follow-active mode clears during
 that editor's unapplied field drafts; explicit project mode continues to show the
@@ -193,13 +210,13 @@ available even with all columns hidden. Preferences are shared across the projec
 ALMX previews and saved in `<project>.almproj.user`, independently of configuration.
 Unrelated user properties are preserved; save failures leave the session layout
 usable and show an error. Loose files use session preferences.
-In narrow preview windows, the count and row actions wrap below the filter so
+In narrow summary windows, the count and row actions wrap below the filter so
 the filter remains usable; resizing keeps its text and keyboard focus.
 Copying revalidates saved resources/lookups and source snapshots first. Errors
 mark unavailable row values and disable compiled XML. See the scope-specific draft
 behavior above.
 
-The bridge accepts analysis contract 5 and loads the resolved SDK's net472 compiler
+The bridge accepts analysis contract 7 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off
 the UI thread, recreating the bridge after SDK/configuration changes. The project
@@ -208,10 +225,39 @@ and clears stale results immediately. Generation, text, and buffer identity chec
 guard publication. ALMX XML-only editor buffers take precedence over disk, and drafts
 that have not reached the shared buffer remain outside analysis. A context registry
 keeps linked projects separate; each view can choose its owning project context.
+The bridge compares the generated definition's full tooling fingerprint before
+semantic actions. Incompatible toolsets disable designer changes while retaining
+XML editing and existing drafts. Rebuild the compiler/SDK and extension together.
+Contract 7 copies field descriptors, scalar states, canonical values and primitive
+typed values; generated compiler or enum types never enter the host AppDomain.
+It also copies collection descriptors, procedure availability, local/effective/
+excluded entries, item/field origins and Clear exclusions. The compiler owns
+resolution and typed validation. The metadata-driven collection designer supports
+local scalar rows and flat record fields, sibling completion, local ordering and
+Clear. Inherited/excluded entries remain read-only; focusing defaults never writes
+source. Collection entries use aligned bordered rows with inherited adorners and
+right-aligned actions. Collapse individual entries or use Collapse entries/Expand
+entries for the collection; these view actions preserve drafts and source bytes.
+Each collection has an enclosing border, including its Cleared entries section.
+Its collapsible name/count header stays at the top of the alarm-properties scroll
+area while that collection is visible, then leaves with its group as the next
+collection arrives. All collections share the existing scrollbar. Keyboard focus
+reveals editors underneath the pinned header without changing their contents.
+This also applies to Test procedure: its header remains above the current group's
+editable title, ID and collapse control. Nested headers share the available top
+space and leave with their owning group as you scroll to the next one.
+Collapsed headers expose left-aligned tooltips and accessible help, one field per
+line. Local tooltips show draft expressions; inherited tooltips use compiler
+values and distinguish absent, defaulted, invalid and deferred content.
+Alarm Summary has one column per collection: List or Concatenated for scalar lists,
+compiled XAML templates for records, and separate resolved entry details. Cells
+initially show ten entries, with explicit expansion and complete clipboard text.
+Omitting TestProcedure from a version-2 definition hides its creation/editor and
+built-in summary column while preserving ordinary fields named TestMethod.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
-Contract 5 requires captured-context analysis and compiled preview support. It
+Contract 7 retains captured-context analysis and compiled preview support. It
 also requires library snapshot analysis. CPS captures `OutputType=Library` and
 uses that mode for the project's own editor: missing consumer values are unavailable
 in previews, without treating those missing values as invalid library definitions.
@@ -234,7 +280,7 @@ Content is recaptured before publication and navigation to reject stale results.
 Run `eng/test-visualstudio.ps1 -Filter 'Area=Localization'` with the documented
 host path/profile options to exercise saved-resource behavior in the owned IDE.
 
-The **Preview language** selector lives in the native **Alarmlist** toolbar,
+The **Summary language** selector lives in the native **Alarmlist** toolbar,
 separate from the designer. It follows the active ALMX editor and its selected
 project context, including linked files and XML views. Visual Studio manages its
 docking and customization; it is also available under **View > Toolbars > Alarmlist**.
@@ -322,7 +368,7 @@ from document contents. **Open With > XML (Text) Editor** remains available.
 Filter the alarm list by name or identifier, select an alarm, and edit its local
 `FullyQualifiedName`, `Name`, `Code`, `Category`, `Description`, or `ReferenceName`.
 The list becomes a selector when the designer pane is narrow.
-Both show resolved names in the current preview culture, including inherited
+Both show resolved names in the current summary culture, including inherited
 names. When current values are unavailable, they fall back to raw expressions or
 identifiers. Filtering matches displayed names, local raw expressions and
 identifiers. Analysis refreshes preserve an actively edited alarm and its drafts.
@@ -392,7 +438,7 @@ Input/SDK failures appear separately as analysis-unavailable warnings without AL
 codes. Neither live analysis nor its navigation saves files or writes compiled output;
 existing Build diagnostics remain owned by MSBuild.
 
-Use the preview window's **Selected alarm** tab to inspect the selected alarm's identity,
+Use the summary window's **Selected alarm** tab to inspect the selected alarm's identity,
 effective scalar values, and surviving procedure-group entries in execution
 order. Chain adorners mark inherited values; **Go to source** follows each value's
 SDK origin after revalidating the inputs. Missing values and empty sections are
@@ -805,3 +851,13 @@ checkout-based source-control provider remains unverified; the available Git
 provider's read-only workflow was exercised. Large-file parsing has not been
 benchmarked. See [milestone two](MILESTONE-2.md) for implementation decisions and
 the shared-document references.
+
+## Interactive custom-definition playground
+
+Run `scripts/start-custom-definition.bat` to build matching tools from the editable
+sample definition and open a separate experimental IDE. Pass
+`-VisualStudioVersion 2022` to select VS2022 or `-PrepareOnly` to prepare without
+opening the IDE. See [the playground guide](../../example/CustomDefinition/README.md)
+for sample edits, retained runs and isolation details. This is fork-time tooling
+customization; editing a definition inside an open project does not change its
+runtime schema.

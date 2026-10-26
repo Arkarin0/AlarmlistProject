@@ -15,6 +15,25 @@ namespace Alarmlist.MSBuild.SDK.Tests
         { _fixture = fixture; _output = output; }
 
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void IncompatibleSavedDependencyPreservesConsumerOutput(bool legacyFormat)
+        {
+            var app = _fixture.CreateTestApp("LibraryProjects");
+            app.Build(_output);
+            byte[] previous = File.ReadAllBytes(app.OutputPath);
+            string path = Path.Combine(app.WorkingDirectory, "Base", "bin", "Debug", "Base.almlib");
+            var library = XDocument.Load(path);
+            library.Root.SetAttributeValue(legacyFormat ? "FormatVersion" : "SchemaFingerprint", legacyFormat ? "1" : "foreign-schema");
+            library.Save(path);
+            var result = app.Run(_output, "/t:Build", "/p:BuildProjectReferences=false");
+            Assert.NotEqual(0, result.ExitCode);
+            Assert.Contains("ALM0028", result.Output);
+            Assert.Contains("Rebuild", result.Output);
+            Assert.Equal(previous, File.ReadAllBytes(app.OutputPath));
+        }
+
+        [Theory]
         [InlineData("/p:BuildProjectReferences=false")]
         [InlineData("/p:BuildingInsideVisualStudio=true")]
         public void TransitiveReferencesBuildAndNoBuildConsumptionPreservesLibraries(string noBuildMode)

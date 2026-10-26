@@ -138,6 +138,7 @@ namespace Alarmlist.VisualStudio.Editing
 
         private static ProcedureSectionSource RequireSection(AlmxProjection projection, AlarmSource alarm, string name)
         {
+            if (!Definition.AlarmDefinition.HasTestProcedure) throw new InvalidOperationException("TestProcedure is disabled by this toolset's definition.");
             RequireAlarm(projection, alarm);
             ProcedureSectionSource section = alarm.GetProcedureSection(name);
             if (section.Error != null) throw new InvalidOperationException(section.Error);

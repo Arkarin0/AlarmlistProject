@@ -22,6 +22,8 @@ namespace Alarmlist.VisualStudio
     [ProvideUIContextRule(ProjectSelectedContext, "Alarmlist project selected", "Project", new[] { "Project" }, new[] { "ActiveProjectCapability:Alarmlist" })]
     [ProvideOptionPage(typeof(NavigationOptions), "Alarmlist", "Navigation", 0, 0, true)]
     [ProvideToolWindow(typeof(AlarmlistPreviewWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 900, Height = 380)]
+    [ProvideToolWindow(typeof(ProjectAlarmSummaryWindow), MultiInstances = true, Transient = true,
+        Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 900, Height = 380)]
     // These editors use captured ALMX analysis, not the host's language-project
     // IntelliSense readiness. They must remain usable during dependency loading.
     [ProvideEditorFactory(typeof(AlmxEditorFactory), 111, false)]
@@ -35,6 +37,7 @@ namespace Alarmlist.VisualStudio
     {
         public const string PackageGuid = "2c4fa8f8-d641-4f5c-a7df-6cfc6bf30f34";
         public const string ProjectSelectedContext = "fa2ec571-5a83-48fc-9800-1c1bc23049d4";
+        private readonly ProjectSummaryInstances _summaries = new ProjectSummaryInstances();
         internal SourceNavigationView NavigationView
         {
             get
@@ -66,8 +69,9 @@ namespace Alarmlist.VisualStudio
                 ThreadHelper.ThrowIfNotOnUIThread();
                 string path = SelectedProject(monitor, registry);
                 if (path == null) return;
-                var window = (AlarmlistPreviewWindow)FindToolWindow(typeof(AlarmlistPreviewWindow), 0, true);
-                window.SelectProject(path);
+                ProjectSummaryIdentity identity = _summaries.Create(path);
+                var window = (ProjectAlarmSummaryWindow)FindToolWindow(typeof(ProjectAlarmSummaryWindow), identity.Id, true);
+                window.InitializePinnedProject(identity);
                 ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
             }, new CommandID(PreviewLanguageCommands.CommandSet, AlarmlistPreviewWindow.ProjectCommand));
             projectPreview.BeforeQueryStatus += (sender, args) =>
@@ -102,7 +106,10 @@ namespace Alarmlist.VisualStudio
                     || hierarchy == System.IntPtr.Zero || item != VSConstants.VSITEMID_ROOT || multi != null) return null;
                 var project = (IVsHierarchy)Marshal.GetObjectForIUnknown(hierarchy);
                 if (ErrorHandler.Failed(project.GetCanonicalName(item, out string path))) return null;
-                return registry.GetProjects().Any(service => string.Equals(service.Current.Project?.ProjectPath, path, System.StringComparison.OrdinalIgnoreCase)) ? path : null;
+                // The hierarchy can return a lower-cased canonical path. Retain
+                // the captured project's display spelling for titles and help.
+                return registry.GetProjects().Select(service => service.Current.Project?.ProjectPath)
+                    .FirstOrDefault(projectPath => string.Equals(projectPath, path, System.StringComparison.OrdinalIgnoreCase));
             }
             finally
             {

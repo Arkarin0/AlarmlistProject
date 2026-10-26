@@ -37,6 +37,8 @@
     <Reference Include="Microsoft.VisualStudio.ImageCatalog"
                HintPath="$(NuGetPackageRoot)/microsoft.visualstudio.imagecatalog/17.9.37000/lib/net472/Microsoft.VisualStudio.ImageCatalog.dll" />
     <Reference Include="System.Xaml" />
+    <Reference Include="System.Windows.Forms" />
+    <Content Include="../../../example/CustomDefinition/Translations.*.resx" Link="testassets/CustomDefinition/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <Content Include="../../SDK/Alarmlist.SDK/tools/Rules/*.xaml" Link="Rules/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

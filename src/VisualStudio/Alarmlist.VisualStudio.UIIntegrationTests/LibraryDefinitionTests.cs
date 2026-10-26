@@ -91,7 +91,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 ide.OpenDesigner(workspace.AlarmPath);
                 SelectDesigner(window);
                 ide.Automation.ExecuteCommand("View.AlarmlistPreview");
-                SelectPreviewTab(window, "Selected alarm preview");
+                SelectPreviewTab(window, "Selected alarm summary");
                 VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Packaged definition", "restored package analysis");
                 window.FindFirstDescendant(cf => cf.ByName("Go to source for resolved Name").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
                 AutomationElement definition = null;

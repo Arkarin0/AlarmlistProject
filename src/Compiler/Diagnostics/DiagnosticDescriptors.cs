@@ -4,6 +4,12 @@ namespace Alarmlist.Diagnostics
 {
     public static class DiagnosticDescriptors
     {
+        public static readonly DiagnosticDescriptor MissingEnumCaption = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.MissingEnumCaption, "Missing enum caption", "Enum caption resource '{0}' has no available translation for culture '{1}'; using its fallback label.", DiagnosticSeverity.Warning);
+        public static readonly DiagnosticDescriptor InvalidCollectionCount = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidCollectionCount, "Invalid collection count", "Alarm '{0}' has an invalid item count for collection '{1}'.", DiagnosticSeverity.Error);
+        public static readonly DiagnosticDescriptor InvalidFieldValue = new DiagnosticDescriptor(
+            DiagnosticWellKnownIds.InvalidFieldValue, "Invalid alarm field", "Alarm '{0}' has an invalid value for field '{1}'.", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidLibrary = new DiagnosticDescriptor(
             DiagnosticWellKnownIds.InvalidLibrary, "Invalid library reference", "Invalid alarm library reference: {0}", DiagnosticSeverity.Error);
         public static readonly DiagnosticDescriptor InvalidProcedureGroup = new DiagnosticDescriptor(

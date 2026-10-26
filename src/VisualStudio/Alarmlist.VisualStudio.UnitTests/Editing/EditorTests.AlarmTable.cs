@@ -19,6 +19,22 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         [Fact]
+        public void AlarmListSearchAndCompletionUseAllOrdinaryFields()
+        {
+            using (var session = new SemanticSession())
+            {
+                session.Analyze(BaseAlarm.Replace("</Code>", "</Code><Category>Inherited category needle</Category>"));
+                foreach (var field in Alarmlist.VisualStudio.Definition.AlarmDefinition.Fields)
+                    Assert.Contains(session.View.CompletionProperties, property => property.Name == "AlarmlistAlarm" + field.Name);
+                session.View.Filter = "CATEGORY NEEDLE";
+                Assert.Contains(session.View.Alarms, alarm => alarm.Identity == "Child");
+                session.View.Filter = "No matching field";
+                Assert.Empty(session.View.Alarms);
+                Assert.Equal(0, session.Buffer.Edits);
+            }
+        }
+
+        [Fact]
         public void AlarmTableRowsAreMaterializedOnlyForTheVisiblePreviewContext()
         {
             using (var session = new SemanticSession())
@@ -48,8 +64,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     .Replace("</Code>", "</Code><Category>Fire</Category><Description>Inspect $(AlarmlistAlarmCode)</Description>");
                 session.Analyze(source);
                 Assert.Equal(new[] { "Child", "Z" }, session.View.AlarmTableRows.Select(row => row.Identity));
-                Assert.Equal("Inspect Same", session.View.AlarmTableRows[0].Description);
-                Assert.Equal("Fire", session.View.AlarmTableRows[0].Category);
+                Assert.Equal("Inspect Same", session.View.AlarmTableRows[0].Column("Description"));
+                Assert.Equal("Fire", session.View.AlarmTableRows[0].Column("Category"));
                 Assert.StartsWith("Child.almx:", session.View.AlarmTableRows[0].Source);
                 Assert.IsAssignableFrom<INotifyCollectionChanged>(session.View.AlarmTableRows);
                 session.View.SortAlarmTable("Code");

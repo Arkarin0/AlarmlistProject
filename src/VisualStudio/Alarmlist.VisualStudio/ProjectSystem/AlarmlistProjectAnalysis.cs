@@ -101,12 +101,12 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 active = _active.ActiveConfiguredProject;
                 if (_analysis == null || !ReferenceEquals(expected, _analysis.Current.Project) || active == null
                     || active.ProjectConfiguration.Name != expected.Configuration)
-                    throw new InvalidOperationException("The project context changed. Choose the preview language again.");
+                    throw new InvalidOperationException("The project context changed. Choose the summary language again.");
             }
             if (expected.IsPreviewCultureGlobal)
                 throw new InvalidOperationException("AlarmlistCulture is a global property and cannot be changed in the designer.");
             if ((File.GetAttributes(expected.ProjectPath) & FileAttributes.ReadOnly) != 0)
-                throw new IOException("The project file is read-only. The preview language was not changed.");
+                throw new IOException("The project file is read-only. The summary language was not changed.");
             var properties = active.Services.ProjectPropertiesProvider.GetCommonProperties();
             // Empty dimensions persist a shared project property, independently of
             // the active build configuration and the plural build-culture list.
@@ -114,7 +114,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             await active.UnconfiguredProject.SaveAsync(null);
             string evaluated = await properties.GetEvaluatedPropertyValueAsync("AlarmlistCulture");
             if (!string.Equals(evaluated, culture, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Another project definition overrides AlarmlistCulture. The evaluated preview language remains " + evaluated + ".");
+                throw new InvalidOperationException("Another project definition overrides AlarmlistCulture. The evaluated summary language remains " + evaluated + ".");
         }
 
         // CPS can dispose the project scope without changing its capabilities.

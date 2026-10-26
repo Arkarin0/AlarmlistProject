@@ -7,6 +7,45 @@ assemblies, and their runtime dependencies.
 
 ## Use the SDK
 
+### Generated definitions and compatibility
+
+Milestone eleven uses analysis contract 7, analyzer contract 5 and library format 3.
+Rebuild old analyzers and `.almlib` artifacts with the matching toolset. Libraries
+carry a semantic definition fingerprint; a different field layout, type, default,
+required flag, bound or enum choice is incompatible. Presentation-only changes do
+not invalidate libraries. The Visual Studio extension requires the full tooling
+fingerprint to match and retains XML editing when the SDK is incompatible.
+
+Analysis exposes immutable `FieldDefinitions`, `SchemaFingerprint` and
+`ToolingFingerprint`. Each ordinary field reports its type, absent/valid/deferred/
+invalid state, canonical value, primitive typed value and whether a definition
+default supplied it. Enum values cross tool boundaries as tokens, never generated
+enum types. Analyzer inputs expose the same descriptors and semantic fingerprint;
+rules should tolerate missing or retyped ordinary fields.
+
+Version-2 definitions may also declare `SimpleCollection` (ordered scalar Items)
+and `ComplexCollection` (ordered Items containing scalar fields). Collections
+inherit entries first, append local entries and honor `<Clear />`; flat records
+are inherited whole. `$(item:FieldName)` refers to another field in the same
+record. Counts apply to effective entries in concrete applications. Defaults
+remain literal and never create items or rewrite source. Include `<TestProcedure />`
+in the definition to retain procedures; omitting it disables them. Version 1
+retains its implicit procedure capability.
+
+Analysis and analyzer inputs expose `CollectionDefinitions`, `HasTestProcedure`
+and per-alarm `Collections` with local/effective/excluded entries, typed scalar
+states, declaration origins and the Clear directive that excluded an entry.
+Libraries preserve this source and its navigation locations. Matching VSIX tools
+provide collection editing and detail preview; version-2 definitions can omit
+TestProcedure entirely. The standard definition explicitly retains it. Rebuild
+libraries and matching tools when changing definition versions or semantic fields.
+
+Definition changes are repository build inputs, not per-project configuration.
+The compiler supports typed expressions; designer fields, lists, completion and
+previews use the same metadata. See the [definition authoring guide](../../../eng/tools/AlarmDefinitionGenerator/README.md)
+for supported types, defaults, rebuilding and fork acceptance, and
+[milestone eleven](../../VisualStudio/MILESTONE-11.md) for validation evidence.
+
 ### Procedure groups and format transition
 
 Procedure sections are ordered named groups. Source entries retain Step, Hint,
@@ -33,8 +72,8 @@ This is a breaking transition: replace old Instructions/Reset elements with
 `<Group Name="Instructions">` / `<Group Name="Reset">`. Legacy elements are
 rejected. Compiled XML uses Group/Name/Title and TestProcedureItem children.
 The compiler's TestProcedure exposes Groups; detached alarm analysis exposes
-ProcedureSections with title provenance. Analysis contract 5 requires the matching
-extension; external analyzers must be rebuilt for analyzer contract 3. No migration
+ProcedureSections with title provenance. Analysis contract 7 requires the matching
+extension; external analyzers must be rebuilt for analyzer contract 5. No migration
 tool or compatibility aliases are supplied. See the
 [milestone-eight contract](../../VisualStudio/MILESTONE-8.md).
 
@@ -119,7 +158,7 @@ Configurations default to `Debug|AnyCPU` and `Release|AnyCPU`. A consumer can
 replace these defaults by declaring its own `ProjectConfiguration` items with
 `Configuration` and `Platform` metadata. The `.almproj.user` file is imported
 for CPS user settings such as Show All Files and the hidden, configuration-independent
-`AlarmlistPreviewColumnLayout`. The Preview window writes column visibility/order/width
+`AlarmlistPreviewColumnLayout`. The Alarm Summary window writes column visibility/order/width
 through CPS to this user file; these preferences do not change source or compiler
 output. Design-time builds do not compile
 or write output. Normal IDE builds always invoke MSBuild to reflect removed or
@@ -157,7 +196,7 @@ or disable default items and list your inputs explicitly:
 | `EnableDefaultAlarmlistLookupItems` | `true` |
 | `AlarmlistLookupSchema` | Packaged `tools/Schemas/AlarmlistLookup.xsd` (evaluated absolute path) |
 | `AlarmlistCultures` | `keyword` (semicolon-separated build list) |
-| `AlarmlistCulture` | `keyword` (independent shared preview selection) |
+| `AlarmlistCulture` | `keyword` (independent shared summary selection) |
 | `AlarmlistXliffSourceCulture` | `en` (export source language) |
 | `AlarmlistXliffTargetCultures` | Required for export; semicolon-separated real cultures |
 | `AlarmlistXliffOutputPath` | `$(MSBuildProjectDirectory)/xliff` |
@@ -541,7 +580,7 @@ The XSD and [complete format specification](../../VisualStudio/HMI-LOOKUPS.md)
 describe these rules. No built-in DeviceTag field, relationship validation, or
 multi-selection formatting is introduced.
 
-Analysis contract 5 adds read-only LookupLists and ArgumentBindings. Entries expose
+Analysis contract 7 adds read-only LookupLists and ArgumentBindings. Entries expose
 their literal Value, Expression, Location, ambiguity, optional DescriptionTranslation,
 and metadata; bindings expose TemplateKey, ArgumentName, ListKey and availability.
 Hosts use these detached compiler answers and revalidate saved inputs for completion.
@@ -666,7 +705,7 @@ trim and normalize entries, rejecting unsupported cultures, duplicates, and empt
 entries within a list. Output paths are
 `<OutputPath>/<culture>/<CompiledAlarmlistFileName>`, including `keyword`.
 The filename must be a basename. `AlarmlistCulture` selects the independent
-IDE preview selection; it does not alter the build list. The designer's Preview
+IDE summary selection; it does not alter the build list. The designer's Summary
 language selector persists this shared property through CPS and uses saved RESX
 contents. Resource drafts stay private until saved.
 
@@ -699,7 +738,7 @@ It shares the compiler's resolution rules and never reads or writes snapshot pat
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and returns contract 5.
+The original overload keeps its analysis-only behavior and returns contract 7.
 `AnalyzeLibrarySnapshots(snapshots, context, cancellationToken)` analyzes library
 definitions with the same deferred-value rules as library validation. Missing
 consumer values remain unavailable; syntax, structure and reference errors remain
@@ -712,7 +751,7 @@ Check IsValueAvailable and HasEvaluatedValues independently of IsResolved: an ab
 alarm or a field-dependency error can have a valid reference chain. IsAbstract marks
 templates. Alarm and source Properties contain visible custom and well-known values,
 local declaration/assignment presence, and separate declaration/value origins.
-Contract 5 adds selected `Culture`, captured `Resources` (path, version and input
+Contract 7 retains selected `Culture`, captured `Resources` (path, version and input
 culture), raw `ResourceEntries` with comments/locations/validity/ambiguity, and
 compiler-resolved `Translations` for catalogue keys. Requested and supplying
 cultures are separate. Translation `IsAvailable` means lookup succeeded, not that
@@ -725,7 +764,7 @@ ALMX usage location, evaluated Value and IsValueAvailable. Abstract or excluded
 content does not invent uses. A missing or invalid expression can retain lookup
 provenance while its evaluated value is unavailable. Results are detached and
 read-only; changing resource/culture inputs cannot mutate earlier results.
-The bridge requires contract 5 and copies this data into host-owned serializable
+The bridge requires contract 7 and copies this data into host-owned serializable
 objects. Resource filename inference is delegated to the SDK's
 `LocalizationCulture.InferResourceCulture`; explicit empty culture stays distinct.
 CPS saved-resource capture and designer localization follow in iterations six/seven.
@@ -748,7 +787,7 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 5 and a CPS
+The extension now has an isolated AppDomain bridge for contract 7 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear

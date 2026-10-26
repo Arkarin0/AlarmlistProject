@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AlarmDefinition Version="2">
+  <!-- Edit this file, then rerun scripts/start-custom-definition.bat. -->
+  <Field Name="Description" Type="String" Multiline="true" />
+  <Field Name="Code" Type="Int64" Required="true" Default="7" Minimum="0" Maximum="10" Label="Alarm number" />
+  <Field Name="Price" Type="Decimal" />
+  <Field Name="Ratio" Type="Double" PreviewVisible="false" />
+  <Field Name="Enabled" Type="Boolean" />
+  <Field Name="Priority" Type="Enum">
+    <Value Name="Low" Label="Low priority" LabelKey="Priority.Low" />
+    <Value Name="High" Label="High priority" LabelKey="Priority.High" />
+  </Field>
+  <Field Name="Day" Type="Date" />
+  <Field Name="Clock" Type="Time" />
+  <Field Name="Instant" Type="Timestamp" />
+  <Field Name="Source" Type="String" Label="Source field" Default="Ordinary source value" />
+  <Field Name="Identity" Type="String" Label="Identity field" Default="Ordinary identity value" />
+  <Field Name="TestMethod" Type="String" Label="Method field" Default="Ordinary method value" />
+  <SimpleCollection Name="Tags" Type="String" Label="Tags" MaxCount="3" Help="Ordered labels; duplicate labels are allowed."><Preview DisplayType="Concatenated" Separator=", " /></SimpleCollection>
+  <SimpleCollection Name="Numbers" Type="Int64" Required="true" Minimum="0" Maximum="10" Label="Measurements"><Preview DisplayType="List" Symbol="Number" /></SimpleCollection>
+  <ComplexCollection Name="Checks" Label="Inspection checks" MaxCount="3">
+    <Field Name="Text" Type="String" Default="Untitled check" Multiline="true" />
+    <Field Name="Count" Type="Int64" Required="true" Default="7" Minimum="0" Maximum="10" />
+    <Field Name="Copy" Type="Int64" Help="Try $(item:Count) to use another field in this record." />
+    <Field Name="Enabled" Type="Boolean" />
+    <Field Name="Priority" Type="Enum"><Value Name="Low" Label="Low priority" LabelKey="Priority.Low" /><Value Name="High" Label="High priority" LabelKey="Priority.High" /></Field>
+    <Preview DisplayType="Xaml" TemplateFile="Preview/Checks.xaml" TemplateKey="ChecksPreview" />
+  </ComplexCollection>
+</AlarmDefinition>

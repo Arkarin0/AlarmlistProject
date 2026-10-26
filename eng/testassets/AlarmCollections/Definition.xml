@@ -1,0 +1,19 @@
+<AlarmDefinition Version="2">
+  <Field Name="Code" Type="String" />
+  <Field Name="AlarmDefinition" Type="String" />
+  <SimpleCollection Name="Tags" Type="String" MaxCount="3"><Preview DisplayType="Concatenated" Separator=", " /></SimpleCollection>
+  <SimpleCollection Name="Numbers" Type="Int64" Required="true" Minimum="0" Maximum="10"><Preview DisplayType="List" Symbol="Number" /></SimpleCollection>
+  <ComplexCollection Name="Checks" MaxCount="3">
+    <Field Name="Text" Type="String" Default="$(Literal)" />
+    <Field Name="Count" Type="Int64" Required="true" Default="7" Minimum="0" Maximum="10" />
+    <Field Name="Copy" Type="Int64" />
+    <Field Name="Enabled" Type="Boolean" />
+    <Field Name="Day" Type="Date" />
+    <Field Name="Clock" Type="Time" />
+    <Field Name="Instant" Type="Timestamp" />
+    <Field Name="Price" Type="Decimal" />
+    <Field Name="Ratio" Type="Double" />
+    <Field Name="Priority" Type="Enum"><Value Name="Low" LabelKey="Priority.Low" /><Value Name="High" LabelKey="Priority.High" /></Field>
+    <Preview DisplayType="Xaml" TemplateFile="Preview/Checks.xaml" TemplateKey="ChecksPreview" />
+  </ComplexCollection>
+</AlarmDefinition>

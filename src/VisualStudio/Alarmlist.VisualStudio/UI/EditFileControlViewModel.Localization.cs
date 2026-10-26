@@ -14,9 +14,9 @@ namespace Alarmlist.VisualStudio.UI
         public IReadOnlyList<string> PreviewCultures { get; private set; } = BindingCollection.Create(new[] { "keyword" });
         public bool CanChangePreviewCulture => !_disposed && !_cultureBusy && _analysis?.Current?.Project != null
             && !_analysis.Current.Project.IsPreviewCultureGlobal;
-        public string CultureGuidance => _cultureBusy ? "Updating the project preview language."
-            : _analysis?.Current?.Project?.IsPreviewCultureGlobal == true ? "Preview language is fixed by a global project property."
-            : "Preview language is saved in this project; build cultures are unchanged.";
+        public string CultureGuidance => _cultureBusy ? "Updating the project summary language."
+            : _analysis?.Current?.Project?.IsPreviewCultureGlobal == true ? "Summary language is fixed by a global project property."
+            : "Summary language is saved in this project; build cultures are unchanged.";
         public string SelectedPreviewCulture
         {
             get => _analysis?.Current?.Response?.Snapshot?.Culture ?? _analysis?.Current?.Project?.Context.Culture ?? "keyword";
