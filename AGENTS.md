@@ -66,6 +66,104 @@ Existing plans and iteration records:
 | [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX: procedures, property fields, IntelliSense, searchable references, file/alarm scope separation and preview-table rendering/column preferences; accepted direction and open interaction details. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+[Milestone 11](src/VisualStudio/MILESTONE-11.md) plans fork-time generated alarm
+definitions across compiler, SDK and metadata-driven designer, including typed
+scalar expressions. The collection follow-up advances to analysis 7, analyzer 5
+and library format 3. Libraries require the matching semantic definition fingerprint;
+the SDK bridge requires the full tooling fingerprint and copies only detached
+metadata and primitive scalar values. Reject old libraries/analyzers with rebuild
+guidance. Mismatched toolsets retain XML editing and drafts but block designer
+changes until a compatible result arrives, including through pending refreshes.
+Ordinary designer fields use generated descriptors and shared expression controls.
+Literal helpers are explicit draft actions; focus and analysis refresh must never
+materialize inherited values or defaults. Keep template samples schema-aware and
+leave missing required values to compiler diagnostics. The isolated
+`eng/test-alarm-definition-designer.ps1` fixture validates alternate fields on both
+IDE hosts and restores standard experimental deployments; run it sequentially
+with other desktop tests. Preview columns use metadata labels/visibility and stable
+IDs; ordinary Source/Identity/TestMethod fields use `Field:<name>` IDs alongside
+the built-in columns. Sort compiler-provided typed values, preserving separate
+absent/deferred/invalid groups; never parse values again in the host. Use
+`-FullWorkflow` for fork acceptance: it adds isolated packaged project/library/
+NuGet/analyzer checks on both task hosts and enables native preview checks.
+`eng/test-alarm-definition-fork-consumers.ps1` can rerun consumer checks against
+an existing isolated fork. Keep its feeds/caches private and compile verification
+assets against the packaged compiler, not a compiler project reference.
+Do not add runtime per-project schemas or inherited-entry reordering under this scope.
+Enum Value LabelKey metadata references project RESX captions. Follow milestone 11
+iterations 24–26: compiler-owned culture/resource fallback, literal caption text,
+and configurable ALM0031 warnings for all missing configured keys in concrete
+application cultures. Keyword/library builds defer caption warnings. Keep stored
+tokens, compiled values and semantic fingerprints unchanged; transport detached
+translation results and never resolve resource inheritance in the host.
+Milestone 11 follow-up iterations 9–15 authorize an isolated interactive definition
+playground, simple scalar collections, flat scalar-field record collections and
+one optional existing TestProcedure capability. Follow the plan's version-2
+compatibility and staged capability guards; do not advertise metadata-only
+generation as end-to-end collection support. Preserve version-1 behavior and
+inherited-first/Clear semantics. Nested collections and keyed inherited-record
+overrides remain excluded.
+Iteration 11 adds version-2 collection descriptors and procedure capability
+metadata, preserving version-1 input semantic fingerprints while advancing
+the full tooling fingerprint (now generator-6 after enum caption resource keys).
+Compiler/SDK generation is enabled in iteration 13. Iteration 14 adds host
+collection editing and optional-procedure UI, removing the remaining host guard.
+Collection drafts share the atomic document transaction and reject concurrent
+changes to their source container. Keep local entry identities through moves and
+analysis refresh; inherited/excluded entries remain read-only compiler projections.
+Record completion adds sibling fields without making defaults into source values.
+Iteration 14 implemented a fixed collection-count column and separate entry
+details. The authorized iterations 16–21 replace that column with one stable
+Collection:<name> column per collection: List/Concatenated for simple collections
+and compiled WPF DataTemplates for complex collections. Follow the plan's
+presentation contract, saved-column migration and template build/validation gates.
+Templates belong to the rebuilt extension, never runtime project/library inputs;
+keep WPF and template objects out of compiler/SDK analysis boundaries.
+Milestone 11 iteration 27 names the user-facing window Alarm Summary and the
+project action Show Alarm Summary. Summary templates describe resolved data
+inspection, independently of document/PDF layout. Preserve existing internal
+Preview identifiers, command names/IDs, window GUID, XML presentation attributes,
+AlarmlistCulture and AlarmlistPreviewColumnLayout for compatibility. Use summary
+wording in user-facing language, scope, accessibility, messages and documentation.
+Designer iteration 20 uses procedure-style collection entries with a shared
+26-DIP adorner gutter, shared record-label widths and right-aligned actions.
+Collapse and expansion preserve drafts; collapsed tooltips use current draft or
+compiler effective values, left-aligned with one field per line. View actions
+never materialize defaults or save source. Follow the milestone's acceptance gates.
+Iteration 30 encloses designer collections and their cleared entries in one border.
+Keep sticky headers bounded by their owning group in the existing alarm scroll
+area; reuse the actual header for collapse and automation. Detach scroll/layout
+subscriptions on unload and reveal keyboard-focused editors beneath the header
+without committing drafts. Do not introduce per-collection scrolling.
+Iteration 31 applies the same behavior to Test procedure and its nested groups.
+Pin each group header below its sticky parent, keeping editable titles, inherited
+title adorners, stable group IDs and collapse controls visible together. Keep
+all collection kinds consistent; do not limit sticky headers to generated lists.
+The standard definition now uses version 2 with explicit TestProcedure and the
+original four fields. This changes its semantic fingerprint; rebuild libraries
+and matching tools. The interactive shortcut accepts an explicit SampleFile as
+well as DefinitionFile; the checked-in procedure-disabled pair demonstrates both.
+Never strip a user's chosen source automatically to fit a different definition.
+Iteration 12 supplies compiler collection parsing, inherited-first/Clear
+resolution, typed values and output. Record sibling expressions use $(item:FieldName)
+only in record context, including translated expressions; defaults stay literal.
+Run eng/test-alarm-collections.ps1 for isolated generated-runtime checks on both
+frameworks. Its test-only generator access must not enable partial production
+toolsets. ALM0030 cardinality failures are mandatory; library/abstract minimum and
+maximum counts defer until concrete application consumption.
+Analysis collections expose compiler-owned local/effective/excluded entries,
+per-field scalar states and item/Clear origins. Library location maps include
+containers, entries and record fields; reject forged or obsolete artifact maps.
+Use eng/test-alarm-collection-fork.ps1 for isolated procedure-enabled/disabled SDK
+package acceptance on both task hosts, including transactional collection failures.
+Its -Designer option checks both IDE hosts in AlarmlistDefinitionExp; -SkipConsumers
+selects designer-only acceptance. Supply both VisualStudio2022Path and
+VisualStudio2026Path. Run native fixtures sequentially and keep their private
+workspace paths short enough for desktop SDK extraction.
+The collection-fork fixture accepts -RootSuffix to use a different idle experimental
+profile when the usual playground is open. Never close an existing user IDE to
+deploy tests. If using AlarmlistExp, restore its standard extension afterward via
+the ordinary native fixture's deployment preparation on both hosts.
 [Milestone 10](src/VisualStudio/MILESTONE-10.md) governs procedure-group GroupBoxes,
 editable title headings, always-visible read-only group IDs and the scope splitter
 grip, plus collapsible group bodies and procedure search in follow-up iterations.
@@ -113,7 +211,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | --- | --- |
 | `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, and detached snapshot/provenance results in `Analysis/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
-| `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-3 sample rule; also a package/UI test asset. |
+| `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-5 sample rule; also a package/UI test asset. |
 | `src/shared/Configuration/` | Saved EditorConfig discovery and analyzer/dependency byte capture shared by build and IDE hosts; no compiler file I/O. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
 | `src/MSBuild/AlarmList.MSBuild.UnitTests/` | Task unit tests and mocked build-engine behavior. |
@@ -130,6 +228,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `src/shared/Unittesting/` | Shared compiler/task test helpers linked through build configuration. |
 | `eng/` | Repository build settings, version properties, and common build tooling. |
 | `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
+| `eng/tools/AlarmDefinitionGenerator/` | net8.0 build-time XML definition validation and deterministic compiler/host metadata generation; shared targets write only intermediate outputs. Its adjacent UnitTests project and `eng/test-alarm-definition-generation.ps1` cover generation and build lifecycle. |
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
 | `example/` | Persistent two-project designer playground opened by the launchers; `eng/prepare-example.ps1` prepares the SDK matching the built VSIX without replacing sample sources. |
 | `example/Libraries/` | Independent four-project library playground, including two consumers and transitive parameter/resource/lookup overrides; `eng/prepare-library-example.ps1` prepares its matching SDK without touching North/South. |
@@ -262,7 +361,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   `Configuration/` and `Diagnostics/`. Resolve options without compiler filesystem
   access. Preserve physical-source scoping, case-sensitive globs, root/unset,
   literal inline punctuation and immutable captured results. ALM0001-ALM0028
-  remain mandatory errors regardless of NoWarn or per-file severity. Determine
+  remain mandatory errors regardless of NoWarn or per-file severity. Milestone 11
+  also makes ALM0029 (scalar/required/bounds validation) and ALM0030 (collection
+  cardinality) mandatory. Definition
+  defaults remain literal and source serialization never materializes them.
+  Determine
   success after configurable warning promotion and preserve previous outputs on
   failure. See `src/VisualStudio/MILESTONE-6.md` for scope and implementation status.
 
@@ -316,10 +419,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   in editor code. The SDK's `AnalysisContract` consumer asset verifies this API
   from the restored package without a compiler project reference.
 - The optional `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` overload
-  uses the same bound inputs and normal XML output writer. Contract 5 also accepts
+  uses the same bound inputs and normal XML output writer. Contract 7 also accepts
   captured CompilationContext. Preserve raw expressions separately from evaluated
   values, abstract state, availability, and declaration/assignment origins. The
-  unreleased contracts 1, 2, 3 and 4 are no longer supported by the bridge. `CompiledXml` is unavailable
+  unreleased contracts 1, 2, 3, 4, 5 and 6 are no longer supported by the bridge. `CompiledXml` is unavailable
   on errors; in-memory previews must never save source or write build output.
   `AnalyzeLibrarySnapshots` uses deferred consumer-value validation and never
   returns final XML. Capture the root project's OutputType in the IDE analysis
@@ -333,7 +436,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   read-only and non-saving, and retain no project analysis state in open buffers.
   Project-reference navigation uses captured physical source mappings and the
   existing current-input and destination-draft checks.
-- Contract 5 localization results retain captured resource identities/versions,
+- Contract 7 localization results retain captured resource identities/versions,
   normalized selected culture, raw entries and ambiguity, compiler-owned parent
   lookup origins and per-alarm LocalizationUses. Lookup availability is distinct
   from evaluated-value availability. Keep these detached and immutable, with no
@@ -384,7 +487,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   opt-in project-local tooling; do not bundle Alarmlist.Core, add buildTransitive
   activation or discover arbitrary Roslyn analyzer/cache DLLs. Direct DLL items
   remain supported. See milestone-nine iterations 17–19 for package/tree scope.
-  Preserve saved dependency-byte capture, contract-3 detached inputs, cooperative cancellation,
+  Preserve saved dependency-byte capture, contract-5 detached inputs, cooperative cancellation,
   ALM0025 failure reporting, and diagnostic policy before output installation. The
   net472 loader must reject changed/conflicting images in an existing AppDomain;
   VS replaces the domain on payload changes, while desktop builds need a new process.
@@ -465,7 +568,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   changes through native NuGet management, not project-reference deletion.
 - The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
   SDK's net472 compiler independently of the build task runtime. The extension's
-  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-5 data
+  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-7 data
   into host-owned results. Do not load compiler types in the VS host domain, add a
   compiler project reference, or substitute another SDK on failure. Call bridge
   operations off the UI thread; owners must dispose on SDK/configuration changes
@@ -491,7 +594,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Capture saved lookup bytes only, watch regeneration/deletion, and compare captured
   text/path/order/version before publication, completion or navigation. Lookup drafts
   and close notifications must not expose unsealed changes. The bridge requires the
-  library-capable contract-5 context and copies catalogue labels, metadata, placeholder
+  library-capable contract-7 context and copies catalogue labels, metadata, placeholder
   names and usage provenance into detached host DTOs. Never parse catalogues or RESX
   templates in the IDE. Template completion inserts explicit empty named arguments;
   lookup/member/metadata completion inserts compiler-supplied expressions, with no
@@ -540,12 +643,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   prioritizing key prefixes, and inserts exact SDK-provided spelling. Never
   extend matching to translated text or template argument names, change compiler
   key identity, or bypass saved-input validation; see milestone seven's follow-up.
-- Resolved previews use SDK effective fields and surviving procedure entries.
-  The dockable Alarmlist Preview window defaults to Follow active editor through
+- Resolved summaries use SDK effective fields and surviving procedure entries.
+  The general-purpose Alarm Summary window defaults to Follow active editor through
   a weak DocumentFrame context, or explicitly selects a loaded project. Project >
-  Preview alarms pins that project without opening an editor; keep its identity
-  across editor switches/closure and window hide, never silently fall back after
-  unload. Detach on hide/close and invalidate pending actions on scope changes.
+  Show Alarm Summary creates a new session-only pinned window on each invocation
+  (milestone 11 iteration 29). Keep the general window's existing GUID/commands.
+  Dedicated windows have read-only project scope and independent filter, sort,
+  selection and tab state; language and saved columns remain shared per project.
+  Keep pinned identity across editor switches/closure and window hide; never
+  silently fall back after unload. Detach on hide/close, retaining only lightweight
+  view state, and invalidate pending actions on scope changes.
   Keep previews outside the designer; reuse CPS-owned captured project analysis
   without creating another compiler, project subscription or dummy editor.
   The alarm table excludes abstract templates and uses immutable notifying rows
@@ -559,7 +666,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   project previews include shared unsaved ALMX buffers and visibly explain that
   unapplied designer field edits are excluded; never auto-apply those drafts.
   Clear all scopes during stale/unavailable analysis; project XML requires
-  whole-project success. Require context-aware contract 5 and preview
+  whole-project success. Require context-aware contract 7 and preview
   support, and copy XML as a string outside the required property map.
 - Designer lookup caches must validate current text/version before reuse and be
   keyed by immutable analysis state, captured input, and selected source. Keep
@@ -619,6 +726,17 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   explicit sample analyzer references, and intentional nonfatal warnings. The
   preparation helper builds both analyzer runtimes into ignored example/.analyzers;
   preserve these references and validate changes through ExamplePlaygroundTests.
+- `scripts/start-custom-definition.bat` prepares the editable samples in
+  `example/CustomDefinition/` using `eng/start-custom-definition.ps1`. It builds
+  an isolated source copy under artifacts/def11, a matching SDK
+  and VSIX, and a private consumer feed/cache; use AlarmlistDefinitionExp instead
+  of replacing standard AlarmlistExp deployments. Preserve prior runs and edits.
+  The default host is VS2026; -VisualStudioVersion 2022 and -PrepareOnly are
+  supported. Definition changes take effect only after rebuilding matching tools.
+  Sample RESX files must include the standard resmimetype/version/reader/writer
+  headers used by the translations item template. Compiler acceptance alone does
+  not establish native Resource Explorer compatibility; preserve reader and
+  native editor coverage for editable resource samples (milestone 11 iteration 28).
 - The library shortcuts `scripts/start-library-project-references.bat` and
   `scripts/start-library-packages.bat` share `eng/start-library-example.ps1` and
   open `example/Libraries/Libraries.sln` (VS2026 by default, optional VS2022).
@@ -711,6 +829,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   failures can reject DTE calls. Capture UI evidence before requesting build logs.
   Native NuGet tests must await the UI's installed-state acknowledgement as well
   as saved project/assets changes before building the updated consumer.
+  Native editor scenarios must select their intended alarm explicitly when source
+  replacement or navigation can change selection. Hide or dock a persisted floating
+  preview before mouse input it could obstruct, except when the scenario explicitly
+  tests that window's placement or restoration. Preserve the functional assertions.
+  Fresh-profile metadata tests must activate their owned document when the welcome
+  page takes focus and provide a usable preview viewport before counting virtualized
+  rows. Wait for completion dismissal before cancelling its draft; do not rely on
+  back-to-back native keys or a previously persisted tool-window size.
 - Run WPF editor unit tests, native IDE functional tests and isolated WPF
   measurements sequentially. They share desktop focus even when their project
   files and experimental profiles are isolated; overlapping runs can close menus

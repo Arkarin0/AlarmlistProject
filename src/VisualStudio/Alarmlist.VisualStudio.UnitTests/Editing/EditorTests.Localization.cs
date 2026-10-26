@@ -198,7 +198,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Equal("private draft", box.Text);
                     Assert.Equal(2, box.SelectionStart);
                     Assert.Equal(3, box.SelectionLength);
-                    Assert.DoesNotContain(VisualChildren(control).OfType<ComboBox>(), item => AutomationProperties.GetName(item) == "Preview language");
+                    Assert.DoesNotContain(VisualChildren(control).OfType<ComboBox>(), item => AutomationProperties.GetName(item) == "Summary language");
                     Assert.True(shellControl.Focus());
                     Assert.True(session.View.HasPending);
                     Assert.Equal(0, session.Buffer.Edits);

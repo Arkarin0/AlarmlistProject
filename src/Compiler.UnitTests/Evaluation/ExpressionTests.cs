@@ -15,6 +15,24 @@ namespace Alarmlist.Core.UnitTests.Evaluation
     public class ExpressionTests
     {
         [Theory]
+        [InlineData("$(item:Count)")]
+        [InlineData("$(loc:Label, value=$(item:Count))")]
+        public void RecordReferencesRequireExplicitExpressionContext(string raw)
+        {
+            Assert.Null(Alarmlist.Evaluation.PropertyExpression.Parse(raw));
+            Assert.NotNull(Alarmlist.Evaluation.PropertyExpression.Parse(raw, allowItemReferences: true));
+        }
+
+        [Fact]
+        public void ExchangeProtectsRecordReferencesButNotEscapedTokens()
+        {
+            const string raw = "x $(item:Count) $$(item:Count)";
+            var span = Assert.Single(Alarmlist.Evaluation.PropertyExpression.ProtectedSpans(raw));
+            Assert.Equal("$(item:Count)", raw.Substring(span.Start, span.Length));
+            Assert.Equal(2, span.Start);
+        }
+
+        [Theory]
         [InlineData("true", true)]
         [InlineData("1", true)]
         [InlineData(" false ", false)]

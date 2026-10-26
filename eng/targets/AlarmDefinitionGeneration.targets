@@ -1,0 +1,45 @@
+<Project>
+  <PropertyGroup>
+    <AlarmlistDefinitionFile Condition="'$(AlarmlistDefinitionFile)' == ''">$(MSBuildThisFileDirectory)../../src/Compiler/Definition/AlarmDefinition.xml</AlarmlistDefinitionFile>
+    <_AlarmlistGeneratorProject>$(MSBuildThisFileDirectory)../tools/AlarmDefinitionGenerator/AlarmDefinitionGenerator.csproj</_AlarmlistGeneratorProject>
+    <_AlarmlistDotNet Condition="'$(DotNetHostPath)' != ''">$(DotNetHostPath)</_AlarmlistDotNet>
+    <_AlarmlistDotNet Condition="'$(_AlarmlistDotNet)' == ''">dotnet</_AlarmlistDotNet>
+  </PropertyGroup>
+  <!-- Tool builds share identical global properties so the MSBuild scheduler
+       builds it once, independently of the consuming target framework/host. -->
+  <Target Name="BuildAlarmlistDefinitionGenerator" Condition="'$(TargetFramework)' != ''">
+    <MSBuild Projects="$(_AlarmlistGeneratorProject)" Targets="Restore;Build"
+             RemoveProperties="TargetFramework;TargetFrameworks;DesignTimeBuild;BuildingInsideVisualStudio;BuildProjectReferences;SkipCompilerExecution;ProvideCommandLineArgs;AlarmlistDefinitionRole;AlarmlistDefinitionFile;RuntimeIdentifier;PlatformTarget"
+             Properties="Configuration=$(Configuration);TargetFramework=net8.0;BuildProjectReferences=true;DesignTimeBuild=false;BuildingInsideVisualStudio=false">
+      <Output TaskParameter="TargetOutputs" ItemName="_AlarmlistGeneratorOutput" />
+    </MSBuild>
+  </Target>
+  <Target Name="PrepareAlarmlistPreviewResources" BeforeTargets="MarkupCompilePass1;AssignTargetPaths"
+          DependsOnTargets="BuildAlarmlistDefinitionGenerator"
+          Condition="'$(AlarmlistDefinitionRole)' == 'host' and '$(TargetFramework)' != ''">
+    <PropertyGroup><_AlarmlistPreviewDirectory>$(IntermediateOutputPath)Generated/Preview</_AlarmlistPreviewDirectory></PropertyGroup>
+    <Exec Command="&quot;$(_AlarmlistDotNet)&quot; &quot;@(_AlarmlistGeneratorOutput)&quot; &quot;$(AlarmlistDefinitionFile)&quot; &quot;$(_AlarmlistPreviewDirectory)&quot; resources" />
+    <ItemGroup>
+      <_AlarmlistPreviewPage Include="$(_AlarmlistPreviewDirectory)/CollectionTemplates/**/*.xaml" />
+      <_AlarmlistPreviewAsset Include="$(_AlarmlistPreviewDirectory)/CollectionTemplates/**/*" Exclude="$(_AlarmlistPreviewDirectory)/CollectionTemplates/**/*.xaml" />
+      <Page Include="@(_AlarmlistPreviewPage)" Link="CollectionTemplates/%(_AlarmlistPreviewPage.RecursiveDir)%(_AlarmlistPreviewPage.Filename)%(_AlarmlistPreviewPage.Extension)" />
+      <Resource Include="@(_AlarmlistPreviewAsset)" Link="CollectionTemplates/%(_AlarmlistPreviewAsset.RecursiveDir)%(_AlarmlistPreviewAsset.Filename)%(_AlarmlistPreviewAsset.Extension)" />
+      <FileWrites Include="$(_AlarmlistPreviewDirectory)/**/*" />
+    </ItemGroup>
+  </Target>
+  <Target Name="GenerateAlarmlistDefinition" BeforeTargets="CoreCompile" DependsOnTargets="BuildAlarmlistDefinitionGenerator"
+          Condition="'$(TargetFramework)' != ''">
+    <PropertyGroup>
+      <_AlarmlistDefinitionOutput>$(IntermediateOutputPath)Generated/AlarmDefinition.g.cs</_AlarmlistDefinitionOutput>
+    </PropertyGroup>
+    <Error Condition="'@(_AlarmlistGeneratorOutput)' == ''" Text="The alarm definition generator could not be built." />
+    <!-- WPF's temporary type-discovery project has no markup resource stage.
+         Verify in the owning project before its final compilation. -->
+    <Exec Condition="'$(AlarmlistDefinitionRole)' == 'host' and '$(_AlarmlistPreviewDirectory)' != ''" Command="&quot;$(_AlarmlistDotNet)&quot; &quot;@(_AlarmlistGeneratorOutput)&quot; &quot;$(AlarmlistDefinitionFile)&quot; &quot;$(_AlarmlistPreviewDirectory)&quot; verify-resources" />
+    <Exec Command="&quot;$(_AlarmlistDotNet)&quot; &quot;@(_AlarmlistGeneratorOutput)&quot; &quot;$(AlarmlistDefinitionFile)&quot; &quot;$(_AlarmlistDefinitionOutput)&quot; $(AlarmlistDefinitionRole)" />
+    <ItemGroup>
+      <Compile Include="$(_AlarmlistDefinitionOutput)" />
+      <FileWrites Include="$(_AlarmlistDefinitionOutput);$(_AlarmlistDefinitionOutput).lock" />
+    </ItemGroup>
+  </Target>
+</Project>

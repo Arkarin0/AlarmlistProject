@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 
 namespace Alarmlist.VisualStudio.UI
 {
@@ -31,13 +32,42 @@ namespace Alarmlist.VisualStudio.UI
             _applyingColumns = true;
             try
             {
+                if (!AlarmTable.Columns.Select(column => column.SortMemberPath).OrderBy(id => id)
+                    .SequenceEqual(_columnLayout.Columns.Select(column => column.Id).OrderBy(id => id)))
+                {
+                    AlarmTable.Columns.Clear();
+                    foreach (PreviewColumn preference in _columnLayout.Columns)
+                    {
+                        DataGridColumn column;
+                        if (preference.Id.StartsWith("Collection:", StringComparison.Ordinal))
+                        {
+                            var content = new FrameworkElementFactory(typeof(ContentControl));
+                            content.SetBinding(ContentControl.ContentProperty, new Binding("CollectionCells[" + preference.Id.Substring(11) + "]"));
+                            content.SetValue(ContentControl.ContentTemplateProperty, FindResource("CollectionPreviewCell"));
+                            column = new DataGridTemplateColumn { CellTemplate = new DataTemplate { VisualTree = content } };
+                            var headerStyle = new Style(typeof(DataGridColumnHeader), (Style)FindResource(typeof(DataGridColumnHeader)));
+                            headerStyle.Setters.Add(new Setter(ToolTipProperty, "Drag to reorder or resize. Collection order is preserved; sorting is unavailable."));
+                            column.HeaderStyle = headerStyle;
+                        }
+                        else column = new DataGridTextColumn
+                        {
+                            Binding = new Binding("[" + preference.Id + "]"),
+                            ElementStyle = (Style)FindResource("ReportCellText")
+                        };
+                        column.Header = preference.Label; column.SortMemberPath = preference.Id;
+                        column.Width = new DataGridLength(preference.Width); column.CanUserSort = preference.CanSort;
+                        AlarmTable.Columns.Add(column);
+                    }
+                }
                 foreach (PreviewColumn preference in _columnLayout.OrderedColumns)
                 {
                     DataGridColumn column = AlarmTable.Columns.Single(item => item.SortMemberPath == preference.Id);
+                    column.Header = preference.Label;
                     column.DisplayIndex = preference.Order;
                     column.Visibility = preference.IsVisible ? Visibility.Visible : Visibility.Collapsed;
                     if (Math.Abs(column.Width.Value - preference.Width) > 0.1) column.Width = new DataGridLength(preference.Width);
                 }
+                UpdateSortArrows();
             }
             finally { _applyingColumns = false; }
         }

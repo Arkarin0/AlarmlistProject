@@ -160,7 +160,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             // A preceding preview test can restore a floating window over the
             // Error List. Normalize only this owned IDE before native menu input.
             foreach (EnvDTE.Window toolWindow in ide.Automation.Windows)
-                if (toolWindow.Caption == "Alarmlist Preview") toolWindow.Visible = false;
+                if (toolWindow.Caption == "Alarm Summary") toolWindow.Visible = false;
             ComboBox filter = null;
             VisualStudioSession.Wait(() => (filter = window.FindAllDescendants(cf => cf.ByControlType(ControlType.ComboBox))
                 .Select(element => element.AsComboBox()).SingleOrDefault(combo => combo.Name == "Generierte Probleme anzeigen"

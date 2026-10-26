@@ -29,6 +29,10 @@ namespace Alarmlist.VisualStudio.Editing
         SourceEdit MoveProcedureItem(AlmxProjection projection, AlarmSource alarm, string section, int index, int direction);
         SourceEdit UseLocalProcedureEntries(AlmxProjection projection, AlarmSource alarm, string section);
         SourceEdit MakeProcedureLocalCopy(AlmxProjection projection, AlarmSource alarm, string section, IReadOnlyList<ProcedureValueChange> entries);
+        SourceEdit SetCollectionValue(AlmxProjection projection, AlarmSource alarm, CollectionValueChange change);
+        SourceEdit AddCollectionItem(AlmxProjection projection, AlarmSource alarm, Definition.AlarmCollectionDescriptor descriptor, bool clear);
+        SourceEdit DeleteCollectionItem(AlmxProjection projection, AlarmSource alarm, Definition.AlarmCollectionDescriptor descriptor, int index);
+        SourceEdit MoveCollectionItem(AlmxProjection projection, AlarmSource alarm, Definition.AlarmCollectionDescriptor descriptor, int index, int direction);
     }
 
     [Export(typeof(IAlmxEditingService))]
@@ -77,7 +81,15 @@ namespace Alarmlist.VisualStudio.Editing
                 return field == null ? new SourceEdit(0, 0, string.Empty) : new SourceEdit(field.Start, field.End - field.Start, string.Empty);
             string content = Escape(value);
             if (field == null)
-                return InsertChild(projection.Text, alarm.Source, "<" + QualifiedName(alarm.Source, name) + ">" + content + "</" + QualifiedName(alarm.Source, name) + ">");
+            {
+                string child = "<" + QualifiedName(alarm.Source, name) + ">" + content + "</" + QualifiedName(alarm.Source, name) + ">";
+                int order = Array.IndexOf(AlarmSource.FieldNames, name);
+                XmlSourceElement next = alarm.Source.Children.FirstOrDefault(element =>
+                    Array.IndexOf(AlarmSource.FieldNames, element.Element.Name.LocalName) > order
+                    || element.Element.Name.LocalName == "TestProcedure");
+                if (next == null) return InsertChild(projection.Text, alarm.Source, child);
+                return new SourceEdit(next.Start, 0, child + Newline(projection.Text) + Indent(projection.Text, next.Start));
+            }
             if (field.IsEmpty)
             {
                 string opening = projection.Text.Substring(field.Start, field.StartTagEnd - field.Start);
@@ -103,7 +115,10 @@ namespace Alarmlist.VisualStudio.Editing
             string fieldIndent = alarmIndent + "  ";
             string alarmName = QualifiedName(projection.Root, "Alarm");
             string idName = QualifiedName(projection.Root, "FullyQualifiedName");
+            // Only the standard string Name has a creation hint. Defaults remain
+            // compiler-owned and are never materialized into authored source.
             string name = QualifiedName(projection.Root, "Name");
+            bool hasName = Definition.AlarmDefinition.Fields.Any(field => field.Name == "Name" && field.Type == "String");
             string procedure = QualifiedName(projection.Root, "TestProcedure");
             string group = QualifiedName(projection.Root, "Group");
             string title = QualifiedName(projection.Root, "Title");
@@ -111,8 +126,8 @@ namespace Alarmlist.VisualStudio.Editing
                 + (item.Value == null ? "/>" : "><" + title + ">" + Escape(item.Value) + "</" + title + "></" + group + ">")));
             return InsertChild(projection.Text, projection.Root, "<" + alarmName + ">" + newline
                 + fieldIndent + "<" + idName + ">" + identity + "</" + idName + ">" + newline
-                + fieldIndent + "<" + name + ">New alarm</" + name + ">" + newline
-                + fieldIndent + "<" + procedure + ">" + contents + "</" + procedure + ">"
+                + (hasName ? fieldIndent + "<" + name + ">New alarm</" + name + ">" + newline : "")
+                + (Definition.AlarmDefinition.HasTestProcedure ? fieldIndent + "<" + procedure + ">" + contents + "</" + procedure + ">" : "")
                 + newline + alarmIndent + "</" + alarmName + ">");
         }
 

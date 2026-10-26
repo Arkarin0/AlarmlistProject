@@ -22,6 +22,8 @@ namespace Alarmlist.Configuration
         public static ProcedureCreationSettings Resolve(AnalyzerConfiguration configuration, string filePath)
         {
             if (configuration == null) throw new ArgumentNullException(nameof(configuration));
+            if (!Definition.AlarmDefinition.HasTestProcedure)
+                return new ProcedureCreationSettings(Array.Empty<ProcedureGroupDefault>());
             const string key = "alarmlist_procedure.default_groups";
             IReadOnlyDictionary<string, string> options = configuration.GetOptionsForSourcePath(filePath);
             string[] names = options.TryGetValue(key, out string value)

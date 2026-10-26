@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,6 +22,7 @@ namespace Alarmlist.VisualStudio.UI
     internal sealed class ProjectPreviewViewModel : ObservableObject, IPreviewView, IDisposable
     {
         private readonly IDesignerAnalysis _analysis;
+        private readonly string _pinnedProjectPath;
         private readonly CancellationTokenSource _lifetime = new CancellationTokenSource();
         private ProjectAnalysisState _state;
         private IReadOnlyList<AlarmPreviewRow> _allRows = Array.Empty<AlarmPreviewRow>();
@@ -33,20 +35,24 @@ namespace Alarmlist.VisualStudio.UI
         public IReadOnlyList<PreviewScope> Scopes { get; private set; } = Array.Empty<PreviewScope>();
         public PreviewScope SelectedScope { get => Scopes.FirstOrDefault(scope => SamePath(scope.ProjectPath, _projectPath)); set { if (value != null) SelectProject(value.ProjectPath); } }
         public bool IsProjectSelected => _projectPath != null;
+        public bool IsPinned => _pinnedProjectPath != null;
+        public string PinnedProjectLabel => "Pinned project: " + Path.GetFileNameWithoutExtension(_pinnedProjectPath);
         public string ProjectPath => _projectPath;
-        public string ScopeGuidance => "Choose a project to keep its preview open when editors close, or follow the active editor. Project preview includes shared unsaved ALMX text; unapplied designer field edits are excluded.";
+        public string ScopeGuidance => IsPinned ? "This summary stays pinned to this project. Open another summary from a project's context menu."
+            : "Choose a project to keep its summary open when editors close, or follow the active editor. Project summary includes shared unsaved ALMX text; unapplied designer field edits are excluded.";
         public string PreviewContext => Current?.Project is AnalysisProject project ? project.ProjectPath + " (" + project.Configuration + ")" : _projectPath;
         public string BufferGuidance => "Current project sources, including shared unsaved ALMX text. Unapplied designer field edits are excluded.";
         public PreviewColumnLayout PreviewColumns { get; } = new PreviewColumnLayout();
         public IReadOnlyList<AlarmPreviewRow> AlarmTableRows { get; private set; } = Array.Empty<AlarmPreviewRow>();
         public string AlarmTableMessage { get; private set; }
         public string AlarmTableCount => AlarmTableRows.Count + " of " + _allRows.Count + " concrete alarms";
-        public string AlarmTableSortColumn { get; private set; } = nameof(AlarmPreviewRow.Name);
+        public string AlarmTableSortColumn { get; private set; } = PreviewColumnLayout.DefaultSortColumn;
         public bool AlarmTableSortDescending { get; private set; }
         public string Error { get; private set; }
         public bool CanUseProjectPreview => !_disposed && !_busy && _state != null && ReferenceEquals(_state, Current);
         public IReadOnlyList<ResolvedFieldViewModel> ResolvedFields { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
         public IReadOnlyList<ResolvedSectionViewModel> ResolvedSections { get; private set; } = Array.Empty<ResolvedSectionViewModel>();
+        public IReadOnlyList<ResolvedCollectionViewModel> ResolvedCollections { get; private set; } = Array.Empty<ResolvedCollectionViewModel>();
         public string ResolvedPreviewMessage { get; private set; }
         public string CompiledXml { get; private set; }
         public string XmlPreviewMessage { get; private set; }
@@ -62,17 +68,18 @@ namespace Alarmlist.VisualStudio.UI
             }
         }
 
-        public ProjectPreviewViewModel(IDesignerAnalysis analysis)
+        public ProjectPreviewViewModel(IDesignerAnalysis analysis, string pinnedProjectPath = null)
         {
             _analysis = analysis;
+            _pinnedProjectPath = pinnedProjectPath;
             _analysis.Changed += OnAnalysisChanged;
             PreviewColumns.Changed += OnColumnsChanged;
-            Refresh();
+            if (IsPinned) SelectProject(pinnedProjectPath); else Refresh();
         }
 
         public void SelectProject(string path)
         {
-            if (_disposed || SamePath(path, _projectPath)) return;
+            if (_disposed || (IsPinned && !SamePath(path, _pinnedProjectPath)) || SamePath(path, _projectPath)) return;
             _projectPath = path;
             _filter = ""; _selected = null; _selection = null; Error = null;
             InvalidatePreviewActions();
@@ -98,7 +105,8 @@ namespace Alarmlist.VisualStudio.UI
             }
             ProjectAnalysisState current = Current;
             string unavailable = !IsProjectSelected ? "Follow the active editor or choose a project."
-                : current == null ? "The selected project is not loaded. Choose a loaded project or reload it."
+                : current == null ? (IsPinned ? "The pinned project is not loaded. Reload it to restore this summary."
+                    : "The selected project is not loaded. Choose a loaded project or reload it.")
                 : current.Status != ProjectAnalysisStatus.Available || current.Response?.Snapshot == null
                     ? current.Message ?? "Waiting for current project analysis." : null;
             ProjectAnalysisState available = unavailable == null ? current : null;
@@ -108,9 +116,10 @@ namespace Alarmlist.VisualStudio.UI
             {
                 InvalidatePreviewActions();
                 _state = available;
+                var captions = EnumCaptions.From(available);
                 _allRows = available == null ? (IReadOnlyList<AlarmPreviewRow>)Array.Empty<AlarmPreviewRow>()
                     : BindingCollection.Create(available.Response.Snapshot.Alarms.Where(alarm => !alarm.IsAbstract)
-                        .Select(alarm => new AlarmPreviewRow(alarm, Navigation(available, alarm.Origin.Location))));
+                        .Select(alarm => new AlarmPreviewRow(alarm, Navigation(available, alarm.Origin.Location), captions: captions)));
                 _selected = _allRows.FirstOrDefault(row => _selection != null && row.Alarm.Origin.Index == _selection.Item2
                     && row.Identity == _selection.Item3 && SamePath(row.SourcePath, _selection.Item1));
                 RebuildRows();
@@ -140,9 +149,7 @@ namespace Alarmlist.VisualStudio.UI
         private void RebuildRows()
         {
             IEnumerable<AlarmPreviewRow> rows = _allRows.Where(row => row.Matches(_filter));
-            AlarmTableRows = BindingCollection.Create(AlarmTableSortDescending
-                ? rows.OrderByDescending(row => row.Column(AlarmTableSortColumn), StringComparer.OrdinalIgnoreCase)
-                : rows.OrderBy(row => row.Column(AlarmTableSortColumn), StringComparer.OrdinalIgnoreCase));
+            AlarmTableRows = BindingCollection.Create(AlarmPreviewRow.Sort(rows, AlarmTableSortColumn, AlarmTableSortDescending));
             if (!AlarmTableRows.Contains(_selected)) _selected = null;
             if (_state != null) RememberSelection();
             _refreshing = true;
@@ -151,9 +158,29 @@ namespace Alarmlist.VisualStudio.UI
             RefreshDetails();
         }
         private void RememberSelection() => _selection = _selected == null ? null : Tuple.Create(_selected.SourcePath, _selected.Alarm.Origin.Index, _selected.Identity);
+        internal sealed class ViewState
+        {
+            internal string ProjectPath, Filter, SortColumn;
+            internal bool SortDescending;
+            internal Tuple<string, int, string> Selection;
+        }
+        internal ViewState CaptureViewState() => new ViewState
+        {
+            ProjectPath = _projectPath, Filter = _filter, SortColumn = AlarmTableSortColumn,
+            SortDescending = AlarmTableSortDescending, Selection = _selection,
+        };
+        internal void RestoreViewState(ViewState state)
+        {
+            if (_disposed || state == null || !SamePath(state.ProjectPath, _projectPath)) return;
+            _filter = state.Filter; _selection = state.Selection;
+            if (PreviewColumns.Columns.Any(column => column.Id == state.SortColumn && column.CanSort))
+            { AlarmTableSortColumn = state.SortColumn; AlarmTableSortDescending = state.SortDescending; }
+            _state = null; InvalidatePreviewActions(); Refresh();
+            Notify(nameof(AlarmTableFilter)); Notify(nameof(AlarmTableSortColumn)); Notify(nameof(AlarmTableSortDescending));
+        }
         public void SortAlarmTable(string column)
         {
-            if (!PreviewColumns.Columns.Any(item => item.Id == column)) return;
+            if (!PreviewColumns.Columns.Any(item => item.Id == column && item.CanSort)) return;
             AlarmTableSortDescending = column == AlarmTableSortColumn && !AlarmTableSortDescending;
             AlarmTableSortColumn = column; InvalidatePreviewActions(); RebuildRows();
             Notify(nameof(AlarmTableSortColumn)); Notify(nameof(AlarmTableSortDescending));
@@ -164,20 +191,23 @@ namespace Alarmlist.VisualStudio.UI
             AnalysisAlarm alarm = _selected?.Alarm;
             ProjectAnalysisState state = _state;
             ResolvedFields = Array.Empty<ResolvedFieldViewModel>(); ResolvedSections = Array.Empty<ResolvedSectionViewModel>();
+            ResolvedCollections = Array.Empty<ResolvedCollectionViewModel>();
             ResolvedPreviewMessage = state == null ? AlarmTableMessage : alarm == null ? "Select a row in Alarm table to inspect its resolved values."
                 : !alarm.HasEvaluatedValues ? "This alarm could not be evaluated. See live project diagnostics."
-                : state.Response.Snapshot.Success ? BufferGuidance : "This alarm is resolved. Other project errors prevent compiled XML preview.";
+                : state.Response.Snapshot.Success ? BufferGuidance : "This alarm is resolved. Other project errors prevent compiled XML.";
             if (alarm?.HasEvaluatedValues == true)
             {
-                ResolvedFields = PreviewContent.Fields(alarm, location => Navigation(state, location, alarm));
+                ResolvedFields = PreviewContent.Fields(alarm, location => Navigation(state, location, alarm), EnumCaptions.From(state));
                 ResolvedSections = PreviewContent.Sections(alarm, location => Navigation(state, location, alarm));
+                ResolvedCollections = PreviewContent.Collections(alarm, location => Navigation(state, location, alarm), EnumCaptions.From(state));
             }
             CompiledXml = state?.Response.Snapshot.Success == true ? state.Response.CompiledXml : null;
             XmlPreviewMessage = state == null ? AlarmTableMessage : !state.Response.Snapshot.Success
                 ? "Compiled XML is unavailable until all project errors are resolved."
-                : CompiledXml == null ? state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML preview."
+                : CompiledXml == null ? state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML."
                 : "Read-only output for the whole project, including shared unsaved ALMX text. No output file is written.";
             Notify(nameof(ResolvedFields)); Notify(nameof(ResolvedSections)); Notify(nameof(ResolvedPreviewMessage));
+            Notify(nameof(ResolvedCollections));
             Notify(nameof(CompiledXml)); Notify(nameof(XmlPreviewMessage));
             RefreshCommands();
         }
@@ -187,6 +217,7 @@ namespace Alarmlist.VisualStudio.UI
             _selected?.GoToSourceCommand.Refresh();
             foreach (ResolvedFieldViewModel field in ResolvedFields) field.GoToSourceCommand.Refresh();
             foreach (ProcedureAnalysisRow row in ResolvedSections.SelectMany(section => section.Items)) row.GoToSourceCommand.Refresh();
+            foreach (var field in ResolvedCollections.SelectMany(collection => collection.Items).SelectMany(item => item.Fields)) field.GoToSourceCommand.Refresh();
         }
         private DelegateCommand Navigation(ProjectAnalysisState state, AnalysisLocation location, AnalysisAlarm alarm = null)
         {
@@ -228,9 +259,9 @@ namespace Alarmlist.VisualStudio.UI
 
         public IReadOnlyList<string> PreviewCultures { get; private set; } = BindingCollection.Create(new[] { "keyword" });
         public bool CanChangePreviewCulture => !_disposed && !_cultureBusy && Current?.Project != null && !Current.Project.IsPreviewCultureGlobal;
-        public string CultureGuidance => _cultureBusy ? "Updating the project preview language."
-            : Current?.Project?.IsPreviewCultureGlobal == true ? "Preview language is fixed by a global project property."
-            : "Preview language is saved in this project; build cultures are unchanged.";
+        public string CultureGuidance => _cultureBusy ? "Updating the project summary language."
+            : Current?.Project?.IsPreviewCultureGlobal == true ? "Summary language is fixed by a global project property."
+            : "Summary language is saved in this project; build cultures are unchanged.";
         public string SelectedPreviewCulture
         {
             get => Current?.Response?.Snapshot?.Culture ?? Current?.Project?.Context.Culture ?? "keyword";

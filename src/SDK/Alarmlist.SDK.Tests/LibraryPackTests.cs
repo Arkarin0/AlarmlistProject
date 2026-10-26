@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
 using Xunit;
@@ -13,6 +14,39 @@ namespace Alarmlist.MSBuild.SDK.Tests
         private readonly ITestOutputHelper _output;
         public LibraryPackTests(TestProjectFixture fixture, ITestOutputHelper output)
         { _fixture = fixture; _output = output; }
+
+        [Fact]
+        public void ForeignSchemaPackageFailsWithoutReplacingConsumerOutput()
+        {
+            var app = _fixture.CreateTestApp("LibraryProjects");
+            app.Build(_output);
+            byte[] previous = File.ReadAllBytes(app.OutputPath);
+            string feed = Path.Combine(app.WorkingDirectory, "feed");
+            var pack = app.RunProject(_output, Path.Combine(app.WorkingDirectory, "Base", "Base.almproj"),
+                "/t:Pack", "/p:PackageOutputPath=" + feed);
+            Assert.True(pack.ExitCode == 0, pack.Output);
+            using (var stream = File.Open(Path.Combine(feed, "Base.1.0.0.nupkg"), FileMode.Open, FileAccess.ReadWrite))
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Update))
+            {
+                var entry = Assert.Single(archive.Entries.Where(item => item.FullName.EndsWith(".almlib", System.StringComparison.OrdinalIgnoreCase)));
+                string name = entry.FullName;
+                XDocument document;
+                using (var content = entry.Open()) document = XDocument.Load(content);
+                document.Root.SetAttributeValue("SchemaFingerprint", "foreign-schema");
+                entry.Delete();
+                using (var content = archive.CreateEntry(name).Open()) document.Save(content);
+            }
+            string projectPath = Path.Combine(app.WorkingDirectory, "Plant.almproj");
+            var project = XDocument.Load(projectPath);
+            project.Descendants("ProjectReference").Remove();
+            project.Root.Add(new XElement("ItemGroup", new XElement("PackageReference", new XAttribute("Include", "Base"), new XAttribute("Version", "1.0.0"))));
+            project.Save(projectPath);
+            var result = app.Run(_output, "/t:Build", "/restore");
+            Assert.NotEqual(0, result.ExitCode);
+            Assert.Contains("ALM0028", result.Output);
+            Assert.Contains("Rebuild", result.Output);
+            Assert.Equal(previous, File.ReadAllBytes(app.OutputPath));
+        }
 
         [Fact]
         public void FailedLibraryBuildPreservesPreviouslyPackedPackage()

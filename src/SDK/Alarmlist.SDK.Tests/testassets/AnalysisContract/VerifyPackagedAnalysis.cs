@@ -40,7 +40,11 @@ public sealed class VerifyPackagedAnalysis : Task
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 5, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 7, "Unexpected analysis contract version.");
+        Require(((string)Value(result, "SchemaFingerprint")).Length == 64 && ((string)Value(result, "ToolingFingerprint")).Length == 64,
+            "Packaged definition fingerprints are missing.");
+        Require(Items(result, "FieldDefinitions").Select(field => (string)Value(field, "Name")).SequenceEqual(new[] { "Name", "Code", "Category", "Description" }),
+            "Packaged field metadata does not match the standard definition.");
         Require((bool)Value(result, "Success"), "Valid unsaved inputs did not resolve.");
         object creation = Value(Items(result, "Sources")[1], "ProcedureCreation");
         Require(Value(creation, "Error") == null && Items(creation, "Groups").Select(group => (string)Value(group, "Name"))
@@ -56,6 +60,8 @@ public sealed class VerifyPackagedAnalysis : Task
         object name = Items(child, "Fields").Single(field => (string)Value(field, "Name") == "Name");
         Require((bool)Value(name, "IsPresent") && (bool)Value(name, "IsInherited"), "An empty local element lost its inherited state.");
         Require((string)Value(name, "EffectiveValue") == "Inherited", "The inherited field value is incorrect.");
+        Require((string)Value(name, "Type") == "String" && Value(name, "State").ToString() == "Valid"
+            && (string)Value(name, "CanonicalValue") == "Inherited" && (string)Value(name, "TypedValue") == "Inherited", "Packaged typed field state was not retained.");
         object valueLocation = Value(name, "ValueLocation");
         Require((string)Value(valueLocation, "FilePath") == basePath && (int)Value(valueLocation, "SourceVersion") == 17,
             "The inherited field lost its defining source snapshot.");
@@ -175,7 +181,7 @@ public sealed class VerifyPackagedAnalysis : Task
             "Library ownership was not detached into analysis.");
         Require((string)Value(Value(Value(Items(imported, "Alarms").Single(), "Origin"), "Library"), "Id") == "PackagedLibrary",
             "Imported alarm ownership was lost.");
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 5 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, and compiled XML preview.");
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 7 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, and compiled XML preview.");
         return true;
     }
 

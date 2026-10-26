@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <RootNamespace>Alarmlist</RootNamespace>
+    <AlarmlistDefinitionRole>compiler</AlarmlistDefinitionRole>
   </PropertyGroup>
 
 	<ItemGroup>

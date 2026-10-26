@@ -29,16 +29,17 @@ namespace Alarmlist.Text
 
         public static bool WriteAlarmSyntaxNode(Syntax.AlarmSyntaxNode alarm, XmlWriter writer)
         {
+            if (!Definition.AlarmDefinition.HasTestProcedure && alarm.TestProcedure.Groups.Count != 0)
+                throw new InvalidOperationException("TestProcedure is disabled in this alarm definition.");
             writer.WriteStartElement(WellKnownNodeNames.Alarm);
             if (alarm.IsAbstract) writer.WriteAttributeString("abstract", "true");
             WriteProperties(alarm.Properties, writer);
             writer.WriteElementString(nameof(alarm.FullyQualifiedName), alarm.FullyQualifiedName);
             writer.WriteElementString(nameof(alarm.ReferenceName), alarm.ReferenceName);
-            writer.WriteElementString(nameof(alarm.Name), alarm.GetLocalFieldValue(nameof(alarm.Name)));
-            writer.WriteElementString(nameof(alarm.Code), alarm.GetLocalFieldValue(nameof(alarm.Code)));
-            writer.WriteElementString(nameof(alarm.Category), alarm.GetLocalFieldValue(nameof(alarm.Category)));
-            writer.WriteElementString(nameof(alarm.Description), alarm.GetLocalFieldValue(nameof(alarm.Description)));
-            WriteTestProcedureNode(alarm.TestProcedure, writer);
+            foreach (var field in Definition.AlarmDefinition.Fields)
+                writer.WriteElementString(field.Name, alarm.GetLocalFieldValue(field.Name));
+            WriteCollections(alarm, writer);
+            if (Definition.AlarmDefinition.HasTestProcedure) WriteTestProcedureNode(alarm.TestProcedure, writer);
             writer.WriteEndElement();
             return true;
         }
@@ -145,33 +146,22 @@ namespace Alarmlist.Text
                         result.ReferenceName = reader.ReadElementContentAsString();
                         break;
 
-                    case nameof(AlarmSyntaxNode.Name):
-                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
-                        result.Name = reader.ReadElementContentAsString();
-                        break;
-
-                    case nameof(AlarmSyntaxNode.Code):
-                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
-                        result.Code = reader.ReadElementContentAsString();
-                        break;
-
-                    case nameof(AlarmSyntaxNode.Category):
-                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
-                        result.Category = reader.ReadElementContentAsString();
-                        break;
-
-                    case nameof(AlarmSyntaxNode.Description):
-                        result.SetFieldLocation(reader.LocalName, GetLocation(reader, filePath, version));
-                        result.Description = reader.ReadElementContentAsString();
-                        break;
-
                     case WellKnownNodeNames.TestProcedure:
+                        if (!Definition.AlarmDefinition.HasTestProcedure)
+                            throw CollectionError(reader, "TestProcedure is disabled in this alarm definition.");
                         ReadTestProcedureNode(reader, result.TestProcedure, filePath, version);
                         break;
 
                     default:
-                        // Critical for forward compatibility
-                        reader.Skip();
+                        if (Definition.AlarmDefinition.Fields.Any(field => field.Name == reader.LocalName))
+                        {
+                            string field = reader.LocalName;
+                            result.SetFieldLocation(field, GetLocation(reader, filePath, version));
+                            result.SetLocalFieldValue(field, reader.ReadElementContentAsString());
+                        }
+                        else if (Definition.AlarmDefinition.Collections.FirstOrDefault(collection => collection.Name == reader.LocalName) is Definition.AlarmCollectionDescriptor descriptor)
+                            ReadCollection(reader, result, descriptor, filePath, version);
+                        else reader.Skip(); // Unknown elements remain forward compatible.
                         break;
                 }
             }

@@ -95,7 +95,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     throw new NotSupportedException("The SDK has no compatible library analysis method.");
                 PropertyInfo xml = _analyze.ReturnType.GetProperty("CompiledXml", BindingFlags.Public | BindingFlags.Instance);
                 if (xml?.PropertyType != typeof(string) || xml.GetGetMethod() == null || xml.GetIndexParameters().Length != 0)
-                    throw new NotSupportedException("The SDK has no compatible compiled XML preview.");
+                    throw new NotSupportedException("The SDK has no compatible compiled XML.");
                 _compiledXml = xml;
                 _compiler = Activator.CreateInstance(compilerType);
                 CompilerIdentity = assembly.FullName;
@@ -108,7 +108,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 AnalysisAvailability state = failure is NotSupportedException || failure is TypeLoadException || failure is MissingMemberException
                     ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.LoadFailed;
                 return new AnalysisResponse(state, "Cannot use analysis compiler " + compilerPath
-                    + ". Restore an SDK supporting analysis contract 5 with captured diagnostic configuration and external analyzers. " + failure.Message);
+                    + ". Restore an SDK supporting analysis contract 7 with captured diagnostic configuration and external analyzers. " + failure.Message);
             }
         }
 
@@ -131,7 +131,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     AnalysisSnapshot snapshot = _reader.Read(result);
                     return new AnalysisResponse(AnalysisAvailability.Available, null, snapshot,
                         snapshot.Success ? (string)_compiledXml.GetValue(result, null) : null,
-                        context?.IsLibrary == true ? "Library definitions do not produce final application XML. Preview compiled XML in a consuming application project." : null,
+                        context?.IsLibrary == true ? "Library definitions do not produce final application XML. Inspect compiled XML in a consuming application project." : null,
                         analyzers);
                 }, loader => analyzers = AnalysisAnalyzerMetadata.Read(loader, context ?? AnalysisContext.Empty));
             }

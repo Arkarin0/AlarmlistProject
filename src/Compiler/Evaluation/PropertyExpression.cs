@@ -26,7 +26,7 @@ namespace Alarmlist.Evaluation
 
         private static bool IsStart(char c) => c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 
-        internal static PropertyExpression Parse(string raw, bool placeholders = false)
+        internal static PropertyExpression Parse(string raw, bool placeholders = false, bool allowItemReferences = false)
         {
             var expression = new PropertyExpression();
             if (raw == null) return expression;
@@ -38,7 +38,7 @@ namespace Alarmlist.Evaluation
                     if (raw[i + 1] == '$')
                     {
                         int escaped = i + 1;
-                        if (TryReadToken(raw, ref escaped, out ExpressionToken escapedToken))
+                        if (TryReadToken(raw, ref escaped, out ExpressionToken escapedToken, allowItemReferences: true))
                         {
                             literal.Append(escapedToken.Raw);
                             i = escaped;
@@ -48,7 +48,7 @@ namespace Alarmlist.Evaluation
                     }
                     if (raw[i + 1] == '(')
                     {
-                        if (!TryReadToken(raw, ref i, out ExpressionToken token)) return null;
+                        if (!TryReadToken(raw, ref i, out ExpressionToken token, allowItemReferences: allowItemReferences)) return null;
                         expression._parts.Add(new Part(literal.ToString()));
                         literal.Clear();
                         expression._parts.Add(new Part(null, token));
@@ -77,7 +77,7 @@ namespace Alarmlist.Evaluation
         }
 
         // Arguments can contain one non-localization token. They cannot recursively nest calls.
-        internal static bool TryReadToken(string raw, ref int position, out ExpressionToken token, bool allowLocalization = true)
+        internal static bool TryReadToken(string raw, ref int position, out ExpressionToken token, bool allowLocalization = true, bool allowItemReferences = false)
         {
             token = null;
             int start = position;
@@ -90,7 +90,8 @@ namespace Alarmlist.Evaluation
             string kind = colon < 0 ? "parameter" : name.Substring(0, colon);
             string key = colon < 0 ? name : name.Substring(colon + 1);
             if (colon >= 0 && kind == "parameter") return false;
-            if (kind == "parameter" ? !IsValidName(key) : kind == "loc" ? !allowLocalization || !ResourceCatalogue.IsValidKey(key) : !IsValidLookup(kind, key)) return false;
+            if (kind == "parameter" ? !IsValidName(key) : kind == "item" ? !allowItemReferences || !IsValidName(key)
+                : kind == "loc" ? !allowLocalization || !ResourceCatalogue.IsValidKey(key) : !IsValidLookup(kind, key)) return false;
             var arguments = new Dictionary<string, ExpressionArgument>(StringComparer.Ordinal);
             bool whitespace = cursor < raw.Length && char.IsWhiteSpace(raw[cursor]);
             SkipWhitespace(raw, ref cursor);
@@ -116,7 +117,7 @@ namespace Alarmlist.Evaluation
                     }
                     else
                     {
-                        if (!TryReadToken(raw, ref cursor, out ExpressionToken nested, allowLocalization: false)) return false;
+                        if (!TryReadToken(raw, ref cursor, out ExpressionToken nested, allowLocalization: false, allowItemReferences: allowItemReferences)) return false;
                         argument = new ExpressionArgument(null, nested);
                     }
                     arguments.Add(argumentName, argument);
@@ -147,11 +148,11 @@ namespace Alarmlist.Evaluation
                     if (raw[i + 1] == '$')
                     {
                         int escaped = i + 1;
-                        i = TryReadToken(raw, ref escaped, out _) ? escaped : i + 2;
+                        i = TryReadToken(raw, ref escaped, out _, allowItemReferences: true) ? escaped : i + 2;
                         continue;
                     }
                     int next = i;
-                    if (TryReadToken(raw, ref next, out _))
+                    if (TryReadToken(raw, ref next, out _, allowItemReferences: true))
                     {
                         yield return new ExpressionSpan(i, next - i);
                         i = next;

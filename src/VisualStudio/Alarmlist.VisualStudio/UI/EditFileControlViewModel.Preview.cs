@@ -16,12 +16,15 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand GoToSourceCommand { get; }
 
         public ResolvedFieldViewModel(string name, string value, bool inherited, AnalysisAlarmOrigin origin,
-            AnalysisLocation location, DelegateCommand navigation)
+            AnalysisLocation location, DelegateCommand navigation, AnalysisField field = null)
         {
             Name = name; Value = value; IsInherited = inherited; GoToSourceCommand = navigation;
-            OriginText = origin == null ? "No effective value."
+            OriginText = field?.IsDefault == true ? "Definition default."
+                : origin == null ? "No effective value."
                 : (inherited ? "Inherited from " : "Defined in ") + (origin.FullyQualifiedName ?? "(unnamed alarm)")
                     + " — " + location?.FilePath + (value == "" ? " — empty value" : "");
+            if (field?.State == AnalysisFieldValueState.Deferred) OriginText += " Validation deferred until a concrete value is available.";
+            if (field?.State == AnalysisFieldValueState.Invalid) OriginText += " Invalid value; see compiler diagnostics.";
         }
     }
 
@@ -46,11 +49,12 @@ namespace Alarmlist.VisualStudio.UI
         public void InvalidatePreviewActions() => _previewActionVersion++;
         public IReadOnlyList<ResolvedFieldViewModel> ResolvedFields { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
         public IReadOnlyList<ResolvedSectionViewModel> ResolvedSections { get; private set; } = Array.Empty<ResolvedSectionViewModel>();
+        public IReadOnlyList<ResolvedCollectionViewModel> ResolvedCollections { get; private set; } = Array.Empty<ResolvedCollectionViewModel>();
         public string ResolvedPreviewMessage { get; private set; }
         public string CompiledXml { get; private set; }
         public string XmlPreviewMessage { get; private set; }
         public string PreviewContext { get; private set; }
-        public string BufferGuidance => "Includes shared unsaved ALMX text. Commit or cancel this editor's drafts to see current preview values.";
+        public string BufferGuidance => "Includes shared unsaved ALMX text. Commit or cancel this editor's drafts to see current summary values.";
 
         private void RefreshPreview(ProjectAnalysisState state, AnalysisAlarm alarm)
         {
@@ -67,12 +71,14 @@ namespace Alarmlist.VisualStudio.UI
                 // navigation validates inputs. Preserve selection/focus in controls.
                 foreach (ResolvedFieldViewModel field in ResolvedFields) field.GoToSourceCommand.Refresh();
                 foreach (ProcedureAnalysisRow row in ResolvedSections.SelectMany(section => section.Items)) row.GoToSourceCommand.Refresh();
+                foreach (var field in ResolvedCollections.SelectMany(collection => collection.Items).SelectMany(item => item.Fields)) field.GoToSourceCommand.Refresh();
                 return;
             }
             _previewState = unavailable == null ? state : null;
             _previewAlarm = unavailable == null ? alarm : null;
             ResolvedFields = Array.Empty<ResolvedFieldViewModel>();
             ResolvedSections = Array.Empty<ResolvedSectionViewModel>();
+            ResolvedCollections = Array.Empty<ResolvedCollectionViewModel>();
             CompiledXml = null;
             PreviewContext = _disposed || state?.Project == null ? null
                 : state.Project.ProjectPath + " (" + state.Project.Configuration + ")";
@@ -86,18 +92,20 @@ namespace Alarmlist.VisualStudio.UI
                     : alarm.IsAbstract ? "Abstract template: raw expressions remain editable; this alarm is excluded from compiled output."
                     : !alarm.HasEvaluatedValues ? "Evaluated values are unavailable. See live project diagnostics."
                     : snapshot.Success ? "Resolved values from current project sources, including unsaved XML edits."
-                    : "This alarm is resolved. Other project errors prevent compiled XML preview.";
+                    : "This alarm is resolved. Other project errors prevent compiled XML.";
                 if (alarm?.HasEvaluatedValues == true && !alarm.IsAbstract)
                 {
-                    ResolvedFields = PreviewContent.Fields(alarm, location => PreviewNavigation(state, alarm, location));
+                    ResolvedFields = PreviewContent.Fields(alarm, location => PreviewNavigation(state, alarm, location), EnumCaptions.From(state));
                     ResolvedSections = PreviewContent.Sections(alarm, location => PreviewNavigation(state, alarm, location));
+                    ResolvedCollections = PreviewContent.Collections(alarm, location => PreviewNavigation(state, alarm, location), EnumCaptions.From(state));
                 }
                 CompiledXml = snapshot.Success ? state.Response.CompiledXml : null;
                 XmlPreviewMessage = !snapshot.Success ? "Compiled XML is unavailable until all project errors are resolved."
                     : CompiledXml != null ? "Read-only output for the whole project, including unsaved XML edits. No output file is written."
-                    : state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML preview.";
+                    : state.Response.XmlPreviewMessage ?? "The project's SDK did not provide compiled XML.";
             }
             Notify(nameof(ResolvedFields)); Notify(nameof(ResolvedSections)); Notify(nameof(ResolvedPreviewMessage));
+            Notify(nameof(ResolvedCollections));
             Notify(nameof(CompiledXml)); Notify(nameof(XmlPreviewMessage)); Notify(nameof(PreviewContext));
             Notify(nameof(CanUseProjectPreview));
             SelectedPreviewRow?.GoToSourceCommand.Refresh();

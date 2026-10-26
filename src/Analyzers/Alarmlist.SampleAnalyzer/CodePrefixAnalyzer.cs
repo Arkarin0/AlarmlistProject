@@ -26,8 +26,8 @@ namespace Alarmlist.SampleAnalyzer
                 if (alarm.IsAbstract) continue;
                 IReadOnlyDictionary<string, string> options = context.Options.GetOptionsForSourcePath(alarm.Origin.Location?.FilePath);
                 string prefix = options.TryGetValue("alarmlist_sample.code_prefix", out string configured) ? configured : "AL-";
-                AnalyzedField code = alarm.Fields.Single(field => field.Name == "Code");
-                if (code.IsValueAvailable && !(code.EffectiveValue ?? string.Empty).StartsWith(prefix, StringComparison.Ordinal))
+                AnalyzedField code = alarm.Fields.SingleOrDefault(field => field.Name == "Code");
+                if (code != null && code.Type == "String" && code.IsValueAvailable && !(code.EffectiveValue ?? string.Empty).StartsWith(prefix, StringComparison.Ordinal))
                     yield return new Diagnostic(s_rule, alarm.Origin.FullyQualifiedName, code.EffectiveValue, prefix)
                         .WithLocation(alarm.Origin.Location, code.IsInherited ? new[] { code.ValueLocation } : null);
             }

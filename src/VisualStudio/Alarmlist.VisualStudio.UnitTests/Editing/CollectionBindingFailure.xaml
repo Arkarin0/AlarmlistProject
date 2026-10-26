@@ -1,0 +1,6 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- These compile successfully but deliberately violate the record binding contract. -->
+  <DataTemplate x:Key="MissingField"><TextBlock Text="{Binding Fields[MissingField].DisplayText}" /></DataTemplate>
+  <DataTemplate x:Key="MissingMember"><TextBlock Text="{Binding Fields[Item].MissingMember}" /></DataTemplate>
+</ResourceDictionary>

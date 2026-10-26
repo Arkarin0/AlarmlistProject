@@ -38,6 +38,14 @@ namespace Alarmlist.VisualStudio.UI
                 section.ShowCleared = true;
                 return section.Items[target.Entry];
             }
+            if (target.Collection != null)
+            {
+                var collection = Collections.Single(item => item.Name == target.Collection);
+                collection.IsExpanded = true;
+                var item = collection.Items[target.Entry];
+                item.IsExpanded = true;
+                return item.Fields.Single(field => field.Name == target.Field);
+            }
             return Fields.Single(field => field.Name == target.Field);
         }
     }

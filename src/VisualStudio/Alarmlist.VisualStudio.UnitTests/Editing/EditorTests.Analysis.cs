@@ -27,6 +27,34 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         private const string BaseAlarm = "<Alarmlist><Alarm><FullyQualifiedName>Base</FullyQualifiedName><Name>Inherited</Name><Code>Same</Code></Alarm></Alarmlist>";
         private const string ChildAlarm = "<Alarmlist><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><Code>Same</Code></Alarm></Alarmlist>";
 
+        [Fact]
+        public void IncompatibleDefinitionBlocksDesignerCommitsWithoutDiscardingDraftsOrBlockingXml()
+        {
+            using (var session = new SemanticSession())
+            {
+                session.Field("Code").Value = "Draft";
+                var current = session.Analysis.Current;
+                session.Analysis.Set(new ProjectAnalysisState(current.Generation + 1, current.Project, ProjectAnalysisStatus.Unavailable,
+                    "Definitions do not match", new AnalysisResponse(AnalysisAvailability.UnsupportedContract, "Definitions do not match")));
+                Assert.False(session.View.CanEdit);
+                Assert.False(session.View.AddCommand.CanExecute(null));
+                Assert.False(session.View.CommitPending());
+                Assert.True(session.View.HasPending);
+                Assert.Equal("Draft", session.Field("Code").Value);
+                Assert.Equal(ChildAlarm, session.Buffer.Current.Text);
+                Assert.Contains("edit XML", session.View.Error);
+                session.Analysis.Set(new ProjectAnalysisState(current.Generation + 2, current.Project, ProjectAnalysisStatus.Pending, "Refreshing"));
+                Assert.False(session.View.CanEdit);
+                Assert.False(session.View.CommitPending());
+                Assert.Equal("Draft", session.Field("Code").Value);
+                session.View.CancelPending();
+                session.Buffer.SetText(ChildAlarm.Replace("Same", "XML edit"));
+                Assert.Contains("XML edit", session.Buffer.Current.Text);
+                session.Analyze();
+                Assert.True(session.View.CanEdit);
+            }
+        }
+
         [Theory]
         [InlineData("\n")]
         [InlineData("\r\n")]

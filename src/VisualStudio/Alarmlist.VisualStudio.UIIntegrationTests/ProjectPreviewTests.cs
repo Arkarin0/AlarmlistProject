@@ -50,42 +50,25 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(0, ide.Automation.Documents.Count);
             using var automation = new UIA3Automation();
             Window window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
-            window.SetForeground(); ide.Automation.ExecuteCommand("View.SolutionExplorer");
-            AutomationElement projectNode = null;
-            VisualStudioSession.Wait(() => (projectNode = window.FindFirstDescendant(cf => cf.ByName("Plant").And(cf.ByControlType(ControlType.TreeItem)))) != null, "project node");
-            projectNode.AsTreeItem().Select(); projectNode.Focus();
-            VisualStudioSession.Wait(() => ide.Automation.Commands.Item("{c37b75da-f827-4d1a-837f-7f766368d478}", 0x0201).IsAvailable, "project preview command without an editor");
-            ide.RequireForeground(); Assert.True(projectNode.Properties.HasKeyboardFocus.Value);
-            Assert.False(projectNode.BoundingRectangle.IsEmpty);
-            projectNode.RightClick();
-            AutomationElement menu = null;
-            try
-            {
-                VisualStudioSession.Wait(() => (menu = automation.GetDesktop().FindFirstDescendant(cf => cf.ByProcessId(ide.ProcessId)
-                    .And(cf.ByName("Preview alarms")).And(cf.ByControlType(ControlType.MenuItem)))) != null, "project context menu entry");
-                window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "project-preview-menu.png"));
-                menu.Patterns.Invoke.Pattern.Invoke();
-            }
-            finally
-            {
-                if (automation.GetDesktop().FindFirstDescendant(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.Menu))) != null)
-                { ide.RequireForeground(); Keyboard.Type(VirtualKeyShort.ESCAPE); }
-            }
+            window.SetForeground(); ide.Automation.ExecuteCommand("View.AlarmlistPreview");
             EnvDTE.Window preview = ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}");
+            Assert.Equal("Alarm Summary", preview.Caption);
             preview.IsFloating = true; preview.Width = 1250; preview.Height = 550;
             preview.Left = window.BoundingRectangle.Left + 10;
             preview.Top = window.BoundingRectangle.Bottom - 590;
+            SelectProjectPreviewChoice(window, "Summary scope", plant);
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 2, "whole project preview without an editor");
+            Assert.NotNull(window.FindFirstDescendant(cf => cf.ByName("Inspect resolved alarm data. Collection templates customize this summary; document and PDF layouts are defined separately.")));
             Assert.Equal(0, ide.Automation.Documents.Count);
-            SelectProjectPreviewChoice(window, "Project preview language", "en");
+            SelectProjectPreviewChoice(window, "Project summary language", "en");
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "A — Inspect 001"), "project language without an editor");
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "project-preview-without-editor.png"));
             PreviewRows(window).Single(row => row.Name.StartsWith("A —", StringComparison.Ordinal)).Patterns.SelectionItem.Pattern.Select();
-            SelectPreviewTab(window, "Selected alarm preview");
+            SelectPreviewTab(window, "Selected alarm summary");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Inspect 001", "project selected alarm details");
-            SelectPreviewTab(window, "Compiled XML preview");
+            SelectPreviewTab(window, "Compiled XML");
             VisualStudioSession.Wait(() => PreviewValue(window, "Compiled project XML")?.Text.Contains("Other alarm") == true, "project compiled XML");
-            SelectPreviewTab(window, "Alarm table preview");
+            SelectPreviewTab(window, "Alarm table summary");
 
             VisualStudioAutomation.Log?.Invoke("No-editor table, selected alarm, compiled XML and project language passed.");
 
@@ -101,11 +84,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.OpenDesigner(otherPath);
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "A — Inspect 003"), "project preview survives an active-editor switch");
             VisualStudioAutomation.Log?.Invoke("Private draft exclusion, shared unsaved buffer and editor switch passed.");
-            SelectProjectPreviewChoice(window, "Preview scope", south);
+            SelectProjectPreviewChoice(window, "Summary scope", south);
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 1, "explicit linked project membership");
-            SelectProjectPreviewChoice(window, "Project preview language", "en");
+            SelectProjectPreviewChoice(window, "Project summary language", "en");
             VisualStudioSession.Wait(() => PreviewRows(window).SingleOrDefault()?.Name == "A — South 003", "linked source uses selected project resources");
-            SelectProjectPreviewChoice(window, "Preview scope", plant);
+            SelectProjectPreviewChoice(window, "Summary scope", plant);
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "A — Inspect 003"), "return to first project culture");
             VisualStudioAutomation.Log?.Invoke("Explicit linked project membership and distinct cultures passed.");
             PreviewRows(window).Single(row => row.Name.StartsWith("A —", StringComparison.Ordinal)).Patterns.SelectionItem.Pattern.Select();
@@ -116,13 +99,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "A — Inspect 001"), "project persists after all editors close and unsaved edits are discarded");
             VisualStudioAutomation.Log?.Invoke("Source navigation and all-editor closure passed.");
 
-            AutomationElement columns = window.FindFirstDescendant(cf => cf.ByName("Preview columns")); columns.Patterns.ExpandCollapse.Pattern.Expand();
+            AutomationElement columns = window.FindFirstDescendant(cf => cf.ByName("Summary columns")); columns.Patterns.ExpandCollapse.Pattern.Expand();
             window.FindFirstDescendant(cf => cf.ByName("Show Name column")).Patterns.Toggle.Pattern.Toggle();
             VisualStudioSession.Wait(() => SavedLayout(plant + ".user").Contains("Name,0,"), "project preview saves column preferences");
             columns.Patterns.ExpandCollapse.Pattern.Collapse();
-            SelectProjectPreviewChoice(window, "Preview scope", south);
+            SelectProjectPreviewChoice(window, "Summary scope", south);
             VisualStudioSession.Wait(() => PreviewHeaders(window).Any(header => header.Name == "Name"), "separate project column preferences");
-            SelectProjectPreviewChoice(window, "Preview scope", plant);
+            SelectProjectPreviewChoice(window, "Summary scope", plant);
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 2 && !PreviewHeaders(window).Any(header => header.Name == "Name"), "restored first project column preferences");
             preview.Visible = false; ide.Automation.ExecuteCommand("View.AlarmlistPreview");
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 2, "reopening retains project scope without editors");
@@ -131,7 +114,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioAutomation.Log?.Invoke("Project-specific column persistence and hidden-window release/reopen passed.");
             ide.Automation.Solution.Remove(plantProject);
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 0 && window.FindFirstDescendant(cf => cf.ByName("The selected project is not loaded. Choose a loaded project or reload it.")) != null, "unload clears selected project preview");
-            SelectProjectPreviewChoice(window, "Preview scope", south);
+            SelectProjectPreviewChoice(window, "Summary scope", south);
             VisualStudioSession.Wait(() => PreviewRows(window).SingleOrDefault()?.Name == "A — South 001", "remaining project still available");
             VisualStudioAutomation.CloseSolution(ide.Automation, false);
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 0, "solution unload clears preview");
@@ -139,11 +122,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => PreviewRows(window).SingleOrDefault()?.Name == "A — South 001", "reload restores explicit project culture without editors");
             Assert.Equal(0, ide.Automation.Documents.Count);
             ide.OpenDesigner(otherPath);
-            SelectProjectPreviewChoice(window, "Preview scope", "Follow active editor");
-            SelectPreviewTab(window, "Selected alarm preview");
+            SelectProjectPreviewChoice(window, "Summary scope", "Follow active editor");
+            SelectPreviewTab(window, "Selected alarm summary");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Other alarm", "follow active editor restored");
             ide.Automation.Documents.CloseAll(vsSaveChanges.vsSaveChangesNo);
-            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Open an ALMX document or choose a project in Preview scope.")) != null, "follow mode clears on editor close");
+            VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Open an ALMX document or choose a project in Summary scope.")) != null, "follow mode clears on editor close");
             Assert.Equal(source, File.ReadAllText(workspace.AlarmPath)); Assert.Equal(other, File.ReadAllText(otherPath));
             Assert.Equal(output, File.ReadAllBytes(workspace.OutputPath));
             Assert.Empty(Directory.GetFiles(southDirectory, "*.Alarmlist.xml", SearchOption.AllDirectories));

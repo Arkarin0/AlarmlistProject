@@ -3,6 +3,9 @@
 using System;
 using System.ComponentModel.Composition;
 using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using Alarmlist.VisualStudio.Definition;
 using Alarmlist.VisualStudio.Analysis;
 using Alarmlist.VisualStudio.Editing;
 
@@ -12,20 +15,24 @@ namespace Alarmlist.VisualStudio.UI
     {
         public AlarmSource Source { get; }
         private string _analysisName;
+        private string _searchValues;
         public string Title => _analysisName ?? RawTitle;
-        private string RawTitle => !string.IsNullOrWhiteSpace(Source.GetValue("Name")) ? Source.GetValue("Name")
+        private string RawTitle => AlarmDefinition.Fields.Any(field => field.Name == "Name") && !string.IsNullOrWhiteSpace(Source.GetValue("Name")) ? Source.GetValue("Name")
             : !string.IsNullOrWhiteSpace(Source.Identity) ? Source.Identity : "Unnamed alarm";
         public string Identity => Source.Identity ?? "(no identifier)";
         public AlarmViewModel(AlarmSource source) { Source = source; }
-        public void SetName(AnalysisField field)
+        public void SetFields(IReadOnlyList<AnalysisField> fields)
         {
-            string name = field?.IsValueAvailable == true ? field.EffectiveValue : field?.EffectiveExpression;
+            AnalysisField field = fields?.FirstOrDefault(item => item.Name == "Name");
+            _searchValues = fields == null ? null : string.Join(" ", fields.Select(item => item.IsValueAvailable ? item.CanonicalValue ?? item.EffectiveValue : item.EffectiveExpression));
+            string name = field?.IsValueAvailable == true ? field.CanonicalValue ?? field.EffectiveValue : field?.EffectiveExpression;
             if (string.IsNullOrWhiteSpace(name)) name = null;
             if (_analysisName == name) return;
             _analysisName = name;
             Notify(nameof(Title));
         }
-        public bool Matches(string filter) => (Title + " " + Source.GetValue("Name") + " " + Identity)
+        public bool Matches(string filter) => (Title + " " + _searchValues + " "
+            + string.Join(" ", AlarmDefinition.Fields.Select(field => Source.GetValue(field.Name))) + " " + Identity)
             .IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
@@ -47,7 +54,25 @@ namespace Alarmlist.VisualStudio.UI
         private AnalysisField _analysis;
         private bool _valuesCurrent;
         private bool _hasEditDraft;
+        private EnumCaptions _captions = EnumCaptions.Fallback;
         public string Name { get; }
+        public AlarmFieldDescriptor Definition { get; }
+        public string Label => Definition?.Label ?? Name;
+        public bool Multiline => Definition?.Multiline ?? Name == "Title";
+        public IReadOnlyList<FieldLiteralChoice> LiteralChoices { get; }
+        public IReadOnlyList<PropertyCompletion> Suggestions { get; private set; } = Array.Empty<PropertyCompletion>();
+        internal void SetSuggestions(IReadOnlyList<PropertyCompletion> suggestions) { Suggestions = suggestions; Notify(nameof(Suggestions)); }
+        public bool HasLiteralChoices => LiteralChoices.Count != 0;
+        public string FormatHelp => Definition == null ? string.Empty
+            : (Definition.Help == null ? "" : Definition.Help + " ") + Definition.Type
+            + (Definition.Required ? "; required" : "; optional")
+            + (Definition.Minimum == null ? "" : "; minimum " + Definition.Minimum)
+            + (Definition.Maximum == null ? "" : "; maximum " + Definition.Maximum)
+            + (Definition.Default == null ? "" : "; default " + Definition.Default)
+            + (Definition.Type == "Date" ? "; yyyy-MM-dd" : Definition.Type == "Time" ? "; HH:mm:ss[.fffffff]"
+                : Definition.Type == "Timestamp" ? "; yyyy-MM-ddTHH:mm:ss[.fffffff]Z or explicit ±HH:mm offset"
+                : Definition.Type == "Decimal" || Definition.Type == "Double" ? "; decimal point '.', no grouping separators" : "")
+            + ". Expressions are supported. ";
         public string Value { get => _value; set { if (_value == value) return; _value = value; Notify(); NotifyPresentation(); _changed(); } }
         public bool IsPresent { get => _isPresent; set { if (_isPresent == value) return; _isPresent = value; Notify(); NotifyPresentation(); _changed(); } }
         // Editing an inherited display is explicit user input. Merely presenting
@@ -67,25 +92,63 @@ namespace Alarmlist.VisualStudio.UI
             }
         }
         public bool HasChanges => _hasEditDraft || IsPresent != _originalPresent || (IsPresent && Value != _originalValue);
-        public bool IsScalar => Name == "Name" || Name == "Code" || Name == "Category" || Name == "Description" || Name == "Title";
+        public bool IsScalar => Definition != null || Name == "Title";
         public bool IsReference => Name == "ReferenceName";
         public bool IsInherited => !HasChanges && _analysis?.IsInherited == true;
         public bool ShowLocalEditor => !IsInherited;
-        public string EffectiveValue => IsInherited ? (_valuesCurrent && _analysis.IsValueAvailable ? _analysis.EffectiveValue : _analysis.EffectiveExpression) : string.Empty;
-        public string ResolvedValue => _analysis?.EffectiveValue;
+        public string EffectiveValue => IsInherited ? (_valuesCurrent && _analysis.IsValueAvailable ? ResolvedValue : _analysis.EffectiveExpression) : string.Empty;
+        public string ResolvedValue => Definition?.Type == "Enum" && _analysis?.State == AnalysisFieldValueState.Valid
+            ? _captions.Display(Definition, _analysis) : _analysis?.EffectiveValue;
+        public string CollectionValueState => HasChanges ? "draft"
+            : !_valuesCurrent ? "pending"
+            : _analysis?.State == AnalysisFieldValueState.Invalid ? "invalid"
+            : _analysis?.State == AnalysisFieldValueState.Deferred ? "deferred"
+            : _analysis?.IsDefault == true ? "defaulted" : !IsPresent ? "absent" : "";
+        public string CollectionTooltipValue => (IsPresent ? EditValue : Definition?.Default != null
+            ? "(absent; default: " + Definition.Default + ")" : "(absent)")
+            + (CollectionValueState.Length == 0 ? "" : " [" + CollectionValueState + "]");
         public bool CanShowResolved => IsScalar && !HasChanges && _valuesCurrent && _analysis?.IsValueAvailable == true;
         public string ValueStatus => !IsScalar ? string.Empty : HasChanges ? "Uncommitted expression."
+            : _valuesCurrent && _analysis?.State == AnalysisFieldValueState.Invalid ? "Invalid value; see compiler diagnostics."
+            : _valuesCurrent && _analysis?.State == AnalysisFieldValueState.Deferred ? "Typed validation deferred until a concrete value is available."
+            : _valuesCurrent && _analysis?.IsDefault == true ? "Definition default supplies the effective value. Focus to edit an expression."
             : CanShowResolved ? "Resolved value. Focus to edit the expression."
             : _analysis == null ? "Waiting for current analysis; showing source text." : "Value unavailable; showing the raw expression.";
         public string OriginText => !IsInherited ? string.Empty : "Inherited from " + (_analysis.DefiningAlarm?.FullyQualifiedName ?? "unnamed alarm")
             + " in " + Path.GetFileName(_analysis.ValueLocation?.FilePath)
             + (IsPresent ? ". The local element is empty." : ".");
-        public string EditHelp => (IsInherited ? OriginText + " Edit to create a local value. " : "") + ValueStatus
-            + " Enter commits; Shift+Enter adds a line; Escape cancels. Right-click or Shift+F10 for inheritance and clipboard actions.";
+        public string EditHelp => FormatHelp + (IsInherited ? OriginText + " Edit to create a local value. " : "") + ValueStatus
+            + " Enter commits; " + (Multiline ? "Shift+Enter adds a line; " : "")
+            + "Escape cancels. Right-click or Shift+F10 for literal choices, inheritance and clipboard actions.";
         public DelegateCommand OverrideCommand { get; internal set; }
         public DelegateCommand UseInheritedCommand { get; internal set; }
         public DelegateCommand GoToSourceCommand { get; internal set; }
-        public AlarmFieldViewModel(string name, Action changed) { Name = name; _changed = changed; }
+        public AlarmFieldViewModel(string name, Action changed)
+            : this(name, changed, AlarmDefinition.Fields.SingleOrDefault(field => field.Name == name)) { }
+        internal AlarmFieldViewModel(string name, Action changed, AlarmFieldDescriptor definition)
+        {
+            Name = name; _changed = changed; Definition = definition;
+            string[] values = definition?.Type == "Boolean" ? new[] { "true", "false" }
+                : definition?.Type == "Enum" ? definition.Values.ToArray() : Array.Empty<string>();
+            LiteralChoices = Array.AsReadOnly(values.Select((value, index) => new FieldLiteralChoice(value,
+                definition.Type == "Enum" ? definition.ValueLabels[index] : value,
+                new DelegateCommand(() => ApplyLiteral(value)))).ToArray());
+        }
+        internal void SetCaptions(EnumCaptions captions)
+        {
+            _captions = captions ?? EnumCaptions.Fallback;
+            if (Definition?.Type == "Enum")
+                foreach (var choice in LiteralChoices) choice.SetLabel(_captions.Caption(Definition, choice.Value));
+            Notify(nameof(ResolvedValue)); Notify(nameof(EffectiveValue));
+        }
+        private void ApplyLiteral(string value)
+        {
+            // A deliberate literal choice may override an identical inherited
+            // expression. Focus/presentation still never materializes a value.
+            if (!IsInherited && IsPresent) { EditValue = value; return; }
+            _value = value; _isPresent = true; _hasEditDraft = true;
+            Notify(nameof(Value)); Notify(nameof(IsPresent)); NotifyPresentation(); _changed();
+        }
         public void Load(AlarmSource source) => Load(source?.GetValue(Name), source?.HasField(Name) ?? false);
         internal void Load(string value, bool present)
         {
@@ -104,7 +167,18 @@ namespace Alarmlist.VisualStudio.UI
             Notify(nameof(IsInherited)); Notify(nameof(ShowLocalEditor)); Notify(nameof(EffectiveValue)); Notify(nameof(OriginText));
             Notify(nameof(ResolvedValue)); Notify(nameof(CanShowResolved)); Notify(nameof(ValueStatus));
             Notify(nameof(EditValue)); Notify(nameof(EditHelp));
+            Notify(nameof(CollectionValueState)); Notify(nameof(CollectionTooltipValue));
             OverrideCommand?.Refresh(); UseInheritedCommand?.Refresh(); GoToSourceCommand?.Refresh();
         }
+    }
+
+    internal sealed class FieldLiteralChoice : ObservableObject
+    {
+        public string Value { get; }
+        public string Label { get; private set; }
+        public DelegateCommand ApplyCommand { get; }
+        internal void SetLabel(string label) { if (Label == label) return; Label = label; Notify(nameof(Label)); }
+        public FieldLiteralChoice(string value, string label, DelegateCommand applyCommand)
+        { Value = value; Label = label; ApplyCommand = applyCommand; }
     }
 }

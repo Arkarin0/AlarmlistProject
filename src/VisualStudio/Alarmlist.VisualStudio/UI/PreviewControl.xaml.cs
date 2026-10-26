@@ -24,6 +24,7 @@ namespace Alarmlist.VisualStudio.UI
         }
         private IPreviewView View => DataContext as IPreviewView;
         internal void ShowAlarmTable() => PreviewTabs.SelectedIndex = 0;
+        internal int SelectedTabIndex { get => PreviewTabs.SelectedIndex; set => PreviewTabs.SelectedIndex = value; }
 
         private void OnPreviewToolbarSizeChanged(object sender, SizeChangedEventArgs args)
         {
@@ -68,6 +69,7 @@ namespace Alarmlist.VisualStudio.UI
         private void OnPreviewKeyDown(object sender, KeyEventArgs args)
         {
             if (!AlarmTable.IsKeyboardFocusWithin) return;
+            if (args.OriginalSource is Button) return;
             if (args.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control) { args.Handled = true; CopyRows(); }
             else if (args.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None) { args.Handled = true; GoToSource(); }
         }
@@ -76,7 +78,10 @@ namespace Alarmlist.VisualStudio.UI
         {
             DependencyObject source = args.OriginalSource as DependencyObject;
             while (source != null && !(source is DataGridRow))
+            {
+                if (source is Button) return;
                 source = source is Visual ? VisualTreeHelper.GetParent(source) : LogicalTreeHelper.GetParent(source);
+            }
             if (source is DataGridRow) { args.Handled = true; GoToSource(); }
         }
 

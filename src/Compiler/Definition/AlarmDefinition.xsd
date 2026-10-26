@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:simpleType name="ScalarType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="String" /><xs:enumeration value="Int64" />
+      <xs:enumeration value="Decimal" /><xs:enumeration value="Double" />
+      <xs:enumeration value="Boolean" /><xs:enumeration value="Enum" />
+      <xs:enumeration value="Date" /><xs:enumeration value="Time" />
+      <xs:enumeration value="Timestamp" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="DefinitionVersion">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="1" /><xs:enumeration value="2" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:attributeGroup name="Presentation">
+    <xs:attribute name="Label" type="xs:string" />
+    <xs:attribute name="Help" type="xs:string" />
+  </xs:attributeGroup>
+  <xs:attributeGroup name="CollectionCounts">
+    <xs:attribute name="MinCount" type="xs:nonNegativeInteger" />
+    <xs:attribute name="MaxCount" type="xs:nonNegativeInteger" />
+  </xs:attributeGroup>
+  <xs:complexType name="FieldDefinition">
+    <xs:sequence>
+      <xs:element name="Value" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="Name" type="xs:string" use="required" />
+          <xs:attribute name="Label" type="xs:string" />
+          <xs:attribute name="LabelKey" type="xs:string" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="Name" type="xs:string" use="required" />
+    <xs:attribute name="Type" type="ScalarType" use="required" />
+    <xs:attribute name="Required" type="xs:boolean" />
+    <xs:attribute name="Default" type="xs:string" />
+    <xs:attribute name="Minimum" type="xs:string" />
+    <xs:attribute name="Maximum" type="xs:string" />
+    <xs:attributeGroup ref="Presentation" />
+    <xs:attribute name="Multiline" type="xs:boolean" />
+    <xs:attribute name="PreviewVisible" type="xs:boolean" />
+    <xs:attribute name="PreviewWidth" type="xs:decimal" />
+  </xs:complexType>
+  <xs:complexType name="CollectionPreview">
+    <xs:attribute name="DisplayType" type="xs:string" use="required" />
+    <xs:attribute name="Symbol" type="xs:string" />
+    <xs:attribute name="Separator" type="xs:string" />
+    <xs:attribute name="TemplateFile" type="xs:string" />
+    <xs:attribute name="TemplateKey" type="xs:string" />
+  </xs:complexType>
+  <xs:element name="AlarmDefinition">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Field" type="FieldDefinition" />
+        <xs:element name="SimpleCollection">
+          <xs:complexType>
+            <xs:complexContent>
+              <xs:extension base="FieldDefinition">
+                <xs:sequence><xs:element name="Preview" type="CollectionPreview" minOccurs="0" /></xs:sequence>
+                <xs:attributeGroup ref="CollectionCounts" />
+              </xs:extension>
+            </xs:complexContent>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="ComplexCollection">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Field" type="FieldDefinition" minOccurs="1" maxOccurs="unbounded" />
+              <xs:element name="Preview" type="CollectionPreview" minOccurs="0" />
+            </xs:sequence>
+            <xs:attribute name="Name" type="xs:string" use="required" />
+            <xs:attributeGroup ref="Presentation" />
+            <xs:attributeGroup ref="CollectionCounts" />
+            <xs:attribute name="PreviewVisible" type="xs:boolean" />
+            <xs:attribute name="PreviewWidth" type="xs:decimal" />
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="TestProcedure"><xs:complexType /></xs:element>
+      </xs:choice>
+      <xs:attribute name="Version" type="DefinitionVersion" use="required" />
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

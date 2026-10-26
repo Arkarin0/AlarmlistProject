@@ -195,7 +195,7 @@ namespace Alarmlist.VisualStudio.UI
             int colon = prefix.IndexOf(':');
             if (colon < 0) return prefix.All(character => char.IsLetterOrDigit(character) || character == '_');
             string kind = prefix.Substring(0, colon);
-            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta" || kind == "list")
+            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta" || kind == "list" || kind == "item")
                 && prefix.Substring(colon + 1).All(character => IsTokenCharacter(character) && character != ':' && (kind != "loc" || character != '#'));
         }
 
@@ -228,7 +228,8 @@ namespace Alarmlist.VisualStudio.UI
                     .OrderByDescending(property => property.LocalizationKey.StartsWith(query, StringComparison.OrdinalIgnoreCase)).ToArray();
             }
             return suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix,
-                property.RequiresValidation ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)).ToArray();
+                property.RequiresValidation && !property.Name.StartsWith("item:", StringComparison.Ordinal)
+                    ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)).ToArray();
         }
 
         private void AnnounceSelection()

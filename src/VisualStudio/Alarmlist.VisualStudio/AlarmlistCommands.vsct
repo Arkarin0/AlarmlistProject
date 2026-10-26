@@ -26,16 +26,16 @@
         <CommandFlag>DefaultInvisible</CommandFlag>
         <CommandFlag>DynamicVisibility</CommandFlag>
         <Strings>
-          <ButtonText>Preview alarms</ButtonText>
+          <ButtonText>Show Alarm Summary</ButtonText>
           <CanonicalName>Alarmlist.PreviewProject</CanonicalName>
           <LocCanonicalName>Alarmlist.PreviewProject</LocCanonicalName>
-          <ToolTipText>Preview all alarms in this project without opening an editor</ToolTipText>
+          <ToolTipText>Inspect resolved alarms in this project without opening an editor</ToolTipText>
         </Strings>
       </Button>
       <Button guid="guidPreviewCommands" id="ShowPreview" priority="0x0600" type="Button">
         <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
         <Strings>
-          <ButtonText>Alarmlist Preview</ButtonText>
+          <ButtonText>Alarm Summary</ButtonText>
           <CommandName>AlarmlistPreview</CommandName>
           <CanonicalName>AlarmlistPreview</CanonicalName>
           <LocCanonicalName>AlarmlistPreview</LocCanonicalName>
@@ -49,8 +49,8 @@
         <CommandFlag>CommandWellOnly</CommandFlag>
         <CommandFlag>DefaultDisabled</CommandFlag>
         <Strings>
-          <ButtonText>Preview language</ButtonText>
-          <ToolTipText>Preview language for the active ALMX project context</ToolTipText>
+          <ButtonText>Summary language</ButtonText>
+          <ToolTipText>Summary language for the active ALMX project context</ToolTipText>
           <CanonicalName>Alarmlist.PreviewLanguage</CanonicalName>
           <LocCanonicalName>Alarmlist.PreviewLanguage</LocCanonicalName>
         </Strings>

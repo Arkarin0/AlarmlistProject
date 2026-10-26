@@ -32,6 +32,7 @@ namespace Alarmlist.VisualStudio.UI
         private bool _pending;
         private bool _committing;
         private bool _refreshing;
+        private bool _definitionIncompatible;
         private readonly List<AlarmViewModel> _allAlarms = new List<AlarmViewModel>();
         public event EventHandler PendingChanged;
         public ObservableCollection<AlarmViewModel> Alarms { get; } = new ObservableCollection<AlarmViewModel>();
@@ -43,9 +44,12 @@ namespace Alarmlist.VisualStudio.UI
         public bool HasPending => _pending;
         public DesignerLayoutViewModel DesignerLayout { get; }
         public PreviewColumnLayout PreviewColumns { get; } = new PreviewColumnLayout();
-        public bool IsValid => _model.Projection.IsValid;
+        private bool IsDefinitionCompatible => !_definitionIncompatible && _analysis?.Current?.Response?.Availability != Analysis.AnalysisAvailability.UnsupportedContract
+            && (_analysis?.Current?.Response?.Snapshot == null
+                || _analysis.Current.Response.Snapshot.ToolingFingerprint == Definition.AlarmDefinition.ToolingFingerprint);
+        public bool IsValid => _model.Projection.IsValid && IsDefinitionCompatible;
         public bool CanEdit => IsValid && _selected != null;
-        public string Error => _error ?? _model.Projection.Error;
+        public string Error => !IsDefinitionCompatible ? "The SDK and extension definitions are incompatible. Rebuild matching tools or edit XML." : _error ?? _model.Projection.Error;
         public string Filter { get => _filter; set { if (_filter == value || !CommitPending()) return; _filter = value ?? string.Empty; Refresh(); Notify(); } }
         public AlarmViewModel Selected
         {
@@ -74,6 +78,7 @@ namespace Alarmlist.VisualStudio.UI
             InitializeProperties();
             InitializeAnalysis(analysis);
             InitializeGroups();
+            InitializeCollections();
             Refresh();
         }
 
@@ -81,6 +86,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             if (_refreshing) return;
             _pending = Fields.Any(field => field.HasChanges)
+                || Collections.Any(collection => collection.Items.Any(item => item.Fields.Any(field => field.HasChanges)))
                 || ProcedureSections.Any(section => section.TitleField.HasChanges || section.Items.Any(item => item.HasChanges)) || AllParameters.Any(row => row.HasChanges);
             PendingChanged?.Invoke(this, EventArgs.Empty);
             Notify(nameof(HasPending));
@@ -91,6 +97,7 @@ namespace Alarmlist.VisualStudio.UI
         public bool CommitPending()
         {
             if (!_pending || _committing) return true;
+            if (!IsDefinitionCompatible) { Notify(nameof(Error)); return false; }
             _committing = true;
             try
             {
@@ -100,7 +107,7 @@ namespace Alarmlist.VisualStudio.UI
                     .Where(item => item.HasChanges)
                     .Select(item => new ProcedureValueChange(section.Name, item.Index, item.Kind, item.Text))).ToArray();
                 if (!_model.SetValues(_baseline, _original, values, procedures, ParameterChanges(AlarmParameters), ParameterChanges(FileParameters),
-                    ProcedureSections.Where(section => section.TitleField.HasChanges).ToDictionary(section => section.Name, section => section.TitleField.IsPresent ? section.TitleField.Value : null), out string error))
+                    ProcedureSections.Where(section => section.TitleField.HasChanges).ToDictionary(section => section.Name, section => section.TitleField.IsPresent ? section.TitleField.Value : null), CollectionChanges(), out string error))
                 {
                     _error = error;
                     Notify(nameof(Error));
@@ -129,7 +136,7 @@ namespace Alarmlist.VisualStudio.UI
 
         private void Add()
         {
-            if (!CommitPending() || _analysisBusy || _disposed) return;
+            if (!CommitPending() || _analysisBusy || _disposed || !IsValid) return;
             PendingAnalysisAction = AddAlarmAsync();
         }
         private void Delete()
@@ -144,6 +151,7 @@ namespace Alarmlist.VisualStudio.UI
             _baseline = _model.Projection;
             _original = _selected?.Source;
             foreach (AlarmFieldViewModel field in Fields) field.Load(_original);
+            LoadCollections();
             RefreshProcedureSections();
             foreach (ProcedureSectionViewModel section in ProcedureSections) section.Load(_original);
             RefreshAnalysis();
@@ -152,7 +160,7 @@ namespace Alarmlist.VisualStudio.UI
         private void RefreshProcedureSections()
         {
             if (HasPending) return;
-            string[] names = (CurrentAlarm()?.ProcedureSections.Select(section => section.Name) ?? Enumerable.Empty<string>())
+            string[] names = !HasTestProcedure ? Array.Empty<string>() : (CurrentAlarm()?.ProcedureSections.Select(section => section.Name) ?? Enumerable.Empty<string>())
                 .Concat(_original?.ProcedureNames ?? Enumerable.Empty<string>()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             for (int index = 0; index < names.Length; index++)
             {
@@ -179,7 +187,7 @@ namespace Alarmlist.VisualStudio.UI
 
         private void EditProcedure(string section, int index, ProcedureAction action, string kind)
         {
-            if (!CommitPending() || !CanEdit) return;
+            if (!HasTestProcedure || !CommitPending() || !CanEdit) return;
             bool edited = false;
             switch (action)
             {

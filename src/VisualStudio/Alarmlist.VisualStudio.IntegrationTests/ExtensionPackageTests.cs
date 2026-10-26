@@ -32,6 +32,7 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                     .Where(entry => entry.FullName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
                     .Select(entry => entry.FullName).OrderBy(name => name, StringComparer.Ordinal).ToArray());
                 Assert.DoesNotContain(package.Entries, entry => entry.FullName.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase));
+                Assert.DoesNotContain(package.Entries, entry => entry.FullName.EndsWith(".lock", StringComparison.OrdinalIgnoreCase));
                 var manifest = XDocument.Parse(Read(package.GetEntry("extension.vsixmanifest")));
                 XNamespace ns = manifest.Root.Name.Namespace;
                 Assert.Equal("[17.9,)", manifest.Descendants(ns + "InstallationTarget").Single().Attribute("Version").Value);
@@ -46,6 +47,8 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("ItemTemplates\\Alarmlist", registration);
                 Assert.Contains("Menus.ctmenu, 2", registration);
                 Assert.Contains("ToolWindows\\{2c7f1b33-66f5-4831-96b1-c11cd1e28769}", registration);
+                string pinnedRegistration = registration.Split(new[] { "[$RootKey$\\ToolWindows\\{a458fd24-65ad-462c-9fa2-376517a3c942}]" }, StringSplitOptions.None)[1].Split('[')[0];
+                Assert.Contains("\"DontForceCreate\"=dword:00000001", pinnedRegistration);
                 Assert.Contains("Editors\\{6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f}", registration);
                 Assert.Contains("Editors\\{92d86a30-3de0-4f7d-bc54-3e801efb277d}", registration);
                 foreach (string editor in new[] { "6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f", "92d86a30-3de0-4f7d-bc54-3e801efb277d" })

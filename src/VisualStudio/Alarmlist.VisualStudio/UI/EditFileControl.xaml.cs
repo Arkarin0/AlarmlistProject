@@ -53,6 +53,14 @@ namespace Alarmlist.VisualStudio
             // Shell toolbars live outside this view. Leaving the designer keeps
             // its draft private; moving to another designer control still commits.
             // Explicit Save/Enter and editor layout changes also commit as before.
+            // A collapsed body can transfer focus to the scroll host, not just
+            // its header. Theme templates may also give the header an explicit
+            // ToggleButton style, so an implicit Tag setter alone is insufficient.
+            for (DependencyObject parent = sender as DependencyObject; parent != null; parent = VisualTreeHelper.GetParent(parent))
+                if (parent is Expander collapsed && Equals(collapsed.Tag, "PreserveDraft") && !collapsed.IsExpanded) return;
+            if (args.NewFocus is ToggleButton)
+                for (DependencyObject parent = args.NewFocus as DependencyObject; parent != null; parent = VisualTreeHelper.GetParent(parent))
+                    if (parent is Expander header && Equals(header.Tag, "PreserveDraft")) return;
             if (IsKeyboardFocusWithin && !Equals((args.NewFocus as FrameworkElement)?.Tag, "PreserveDraft")) ViewModel.CommitPending();
         }
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
@@ -120,6 +128,26 @@ namespace Alarmlist.VisualStudio
         // This WPF event handler only awaits the view model's guarded command and
         // UI dispatch. Recoverable command failures are handled by the view model.
 #pragma warning disable VSTHRD100
+        private async void OnCollectionAction(object sender, RoutedEventArgs args)
+        {
+            var button = (Button)sender;
+            var view = ViewModel;
+            int previous = view.CollectionFocusVersion;
+            int version = _inputVersion;
+            await Dispatcher.Yield(DispatcherPriority.Background);
+            var row = view.CollectionFocus;
+            var collection = view.CollectionFocusOwner;
+            if (!IsLoaded || version != _inputVersion || !ReferenceEquals(view, ViewModel) || collection == null
+                || previous == view.CollectionFocusVersion || !view.Collections.Contains(collection) || (row != null && !collection.Items.Contains(row))
+                || (button.IsLoaded && Keyboard.FocusedElement != null && !IsKeyboardFocusWithin)) return;
+            UpdateLayout();
+            FrameworkElement target = row == null ? Children(this).OfType<Button>().FirstOrDefault(item => ReferenceEquals(item.Command, collection.AddCommand))
+                : row.IsClear || !row.IsExpanded ? Children(this).OfType<Button>().FirstOrDefault(item => ReferenceEquals(item.Command, row.DeleteCommand))
+                : (FrameworkElement)Children(this).OfType<ExpressionTextBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, row.Fields.FirstOrDefault()));
+            if (target == null || !target.IsEnabled || !target.IsVisible) return;
+            target.BringIntoView(); target.Focus();
+        }
+
         private async void OnProcedureAction(object sender, RoutedEventArgs args)
         {
             var button = (Button)sender;

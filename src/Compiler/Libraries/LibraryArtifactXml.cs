@@ -16,13 +16,14 @@ namespace Alarmlist.Libraries
     internal static class LibraryArtifactXml
     {
         internal const string Namespace = "urn:alarmlist:library:1";
-        internal const int FormatVersion = 1;
+        internal const int FormatVersion = 3;
         private static readonly XNamespace s_ns = Namespace;
 
         internal static string Write(LibraryArtifact artifact)
         {
             if (artifact == null) throw new ArgumentNullException(nameof(artifact));
             var root = new XElement(s_ns + "AlarmLibrary", new XAttribute("FormatVersion", FormatVersion),
+                new XAttribute("SchemaFingerprint", Alarmlist.Definition.AlarmDefinition.SchemaFingerprint),
                 new XAttribute("Id", artifact.Identity.Id), new XAttribute("Version", artifact.Identity.Version),
                 new XElement(s_ns + "Dependencies", artifact.Dependencies.Select(identity =>
                     new XElement(s_ns + "Library", new XAttribute("Id", identity.Id), new XAttribute("Version", identity.Version)))),
@@ -54,9 +55,11 @@ namespace Alarmlist.Libraries
             try
             {
                 XElement root = ParseXml(text).Root;
-                Check(root, "AlarmLibrary", new[] { "FormatVersion", "Id", "Version" },
+                Check(root, "AlarmLibrary", new[] { "FormatVersion", "SchemaFingerprint", "Id", "Version" },
                     "Dependencies", "Properties", "Sources", "Resources", "Lookups");
-                if (Required(root, "FormatVersion") != "1") throw Invalid("Unsupported library format version.");
+                if (Required(root, "FormatVersion") != "3") throw Invalid("Unsupported library format version. Rebuild this library with the matching SDK (library format 3).");
+                if ((string)root.Attribute("SchemaFingerprint") != Alarmlist.Definition.AlarmDefinition.SchemaFingerprint)
+                    throw Invalid("The library alarm definition does not match this compiler. Rebuild the library with the matching SDK and alarm definition.");
                 LibraryIdentity identity = Identity(root);
                 XElement dependencies = Section(root, "Dependencies", "Library");
                 XElement properties = Section(root, "Properties", "Property");

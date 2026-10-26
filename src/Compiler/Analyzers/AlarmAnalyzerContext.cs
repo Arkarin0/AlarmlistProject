@@ -12,7 +12,11 @@ namespace Alarmlist.Analyzers
     /// <summary>Detached, immutable analyzer inputs; resolved fields retain raw text and declaration provenance.</summary>
     public sealed class AlarmAnalyzerContext
     {
-        public const int CurrentContractVersion = 3;
+        public const int CurrentContractVersion = 5;
+        public string SchemaFingerprint => Definition.AlarmDefinition.SchemaFingerprint;
+        public IReadOnlyList<Definition.AlarmFieldDescriptor> FieldDefinitions => Definition.AlarmDefinition.Fields;
+        public IReadOnlyList<Definition.AlarmCollectionDescriptor> CollectionDefinitions => Definition.AlarmDefinition.Collections;
+        public bool HasTestProcedure => Definition.AlarmDefinition.HasTestProcedure;
         public IReadOnlyList<AnalyzedAlarm> Alarms { get; }
         public IReadOnlyList<AnalyzedLibrary> Libraries { get; }
         public string ProjectPath { get; }

@@ -1,34 +1,43 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using Alarmlist.Definition;
+
 namespace Alarmlist.Compiler
 {
-    public readonly struct Alarm
+    public readonly partial struct Alarm
     {
-        public Alarm(string category, string code, string description, string name)
-            : this(null, category, code, description, name, null)
+        public AlarmCollectionValue GetCollection(string name)
         {
+            if (!global::Alarmlist.Definition.AlarmDefinition.Collections.Any(collection => collection.Name == name)) throw new ArgumentException("Unknown alarm collection.", nameof(name));
+            return Collections?.FirstOrDefault(collection => collection.Name == name);
         }
 
-        public Alarm(string category, string code, string description, string name, TestProcedure testProcedure)
-            : this(null, category, code, description, name, testProcedure)
+        public AlarmFieldValue GetField(string name)
         {
+            if (!global::Alarmlist.Definition.AlarmDefinition.Fields.Any(field => field.Name == name)) throw new ArgumentException("Unknown alarm field.", nameof(name));
+            return Fields?.FirstOrDefault(field => field.Name == name);
         }
 
-        public Alarm(string fullyQualifiedName, string category, string code, string description, string name, TestProcedure testProcedure = null)
+        private static IReadOnlyList<AlarmFieldValue> CreateFieldValues(object[] values)
         {
-            FullyQualifiedName = fullyQualifiedName;
-            Category = category;
-            Code = code;
-            Description = description;
-            Name = name;
-            TestProcedure = testProcedure ?? new TestProcedure();
+            return global::System.Array.AsReadOnly(global::Alarmlist.Definition.AlarmDefinition.Fields.Select((field, index) =>
+            {
+                object value = values[index];
+                if (field.Type == "Time" && value != null && ((TimeSpan)value < global::System.TimeSpan.Zero || (TimeSpan)value >= global::System.TimeSpan.FromDays(1)))
+                    throw new ArgumentOutOfRangeException(field.Name);
+                string text = value == null ? null : field.Type == "Date" ? ((DateTime)value).ToString("yyyy-MM-dd", global::System.Globalization.CultureInfo.InvariantCulture)
+                    : field.Type == "Time" ? global::System.DateTime.MinValue.Add((TimeSpan)value).ToString("HH:mm:ss.FFFFFFF", global::System.Globalization.CultureInfo.InvariantCulture)
+                    : field.Type == "Timestamp" ? ((DateTimeOffset)value).ToString("yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz", global::System.Globalization.CultureInfo.InvariantCulture)
+                    : field.Type == "Boolean" ? ((bool)value ? "true" : "false")
+                    : field.Type == "Double" ? ((double)value).ToString("G17", global::System.Globalization.CultureInfo.InvariantCulture) : global::System.Convert.ToString(value, global::System.Globalization.CultureInfo.InvariantCulture);
+                var resolved = global::Alarmlist.Definition.AlarmFieldValue.Resolve(field, text, text, false, false);
+                if (resolved.State == global::Alarmlist.Definition.AlarmFieldValueState.Invalid) throw new ArgumentException("Invalid scalar value.", field.Name);
+                return resolved;
+            }).ToArray());
         }
-
-        public string FullyQualifiedName { get; }
-        public string Category { get; }
-        public string Code { get; }
-        public string Description { get; }
-        public string Name { get; }
-        public TestProcedure TestProcedure { get; }
     }
 }

@@ -14,6 +14,68 @@
       <Setter Property="Text" Value="▸" /><Setter Property="Margin" Value="0,0,8,0" />
       <Style.Triggers><DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True"><Setter Property="Text" Value="▾" /></DataTrigger></Style.Triggers>
     </Style>
+    <Style x:Key="CollectionGroup" TargetType="Expander">
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Tag" Value="PreserveDraft" />
+      <Setter Property="Margin" Value="0,8,8,10" />
+      <Setter Property="ui:StickyCollectionHeader.IsEnabled" Value="True" />
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Expander">
+        <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}">
+          <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <Border x:Name="CollectionHeader" Panel.ZIndex="1" BorderThickness="0,0,0,1"
+                    Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+                    BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}">
+              <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                            Tag="PreserveDraft" HorizontalContentAlignment="Stretch" Padding="8,7"
+                            Background="Transparent" Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+                            AutomationProperties.Name="{Binding Header, RelativeSource={RelativeSource TemplatedParent}, StringFormat=Toggle {0} collection}">
+                <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+                  <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ContentPresenter /></Border>
+                </ControlTemplate></ToggleButton.Template>
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                  <TextBlock Style="{StaticResource ScopeArrow}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1"><TextBlock Text="{TemplateBinding Header}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding (ui:StickyCollectionHeader.Detail), RelativeSource={RelativeSource TemplatedParent}}" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Grid>
+              </ToggleButton>
+            </Border>
+            <ContentPresenter x:Name="CollectionBody" Grid.Row="1" ContentSource="Content" Margin="10,6,10,10" />
+          </Grid>
+        </Border>
+        <ControlTemplate.Triggers><Trigger Property="IsExpanded" Value="False"><Setter TargetName="CollectionBody" Property="Visibility" Value="Collapsed" /></Trigger></ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="CollectionEntry" TargetType="Expander">
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Tag" Value="PreserveDraft" />
+      <Setter Property="Margin" Value="0,3" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="AutomationProperties.HelpText" Value="{Binding TooltipText}" />
+      <Setter Property="ToolTipService.IsEnabled" Value="False" />
+      <Setter Property="ToolTip"><Setter.Value>
+        <ToolTip HorizontalContentAlignment="Left" MaxWidth="600"
+                 Content="{Binding PlacementTarget.DataContext.TooltipText, RelativeSource={RelativeSource Self}}">
+          <ToolTip.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Left" /></DataTemplate></ToolTip.ContentTemplate>
+        </ToolTip>
+      </Setter.Value></Setter>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Expander">
+        <Border BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" BorderThickness="1" Padding="26,5,5,5">
+          <Grid><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+              <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                            Tag="PreserveDraft" AutomationProperties.Name="Toggle entry" Padding="0" Margin="0,0,4,0">
+                <TextBlock Style="{StaticResource ScopeArrow}" Margin="0" />
+              </ToggleButton>
+              <ContentPresenter Grid.Column="1" ContentSource="Header" HorizontalAlignment="Stretch" />
+            </Grid>
+            <ContentPresenter x:Name="EntryBody" Grid.Row="1" ContentSource="Content" Margin="0,4,0,0" />
+          </Grid>
+        </Border>
+        <ControlTemplate.Triggers><Trigger Property="IsExpanded" Value="False"><Setter TargetName="EntryBody" Property="Visibility" Value="Collapsed" /></Trigger></ControlTemplate.Triggers>
+      </ControlTemplate></Setter.Value></Setter>
+      <Style.Triggers><Trigger Property="IsExpanded" Value="False"><Setter Property="ToolTipService.IsEnabled" Value="True" /></Trigger></Style.Triggers>
+    </Style>
     <Style TargetType="Expander">
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
     </Style>
@@ -24,6 +86,7 @@
     </Style>
     <Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
     <Style x:Key="ProcedureHeading" TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type ui:ExpressionTextBox}}">
+      <Setter Property="Padding" Value="26,3,5,3" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
       <Setter Property="BorderBrush" Value="Transparent" />
@@ -40,6 +103,7 @@
       </Style.Triggers>
     </Style>
     <Style x:Key="ProcedureGroup" TargetType="GroupBox">
+      <Setter Property="ui:StickyCollectionHeader.IsEnabled" Value="True" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
       <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
       <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
@@ -49,9 +113,10 @@
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="GroupBox">
         <Grid>
           <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-          <Border Grid.RowSpan="2" Margin="0,12,0,0" BorderThickness="1" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" />
-          <Border Margin="10,0,10,0" Background="{TemplateBinding Background}">
-            <ContentPresenter ContentSource="Header" />
+          <Border Grid.RowSpan="2" BorderThickness="1" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" />
+          <Border x:Name="CollectionHeader" Panel.ZIndex="1" Margin="1,1,1,0" Padding="9,4,9,0"
+                  BorderThickness="0,0,0,1" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}">
+            <AdornerDecorator><ContentPresenter ContentSource="Header" /></AdornerDecorator>
           </Border>
           <ContentPresenter Grid.Row="1" Margin="{TemplateBinding Padding}" />
         </Grid>
@@ -278,7 +343,7 @@
               <DataTemplate>
                 <Grid Margin="0,0,8,8">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="135" /><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                  <Label x:Name="FieldLabel" Content="{Binding Name}" Padding="0,5,6,0"
+                  <Label x:Name="FieldLabel" Content="{Binding Label}" Padding="0,5,6,0"
                          Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
                     <Label.Style><Style TargetType="Label"><Setter Property="Target" Value="{Binding ElementName=LocalValueEditor}" /><Style.Triggers>
                       <DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Target" Value="{Binding ElementName=ReferenceValueEditor}" /></DataTrigger>
@@ -289,10 +354,11 @@
                                     ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}"
                                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                   </AdornerDecorator>
-                  <ui:ExpressionTextBox x:Name="LocalValueEditor" Grid.Column="2" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.LabeledBy="{Binding ElementName=FieldLabel}" AutomationProperties.HelpText="{Binding EditHelp}" ToolTip="{Binding EditHelp}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False"
+                  <ui:ExpressionTextBox x:Name="LocalValueEditor" Grid.Column="2" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}" ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" IsExpressionEnabled="{Binding IsScalar}" Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}" ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}" AutomationProperties.Name="{Binding Name}" AutomationProperties.LabeledBy="{Binding ElementName=FieldLabel}" AutomationProperties.HelpText="{Binding EditHelp}" ToolTip="{Binding EditHelp}" LostKeyboardFocus="OnFieldLostFocus" AcceptsReturn="{Binding Multiline}" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" VerticalScrollBarVisibility="Auto" IsUndoEnabled="False"
                                         ContextMenuOpening="OnActionsMenuOpening" Unloaded="OnActionsUnloaded">
                     <ui:ExpressionTextBox.Style><Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type ui:ExpressionTextBox}}"><Style.Triggers>
                       <DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                      <DataTrigger Binding="{Binding HasLiteralChoices}" Value="True"><Setter Property="Margin" Value="0,0,32,0" /></DataTrigger>
                     </Style.Triggers></Style></ui:ExpressionTextBox.Style>
                     <ui:ExpressionTextBox.ContextMenu>
                       <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
@@ -301,6 +367,15 @@
                         <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Paste}}" Header="Paste" Command="ApplicationCommands.Paste" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                         <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.SelectAll}}" Header="Select all" Command="ApplicationCommands.SelectAll" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                         <Separator />
+                        <MenuItem Header="Choose literal value" ItemsSource="{Binding LiteralChoices}" Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}">
+                          <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                              <Setter Property="Header" Value="{Binding Label}" />
+                              <Setter Property="Command" Value="{Binding ApplyCommand}" />
+                              <Setter Property="ToolTip" Value="{Binding Value}" />
+                            </Style>
+                          </MenuItem.ItemContainerStyle>
+                        </MenuItem>
                         <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Inheritance}}" Header="Use inherited value" Command="{Binding UseInheritedCommand}" Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}"
                                   ToolTip="Remove this local field. The reference supplies its value again; Undo restores the local value."
                                   AutomationProperties.Name="{Binding Name, StringFormat=Use inherited {0}}" />
@@ -309,6 +384,20 @@
                       </ContextMenu>
                     </ui:ExpressionTextBox.ContextMenu>
                   </ui:ExpressionTextBox>
+                  <Button Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Top" Width="28" Height="27" Content="▾" Tag="PreserveDraft"
+                          Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}" Click="OnInheritanceActions" Unloaded="OnActionsUnloaded"
+                          ToolTip="Choose a literal value. Opening this menu preserves the current expression."
+                          AutomationProperties.Name="{Binding Name, StringFormat=Choose literal for {0}}">
+                    <Button.ContextMenu>
+                      <ContextMenu ItemsSource="{Binding LiteralChoices}" Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
+                        <ContextMenu.ItemContainerStyle><Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                          <Setter Property="Header" Value="{Binding Label}" />
+                          <Setter Property="Command" Value="{Binding ApplyCommand}" />
+                          <Setter Property="ToolTip" Value="{Binding Value}" />
+                        </Style></ContextMenu.ItemContainerStyle>
+                      </ContextMenu>
+                    </Button.ContextMenu>
+                  </Button>
                   <DockPanel Grid.Column="2" Visibility="{Binding IsReference, Converter={StaticResource Visibility}}">
                     <Button DockPanel.Dock="Right" Content="↗" Margin="4,0,0,0" Command="{Binding DataContext.GoToReferenceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             ToolTip="Open the referenced alarm's source." AutomationProperties.Name="Go to reference" />
@@ -322,7 +411,118 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <Expander Header="Test procedure" IsExpanded="True" Margin="0,6,8,0"
+          <ItemsControl ItemsSource="{Binding Collections}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Expander Header="{Binding Label}" Style="{StaticResource CollectionGroup}" IsExpanded="{Binding IsExpanded}" ui:StickyCollectionHeader.Detail="{Binding Status}"
+                          AutomationProperties.Name="{Binding Name, StringFormat=Collection {0}}">
+                  <Expander.Resources><Style TargetType="ToggleButton"><Setter Property="Tag" Value="PreserveDraft" /></Style></Expander.Resources>
+                  <StackPanel Grid.IsSharedSizeScope="True">
+                    <TextBlock Text="{Binding Help}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding Error}" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding Inherited}">
+                      <ItemsControl.ItemTemplate><DataTemplate>
+                        <AdornerDecorator><Expander Style="{StaticResource CollectionEntry}" IsExpanded="{Binding IsExpanded}"
+                            ui:InheritedValueBehavior.IsInherited="True" AutomationProperties.Name="{Binding Origin}">
+                          <Expander.Header><DockPanel LastChildFill="True">
+                            <Button DockPanel.Dock="Right" Content="Source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Right" ToolTip="{Binding Origin}" />
+                            <StackPanel><TextBlock Text="{Binding Label}" /><TextBlock Text="{Binding State}" /></StackPanel>
+                          </DockPanel></Expander.Header>
+                          <ItemsControl ItemsSource="{Binding Fields}"><ItemsControl.ItemTemplate><DataTemplate>
+                            <Grid Margin="0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="CollectionLabels" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                              <TextBlock Text="{Binding Label}" Margin="0,3,8,0"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
+                                <DataTrigger Binding="{Binding DataContext.IsSimple, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                              </Style.Triggers></Style></TextBlock.Style></TextBlock>
+                              <TextBox Grid.Column="1" Text="{Binding DisplayText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="27"
+                                       AutomationProperties.Name="{Binding Name, StringFormat=Inherited {0}}" />
+                            </Grid>
+                          </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                        </Expander></AdornerDecorator>
+                      </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <WrapPanel Margin="0,6">
+                      <Button Command="{Binding AddCommand}" Click="OnCollectionAction" AutomationProperties.Name="{Binding Name, StringFormat=Add {0} entry}"><StackPanel Orientation="Horizontal"><ContentControl Content="{ui:MenuIcon {x:Static catalog:KnownMonikers.Add}}" /><TextBlock Text="Add entry" Margin="4,0,0,0" /></StackPanel></Button>
+                      <Button Command="{Binding ClearCommand}" Click="OnCollectionAction" AutomationProperties.Name="{Binding Name, StringFormat=Clear {0} entries}"><StackPanel Orientation="Horizontal"><ContentControl Content="{ui:MenuIcon {x:Static catalog:KnownMonikers.ClearWindowContent}}" /><TextBlock Text="Clear previous entries" Margin="4,0,0,0" /></StackPanel></Button>
+                      <Button Command="{Binding CollapseEntriesCommand}" Tag="PreserveDraft" AutomationProperties.Name="{Binding Name, StringFormat=Collapse {0} entries}"><StackPanel Orientation="Horizontal"><ContentControl Content="{ui:MenuIcon {x:Static catalog:KnownMonikers.CollapseAll}}" /><TextBlock Text="Collapse entries" Margin="4,0,0,0" /></StackPanel></Button>
+                      <Button Command="{Binding ExpandEntriesCommand}" Tag="PreserveDraft" AutomationProperties.Name="{Binding Name, StringFormat=Expand {0} entries}"><StackPanel Orientation="Horizontal"><ContentControl Content="{ui:MenuIcon {x:Static catalog:KnownMonikers.ExpandAll}}" /><TextBlock Text="Expand entries" Margin="4,0,0,0" /></StackPanel></Button>
+                    </WrapPanel>
+                    <ItemsControl ItemsSource="{Binding Items}">
+                      <ItemsControl.ItemTemplate><DataTemplate>
+                        <Expander Style="{StaticResource CollectionEntry}" IsExpanded="{Binding IsExpanded}" AutomationProperties.Name="{Binding Label}">
+                          <Expander.Header>
+                            <DockPanel LastChildFill="True">
+                              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                              <Button Content="Up" Command="{Binding UpCommand}" Click="OnCollectionAction" AutomationProperties.Name="Move collection entry up" />
+                              <Button Content="Down" Command="{Binding DownCommand}" Click="OnCollectionAction" AutomationProperties.Name="Move collection entry down" />
+                              <Button Content="Delete" Command="{Binding DeleteCommand}" Click="OnCollectionAction" AutomationProperties.Name="Delete collection entry" />
+                              </StackPanel>
+                              <StackPanel><TextBlock Text="{Binding Label}" /><TextBlock Text="{Binding State}" /><TextBlock Text="{Binding Error}" TextWrapping="Wrap" /></StackPanel>
+                            </DockPanel>
+                          </Expander.Header>
+                          <StackPanel>
+                          <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding CanEdit}" Margin="0,4,0,4">
+                            <ItemsControl.ItemTemplate><DataTemplate>
+                              <Grid Margin="0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="CollectionLabels" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock x:Name="CollectionFieldLabel" Text="{Binding Label}" Margin="0,3,8,0"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
+                                  <DataTrigger Binding="{Binding DataContext.IsSimple, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                                </Style.Triggers></Style></TextBlock.Style></TextBlock>
+                                <ui:ExpressionTextBox Grid.Column="1" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
+                                    ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}"
+                                    Suggestions="{Binding Suggestions}" ArgumentBindings="{Binding DataContext.CompletionBindings, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    ValidateSuggestions="{Binding DataContext.ValidateCompletion, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    AutomationProperties.Name="{Binding Name}" AutomationProperties.LabeledBy="{Binding ElementName=CollectionFieldLabel}"
+                                    AutomationProperties.HelpText="{Binding EditHelp}" ToolTip="{Binding EditHelp}" LostKeyboardFocus="OnFieldLostFocus"
+                                    AcceptsReturn="{Binding Multiline}" TextWrapping="Wrap" MinHeight="27" MaxHeight="110" IsUndoEnabled="False">
+                                  <ui:ExpressionTextBox.Style><Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type ui:ExpressionTextBox}}"><Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasLiteralChoices}" Value="True"><Setter Property="Margin" Value="0,0,32,0" /></DataTrigger>
+                                  </Style.Triggers></Style></ui:ExpressionTextBox.Style>
+                                  <ui:ExpressionTextBox.ContextMenu>
+                                    <ContextMenu>
+                                      <MenuItem Header="Remove local value / use default" Command="{Binding UseInheritedCommand}" />
+                                      <MenuItem Header="Choose literal value" ItemsSource="{Binding LiteralChoices}" Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}">
+                                        <MenuItem.ItemContainerStyle><Style TargetType="MenuItem"><Setter Property="Header" Value="{Binding Label}" /><Setter Property="Command" Value="{Binding ApplyCommand}" /></Style></MenuItem.ItemContainerStyle>
+                                      </MenuItem>
+                                      <Separator />
+                                      <MenuItem Command="ApplicationCommands.Cut" /><MenuItem Command="ApplicationCommands.Copy" /><MenuItem Command="ApplicationCommands.Paste" />
+                                    </ContextMenu>
+                                  </ui:ExpressionTextBox.ContextMenu>
+                                </ui:ExpressionTextBox>
+                                <Button Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Width="28" Height="27" Content="▾" Tag="PreserveDraft"
+                                        Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}" Click="OnInheritanceActions" Unloaded="OnActionsUnloaded"
+                                        ToolTip="Choose a literal value. Opening this menu preserves the current expression."
+                                        AutomationProperties.Name="{Binding Name, StringFormat=Choose literal for {0}}">
+                                  <Button.ContextMenu>
+                                    <ContextMenu ItemsSource="{Binding LiteralChoices}" Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}">
+                                      <ContextMenu.ItemContainerStyle><Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                                        <Setter Property="Header" Value="{Binding Label}" />
+                                        <Setter Property="Command" Value="{Binding ApplyCommand}" />
+                                        <Setter Property="ToolTip" Value="{Binding Value}" />
+                                      </Style></ContextMenu.ItemContainerStyle>
+                                    </ContextMenu>
+                                  </Button.ContextMenu>
+                                </Button>
+                              </Grid>
+                            </DataTemplate></ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          </StackPanel>
+                        </Expander>
+                      </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Border BorderThickness="0,1,0,0" Padding="12,6,0,0" Margin="0,8,0,0"
+                            BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}">
+                    <Expander Header="Cleared entries" IsExpanded="False" Tag="PreserveDraft" Margin="0,6">
+                      <ItemsControl ItemsSource="{Binding Excluded}"><ItemsControl.ItemTemplate><DataTemplate>
+                        <StackPanel Margin="0,4"><TextBlock Text="{Binding Text}" TextWrapping="Wrap" /><Button Content="{Binding Origin}" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" /></StackPanel>
+                      </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                    </Expander>
+                    </Border>
+                  </StackPanel>
+                </Expander>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          <Expander Header="Test procedure" Style="{StaticResource CollectionGroup}" ui:StickyCollectionHeader.Detail="{Binding ProcedureSections.Count, StringFormat={}{0} groups}"
+                    IsExpanded="True" Visibility="{Binding HasTestProcedure, Converter={StaticResource Visibility}}"
                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
             <StackPanel Margin="0,8,0,0">
               <WrapPanel Margin="0,0,0,8">
@@ -357,6 +557,7 @@
                   <DataTemplate>
                     <GroupBox Style="{StaticResource ProcedureGroup}" Margin="0,0,0,16" AutomationProperties.Name="{Binding Name, StringFormat=Procedure group {0}}">
                       <GroupBox.Header>
+                        <StackPanel>
                         <ui:ExpressionTextBox DataContext="{Binding TitleField}" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
                             ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" MinHeight="26" Style="{StaticResource ProcedureHeading}"
                             IsEnabled="{Binding DataContext.CanEditTitle, RelativeSource={RelativeSource AncestorType=GroupBox}}"
@@ -377,13 +578,14 @@
                             </ContextMenu>
                           </ui:ExpressionTextBox.ContextMenu>
                         </ui:ExpressionTextBox>
-                      </GroupBox.Header>
-                      <StackPanel>
                         <TextBlock Text="{Binding Name, StringFormat=Group ID: {0}}" TextWrapping="Wrap" Margin="0,0,0,6" />
                         <ToggleButton Content="{Binding ExpansionText}" IsChecked="{Binding IsExpanded}" Tag="PreserveDraft"
                                       HorizontalAlignment="Left" Margin="0,0,0,6" Padding="6,3"
                                       AutomationProperties.Name="{Binding Name, StringFormat=Expand procedure group {0}}"
                                       ToolTip="Show or hide this group's entries. Private drafts are preserved." />
+                        </StackPanel>
+                      </GroupBox.Header>
+                      <StackPanel>
                         <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource Visibility}}">
                         <WrapPanel Margin="0,0,0,6">
                           <ToggleButton IsChecked="{Binding ShowCleared}" IsEnabled="{Binding HasExcluded}"

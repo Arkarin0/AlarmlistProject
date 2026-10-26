@@ -32,7 +32,7 @@ namespace Alarmlist.VisualStudio.UI
             get
             {
                 AnalysisField name = Alarm.Fields.FirstOrDefault(field => field.Name == "Name");
-                return name?.IsValueAvailable == true ? name.EffectiveValue ?? Identifier : name?.EffectiveExpression ?? Identifier;
+                return name?.IsValueAvailable == true ? name.CanonicalValue ?? name.EffectiveValue ?? Identifier : name?.EffectiveExpression ?? Identifier;
             }
         }
         public string OriginLabel => AlarmOriginPresentation.Library(Alarm.Origin);
@@ -221,7 +221,7 @@ namespace Alarmlist.VisualStudio.UI
             string text = _model.Projection.Text;
             foreach (AlarmViewModel view in _allAlarms)
             {
-                AnalysisField name = null;
+                IReadOnlyList<AnalysisField> fields = null;
                 if (current)
                 {
                     int end = view.Source.Start + 1;
@@ -236,9 +236,9 @@ namespace Alarmlist.VisualStudio.UI
                         else column++;
                     }
                     if (names.TryGetValue(Tuple.Create(line, column), out AnalysisAlarm alarm) && alarm.IsResolved)
-                        name = alarm.Fields.FirstOrDefault(field => field.Name == "Name");
+                        fields = alarm.Fields;
                 }
-                view.SetName(name);
+                view.SetFields(fields);
             }
         }
 
@@ -279,6 +279,11 @@ namespace Alarmlist.VisualStudio.UI
             try
             {
                 ProjectAnalysisState state = _analysis?.Current;
+                if (state?.Response?.Availability == AnalysisAvailability.UnsupportedContract) _definitionIncompatible = true;
+                else if (state?.Status == ProjectAnalysisStatus.Available && state.Response?.Snapshot != null)
+                    _definitionIncompatible = state.Response.Snapshot.ToolingFingerprint != Definition.AlarmDefinition.ToolingFingerprint;
+                Notify(nameof(IsValid)); Notify(nameof(CanEdit)); Notify(nameof(Error));
+                AddCommand.Refresh(); DeleteCommand.Refresh();
                 RefreshAlarmNames(state);
                 PreviewColumns.SetStore((_analysis as IDesignerPreviewSettings)?.GetPreviewLayout());
                 var projects = _analysis?.Projects ?? Array.Empty<AnalysisProject>();
@@ -296,13 +301,18 @@ namespace Alarmlist.VisualStudio.UI
                 RefreshProperties(state, alarm);
                 RefreshPreview(state, alarm);
                 bool identityDraft = Fields.Any(field => !field.IsScalar && field.HasChanges);
+                var captions = EnumCaptions.From(state);
                 foreach (AlarmFieldViewModel field in Fields)
+                {
+                    field.SetCaptions(captions);
                     field.SetAnalysis(!identityDraft && alarm?.IsResolved == true
                         ? alarm.Fields.FirstOrDefault(item => item.Name == field.Name) : null, !HasPending);
+                }
                 foreach (ProcedureSectionViewModel section in ProcedureSections)
                     section.SetAnalysis(!identityDraft && alarm?.IsResolved == true && !section.Items.Any(item => item.HasKindChanges)
                         ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry), !HasPending);
                 RefreshProcedureSearch();
+                RefreshCollections(!identityDraft && alarm?.IsResolved == true ? alarm : null, !HasPending && alarm?.IsResolved == true, captions);
                 if (!ReferenceEquals(_choicesState, state) || !ReferenceEquals(_choicesAlarm, alarm))
                 {
                     _choicesState = state;

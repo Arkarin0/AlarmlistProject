@@ -37,7 +37,7 @@ namespace Alarmlist.VisualStudio.Analysis
             }
             catch (OperationCanceledException) when (_disposed) { }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception))
-            { if (!_disposed && version == _version) { IsLoaded = true; Error = "Could not read preview columns: " + exception.Message; Changed?.Invoke(this, EventArgs.Empty); } }
+            { if (!_disposed && version == _version) { IsLoaded = true; Error = "Could not read summary columns: " + exception.Message; Changed?.Invoke(this, EventArgs.Empty); } }
         }
         public void Set(string value)
         {
@@ -62,7 +62,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 }
                 catch (OperationCanceledException) when (_disposed) { return; }
                 catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception))
-                { if (!_disposed) Error = "Could not save preview columns; this layout is still available in this session. " + exception.Message; }
+                { if (!_disposed) Error = "Could not save summary columns; this layout is still available in this session. " + exception.Message; }
                 if (_disposed) return;
                 Changed?.Invoke(this, EventArgs.Empty);
                 if (version == _version) return;

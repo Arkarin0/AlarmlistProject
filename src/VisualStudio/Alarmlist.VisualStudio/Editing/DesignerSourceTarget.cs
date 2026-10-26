@@ -11,6 +11,7 @@ namespace Alarmlist.VisualStudio.Editing
         public AlarmSource Alarm { get; private set; }
         public string Field { get; private set; }
         public string Section { get; private set; }
+        public string Collection { get; private set; }
         public int Entry { get; private set; } = -1;
         public string Parameter { get; private set; }
         public bool IsFile => Alarm == null;
@@ -45,7 +46,23 @@ namespace Alarmlist.VisualStudio.Editing
                 target.Field = name;
                 return target;
             }
-            if (name != "TestProcedure") return null;
+            var descriptor = Definition.AlarmDefinition.Collections.FirstOrDefault(collection => collection.Name == name);
+            if (descriptor != null)
+            {
+                var collection = new CollectionSource(alarm, descriptor);
+                if (collection.Error != null) return null;
+                for (int index = 0; index < collection.Items.Count; index++)
+                {
+                    var item = collection.Items[index];
+                    if (!Contains(item.Source, position) || !item.CanEdit || item.IsClear) continue;
+                    var field = descriptor.Fields.FirstOrDefault(value => item.Field(value.Name) != null && Contains(item.Field(value.Name), position))
+                        ?? descriptor.Fields.First();
+                    target.Collection = name; target.Entry = index; target.Field = field.Name;
+                    return target;
+                }
+                return null;
+            }
+            if (name != "TestProcedure" || !Definition.AlarmDefinition.HasTestProcedure) return null;
             foreach (string sectionName in alarm.ProcedureNames)
             {
                 ProcedureSectionSource section = alarm.GetProcedureSection(sectionName);

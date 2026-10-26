@@ -142,7 +142,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             WriteResource(resourcePath, "Recovered $(par1)");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Recovered 002" && !VisualStudioAutomation.HasErrorDescription(ide.Automation, missing), "translation recovery");
             SelectCulture(ide, window, "keyword");
-            VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "South uses its own preview language");
+            VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "South uses its own summary language");
             SelectContext(contexts, "Plant.almproj");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Recovered 001", "independent linked project state");
             Assert.Equal(Source, File.ReadAllText(workspace.AlarmPath));
@@ -154,16 +154,16 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             SelectContext(contexts, "Plant.almproj");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Recovered 001", "saved translation after reload");
             SelectContext(contexts, "South.almproj");
-            VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "South preview language persists after reload");
+            VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "$(loc:Inspection)", "South summary language persists after reload");
         }
 
-        private static void SelectCulture(VisualStudioSession ide, Window window, string culture)
+        internal static void SelectCulture(VisualStudioSession ide, Window window, string culture)
         {
             AutomationElement toolbar = null;
             VisualStudioSession.Wait(() => (toolbar = window.FindFirstDescendant(cf => cf.ByName("Alarmlist").And(cf.ByControlType(ControlType.ToolBar)))) != null,
                 "native Alarmlist toolbar outside the designer");
             ComboBox selector = null;
-            VisualStudioSession.Wait(() => (selector = toolbar.FindFirstDescendant(cf => cf.ByControlType(ControlType.ComboBox))?.AsComboBox())?.IsEnabled == true, "preview language selector");
+            VisualStudioSession.Wait(() => (selector = toolbar.FindFirstDescendant(cf => cf.ByControlType(ControlType.ComboBox))?.AsComboBox())?.IsEnabled == true, "summary language selector");
             // Use native mouse opening; ExpandCollapse produced empty shell
             // popups in these VS2022 scenarios.
             selector.Collapse(); ide.RequireForeground(); selector.Click();
@@ -181,7 +181,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     selector.Collapse(); ide.RequireForeground(); selector.Click(); refresh.Restart();
                 }
                 return false;
-            }, "preview language choice " + culture);
+            }, "summary language choice " + culture);
             choice.Patterns.SelectionItem.Pattern.Select();
             selector.Collapse();
         }

@@ -65,11 +65,27 @@ namespace Alarmlist.Output
         {
             writer.WriteStartElement(nameof(Alarm));
             writer.WriteElementString(nameof(alarm.FullyQualifiedName), alarm.FullyQualifiedName);
-            writer.WriteElementString(nameof(alarm.Name), alarm.Name);
-            writer.WriteElementString(nameof(alarm.Code), alarm.Code);
-            writer.WriteElementString(nameof(alarm.Category), alarm.Category);
-            writer.WriteElementString(nameof(alarm.Description), alarm.Description);
-            WriteTestProcedure(writer, alarm.TestProcedure);
+            foreach (var field in Definition.AlarmDefinition.Fields)
+            {
+                var value = alarm.GetField(field.Name);
+                if (field.Type == "String" || value?.CanonicalText != null)
+                    writer.WriteElementString(field.Name, value?.CanonicalText);
+            }
+            foreach (var descriptor in Definition.AlarmDefinition.Collections)
+            {
+                writer.WriteStartElement(descriptor.Name);
+                var collection = alarm.GetCollection(descriptor.Name);
+                if (collection != null) foreach (var item in collection.Items)
+                {
+                    writer.WriteStartElement("Item");
+                    if (descriptor.Kind == "Simple") writer.WriteString(item.GetField("Item")?.CanonicalText);
+                    else foreach (var field in item.Fields)
+                        if (field.CanonicalText != null) writer.WriteElementString(field.Name, field.CanonicalText);
+                    writer.WriteEndElement();
+                }
+                writer.WriteEndElement();
+            }
+            if (Definition.AlarmDefinition.HasTestProcedure) WriteTestProcedure(writer, alarm.TestProcedure);
             writer.WriteEndElement();
         }
 

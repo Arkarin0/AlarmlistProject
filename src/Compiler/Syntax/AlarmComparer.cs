@@ -14,11 +14,7 @@ namespace Alarmlist.Compiler
     {
         public bool Equals(Alarm x, Alarm y)
         {
-            return
-                x.Name == y.Name &&
-                x.Description == y.Description &&
-                x.Code == y.Code &&
-                x.Category == y.Category;
+            return Definition.AlarmDefinition.Fields.All(field => x.GetField(field.Name)?.CanonicalText == y.GetField(field.Name)?.CanonicalText);
             //    Equals(x.SolutionList,y.SolutionList);            
         }
 

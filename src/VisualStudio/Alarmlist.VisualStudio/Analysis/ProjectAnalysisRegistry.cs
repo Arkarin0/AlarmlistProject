@@ -63,7 +63,7 @@ namespace Alarmlist.VisualStudio.Analysis
             {
                 ProjectAnalysisService owner = _projects.FirstOrDefault(service => ReferenceEquals(service.Current.Project, project));
                 if (owner == null || !_cultureWriters.TryGetValue(owner, out writer))
-                    throw new InvalidOperationException("The project context changed. Choose the preview language again.");
+                    throw new InvalidOperationException("The project context changed. Choose the summary language again.");
             }
             return writer(project, culture, token);
         }
