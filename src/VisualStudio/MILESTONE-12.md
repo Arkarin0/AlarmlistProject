@@ -1,8 +1,8 @@
 # Milestone twelve: XML IntelliSense and native Shared Projects
 
-Status: implementation authorized on 2026-10-27; iterations 1–8 complete.
+Status: implementation authorized on 2026-10-27; iterations 1–9 complete.
 Scoped combined acceptance passes on both supported IDE hosts and task frameworks.
-Follow-up iterations 9–10 are planned below; their implementation is not started.
+Follow-up iterations 9–10 were authorized on 2026-10-27; iteration 10 is not started.
 The owner confirmed the scope and recommended defaults and activated the goal
 on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
 check usage throughout and stop before crossing that threshold. Do not merge or
@@ -1184,9 +1184,10 @@ The owner reported missing completion in
 `<Step>$(loc:Instruction.Set, path="$(loc:", property="", value="")</Step>`
 and requested that the ordinary example also include a Shared Project. These
 follow-ups extend this plan without changing completed iteration numbering or
-claiming their acceptance. This is planning only; the completed goal covers 1–8.
+claiming their acceptance. The owner activated the follow-up implementation goal
+on dev/milestone-12 on 2026-10-27, preserving the 15% allowance reserve.
 
-### 9 — Localization argument completion and quote handling (planned)
+### 9 — Localization argument completion and quote handling (complete)
 
 - **Deliverable:** reproduce the reported caret/selection context and improve
   discoverability/insertion of supported argument expressions in XML and designer
@@ -1247,3 +1248,108 @@ Planning review: existing solution/project/import paths and preparation/test ent
 points were inspected. No implementation tests were run for these planned changes.
 The owner's existing edit to example/North/Alarms.almx is unrelated and must remain
 untouched and unstaged throughout the follow-up work.
+
+### Iteration 9 implementation evidence (complete)
+
+- XML and designer now share lexical expression replacement spans, including a
+  supported expression draft occupying an entire quoted localization argument.
+  Choosing a candidate removes that slot's quotes; other arguments and XML entity
+  boundaries are preserved. Explicit completion in an empty unbound argument
+  replaces the full slot and excludes localization candidates; bound-list search
+  keeps its existing behavior. No compiler parsing or expression syntax changes.
+- Literal text surrounding an embedded token, escaped calls and direct nested
+  localization drafts remain outside automatic evaluated-expression completion.
+  The exact reported Step context is a negative regression. Existing saved-input,
+  cancellation, snapshot/selection and consumer checks remain in the adapters.
+- Initial focused editor validation: **47 passed**, no failures/skips,
+  Iteration9/Focused. Full unit validation is in progress. A concurrent package
+  build collided with the unit build's generated VS template staging (VSSDK1301);
+  rerun package validation sequentially after the unit build. No generated file
+  is an implementation change and this attempt is not a passing gate.
+- Full editor unit run: **824 passed**, Iteration9/Unit. Two additional automatic/
+  incomplete-slot regressions were then added; final focused run: **49 passed**,
+  Iteration9/FocusedFinal, covering those cases and the original 47. No production
+  change occurred between these runs; together they cover **826 unique unit cases**.
+- Sequential packaged integration rerun: **14 passed per framework**, net472 and
+  net8.0, Iteration9/PackageFinal. The template-staging collision does not recur.
+  All passing runs have zero failures/skips. Native checks remain in progress.
+- Initial VS2022 native group 8566e270401645fc81ee8c6f324b3112: **2 passed,
+  1 failed**. XML semantic/context cases pass, including quoted Step/entity spans.
+  The older designer lookup fixture times out at its pre-existing metadata Enter
+  assertion. Isolated repeat 557d08baf2e94605be4ecf960b8d4080 fails earlier at
+  designer readiness; neither failure is successful acceptance. The fixture now
+  uses the owned IDE's authoritative window handle (as newer fixtures do), selects
+  Designer after reopening lookup XML, and requires visible completion rows.
+  Behavioral/source/Undo assertions are unchanged; repeat acceptance is pending.
+- Final VS2022 native group 001b41c9034c46cead3637fb16ef05b8: **3 passed**, no
+  failures/skips. Designer metadata/template insertion, quoted lookup arguments,
+  private drafts, one document Undo, saved-only lookup regeneration, XML quoted
+  Step/entity spans, stale requests and consumer isolation all pass. The initial
+  failed attempts remain above; no reduced assertion or product workaround ships.
+  Matching VS2026 acceptance is in progress.
+- VS2026 group b01e492d9bbe4c19812a1dfaffdf1225 passes both XML cases but fails
+  designer metadata acceptance; isolated 2c3e1df28a1d416583a0cb8a6abd6861 repeats
+  it. Temporary return/input traces show currentness rejection, including changed
+  analysis generation with unchanged captured bytes. This is legitimate stale
+  protection, not a reason to bypass generation or saved-input checks. Diagnostic
+  runs c2f3e8f6fc7149bcb92d3ea805c65874/dd8a773d2eb9457b8b10e094b4838be5 pass,
+  while 6ab9c5a0f53244d5aaa5377977f0af2c rejects acceptance. All temporary product
+  tracing was removed; these probes are not final-payload acceptance evidence.
+- An interrupted suggestion list now remembers only its exact draft/caret/selection
+  intent. Enter/Tab/Escape consumes that interrupted action once instead of
+  committing/discarding its draft. Text/selection/focus changes clear that intent;
+  successful insertion and ordinary subsequent commits keep their existing rules.
+  No old candidate is inserted after validation failure. Native acceptance now
+  re-requests current candidates after a rejected action, asserting unchanged
+  draft and source on every attempt. Unexpected edits still fail immediately.
+- **54 focused cases pass**, no failures/skips, Iteration9/InterruptedCompletion,
+  including withdrawal keys, replacement drafts and late validation. Full unit/
+  package/native checks are repeated against the final uninstrumented payload.
+- Final uninstrumented unit suite: **829 passed**, Iteration9/UnitFinal. Final
+  packaged integration: **14 per framework passed**, Iteration9/PackageExactFinal.
+  No failures/skips. Native checks now retain the saved metadata value assertion
+  on every fresh request, not only the initially displayed row. Both-host native
+  acceptance remains the last gate for iteration 9.
+- Run 2a21d958510f474db54f4b38bd0e160f passes both XML cases but times out
+  re-requesting a designer suggestion. Inspection finds explicit completion commands
+  falling through the pane to its embedded XML target. The pane now routes native
+  List Members/Complete Word/Auto Complete to the focused editable designer
+  expression field, following its existing return-command routing. XML focus keeps
+  native command behavior. **55 focused tests pass**, Iteration9/CommandRouting,
+  including command query/execute scope and unchanged source. Final native and
+  full-unit/package validation follow this routing correction.
+- Final-payload VS2026 designer case passes: **1 passed**, no failures/skips,
+  7c4177a088b54731badfc2c8a303f65a. Explicit fresh requests now use the designer
+  route and retain all saved-input/source/Undo assertions. Latest allowance:
+  **38% remaining**, above the 15% reserve. No temporary tracing remains.
+- Final-payload VS2022 group adc0e34f45a84155bfebfe8c1ac72e35: **3 passed**, no
+  failures/skips, covering the corrected designer command route and both XML cases.
+  VS2026's matching XML regression and final full-unit/package checks are pending.
+- VS2026 final XML regression 09194af4dafb4e998505cbc584ef6822: **2 passed**,
+  no failures/skips. Together with its final designer case, both hosts pass all
+  three native gates on the final code. Remaining checks are final full-unit/
+  package acceptance, documentation/diff review and the focused iteration commit.
+
+Final iteration-9 acceptance supersedes its pending notes above:
+
+- **830 full extension unit tests pass**, no failures/skips, Iteration9/UnitAccepted.
+- **14 package integration tests per framework pass**, net472/net8.0, no failures/
+  skips, Iteration9/PackageAccepted. Compiler/SDK semantics and fingerprints are
+  unchanged; their earlier broad validation is reused for this host-only change.
+- **Three native cases per host pass** on the final code: VS2022
+  adc0e34f45a84155bfebfe8c1ac72e35; VS2026 designer
+  7c4177a088b54731badfc2c8a303f65a plus XML/context
+  09194af4dafb4e998505cbc584ef6822. All have zero failures/skips. Native/WPF
+  fixtures run sequentially. Earlier failed/diagnostic runs remain identified.
+- Commands: dotnet test for the extension UnitTests/IntegrationTests projects,
+  --no-restore -v quiet --logger trx, with the respective UnitAccepted and
+  PackageAccepted result directories above. Native commands use
+  eng/test-visualstudio.ps1, each installed -VisualStudioPath, and
+  -Filter 'Area=Lookups|Area=XmlSemanticCompletion' (separate final VS2026 filters
+  select the designer case and two XML cases).
+- Diff/paths/docs reviewed; git diff --check passes. North/Alarms.almx retains
+  SHA-256 A4464F2CAA7C71F84356E8BEEB2CE577752713D10E2496221898679DF315DCB3.
+  No temporary diagnostics, generated files or unrelated source edits are staged.
+
+Iteration 9 has no remaining scoped blocker. Iteration 10 remains authorized and
+must follow its own consumer/native/preparation gates before completion.

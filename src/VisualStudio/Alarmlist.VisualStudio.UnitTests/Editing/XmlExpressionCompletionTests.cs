@@ -130,6 +130,56 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             Assert.Equal("$(Plant)", Assert.Single(result.Candidates).Insertion);
         }
 
+        [Theory]
+        [InlineData("\"$(Pla¦)\"")]
+        [InlineData("&quot;$(Pla¦nt)&quot;")]
+        [InlineData("\"$(Pla¦\"")]
+        public void QuotedArgumentExpressionCompletionReplacesWholeSlotAndKeepsOtherArguments(string slot)
+        {
+            string marked = "<Alarmlist><Alarm><TestProcedure><Group Name='G'><Step>$(loc:T, path=" + slot
+                + ", property=\"\", value=\"001\")</Step></Group></TestProcedure></Alarm></Alarmlist>";
+            var result = Complete(marked);
+            string text = marked.Replace("¦", "");
+            Assert.Contains("<Step>$(loc:T, path=$(Plant), property=\"\", value=\"001\")</Step>",
+                text.Remove(result.Start, result.Length).Insert(result.Start, Assert.Single(result.Candidates).Insertion));
+        }
+
+        [Theory]
+        [InlineData("\"$(loc:¦\"")]
+        [InlineData("\"$$(Pla¦)\"")]
+        [InlineData("\"literal $(Pla¦)\"")]
+        [InlineData("\"$(Pla¦) suffix\"")]
+        public void LiteralAndNestedLocalizationDraftsDoNotOfferEvaluatedExpressions(string slot)
+        {
+            string marked = "<Alarmlist><Alarm><TestProcedure><Group Name='G'><Step>$(loc:Instruction.Set, path=" + slot + ", property=\"\", value=\"\")</Step></Group></TestProcedure></Alarm></Alarmlist>";
+            var request = Request(marked, false);
+            var result = XmlExpressionCompletion.Complete(request, Snapshot(new[] { Translation("Other", "text") }), Alarm(), null);
+            Assert.True(result == null || result.Candidates.Count == 0);
+        }
+
+        [Theory]
+        [InlineData("$(loc:T, path=\"$(Pla¦)\", value=\"001\")")]
+        [InlineData("$(loc:T, path=\"$(Pla¦")]
+        public void AutomaticQuotedArgumentCompletionUsesTheWholeSlotEvenWhileIncomplete(string marked)
+        {
+            var request = Request("<Alarmlist><Alarm><Name>" + marked + "</Name></Alarm></Alarmlist>", false);
+            var result = XmlExpressionCompletion.Complete(request, Snapshot(), Alarm(), null);
+            Assert.Equal("$(Plant)", Assert.Single(result.Candidates).Insertion);
+            Assert.Equal('"', request.SourceText[result.Start]);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ExplicitEmptyArgumentCompletionReplacesQuotesAndExcludesLocalization(bool selectQuotes)
+        {
+            const string text = "<Alarmlist><Alarm><Name>$(loc:T, path=\"\", value=\"001\")</Name></Alarm></Alarmlist>";
+            int start = text.IndexOf("\"\"", StringComparison.Ordinal);
+            var request = XmlExpressionCompletion.Request(text, start + (selectQuotes ? 2 : 1), selectQuotes ? start : start + 1, selectQuotes ? 2 : 0, true);
+            var result = XmlExpressionCompletion.Complete(request, Snapshot(new[] { Translation("Other", "text") }), Alarm(), null);
+            Assert.Contains("path=$(Plant), value=\"001\"", text.Remove(result.Start, result.Length).Insert(result.Start, Assert.Single(result.Candidates).Insertion));
+        }
+
         [Fact]
         public void LookupSuggestionsUseExactStoredExpressionAndSuppressAmbiguities()
         {

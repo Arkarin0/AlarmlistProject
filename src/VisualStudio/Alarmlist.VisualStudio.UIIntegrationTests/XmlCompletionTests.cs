@@ -67,6 +67,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     "<Properties><Property Name='Local' Value='unsaved'/></Properties><Name>$(Loc¦)</Name>"), "$(Local)", "<Name>$(Local)</Name>");
                 Check(original.Replace("<Name>literal</Name>", "<ReferenceName>Tem¦</ReferenceName><Name>literal</Name>"), "Template", "<ReferenceName>Template</ReferenceName>");
                 Check(original.Replace("literal", "$(loc:Saved¦)"), "$(loc:SavedKey)", "<Name>$(loc:SavedKey)</Name>");
+                Check(original.Replace("<Name>literal</Name>", "<Name>literal</Name><TestProcedure><Group Name='G'><Step>$(loc:Instruction.Set, path=\"$(pl¦)\", property=\"\", value=\"001\")</Step></Group></TestProcedure>"),
+                    "$(Plant)", "<Step>$(loc:Instruction.Set, path=$(Plant), property=\"\", value=\"001\")</Step>");
+                Check(original.Replace("literal", "$(loc:T, path=&quot;$(pl¦)&quot;, value=\"001\")"), "$(Plant)", "path=$(Plant), value=\"001\"");
                 ide.Automation.Documents.Item(workspace.AlarmPath).Close(vsSaveChanges.vsSaveChangesNo);
                 Assert.Equal(original, File.ReadAllText(workspace.AlarmPath));
             }

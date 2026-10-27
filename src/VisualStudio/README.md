@@ -51,6 +51,16 @@ Saved resources/lookups are checked
 before display and insertion, while ALMX changes use current buffers. Changing
 the source, context or saved inputs rejects an old insertion.
 
+Localization template arguments keep quoted text literal. In an empty slot, invoke
+Ctrl+Space (or select its quotes first) to choose a supported expression. Typing a
+whole-slot draft such as `path="$(path:Service.)"` also offers completion; accepting
+it replaces the quotes with `path=$(path:Service.Vakuum)`. Other arguments remain
+unchanged. Embedded tokens in ordinary literal text are not expanded. Direct
+nested localization arguments such as `path="$(loc:Key)"` do not resolve another
+translation and are not offered as evaluated argument expressions.
+If analysis changes while choosing a suggestion, invoke completion again; an
+interrupted completion key preserves the current draft instead of committing it.
+
 Lookup XML completion loads the authoritative schema shipped with the extension.
 Use `urn:alarmlist:lookup:1`, either as the default namespace or through a prefix.
 Elements, attributes, closing names and the root namespace declaration are offered

@@ -223,6 +223,14 @@ namespace Alarmlist.VisualStudio
             if (args.Key == Key.Escape) { ViewModel.CancelPending(); args.Handled = true; }
             else if (args.Key == Key.Enter) args.Handled = HandleReturnCommand(true, Keyboard.Modifiers);
         }
+        internal bool HandleCompletionCommand(bool execute)
+        {
+            if (!IsKeyboardFocusWithin || !(Keyboard.FocusedElement is ExpressionTextBox expression)
+                || expression.IsReadOnly || !expression.IsExpressionEnabled) return false;
+            if (execute) expression.HandleCompletionKey(Key.Space, ModifierKeys.Control);
+            return true;
+        }
+
         internal bool HandleReturnCommand(bool execute, ModifierKeys modifiers)
         {
             if (!IsKeyboardFocusWithin || !(Keyboard.FocusedElement is TextBox text)) return false;

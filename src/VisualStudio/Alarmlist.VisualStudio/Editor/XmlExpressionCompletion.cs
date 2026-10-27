@@ -99,9 +99,9 @@ namespace Alarmlist.VisualStudio.Editor
             if (path.Length == 5 && path[1] == "Alarm" && path[3] == "Item")
                 suggestions = suggestions.Concat(ExpressionCompletionCandidates.RecordSiblings(
                     snapshot.CollectionDefinitions.FirstOrDefault(item => item.Name == path[2]), path[4])).ToArray();
-            int start = ExpressionCompletionContext.FindStart(value, request.Caret, out bool argument);
-            string prefix = start < 0 ? null : value.Substring(start + 2, request.Caret - start - 2);
-            if (prefix != null && !ExpressionCompletionContext.IsPrefix(prefix)) prefix = null;
+            ExpressionEdit expression = ExpressionCompletionContext.FindExpression(value, request.Caret);
+            int start = expression?.Start ?? -1;
+            string prefix = expression?.Prefix;
             ArgumentEdit slot = prefix == null ? ExpressionCompletionContext.FindArgument(value, request.SelectionStart, request.SelectionLength) : null;
             bool bound = slot != null && snapshot.ArgumentBindings.Any(binding => binding.IsAvailable
                 && binding.TemplateKey == slot.TemplateKey && binding.ArgumentName == slot.ArgumentName);
@@ -118,16 +118,14 @@ namespace Alarmlist.VisualStudio.Editor
                 if (prefix == null)
                 {
                     if (!request.Explicit) return null;
-                    start = request.SelectionStart; end = start + request.SelectionLength; prefix = "";
+                    start = slot?.Start ?? request.SelectionStart; end = slot?.End ?? (start + request.SelectionLength); prefix = "";
                 }
                 else
                 {
-                    end = request.Caret;
-                    while (end < value.Length && ExpressionCompletionContext.IsTokenCharacter(value[end])) end++;
-                    if (end < value.Length && value[end] == ')') end++;
+                    end = expression.End;
                 }
                 matches = ExpressionCompletionCandidates.FindMatches(suggestions, prefix);
-                if (argument) matches = matches.Where(item => !item.IsLocalization).ToArray();
+                if (expression?.IsArgument == true || slot != null) matches = matches.Where(item => !item.IsLocalization).ToArray();
             }
             return Result(start, end, matches.Select(item =>
             {

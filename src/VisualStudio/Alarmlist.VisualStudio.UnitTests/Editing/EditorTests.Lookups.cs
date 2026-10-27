@@ -107,6 +107,71 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             });
         }
 
+        [Theory]
+        [InlineData("\"$(path:Service.¦)\"")]
+        [InlineData("\"$(path:Service.¦\"")]
+        [InlineData("$(path:Service.¦)")]
+        public void QuotedLookupArgumentDraftKeepsOtherSlotsAndCommitsWithOneUndo(string slot)
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession(LookupTestData.Source))
+                using (var host = ExpressionHost())
+                {
+                    AnalyzeLookups(session);
+                    var control = new EditFileControl(session.View) { Width = 900, Height = 850 };
+                    host.RootVisual = control; InheritanceAdornerTests.Pump();
+                    ExpressionTextBox box = ExpressionBox(control, "Name");
+                    box.BringIntoView(); Assert.True(box.Focus());
+                    string marked = "$(loc:Set, path=" + slot + ", property=\"\", value=\"001\")";
+                    box.Text = marked.Replace("¦", ""); box.CaretIndex = marked.IndexOf('¦');
+                    Assert.Equal(1, box.CompletionCount);
+                    RaiseExpressionKey(box, host, Key.Enter);
+                    Assert.Equal("$(loc:Set, path=$(path:Service.Vakuum), property=\"\", value=\"001\")", box.Text);
+                    Assert.Equal(0, session.Buffer.Edits);
+                    RaiseExpressionKey(box, host, Key.Enter);
+                    Assert.Equal(1, session.Buffer.Edits);
+                    session.Buffer.Undo(); Assert.Equal(LookupTestData.Source, session.Buffer.Current.Text);
+                }
+            });
+        }
+
+        [Theory]
+        [InlineData(Key.Enter)]
+        [InlineData(Key.Tab)]
+        [InlineData(Key.Escape)]
+        public void WithdrawnCompletionKeepsTheNextKeyFromCommittingOrDiscardingItsDraft(Key key)
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession(LookupTestData.Source))
+                using (var host = ExpressionHost())
+                {
+                    AnalyzeLookups(session);
+                    var control = new EditFileControl(session.View) { Width = 900, Height = 850 };
+                    host.RootVisual = control; InheritanceAdornerTests.Pump();
+                    ExpressionTextBox box = ExpressionBox(control, "Name");
+                    box.BringIntoView(); Assert.True(box.Focus());
+                    box.Text = "$(meta:Service.Vakuum#Ein#Def"; box.CaretIndex = box.Text.Length;
+                    Assert.True(box.IsCompletionOpen);
+                    var suggestions = box.Suggestions;
+                    box.Suggestions = BindingCollection.Create(Array.Empty<PropertyCompletion>());
+                    Assert.False(box.IsCompletionOpen);
+                    RaiseExpressionKey(box, host, key);
+                    Assert.Equal(0, session.Buffer.Edits);
+                    Assert.Equal("$(meta:Service.Vakuum#Ein#Def", box.Text);
+                    Assert.True(session.View.HasPending);
+                    box.Suggestions = suggestions;
+                    Assert.True(box.HandleCompletionKey(Key.Space, ModifierKeys.Control));
+                    RaiseExpressionKey(box, host, Key.Enter);
+                    Assert.Equal("$(meta:Service.Vakuum#Ein#Default)", box.Text);
+                    RaiseExpressionKey(box, host, Key.Enter);
+                    Assert.Equal(1, session.Buffer.Edits);
+                    session.Buffer.Undo(); Assert.Equal(LookupTestData.Source, session.Buffer.Current.Text);
+                }
+            });
+        }
+
         [Fact]
         public void LookupCompletionRechecksSavedInputsAndDropsLateResults()
         {

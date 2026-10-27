@@ -176,9 +176,18 @@ namespace Alarmlist.VisualStudio.Editor
 
         int IVsDeferredDocView.get_CmdUIGuid(out Guid commandUi) { commandUi = new Guid(AlmxEditorFactory.EditorGuid); return VSConstants.S_OK; }
         int IVsDeferredDocView.get_DocView(out IntPtr view) { view = Marshal.GetIUnknownForObject(this); return VSConstants.S_OK; }
+        private static bool IsCompletionCommand(Guid group, uint id) => group == VSConstants.VSStd2K
+            && (id == (uint)VSConstants.VSStd2KCmdID.SHOWMEMBERLIST || id == (uint)VSConstants.VSStd2KCmdID.COMPLETEWORD
+                || id == (uint)VSConstants.VSStd2KCmdID.AUTOCOMPLETE);
+
         public int QueryStatus(ref Guid group, uint count, OLECMD[] commands, IntPtr text)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            if (count == 1 && IsCompletionCommand(group, commands[0].cmdID) && _control?.HandleDesignerCompletion(false) == true)
+            {
+                commands[0].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+                return VSConstants.S_OK;
+            }
             if (group == VSConstants.VSStd2K && count == 1 && commands[0].cmdID == (uint)VSConstants.VSStd2KCmdID.RETURN
                 && _control?.HandleDesignerReturn(false, Keyboard.Modifiers) == true)
             {
@@ -221,6 +230,7 @@ namespace Alarmlist.VisualStudio.Editor
         public int Exec(ref Guid group, uint id, uint options, IntPtr input, IntPtr output)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            if (IsCompletionCommand(group, id) && _control?.HandleDesignerCompletion(true) == true) return VSConstants.S_OK;
             // VS can translate Shift+Enter to RETURN before WPF receives a key
             // event. Never forward a designer field's return to the XML view.
             if (group == VSConstants.VSStd2K && id == (uint)VSConstants.VSStd2KCmdID.RETURN

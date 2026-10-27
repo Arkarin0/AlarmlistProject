@@ -30,6 +30,34 @@ namespace Alarmlist.VisualStudio.UI
             return calls.Count == 0 ? -1 : calls.Peek();
         }
 
+        public static ExpressionEdit FindExpression(string text, int caret)
+        {
+            int start = FindStart(text, caret, out bool argument);
+            string prefix = start < 0 ? null : text.Substring(start + 2, caret - start - 2);
+            if (prefix != null && IsPrefix(prefix))
+            {
+                int end = caret;
+                while (end < text.Length && IsTokenCharacter(text[end])) end++;
+                if (end < text.Length && text[end] == ')') end++;
+                return new ExpressionEdit(start, end, prefix, argument);
+            }
+            // Quotes remain literal until the user explicitly accepts a candidate.
+            // Only a whole-slot expression draft can replace its enclosing quotes;
+            // never reinterpret an expression embedded in ordinary literal text.
+            ArgumentEdit slot = FindArgument(text, caret, 0);
+            if (slot == null || slot.Start >= text.Length || text[slot.Start] != '"') return null;
+            int contentStart = slot.Start + 1, contentEnd = slot.End;
+            if (contentEnd > contentStart && text[contentEnd - 1] == '"') contentEnd--;
+            if (caret < contentStart + 2 || caret > contentEnd
+                || !text.Substring(contentStart, caret - contentStart).StartsWith("$(", StringComparison.Ordinal)) return null;
+            prefix = text.Substring(contentStart + 2, caret - contentStart - 2);
+            if (!IsPrefix(prefix)) return null;
+            int tail = caret;
+            while (tail < contentEnd && IsTokenCharacter(text[tail])) tail++;
+            if (tail < contentEnd && text[tail] == ')') tail++;
+            return tail == contentEnd ? new ExpressionEdit(slot.Start, slot.End, prefix, true) : null;
+        }
+
         public static ArgumentEdit FindArgument(string text, int caret, int selectionLength)
         {
             foreach (int call in ActiveCalls(text, caret))
@@ -99,6 +127,16 @@ namespace Alarmlist.VisualStudio.UI
             }
             return calls;
         }
+    }
+
+    internal sealed class ExpressionEdit
+    {
+        public int Start { get; }
+        public int End { get; }
+        public string Prefix { get; }
+        public bool IsArgument { get; }
+        public ExpressionEdit(int start, int end, string prefix, bool argument)
+        { Start = start; End = end; Prefix = prefix; IsArgument = argument; }
     }
 
     internal sealed class ArgumentEdit

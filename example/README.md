@@ -139,6 +139,13 @@ and `#` to narrow the member choices. Use `$(meta:` to explicitly insert stored
 metadata. Enter inserts into the draft; the next Enter commits one undoable edit.
 For inherited rows, use **Override locally** or **Make local copy** first.
 
+You can also place the caret inside an empty quoted slot and invoke Ctrl+Space,
+or type a supported expression prefix inside it, for example `path="$(path:Service."`.
+Choosing a path replaces the entire quoted slot with an unquoted `$(path:...)`
+expression. Quoted values otherwise remain literal; nested `$(loc:...)` arguments
+are not evaluated. Use path/property/button/meta/list or parameter expressions for
+resolved argument values instead.
+
 Change the **Value** attribute of the **Default** metadata entry from **060** to
 **061**, then save the catalogue. Both project previews refresh. An unsaved lookup
 XML draft stays private. Restore **060** afterward. Removing a referenced member

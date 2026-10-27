@@ -41,9 +41,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             workspace.Build(ide, 1);
             byte[] output = File.ReadAllBytes(workspace.OutputPath);
             using var automation = new UIA3Automation();
-            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
             ide.OpenDesigner(workspace.AlarmPath);
-            Window window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            Window window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             window.SetForeground();
             AutomationElement designer = null;
             VisualStudioSession.Wait(() => (designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)))) != null, "designer mode");
@@ -54,18 +53,19 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
             Assert.True(VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, lookupPath, lookup.Replace("060", "999")));
             ide.OpenDesigner(workspace.AlarmPath);
+            SelectDesigner(window);
             window.SetForeground();
             TextBox name = null;
             VisualStudioSession.Wait(() => (name = Box(window, "Name"))?.IsEnabled == true, "reopened lookup designer field");
             name.Focus();
             ResourceEditorTests.ReplaceDraft(ide, name, "$(meta:Service.Vakuum#Ein#Def");
             VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
-                .Any(item => item.Name.StartsWith("meta:Service.Vakuum#Ein#Default", StringComparison.Ordinal) && item.Name.Contains("060")), "saved metadata completion");
+                .Any(item => !item.IsOffscreen && item.Name.StartsWith("meta:Service.Vakuum#Ein#Default", StringComparison.Ordinal) && item.Name.Contains("060")), "saved metadata completion");
             Assert.Equal(lookup, File.ReadAllText(lookupPath));
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "lookup-metadata-completion.png"));
-            ResourceEditorTests.RequireFieldFocus(ide, name);
-            Keyboard.Type(VirtualKeyShort.RETURN);
-            VisualStudioSession.Wait(() => name.Text == "$(meta:Service.Vakuum#Ein#Default)", "metadata reference insertion");
+            File.WriteAllText(Path.Combine(workspace.DirectoryPath, "metadata-before-enter.xml"), ide.ReadText(workspace.AlarmPath));
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            AcceptCurrent("$(meta:Service.Vakuum#Ein#Default)", "meta:Service.Vakuum#Ein#Default", "060");
             Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
             ResourceEditorTests.RequireFieldFocus(ide, name);
             Keyboard.Type(VirtualKeyShort.RETURN);
@@ -75,7 +75,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == source, "lookup insertion Undo");
             ResourceEditorTests.ReplaceDraft(ide, name, "$(loc:Set");
             VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
-                .Any(item => item.Name.StartsWith("loc:Set,", StringComparison.Ordinal)), "named template choice");
+                .Any(item => !item.IsOffscreen && item.Name.StartsWith("loc:Set,", StringComparison.Ordinal)), "named template choice");
             ResourceEditorTests.RequireFieldFocus(ide, name);
             Keyboard.Type(VirtualKeyShort.DOWN);
             ResourceEditorTests.RequireFieldFocus(ide, name);
@@ -84,12 +84,47 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "named-template-arguments.png"));
             ResourceEditorTests.RequireFieldFocus(ide, name);
             Keyboard.Type(VirtualKeyShort.ESCAPE);
+            const string quotedDraft = "$(loc:Set, path=\"$(path:Service.)\", property=\"\", value=\"001\")";
+            ResourceEditorTests.ReplaceDraft(ide, name, quotedDraft);
+            name.Patterns.Text.Pattern.DocumentRange.FindText("$(path:Service.", false, false).Select();
+            ResourceEditorTests.RequireFieldFocus(ide, name); Keyboard.Type(VirtualKeyShort.RIGHT);
+            ResourceEditorTests.RequireFieldFocus(ide, name); Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
+                .Any(item => !item.IsOffscreen && item.Name.StartsWith("path:Service.Vakuum", StringComparison.Ordinal)), "lookup expression inside a quoted argument slot");
+            AcceptCurrent("$(loc:Set, path=$(path:Service.Vakuum), property=\"\", value=\"001\")", "path:Service.Vakuum");
+            Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            ResourceEditorTests.RequireFieldFocus(ide, name); Keyboard.Type(VirtualKeyShort.RETURN);
+            VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath).Contains("path=$(path:Service.Vakuum), property=\"\", value=\"001\""), "argument draft commit");
+            ResourceEditorTests.RequireFieldFocus(ide, name); Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_Z);
+            VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == source, "argument replacement has one document Undo");
             ide.Automation.Documents.Item(lookupPath).Close(vsSaveChanges.vsSaveChangesNo);
             File.WriteAllText(lookupPath, lookup.Replace("060", "061"));
             Box(window, "Filter alarms").Focus();
             VisualStudioSession.Wait(() => name.Text == "In Service -> Vacuum, set ON to 061.", "saved lookup regeneration refreshes preview");
             Assert.Equal(source, File.ReadAllText(workspace.AlarmPath));
             Assert.Equal(output, File.ReadAllBytes(workspace.OutputPath));
+
+            void AcceptCurrent(string expected, string candidate, string detail = null)
+            {
+                string draft = name.Text;
+                VisualStudioSession.Wait(() =>
+                {
+                    if (name.Text == expected) return true;
+                    Assert.Equal(draft, name.Text);
+                    Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+                    // A native CPS refresh can reject acceptance after display.
+                    // Re-request current candidates; never retry after any source
+                    // edit or draft change, and never accept a stale row by name.
+                    ResourceEditorTests.RequireFieldFocus(ide, name);
+                    Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.SPACE);
+                    VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
+                        .Any(item => !item.IsOffscreen && item.Name.StartsWith(candidate, StringComparison.Ordinal)
+                            && (detail == null || item.Name.Contains(detail))), "fresh argument candidate " + candidate);
+                    ResourceEditorTests.RequireFieldFocus(ide, name); Keyboard.Type(VirtualKeyShort.RETURN);
+                    return name.Text == expected;
+                }, "current candidate insertion " + candidate);
+                Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            }
         }
     }
 }

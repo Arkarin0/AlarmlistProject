@@ -651,6 +651,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   templates in the IDE. Template completion inserts explicit empty named arguments;
   lookup/member/metadata completion inserts compiler-supplied expressions, with no
   automatic metadata defaults or range validation. Suppress ambiguous path choices.
+  Quoted argument text stays literal. Accepting completion for an empty argument
+  slot or a whole-slot expression draft replaces its enclosing quotes in both
+  designer and XML; never reinterpret tokens embedded in ordinary literal text
+  or suggest evaluated nested localization arguments. See milestone 12 iteration 9.
+  If a suggestion request is withdrawn during analysis refresh, consume its next
+  completion key once only while draft/caret/selection remain unchanged; never
+  turn interrupted acceptance into a source commit or bypass currentness checks.
+  Route native explicit completion commands to the focused editable designer
+  expression field; forwarding them to the hidden XML command target loses the
+  designer request. XML focus retains the normal native XML command route.
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
   Embedded XML keyboard editing inherits native text-editor bindings only while
   the source view has aggregate focus; designer controls retain WPF draft editing.

@@ -15,6 +15,35 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         [Fact]
+        public void DesignerCompletionCommandTargetsItsFocusedExpressionWithoutEditingSource()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                string source = PropertyChild.Replace("</Alarm>", "<Code>old</Code></Alarm>");
+                using (var session = new SemanticSession(source))
+                using (var host = ExpressionHost())
+                {
+                    session.Analyze(PropertyBase);
+                    var control = new EditFileControl(session.View) { Width = 900, Height = 850 };
+                    host.RootVisual = control; InheritanceAdornerTests.Pump();
+                    ExpressionTextBox box = ExpressionBox(control, "Code");
+                    box.BringIntoView(); Assert.True(box.Focus());
+                    Assert.True(control.HandleCompletionCommand(false));
+                    Assert.False(box.IsCompletionOpen);
+                    Assert.True(control.HandleCompletionCommand(true));
+                    Assert.True(box.IsCompletionOpen);
+                    Assert.Equal(0, session.Buffer.Edits);
+                    Assert.Equal(source, session.Buffer.Current.Text);
+                    box.IsReadOnly = true; Assert.False(control.HandleCompletionCommand(false));
+                    box.IsReadOnly = false; box.IsExpressionEnabled = false;
+                    Assert.False(control.HandleCompletionCommand(false));
+                    Assert.True(PreviewBox(control, "Filter alarms").Focus());
+                    Assert.False(control.HandleCompletionCommand(true));
+                }
+            });
+        }
+
+        [Fact]
         public void FocusSwitchesBetweenExpressionAndResultWithoutEditingSource()
         {
             InheritanceAdornerTests.RunOnSta(() =>
