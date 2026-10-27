@@ -59,10 +59,10 @@ namespace Alarmlist.VisualStudio.UI
         private ProjectAnalysisState _choicesState;
         private AnalysisAlarm _choicesAlarm;
         public IReadOnlyList<AnalysisProjectChoice> Projects { get; private set; } = BindingCollection.Create(Array.Empty<AnalysisProjectChoice>());
-        public bool HasMultipleProjects => Projects.Count > 1;
+        public bool HasMultipleProjects => Projects.Count > 1 || (Projects.Count == 1 && SelectedProjectPath == null);
         public bool HasSingleProjectContext => !HasMultipleProjects;
         public string ProjectContextLabel => Projects.FirstOrDefault(project => string.Equals(project.ProjectPath, SelectedProjectPath, StringComparison.OrdinalIgnoreCase))?.Label
-            ?? (Projects.Count == 1 ? Projects[0].Label : "No project context selected");
+            ?? "No project context selected";
         public IReadOnlyList<ReferenceChoice> ReferenceChoices { get; private set; } = Array.Empty<ReferenceChoice>();
         public ReferenceChoice SelectedReferenceChoice
         {
@@ -324,12 +324,13 @@ namespace Alarmlist.VisualStudio.UI
                     Notify(nameof(ReferenceChoices)); Notify(nameof(SelectedReferenceChoice));
                 }
                 _analysisMessage = state == null
-                    ? (Projects.Count > 1 ? "Choose a project context to show inherited values." : "Project analysis is unavailable for this file. Local editing is available.")
+                    ? (Projects.Count > 0 && SelectedProjectPath == null ? "Choose a project context to show inherited values." : "Project analysis is unavailable for this file. Local editing is available.")
                     : state.Status != ProjectAnalysisStatus.Available ? state.Message ?? state.Status.ToString()
                     : alarm == null ? "Waiting for analysis of the current document."
                     : !alarm.IsResolved ? "This alarm's reference could not be resolved. Check ReferenceName."
                     : "Values from " + Path.GetFileName(state.Project.ProjectPath) + " (" + state.Project.Configuration + ").";
                 Notify(nameof(SelectedProjectPath)); Notify(nameof(ProjectContextLabel)); Notify(nameof(AnalysisMessage));
+                Notify(nameof(HasMultipleProjects)); Notify(nameof(HasSingleProjectContext));
                 ApplyReferenceCommand?.Refresh(); GoToReferenceCommand?.Refresh();
             }
             finally { _refreshingAnalysis = false; }

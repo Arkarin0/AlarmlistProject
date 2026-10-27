@@ -49,7 +49,6 @@ namespace Alarmlist.VisualStudio.UI
     internal sealed class EditorLayoutViewModel : ObservableObject
     {
         private readonly IEditorLayoutSettings _settings;
-        private readonly Func<bool> _commit;
         private EditorMode _mode;
         private bool _sideBySide;
         private bool _swapped;
@@ -69,10 +68,9 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand SplitCommand { get; }
         public DelegateCommand XmlCommand { get; }
         public DelegateCommand SwapCommand { get; }
-        public EditorLayoutViewModel(IEditorLayoutSettings settings, Func<bool> commit, bool xmlOnly)
+        public EditorLayoutViewModel(IEditorLayoutSettings settings, bool xmlOnly)
         {
             _settings = settings;
-            _commit = commit;
             _mode = Enum.TryParse(settings.Read(nameof(Mode), "Split"), out EditorMode mode) && Enum.IsDefined(typeof(EditorMode), mode) ? mode : EditorMode.Split;
             if (xmlOnly) _mode = EditorMode.XML;
             _sideBySide = bool.TryParse(settings.Read(nameof(SideBySide), "False"), out bool sideBySide) && sideBySide;
@@ -87,12 +85,6 @@ namespace Alarmlist.VisualStudio.UI
         public void SetMode(EditorMode mode)
         {
             if (_mode == mode) return;
-            if (!_commit())
-            {
-                // Keep the draft/error visible while still allowing XML repair.
-                if (mode == EditorMode.Designer) { NotifyModes(); return; }
-                mode = EditorMode.Split;
-            }
             _mode = mode;
             _settings.Write(nameof(Mode), mode.ToString());
             NotifyModes();

@@ -34,11 +34,33 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 if (physicalNames.Add(path)) portableNames.Add(path, EvaluatedInputSet.PortableName(path, item.GetMetadataValue("Link"), project.ProjectPath));
             }
             PortableNames = new ReadOnlyDictionary<string, string>(portableNames);
-            DiscoveryGlobs = Array.AsReadOnly(evaluated.GetAllGlobs()
+            DiscoveryGlobs = Array.AsReadOnly(CaptureDiscoveryGlobs(evaluated, token).ToArray());
+        }
+
+        private static IEnumerable<AnalysisDiscoveryGlob> CaptureDiscoveryGlobs(Project evaluated, CancellationToken token)
+            => evaluated.GetAllGlobs()
                 .Where(glob => new[] { "Compile", "AlarmlistResource", "AlarmlistLookup", "AlarmlistAnalyzer", "ProjectReference" }
                     .Contains(glob.ItemElement.ItemType, StringComparer.OrdinalIgnoreCase))
-                .Select(glob => new AnalysisDiscoveryGlob(Path.GetDirectoryName(project.ProjectPath), glob.IncludeGlobs,
-                    glob.Excludes.Concat(glob.Removes))).Concat(CaptureImportCandidates(evaluated, token)).ToArray());
+                .Select(glob => new AnalysisDiscoveryGlob(Path.GetDirectoryName(evaluated.FullPath), glob.IncludeGlobs,
+                    glob.Excludes.Concat(glob.Removes))).Concat(CaptureImportCandidates(evaluated, token));
+
+        internal static IReadOnlyList<AnalysisDiscoveryGlob> CaptureDiscoveryHints(string projectPath, IDictionary<string, string> globals, CancellationToken token,
+            Action<string> observeImport = null)
+        {
+            using (var collection = new ProjectCollection(globals))
+            {
+                try
+                {
+                    token.ThrowIfCancellationRequested();
+                    // Tolerant evaluation supplies watch hints only. Its item set
+                    // must never replace CPS's authoritative consumer membership.
+                    var project = new Project(projectPath, globals, null, collection, ProjectLoadSettings.IgnoreMissingImports);
+                    observeImport?.Invoke(projectPath);
+                    foreach (var import in project.Imports) observeImport?.Invoke(import.ImportedProject.FullPath);
+                    return CaptureDiscoveryGlobs(project, token).ToArray();
+                }
+                finally { collection.UnloadAllProjects(); }
+            }
         }
 
         private static IEnumerable<AnalysisDiscoveryGlob> CaptureImportCandidates(Project evaluated, CancellationToken token)

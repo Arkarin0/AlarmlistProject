@@ -1,7 +1,7 @@
 # Milestone twelve: XML IntelliSense and native Shared Projects
 
-Status: implementation authorized on 2026-10-27; iterations 1–6 complete.
-Iterations 7–8 remain to be implemented and validated.
+Status: implementation authorized on 2026-10-27; iterations 1–7 complete.
+Iteration 8 remains to be implemented and validated.
 The owner confirmed the scope and recommended defaults and activated the goal
 on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
 check usage throughout and stop before crossing that threshold. Do not merge or
@@ -858,3 +858,118 @@ Final iteration-6 acceptance supersedes the pending notes above:
 No remaining scoped iteration-6 blocker. Shared context selection and lifecycle
 remain iteration 7; combined acceptance, persistent example and performance
 reports remain iteration 8. Existing manual/vendor/release gates stay visible.
+
+### Iteration 7 — shared document context and lifecycle, 2026-10-27
+
+Implementation:
+
+- Consumer choice is weakly keyed by ITextDocument and shared by designer,
+  embedded XML and additional native XML views. A known opening .almproj supplies
+  the initial choice; ambiguous ownership requires selection. Sole ownership is
+  an implicit fallback, not a preference derived from startup ordering. Explicit
+  choice survives analysis/configuration refresh. Losing selected membership or
+  unloading its consumer requires a fresh choice, including after reload.
+- A themed, accessible XML Project context margin exposes the same selection
+  and pending/unavailable status. Views own/dispose their analysis adapters;
+  Alarm Summary retains its independent explicit project selection. Registry
+  metadata distinguishes unavailable evaluation from proven membership removal.
+- Context and Designer/Split/XML changes preserve private designer drafts. The
+  consumer selector preserves drafts through child-control focus transitions.
+  Enter, Save and ordinary field-to-field commits retain existing behavior.
+- Captured project/import bytes guard publication and semantic actions, including
+  same-timestamp rewrites. Changes suspend old-context analysis until authoritative
+  CPS reevaluation. Recovery retains old/new import and discovery watches without
+  treating tolerant saved-file evaluation as authoritative membership. Public CPS
+  write locks request reevaluation without targets, saves or checkouts. CPS owns
+  disk reloads and its XML cache; the host does not reload/mutate cached XML.
+  Cancellation precedes unload's asynchronous drain of queued lock requests.
+
+Exploratory evidence and corrections (not final acceptance):
+
+- The combined two-consumer VS2022 context case passed in
+  d02481b7d87c4524819150500c7ce5b5: native Shared Project owner ambiguity,
+  designer/embedded/standalone selection sharing, consumer-only completion,
+  draft retention, effective cultures, pinned Summary, unsaved ALMX fan-out,
+  Undo/Redo, attributed diagnostics and unchanged source/output files.
+- DTE OpenFile with an editor GUID reactivated the existing compatible view.
+  The fixture now uses documented DoOpen|UseEditor shell flags, checks the actual
+  editor GUID and verifies identical RDT document data. Legacy DTE ErrorItem.Project
+  omitted the custom table column; native assertions inspect visible Error List
+  project cells instead. Accessible ComboBox item names are explicit.
+- Recovery probes encountered native CodeSharing reload dialogs. The consumer-only
+  scenario first isolated consumers in a fresh IDE; unloading the RDT-owning
+  consumer correctly triggered the shell's shared-source save prompt. The final
+  fixture retains the native Shared Project as document owner and exercises an
+  independent Hints.projitems import, followed by consumer reference removal,
+  unload/reload and configuration changes. Investigation also found that requesting editable CPS XML
+  objects for imports created unwanted dirty-document tracking. A focused cache
+  test then confirmed ProjectRootElement.Reload itself marks XML dirty, even when
+  reading saved bytes. Both approaches were removed: the final path only marks
+  evaluation dirty under the public CPS lock, leaving XML reloads to CPS. Failed
+  probes remain in VisualStudioUI/TestResults; no dirty
+  project edits were discarded or source drafts saved to bypass a failure. For
+  a byte-identical restored fixture import only, native Ignore may retain cached
+  XML; Discard/Overwrite are never used. An exploratory unload-blocked owned IDE
+  was stopped after verifying its recorded executable/PID/start time; a second
+  equivalent exploratory run was ended with the same identity check. No user IDE
+  was closed. Native CodeSharing reload prompts remain a separate shell workflow.
+- Focused context/evaluation suites passed before final cache refresh: 54 and 60
+  tests respectively (ContextUnitRecovery/EvaluationUnit). Final full suite/native
+  recovery and both-host results must pass before this iteration is complete.
+- Package integration: 14 passed per framework, no failures/skips, in
+  artifacts/log/Debug/Milestone12/Iteration7/Package. No compiler, analysis,
+  analyzer or library format contract changed.
+- Full extension unit suite: **811 passed**, no failures/skips, Iteration7/Unit.
+  The attempted cache-refresh test correctly failed on Reload's dirty side effect;
+  that abandoned helper/test were removed. The final CPS request only marks the
+  evaluated project dirty, without mutating XML; native tests cover the host path.
+- VS2022 final-code regression group: **4 passed**, including both semantic XML
+  cases, shared contexts and dependency lifecycle, in
+  031e1ee502174a53bdf281def934f4eb. Recovery alone failed because project selection
+  opened a native preview tab over the still-open source. The fixture now activates
+  that existing source after unload/reload. Native unload follows an explicit Save
+  of restored source and fixture metadata, honoring the shell's related-document
+  prompt. Unsaved/private draft behavior is covered separately by SharedContexts;
+  pending-analysis stop/cancellation is covered by service unit tests. Recovery
+  rerun and VS2026 acceptance remain pending.
+
+VS2022 recovery acceptance now passes **1 test**, no failures/skips, in
+b932fd43ce4a4a6f8311c4a09d8efa69. This completes all five selected VS2022 cases
+across that recovery run and 031e1ee502174a53bdf281def934f4eb. Native Save applies
+the existing EditorConfig final-newline policy; the test captures the exact saved
+text and verifies buffer/disk equality independently of unchanged alarm content.
+It then verifies unload/reload choice clearing, re-selection, Release configuration
+retention and current imported completion, without changing saved source again.
+Final package checks also pass **14 per framework**, PackageFinal, using the
+current VSIX rebuilt by the native fixture (--no-build --no-restore test invocation).
+VS2026's matching five-case group remains the last essential gate before commit.
+
+Final iteration-7 acceptance supersedes the pending notes above:
+
+- VS2026: **all 5 passed**, no failures/skips, in
+  c51d54b098f641d5a61263e61e8814c8. Together with the final VS2022 recovery and
+  four passing regression cases above, all ten host/case combinations pass with
+  the final production code. Only the recovery fixture changed after the four-case
+  VS2022 pass: preview activation, explicit Save and saved-newline assertions.
+- Native command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+  eng/test-visualstudio.ps1 -VisualStudioPath '<selected installed host>' -Filter
+  'Area=SharedContexts|Area=SharedRecovery|Area=XmlSemanticCompletion|Area=DependencyLifecycle'.
+  The VS2022 recovery rerun filters Area=SharedRecovery. Installed payload hashes
+  were verified; native and WPF suites ran sequentially in owned experimental IDEs.
+- Unit command: dotnet test
+  src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --no-restore -v quiet --logger trx --results-directory
+  artifacts/log/Debug/Milestone12/Iteration7/Unit: **811 passed**.
+- PackageFinal uses the IntegrationTests project with --no-build --no-restore
+  against the current fixture-built VSIX: **14 passed per framework**. No source,
+  compiler, analysis, analyzer or library format contract changed. Existing native
+  item-rename/management coverage from iteration 6 remains applicable; fresh
+  evaluated membership and source-path validation continue to govern renamed files.
+- Diff, paths, links, commands and documentation reviewed; build succeeded without
+  warnings/errors. Latest allowance: **47% remaining**, above the 15% reserve.
+
+No remaining scoped iteration-7 blocker. Native shell save/reload prompts retain
+their ordinary workflow. Combined acceptance, persistent example and descriptive
+performance evidence remain iteration 8; existing manual/vendor/release gates remain.
+
+Final acceptance remains pending. Existing manual/vendor/release gates remain.

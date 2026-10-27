@@ -157,7 +157,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 {
                     var designer = new EditFileControl(view);
                     var source = new TextBox { Text = "XML pane", AcceptsReturn = true };
-                    var layout = new EditorLayoutViewModel(new TestSettings(), () => true, false);
+                    var layout = new EditorLayoutViewModel(new TestSettings(), false);
                     layout.SetMode(EditorMode.Split);
                     using (var split = new SplitEditorControl(layout, designer, source) { Width = 900, Height = 850 })
                     {

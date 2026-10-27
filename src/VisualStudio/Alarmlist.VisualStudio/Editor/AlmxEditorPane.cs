@@ -30,6 +30,7 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly IEditorLayoutSettings _settings;
         private readonly IContentTypeRegistryService _contentTypes;
         private readonly VsDesignerAnalysisFactory _analysis;
+        private readonly string _openingProject;
         private AlmxDocumentSession _session;
         private EditFileControlViewModel _viewModel;
         private EditorLayoutViewModel _layout;
@@ -63,7 +64,8 @@ namespace Alarmlist.VisualStudio.Editor
 
         public AlmxEditorPane(System.IServiceProvider site, OleServiceProvider oleSite,
             IVsEditorAdaptersFactoryService adapters, IVsTextLines lines, AlmxDocumentSessionFactory sessions,
-            EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, VsDesignerAnalysisFactory analysis, bool xmlOnly) : base(site)
+            EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, VsDesignerAnalysisFactory analysis, bool xmlOnly,
+            string openingProject = null) : base(site)
         {
             _oleSite = oleSite;
             _adapters = adapters;
@@ -74,6 +76,7 @@ namespace Alarmlist.VisualStudio.Editor
             _settings = settings;
             _contentTypes = contentTypes;
             _analysis = analysis;
+            _openingProject = openingProject;
         }
 
         protected override void Initialize()
@@ -102,13 +105,13 @@ namespace Alarmlist.VisualStudio.Editor
             if (_textHost == null || !(sourceElement is System.Windows.FrameworkElement sourceControl))
                 throw new InvalidOperationException("Visual Studio did not create the ALMX source editor.");
             _session = _sessions.GetOrCreate(buffer, _lines, (IVsQueryEditQuerySave2)GetService(typeof(SVsQueryEditQuerySave)));
-            IDesignerAnalysis viewAnalysis = _analysis.Create(buffer);
+            IDesignerAnalysis viewAnalysis = _analysis.Create(buffer, _openingProject);
             _viewModel = _viewModels.Create(_session.Model, viewAnalysis);
             _textHost.TextView.Properties[typeof(IDesignerAnalysis)] = viewAnalysis;
             _shell = (IVsUIShell)GetService(typeof(SVsUIShell));
             _viewModel.PropertyChanged += OnPreviewLanguageChanged;
             _session.Attach(_viewModel);
-            _layout = new EditorLayoutViewModel(_settings, _session.CommitPending, _xmlOnly);
+            _layout = new EditorLayoutViewModel(_settings, _xmlOnly);
             _control = new SplitEditorControl(_layout, new EditFileControl(_viewModel), sourceControl);
             _control.PreviewKeyDown += OnKeyDown;
             Content = _control;

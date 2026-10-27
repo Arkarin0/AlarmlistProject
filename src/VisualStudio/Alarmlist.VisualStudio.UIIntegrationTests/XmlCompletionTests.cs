@@ -364,7 +364,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         {
             ide.RequireForeground();
             Assert.Equal(Path.GetFullPath(path), Path.GetFullPath(ide.Automation.ActiveDocument.FullName), ignoreCase: true);
-            AutomationElement editor = window.FindFirstDescendant(cf => cf.ByAutomationId("WpfTextView"));
+            AutomationElement editor = window.FindAllDescendants(cf => cf.ByAutomationId("WpfTextView")).FirstOrDefault(item => !item.IsOffscreen);
             Assert.NotNull(editor);
             if (editor.Properties.HasKeyboardFocus.ValueOrDefault && !editor.IsOffscreen) return;
             AutomationElement completion = window.FindFirstDescendant(cf => cf.ByAutomationId("DefaultCompletionPresenter"));

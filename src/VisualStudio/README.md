@@ -35,7 +35,19 @@ parameters, localization templates, lookup/list expressions or record siblings.
 `ReferenceName` offers eligible alarm identifiers; parameter `Name` attributes
 offer declared names. Identity fields and parameter assignment values remain
 literal. Semantic suggestions follow the designer's selected project context;
-standalone XML uses its sole owning project. Saved resources/lookups are checked
+standalone XML shows a **Project context** selector for the same document. The
+opening consumer is selected when Visual Studio supplies one; an ambiguous open
+requires a choice. An explicit choice stays with the open physical document
+across designer/XML windows and analysis refreshes. Membership removal or unload
+clears that choice; unavailable evaluation retains the consumer while blocking
+semantic actions. Restoring a removed consumer does not silently select it again.
+Alarm Summary retains its own explicit project selection. Changing context or
+Designer/Split/XML mode preserves private designer drafts. Unsaved shared ALMX
+text reaches each consumer independently; resources and lookups remain saved-only.
+Saved project/import edits invalidate semantic results until CPS reevaluates;
+missing imports retain recovery watches. Native Shared Project reload prompts
+remain Visual Studio actions and never authorize discarding unsaved project edits.
+Saved resources/lookups are checked
 before display and insertion, while ALMX changes use current buffers. Changing
 the source, context or saved inputs rejects an old insertion.
 
@@ -74,13 +86,17 @@ files remain on disk. Add/open/rename/remove shared items in the owning shared
 project. ALMX, `.resx` and `.almlookup` files use Compile, AlarmlistResource and
 AlarmlistLookup build actions respectively. Remove excludes an item while keeping
 its file; Delete is the ordinary physical-file deletion action.
+Visual Studio may prompt to save related dirty documents before project unload.
+The extension preserves its normal Save/Cancel workflow and never saves or
+discards shared text automatically. Selecting a project can show its preview tab;
+reactivate the shared document to inspect its consumer context after unload.
 
 Shared item paths use `$(MSBuildThisFileDirectory)` so they remain relative to the
 import, including after renaming or moving the consumer. See the
 [SDK shared import contract](../SDK/Alarmlist.SDK/README.md#shared-source-imports)
 for conditions, repeated-file identity, conflicting metadata and library portable
-names. Shared document context selection and combined acceptance remain under
-Milestone 12 iterations 7–8.
+names. Shared document selection/lifecycle evidence is recorded in
+[Milestone 12 iteration 7](MILESTONE-12.md); combined acceptance remains iteration 8.
 
 The [milestone-three plan](MILESTONE-3.md) covers project-wide reference analysis,
 inherited fields with WPF chain-icon adorners, inherited test-procedure rows,
@@ -349,8 +365,9 @@ Changes persist the shared AlarmlistCulture through CPS; global values are fixed
 and read-only/overridden project settings report an error. Choosing a language
 does not commit an ALMX draft or change AlarmlistCultures. Focused expression
 fields retain their raw text and selection during analysis refresh.
-Leaving the designer for a shell control keeps a draft private. Enter, Save,
-layout changes, and moving to another designer field still commit it.
+Leaving the designer for a shell control, changing the project context, or
+switching Designer/Split/XML keeps a draft private. Enter, Save and moving to
+another ordinary designer field still commit it.
 The toolbar uses the SDK's [native combo command pattern](https://github.com/microsoft/VSSDK-Extensibility-Samples/tree/master/Combo_Box)
 and editor command routing, without a global reference to an editor or project.
 

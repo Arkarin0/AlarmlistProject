@@ -52,7 +52,8 @@ namespace Alarmlist.VisualStudio
         {
             // Shell toolbars live outside this view. Leaving the designer keeps
             // its draft private; moving to another designer control still commits.
-            // Explicit Save/Enter and editor layout changes also commit as before.
+            // Explicit Save/Enter still commits. Consumer and layout choices are
+            // presentation changes and preserve private drafts.
             // A collapsed body can transfer focus to the scroll host, not just
             // its header. Theme templates may also give the header an explicit
             // ToggleButton style, so an implicit Tag setter alone is insufficient.
@@ -61,7 +62,10 @@ namespace Alarmlist.VisualStudio
             if (args.NewFocus is ToggleButton)
                 for (DependencyObject parent = args.NewFocus as DependencyObject; parent != null; parent = VisualTreeHelper.GetParent(parent))
                     if (parent is Expander header && Equals(header.Tag, "PreserveDraft")) return;
-            if (IsKeyboardFocusWithin && !Equals((args.NewFocus as FrameworkElement)?.Tag, "PreserveDraft")) ViewModel.CommitPending();
+            for (DependencyObject parent = args.NewFocus as DependencyObject; parent != null;
+                parent = parent is Visual ? VisualTreeHelper.GetParent(parent) : LogicalTreeHelper.GetParent(parent))
+                if (parent is FrameworkElement element && Equals(element.Tag, "PreserveDraft")) return;
+            if (IsKeyboardFocusWithin) ViewModel.CommitPending();
         }
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
         private void OnExpandProcedureGroups(object sender, RoutedEventArgs args)

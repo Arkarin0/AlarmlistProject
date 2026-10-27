@@ -397,6 +397,28 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             finally { registry.Remove(first); registry.Remove(second); await first.StopAsync(); await second.StopAsync(); }
         }
 
+        [Fact]
+        public async Task FailedEvaluationRetainsKnownOwnershipWhileRemovalOrNewMembershipClearsItAsync()
+        {
+            var files = new Inputs(); files.Set("Shared", "text", 1);
+            var service = Create(files, new Factory());
+            var registry = new ProjectAnalysisRegistry(); registry.Add(service);
+            try
+            {
+                var project = Project("Debug", "Shared");
+                service.UpdateProject(project); await AvailableAsync(service);
+                service.Suspend("Missing import");
+                Assert.Same(service, Assert.Single(registry.GetContexts("Shared")));
+                Assert.Same(project, registry.GetProject(service));
+                Assert.Null(service.Current.Response);
+                service.UpdateProject(Project("Release"));
+                Assert.Empty(registry.GetContexts("Shared"));
+                registry.Remove(service);
+                Assert.Null(registry.GetProject(service));
+            }
+            finally { registry.Remove(service); await service.StopAsync(); }
+        }
+
         private static ProjectAnalysisService Create(Inputs files, Factory factory) => new ProjectAnalysisService(files, factory, s_threading, token => Task.CompletedTask);
         private static AnalysisProject Project(string configuration, params string[] paths) => new AnalysisProject("Plant", configuration, "sdk", paths);
         private static TaskCompletionSource<bool> NewSignal() => new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

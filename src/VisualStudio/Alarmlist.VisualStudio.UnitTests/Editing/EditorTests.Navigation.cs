@@ -74,7 +74,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 Assert.Throws<InvalidOperationException>(() => view.SelectSource(1, NavigationSource + " "));
             }
             var settings = new TestSettings();
-            var layout = new EditorLayoutViewModel(settings, () => throw new Exception("Must not commit"), false);
+            var layout = new EditorLayoutViewModel(settings, false);
             layout.ShowForNavigation(EditorMode.Designer);
             Assert.True(layout.IsDesigner);
             Assert.Equal("unchanged", settings.Read("Mode", "unchanged"));

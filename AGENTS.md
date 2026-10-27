@@ -658,7 +658,20 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   writer and also provides a window selector when no editor is open. Never retain
   an editor globally for toolbar state. Leaving the designer for shell
   controls preserves drafts; explicit commits and intra-designer focus changes still
-  apply. Localization completion uses
+  apply. Milestone 12 iteration 7 also preserves drafts across consumer selection
+  and Designer/Split/XML mode changes; these presentation actions never commit.
+  Keep the consumer selector's PreserveDraft focus behavior, including its child
+  controls. Enter/Save and ordinary field-to-field commits retain their contracts.
+  Consumer selection belongs to the physical text document, shared across its
+  designer and native XML views through a weak document key. A known opening
+  consumer supplies the initial choice; enumeration order never does. Removing
+  membership or unloading a selected consumer requires a new choice. Failed
+  evaluation retains known ownership while blocking semantic actions. Keep
+  project/import byte guards and recovery watches through missing imports;
+  request authoritative CPS reevaluation without targets or source saves. Leave
+  disk reloads and XML cache ownership to CPS; ProjectRootElement.Reload itself
+  marks XML dirty and must not be used to refresh live project imports.
+  Localization completion uses
   SDK catalogue/provenance, revalidates saved inputs before display and insertion,
   and discards late results after editing, focus or context changes. Navigate RESX
   diagnostics through the XML editor without saving pending resource edits.
