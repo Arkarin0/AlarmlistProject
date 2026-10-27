@@ -1,6 +1,6 @@
 # Future feature notes
 
-Status reviewed on 2026-10-26 against milestone records and current source.
+Status reviewed on 2026-10-27 against milestone records and current source.
 This file tracks implemented features and future ideas; it does not authorize
 implementation or define a delivery schedule.
 
@@ -22,9 +22,9 @@ syntax, open questions and statements about future work in that history.
 | External alarm analyzers | Implemented, including NuGet analyzer packages | [Milestone 6](src/VisualStudio/MILESTONE-6.md), [9](src/VisualStudio/MILESTONE-9.md) |
 | EditorConfig and diagnostic severity | Implemented; .globalconfig excluded | [Milestone 6](src/VisualStudio/MILESTONE-6.md) |
 | Warnings as errors and NoWarn | Implemented for configurable diagnostics | [Milestone 6](src/VisualStudio/MILESTONE-6.md) |
-| Visual Studio Shared Projects | Native feasibility in progress; production integration pending | [Milestone 12](src/VisualStudio/MILESTONE-12.md) |
+| Visual Studio Shared Projects | Native feasibility validated; production integration pending | [Milestone 12](src/VisualStudio/MILESTONE-12.md) |
 | Custom procedure groups and creation defaults | Implemented | [Milestone 8](src/VisualStudio/MILESTONE-8.md) |
-| IntelliSense | Implemented in applicable designer fields; initial XML root completion and native feasibility in progress | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
+| IntelliSense | Designer and ALMX structural completion implemented; XML semantic/lookup/project work pending | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
 | External alarm-definition generation | Implemented for supported scalars and collections | [Milestone 11](src/VisualStudio/MILESTONE-11.md) |
 
 ## Historical implementation and planning updates
@@ -519,7 +519,7 @@ documents controls such as `ReferenceOutputAssembly` and `OutputItemType`.
 Proposed on 2026-10-09; assigned to
 [milestone twelve](src/VisualStudio/MILESTONE-12.md) on 2026-10-26.
 Native `.shproj`/`.projitems` support is confirmed scope; implementation was
-authorized on 2026-10-27 and native feasibility checks are in progress. The
+authorized on 2026-10-27 and native feasibility checks have passed. The
 milestone records accepted behavior, iterations and actual evidence.
 
 Support Visual Studio Shared Projects so several `.almproj` consumers can share
@@ -610,6 +610,8 @@ Generated scalar/collection fields reuse expression controls and completion in
 IntelliSense is in progress in
 [milestone twelve](src/VisualStudio/MILESTONE-12.md), covering `.almx`,
 `.almlookup` and `.almproj` files.
+ALMX structural completion is implemented; semantic XML completion and
+automatic lookup/project support remain later iterations.
 
 ### Original proposal and design history
 

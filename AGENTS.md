@@ -67,6 +67,12 @@ Existing plans and iteration records:
 | [Milestone 12](src/VisualStudio/MILESTONE-12.md) | Authorized XML IntelliSense for ALMX, .almlookup and .almproj files, and native Visual Studio Shared Projects; follow its accepted defaults and 15% remaining-allowance stop. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+[Milestone 12](src/VisualStudio/MILESTONE-12.md) uses the native XML completion
+presenter with host lexical context and generated descriptors; compiler-owned
+expression/reference semantics remain in detached analysis. Native XML completion
+fork acceptance uses `eng/test-alarm-collection-fork.ps1 -Designer -SkipConsumers
+-XmlCompletion` with both IDE paths. Run it sequentially with native fixtures in
+an idle experimental profile; it checks procedure-enabled/disabled definitions.
 [Milestone 11](src/VisualStudio/MILESTONE-11.md) plans fork-time generated alarm
 definitions across compiler, SDK and metadata-driven designer, including typed
 scalar expressions. The collection follow-up advances to analysis 7, analyzer 5

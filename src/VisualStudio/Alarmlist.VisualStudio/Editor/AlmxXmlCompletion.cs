@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.Language.Intellisense;
@@ -17,8 +19,6 @@ using Microsoft.VisualStudio.Utilities;
 
 namespace Alarmlist.VisualStudio.Editor
 {
-    // Start with an explicitly invoked root-name completion. Further grammar and
-    // semantic contexts are added in the following milestone iterations.
     [Export(typeof(ICompletionSourceProvider)), ContentType("XML"), Name("Alarmlist XML completion")]
     internal sealed class AlmxXmlCompletionProvider : ICompletionSourceProvider
     {
@@ -36,33 +36,36 @@ namespace Alarmlist.VisualStudio.Editor
         public AlmxXmlCompletionSource(ITextBuffer buffer, ITextUndoHistory undo) { _buffer = buffer; _undo = undo; }
         public void Dispose() { }
 
-        internal static bool TryGetRootSpan(ITextBuffer buffer, int caret, out Span span)
+        internal static bool TryGetCompletions(ITextBuffer buffer, int caret, out XmlCompletionEdit edit,
+            out IReadOnlyList<XmlCompletionCandidate> candidates)
         {
-            span = default;
+            edit = null; candidates = Array.Empty<XmlCompletionCandidate>();
             if (!buffer.Properties.TryGetProperty(typeof(ITextDocument), out ITextDocument document)
                 || !string.Equals(Path.GetExtension(document.FilePath), ".almx", StringComparison.OrdinalIgnoreCase)) return false;
-            if (!XmlCompletionContext.TryGetRootSpan(buffer.CurrentSnapshot.GetText(), caret, out int start, out int length)) return false;
-            span = new Span(start, length);
-            return !buffer.IsReadOnly(span);
+            string text = buffer.CurrentSnapshot.GetText();
+            edit = XmlCompletionContext.Find(text, caret);
+            if (edit == null || buffer.IsReadOnly(new Span(edit.Start, edit.Length))) return false;
+            candidates = AlmxXmlGrammar.Complete(text, edit);
+            return candidates.Count != 0;
         }
 
         public void AugmentCompletionSession(ICompletionSession session, IList<CompletionSet> sets)
         {
             SnapshotPoint? point = session.GetTriggerPoint(_buffer.CurrentSnapshot);
-            if (!point.HasValue || !TryGetRootSpan(_buffer, point.Value.Position, out Span span)) return;
-            ITrackingSpan tracking = _buffer.CurrentSnapshot.CreateTrackingSpan(span, SpanTrackingMode.EdgeInclusive);
+            if (!point.HasValue || !TryGetCompletions(_buffer, point.Value.Position, out XmlCompletionEdit edit, out var candidates)) return;
+            ITrackingSpan tracking = _buffer.CurrentSnapshot.CreateTrackingSpan(new Span(edit.Start, edit.Length), SpanTrackingMode.EdgeInclusive);
             sets.Add(new CompletionSet("Alarmlist", "Alarmlist", tracking,
-                new[] { new RootCompletion(_buffer, tracking, _undo) }, null));
+                candidates.Select(item => new XmlItemCompletion(_buffer, tracking, _undo, item)), null));
         }
 
-        private sealed class RootCompletion : Completion, ICustomCommit
+        private sealed class XmlItemCompletion : Completion, ICustomCommit
         {
             private readonly ITextBuffer _buffer;
             private readonly ITrackingSpan _span;
             private readonly ITextUndoHistory _undo;
             private readonly ITextSnapshot _snapshot;
-            public RootCompletion(ITextBuffer buffer, ITrackingSpan span, ITextUndoHistory undo)
-                : base("Alarmlist (ALMX root)", "Alarmlist", "ALMX source document", null, null)
+            public XmlItemCompletion(ITextBuffer buffer, ITrackingSpan span, ITextUndoHistory undo, XmlCompletionCandidate candidate)
+                : base(candidate.Label, candidate.Insertion, candidate.Description, null, null)
             { _buffer = buffer; _span = span; _undo = undo; _snapshot = buffer.CurrentSnapshot; }
             public void Commit()
             {
@@ -126,6 +129,12 @@ namespace Alarmlist.VisualStudio.Editor
                         if (id == (uint)VSConstants.VSStd2KCmdID.CANCEL) { _session.Dismiss(); return VSConstants.S_OK; }
                         if (id == (uint)VSConstants.VSStd2KCmdID.RETURN || id == (uint)VSConstants.VSStd2KCmdID.TAB)
                         {
+                            CompletionSelectionStatus selection = _session.SelectedCompletionSet?.SelectionStatus;
+                            if (selection?.Completion == null || (id == (uint)VSConstants.VSStd2KCmdID.RETURN && !selection.IsSelected))
+                            {
+                                _session.Dismiss();
+                                return _next.Exec(ref group, id, options, input, output);
+                            }
                             using (ITextUndoTransaction transaction = _undo.CreateTransaction("Complete ALMX"))
                             { _session.Commit(); transaction.Complete(); }
                             return VSConstants.S_OK;
@@ -133,14 +142,33 @@ namespace Alarmlist.VisualStudio.Editor
                     }
                     if ((id == (uint)VSConstants.VSStd2KCmdID.COMPLETEWORD || id == (uint)VSConstants.VSStd2KCmdID.AUTOCOMPLETE
                         || id == (uint)VSConstants.VSStd2KCmdID.SHOWMEMBERLIST)
-                        && AlmxXmlCompletionSource.TryGetRootSpan(_view.TextBuffer, _view.Caret.Position.BufferPosition.Position, out _))
+                        && AlmxXmlCompletionSource.TryGetCompletions(_view.TextBuffer, _view.Caret.Position.BufferPosition.Position, out _, out _))
                     {
                         _session?.Dismiss();
                         _session = _broker.TriggerCompletion(_view);
                         if (_session != null && !_session.IsDismissed) return VSConstants.S_OK;
                     }
                 }
-                return _next.Exec(ref group, id, options, input, output);
+                int result = _next.Exec(ref group, id, options, input, output);
+                if (group == VSConstants.VSStd2K && (id == (uint)VSConstants.VSStd2KCmdID.TYPECHAR
+                    || id == (uint)VSConstants.VSStd2KCmdID.BACKSPACE || id == (uint)VSConstants.VSStd2KCmdID.DELETE))
+                {
+                    bool active = _session != null && !_session.IsDismissed;
+                    char typed = id == (uint)VSConstants.VSStd2KCmdID.TYPECHAR && input != IntPtr.Zero
+                        ? (char)(ushort)Marshal.GetObjectForNativeVariant(input) : '\0';
+                    bool trigger = active || typed == '<' || typed == '/' || typed == ' ' || typed == '\'' || typed == '"' || char.IsLetter(typed);
+                    if (active) _session.Dismiss();
+                    if (trigger && AlmxXmlCompletionSource.TryGetCompletions(_view.TextBuffer,
+                        _view.Caret.Position.BufferPosition.Position, out _, out _))
+                    {
+                        // Reuse a native session when it already includes our
+                        // source; never put two competing lists over the view.
+                        _session = _broker.GetSessions(_view).FirstOrDefault(session => !session.IsDismissed
+                            && session.CompletionSets.Any(set => set.Moniker == "Alarmlist"));
+                        if (_session == null && !_broker.IsCompletionActive(_view)) _session = _broker.TriggerCompletion(_view);
+                    }
+                }
+                return result;
             }
         }
     }
