@@ -18,6 +18,14 @@ These instructions apply to the entire repository. Follow any more specific
 - Never add credentials, machine-specific paths, or generated build outputs.
 - Report what changed, which checks ran, and any checks that could not run.
 
+## User documentation
+
+- Keep user-facing feature descriptions in `documentation/features/` and guided
+  tutorials in `documentation/tutorials/`, written in English.
+- Use the corresponding `TEMPLATE.md` for new articles and follow
+  [the documentation guide](documentation/README.md). Replace placeholders,
+  remove unused optional sections, and verify examples against supported behavior.
+
 ## Milestone planning and iteration workflow
 
 Plan milestone work as numbered, independently reviewable iterations before
