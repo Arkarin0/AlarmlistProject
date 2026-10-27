@@ -93,7 +93,9 @@ namespace Alarmlist.VisualStudio.Editor
         public string Label { get; }
         public string Insertion { get; }
         public string Description { get; }
-        public XmlCompletionCandidate(string insertion, string description, string label = null)
-        { Insertion = insertion; Description = description; Label = label ?? insertion; }
+        public int SelectionOffset { get; }
+        public int SelectionLength { get; }
+        public XmlCompletionCandidate(string insertion, string description, string label = null, int selectionOffset = -1, int selectionLength = 0)
+        { Insertion = insertion; Description = description; Label = label ?? insertion; SelectionOffset = selectionOffset; SelectionLength = selectionLength; }
     }
 }

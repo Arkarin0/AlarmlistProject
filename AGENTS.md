@@ -70,7 +70,14 @@ Read the selected plan's current status and remaining gates before resuming it.
 [Milestone 12](src/VisualStudio/MILESTONE-12.md) uses the native XML completion
 presenter with host lexical context and generated descriptors; compiler-owned
 expression/reference semantics remain in detached analysis. Native XML completion
-fork acceptance uses `eng/test-alarm-collection-fork.ps1 -Designer -SkipConsumers
+shares detached candidate construction with designer controls. Embedded XML borrows
+the designer's selected analysis context; standalone XML must not choose among
+multiple owners. Validate current saved inputs before displaying or inserting
+semantic candidates, and keep request snapshot/caret/selection stamps through
+asynchronous insertion. Native semantic acceptance uses `Area=XmlSemanticCompletion`
+through `eng/test-visualstudio.ps1`, separately from definition-shape checks.
+Native XML completion fork acceptance uses
+`eng/test-alarm-collection-fork.ps1 -Designer -SkipConsumers
 -XmlCompletion` with both IDE paths. Run it sequentially with native fixtures in
 an idle experimental profile; it checks procedure-enabled/disabled definitions.
 [Milestone 11](src/VisualStudio/MILESTONE-11.md) plans fork-time generated alarm

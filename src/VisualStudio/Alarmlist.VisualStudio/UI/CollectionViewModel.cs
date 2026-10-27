@@ -78,8 +78,8 @@ namespace Alarmlist.VisualStudio.UI
                 {
                     field.SetCaptions(captions);
                     field.SetAnalysis(entry?.Fields.FirstOrDefault(value => value.Name == field.Name), current);
-                    field.SetSuggestions(Definition.Kind == "Complex" ? BindingCollection.Create(suggestions.Concat(Definition.Fields
-                        .Where(other => other.Name != field.Name).Select(other => new PropertyCompletion("$(item:" + other.Name + ")", "", "field in this record")))) : suggestions);
+                    field.SetSuggestions(Definition.Kind == "Complex" ? BindingCollection.Create(suggestions.Concat(
+                        ExpressionCompletionCandidates.RecordSiblings(Definition, field.Name))) : suggestions);
                 }
             }
             Inherited = current && analysis != null ? BindingCollection.Create(analysis.EffectiveEntries.Where(entry => entry.IsInherited)

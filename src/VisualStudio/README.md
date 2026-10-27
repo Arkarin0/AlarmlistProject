@@ -30,8 +30,15 @@ List Members/Complete Word, or type a tag/attribute name or a quote. Tab/Enter
 commits a selected suggestion, Escape dismisses it and Undo restores the previous
 text without saving. Existing delimiters are preserved; defaults are not inserted
 implicitly. Comments, CDATA and foreign namespaces do not receive ALMX structural
-suggestions. Expression/reference completion and automatic lookup/project XML
-support are subsequent iterations. Shared Project probes are isolated tests;
+suggestions. In expression fields, type `$(` or invoke completion to insert
+parameters, localization templates, lookup/list expressions or record siblings.
+`ReferenceName` offers eligible alarm identifiers; parameter `Name` attributes
+offer declared names. Identity fields and parameter assignment values remain
+literal. Semantic suggestions follow the designer's selected project context;
+standalone XML uses its sole owning project. Saved resources/lookups are checked
+before display and insertion, while ALMX changes use current buffers. Changing
+the source, context or saved inputs rejects an old insertion. Automatic lookup and
+project XML completion follow in a later iteration. Shared Project probes are isolated tests;
 the production SDK/templates do not yet advertise native Shared Project support.
 
 The [milestone-three plan](MILESTONE-3.md) covers project-wide reference analysis,

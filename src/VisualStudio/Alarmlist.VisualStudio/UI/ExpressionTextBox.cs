@@ -187,17 +187,8 @@ namespace Alarmlist.VisualStudio.UI
             ShowCompletion(matches, selectedName);
         }
 
-        private static bool IsTokenCharacter(char character) => char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '-'
-            || character == ':' || character == '#' || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.NonSpacingMark
-            || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.SpacingCombiningMark;
-        private static bool IsPrefix(string prefix)
-        {
-            int colon = prefix.IndexOf(':');
-            if (colon < 0) return prefix.All(character => char.IsLetterOrDigit(character) || character == '_');
-            string kind = prefix.Substring(0, colon);
-            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta" || kind == "list" || kind == "item")
-                && prefix.Substring(colon + 1).All(character => IsTokenCharacter(character) && character != ':' && (kind != "loc" || character != '#'));
-        }
+        private static bool IsTokenCharacter(char character) => ExpressionCompletionContext.IsTokenCharacter(character);
+        private static bool IsPrefix(string prefix) => ExpressionCompletionContext.IsPrefix(prefix);
 
         private async Task ShowValidatedCompletionAsync(PropertyCompletion[] matches, string selectedName, string raw, int caret, int selectionLength, IEnumerable suggestions, int version)
         {
@@ -217,20 +208,7 @@ namespace Alarmlist.VisualStudio.UI
         }
 
         internal static PropertyCompletion[] FindMatches(IEnumerable suggestions, string prefix)
-        {
-            if (prefix.StartsWith("loc:", StringComparison.Ordinal))
-            {
-                string query = prefix.Substring(4);
-                // Match the key, never translated text or template argument names.
-                // Stable ordering retains catalogue order within each match group.
-                return suggestions.OfType<PropertyCompletion>().Where(property => property.IsLocalization
-                    && property.LocalizationKey.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
-                    .OrderByDescending(property => property.LocalizationKey.StartsWith(query, StringComparison.OrdinalIgnoreCase)).ToArray();
-            }
-            return suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix,
-                property.RequiresValidation && !property.Name.StartsWith("item:", StringComparison.Ordinal)
-                    ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)).ToArray();
-        }
+            => ExpressionCompletionCandidates.FindMatches(suggestions.OfType<PropertyCompletion>(), prefix);
 
         private void AnnounceSelection()
         {

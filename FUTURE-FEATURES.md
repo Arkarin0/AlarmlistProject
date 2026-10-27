@@ -24,7 +24,7 @@ syntax, open questions and statements about future work in that history.
 | Warnings as errors and NoWarn | Implemented for configurable diagnostics | [Milestone 6](src/VisualStudio/MILESTONE-6.md) |
 | Visual Studio Shared Projects | Native feasibility validated; production integration pending | [Milestone 12](src/VisualStudio/MILESTONE-12.md) |
 | Custom procedure groups and creation defaults | Implemented | [Milestone 8](src/VisualStudio/MILESTONE-8.md) |
-| IntelliSense | Designer and ALMX structural completion implemented; XML semantic/lookup/project work pending | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
+| IntelliSense | Designer and ALMX structural/semantic completion implemented; automatic lookup/project XML work pending | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
 | External alarm-definition generation | Implemented for supported scalars and collections | [Milestone 11](src/VisualStudio/MILESTONE-11.md) |
 
 ## Historical implementation and planning updates
@@ -610,8 +610,9 @@ Generated scalar/collection fields reuse expression controls and completion in
 IntelliSense is in progress in
 [milestone twelve](src/VisualStudio/MILESTONE-12.md), covering `.almx`,
 `.almlookup` and `.almproj` files.
-ALMX structural completion is implemented; semantic XML completion and
-automatic lookup/project support remain later iterations.
+ALMX structural and semantic completion are implemented; automatic lookup/project
+support remains a later iteration. See the milestone's validation evidence and
+remaining gates before treating the whole XML scope as complete.
 
 ### Original proposal and design history
 

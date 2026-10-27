@@ -102,7 +102,9 @@ namespace Alarmlist.VisualStudio.Editor
             if (_textHost == null || !(sourceElement is System.Windows.FrameworkElement sourceControl))
                 throw new InvalidOperationException("Visual Studio did not create the ALMX source editor.");
             _session = _sessions.GetOrCreate(buffer, _lines, (IVsQueryEditQuerySave2)GetService(typeof(SVsQueryEditQuerySave)));
-            _viewModel = _viewModels.Create(_session.Model, _analysis.Create(buffer));
+            IDesignerAnalysis viewAnalysis = _analysis.Create(buffer);
+            _viewModel = _viewModels.Create(_session.Model, viewAnalysis);
+            _textHost.TextView.Properties[typeof(IDesignerAnalysis)] = viewAnalysis;
             _shell = (IVsUIShell)GetService(typeof(SVsUIShell));
             _viewModel.PropertyChanged += OnPreviewLanguageChanged;
             _session.Attach(_viewModel);
@@ -151,6 +153,7 @@ namespace Alarmlist.VisualStudio.Editor
                 if (_control != null) { _control.PreviewKeyDown -= OnKeyDown; _control.Dispose(); }
                 if (_viewModel != null)
                 {
+                    _textHost?.TextView.Properties.RemoveProperty(typeof(IDesignerAnalysis));
                     _viewModel.PropertyChanged -= OnPreviewLanguageChanged;
                     _session.Detach(_viewModel);
                     _viewModel.Dispose();

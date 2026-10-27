@@ -318,13 +318,7 @@ namespace Alarmlist.VisualStudio.UI
                     _choicesState = state;
                     _choicesAlarm = alarm;
                     string selectedReference = _referenceChoice?.Identifier;
-                    ReferenceChoices = alarm == null ? (IReadOnlyList<ReferenceChoice>)Array.Empty<ReferenceChoice>() : BindingCollection.Create(state.Response.Snapshot.Alarms
-                        .Where(item => !string.IsNullOrEmpty(item.Origin.FullyQualifiedName))
-                        .GroupBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
-                        .Where(group => group.Count() == 1).Select(group => group.Single())
-                        .Where(item => item.IsResolved && item.Origin.Index != alarm.Origin.Index
-                            && item.ReferenceChain.All(origin => origin.Index != alarm.Origin.Index))
-                        .OrderBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
+                    ReferenceChoices = alarm == null ? (IReadOnlyList<ReferenceChoice>)Array.Empty<ReferenceChoice>() : BindingCollection.Create(ExpressionCompletionCandidates.ReferenceAlarms(state.Response.Snapshot, alarm)
                         .Select(item => new ReferenceChoice(item)));
                     _referenceChoice = ReferenceChoices.FirstOrDefault(item => item.Identifier == selectedReference);
                     Notify(nameof(ReferenceChoices)); Notify(nameof(SelectedReferenceChoice));

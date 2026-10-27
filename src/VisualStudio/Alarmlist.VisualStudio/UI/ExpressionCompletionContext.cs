@@ -10,6 +10,18 @@ namespace Alarmlist.VisualStudio.UI
     /// <summary>Lexical edit context only; expression semantics remain in the SDK.</summary>
     internal static class ExpressionCompletionContext
     {
+        internal static bool IsTokenCharacter(char character) => char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '-'
+            || character == ':' || character == '#' || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.NonSpacingMark
+            || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.SpacingCombiningMark;
+        internal static bool IsPrefix(string prefix)
+        {
+            int colon = prefix.IndexOf(':');
+            if (colon < 0) return prefix.All(character => char.IsLetterOrDigit(character) || character == '_');
+            string kind = prefix.Substring(0, colon);
+            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta" || kind == "list" || kind == "item")
+                && prefix.Substring(colon + 1).All(character => IsTokenCharacter(character) && character != ':' && (kind != "loc" || character != '#'));
+        }
+
         public static int FindStart(string text, int caret, out bool argument)
         {
             Stack<int> calls = ActiveCalls(text, caret);

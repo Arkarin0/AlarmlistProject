@@ -1,10 +1,12 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
-using System.IO;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using Alarmlist.VisualStudio.Testing;
 using EnvDTE;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Input;
@@ -37,6 +39,151 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         public Task AutomaticCompletion2022() => UiTestRun.ExecuteAsync("2022", "XmlAutomatic", _output, CheckAutomatic);
         [UiFact("2026"), Trait("VSVersion", "2026")]
         public Task AutomaticCompletion2026() => UiTestRun.ExecuteAsync("2026", "XmlAutomatic", _output, CheckAutomatic);
+
+        internal static void CheckSemantic(VisualStudioSession ide, UiTestWorkspace workspace)
+        {
+            workspace.CreateProject(ide, build: false);
+            VisualStudioAutomation.CloseSolution(ide.Automation, false);
+            string projectPath = Path.Combine(workspace.ProjectDirectory, "Plant.almproj");
+            XDocument project = XDocument.Load(projectPath);
+            project.Root.Add(new XElement("ItemGroup", new XElement("AlarmlistProperty", new XAttribute("Include", "Plant"), new XAttribute("Value", "North"))));
+            project.Save(projectPath);
+            string resourcePath = Path.Combine(workspace.ProjectDirectory, "Translations.en.resx");
+            const string savedResource = "<root><data name='SavedKey'><value>Saved caption</value></data></root>";
+            File.WriteAllText(resourcePath, savedResource);
+            const string original = "<Alarmlist><Alarm><FullyQualifiedName>Current</FullyQualifiedName><Name>literal</Name></Alarm><Alarm><FullyQualifiedName>Template</FullyQualifiedName><Name>Template caption</Name></Alarm></Alarmlist>";
+            File.WriteAllText(workspace.AlarmPath, original);
+            VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
+            using var automation = new UIA3Automation();
+            var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
+            foreach (bool standalone in new[] { false, true })
+            {
+                if (standalone) ide.Automation.ItemOperations.OpenFile(workspace.AlarmPath, "{FA3CD31E-987B-443A-9B81-186104E8DAC1}");
+                else { ide.OpenDesigner(workspace.AlarmPath); ide.Automation.ExecuteCommand("View.ViewCode", ""); }
+                Check(original.Replace("literal", "A &amp; $(pl¦) tail"), "$(Plant)", "A &amp; $(Plant) tail");
+                // The unsaved declaration must be recaptured by the same context.
+                Check(original.Replace("literal", "$(Loc¦)").Replace("<Name>$(Loc¦)</Name>",
+                    "<Properties><Property Name='Local' Value='unsaved'/></Properties><Name>$(Loc¦)</Name>"), "$(Local)", "<Name>$(Local)</Name>");
+                Check(original.Replace("<Name>literal</Name>", "<ReferenceName>Tem¦</ReferenceName><Name>literal</Name>"), "Template", "<ReferenceName>Template</ReferenceName>");
+                Check(original.Replace("literal", "$(loc:Saved¦)"), "$(loc:SavedKey)", "<Name>$(loc:SavedKey)</Name>");
+                ide.Automation.Documents.Item(workspace.AlarmPath).Close(vsSaveChanges.vsSaveChangesNo);
+                Assert.Equal(original, File.ReadAllText(workspace.AlarmPath));
+            }
+            // Dirty RESX XML is not a semantic input until it is saved.
+            Assert.True(VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, resourcePath, savedResource.Replace("SavedKey", "DirtyKey")));
+            ide.OpenDesigner(workspace.AlarmPath); ide.Automation.ExecuteCommand("View.ViewCode", "");
+            Check(original.Replace("literal", "$(loc:Saved¦)"), "$(loc:SavedKey)", "<Name>$(loc:SavedKey)</Name>");
+            Assert.Equal(savedResource, File.ReadAllText(resourcePath));
+            ide.Automation.Documents.Item(resourcePath).Save();
+            Check(original.Replace("literal", "$(loc:Dirty¦)"), "$(loc:DirtyKey)", "<Name>$(loc:DirtyKey)</Name>");
+            CheckStale(original.Replace("literal", "$(pl¦)"), "$(Plant)", () =>
+            {
+                var selection = (TextSelection)ide.Automation.Documents.Item(workspace.AlarmPath).Selection;
+                selection.EndOfDocument(); selection.Insert(" ");
+            });
+            CheckStale(original.Replace("literal", "$(loc:Dirty¦)"), "$(loc:DirtyKey)", () =>
+                File.WriteAllText(resourcePath, savedResource.Replace("SavedKey", "ChangedKey")));
+            Check(original.Replace("literal", "$(loc:Changed¦)"), "$(loc:ChangedKey)", "<Name>$(loc:ChangedKey)</Name>");
+            string cancelled = original.Replace("literal", "$(pl)");
+            var cancelSelection = (TextSelection)ide.Automation.Documents.Item(workspace.AlarmPath).Selection;
+            cancelSelection.SelectAll(); cancelSelection.Insert(cancelled);
+            cancelSelection.MoveToAbsoluteOffset(cancelled.IndexOf("$(pl)", StringComparison.Ordinal) + 5);
+            window.FindFirstDescendant(cf => cf.ByAutomationId("WpfTextView")).Focus();
+            ide.Automation.ExecuteCommand("Edit.ListMembers", "");
+            RequireXmlInput(ide, window, workspace.AlarmPath); Keyboard.Type(VirtualKeyShort.ESCAPE);
+            var cancellationSettle = Stopwatch.StartNew();
+            do
+            {
+                Assert.Equal(cancelled, ide.ReadText(workspace.AlarmPath));
+                Assert.Null(window.FindFirstDescendant(cf => cf.ByAutomationId("DefaultCompletionPresenter")));
+                System.Threading.Thread.Sleep(50);
+            } while (cancellationSettle.ElapsedMilliseconds < 750);
+            ide.Automation.Documents.Item(workspace.AlarmPath).Close(vsSaveChanges.vsSaveChangesNo);
+            Assert.Equal(original, File.ReadAllText(workspace.AlarmPath));
+
+            void Check(string marked, string label, string expected)
+            {
+                var selection = (TextSelection)ide.Automation.Documents.Item(workspace.AlarmPath).Selection;
+                string text = marked.Replace("¦", "");
+                selection.SelectAll(); selection.Insert(text);
+                selection.MoveToAbsoluteOffset(marked.IndexOf('¦') + 1);
+                window.SetForeground(); window.FindFirstDescendant(cf => cf.ByAutomationId("WpfTextView")).Focus();
+                ide.Automation.ExecuteCommand("Edit.ListMembers", "");
+                VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByAutomationId(label)) != null, "current semantic candidate " + label);
+                RequireXmlInput(ide, window, workspace.AlarmPath); Keyboard.Type(VirtualKeyShort.TAB);
+                VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath).Contains(expected), "semantic insertion " + label);
+                ide.Automation.ExecuteCommand("Edit.Undo", "");
+                VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath) == text, "semantic insertion is one Undo");
+            }
+
+            void CheckStale(string marked, string label, Action change)
+            {
+                var selection = (TextSelection)ide.Automation.Documents.Item(workspace.AlarmPath).Selection;
+                selection.SelectAll(); selection.Insert(marked.Replace("¦", ""));
+                selection.MoveToAbsoluteOffset(marked.IndexOf('¦') + 1);
+                window.FindFirstDescendant(cf => cf.ByAutomationId("WpfTextView")).Focus();
+                ide.Automation.ExecuteCommand("Edit.ListMembers", "");
+                VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByAutomationId(label)) != null, "candidate before input changes");
+                change();
+                window.FindFirstDescendant(cf => cf.ByAutomationId("WpfTextView")).Focus();
+                RequireXmlInput(ide, window, workspace.AlarmPath); Keyboard.Type(VirtualKeyShort.TAB);
+                var settle = Stopwatch.StartNew();
+                do
+                {
+                    Assert.DoesNotContain(label, ide.ReadText(workspace.AlarmPath));
+                    System.Threading.Thread.Sleep(50);
+                } while (settle.ElapsedMilliseconds < 750);
+            }
+        }
+
+        internal static void CheckSemanticContexts(VisualStudioSession ide, UiTestWorkspace workspace)
+        {
+            workspace.CreateProject(ide, build: false);
+            VisualStudioAutomation.CloseSolution(ide.Automation, false);
+            string northPath = Path.Combine(workspace.ProjectDirectory, "Plant.almproj");
+            XDocument north = XDocument.Load(northPath);
+            north.Root.Add(new XElement("ItemGroup", new XElement("AlarmlistProperty", new XAttribute("Include", "NorthOnly"), new XAttribute("Value", "North"))));
+            north.Save(northPath);
+            string southDirectory = Path.Combine(workspace.DirectoryPath, "South");
+            Directory.CreateDirectory(southDirectory);
+            string southPath = Path.Combine(southDirectory, "South.almproj");
+            new XDocument(new XElement("Project", new XAttribute("Sdk", (string)north.Root.Attribute("Sdk")),
+                new XElement("PropertyGroup", new XElement("EnableDefaultCompileItems", "false")),
+                new XElement("ItemGroup", new XElement("Compile", new XAttribute("Include", "../Plant/Alarms.almx"), new XAttribute("Link", "Alarms.almx")),
+                    new XElement("AlarmlistProperty", new XAttribute("Include", "SouthOnly"), new XAttribute("Value", "South"))))).Save(southPath);
+            const string original = "<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Name>literal</Name></Alarm></Alarmlist>";
+            File.WriteAllText(workspace.AlarmPath, original);
+            VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
+            ide.Automation.Solution.AddFromFile(southPath);
+            ide.OpenDesigner(workspace.AlarmPath);
+            using var automation = new UIA3Automation();
+            var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
+            window.SetForeground();
+            window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(FlaUI.Core.Definitions.ControlType.RadioButton))).Patterns.SelectionItem.Pattern.Select();
+            ComboBox contexts = null;
+            VisualStudioSession.Wait(() => (contexts = window.FindFirstDescendant(cf => cf.ByName("Analysis project context"))?.AsComboBox())?.Items.Length == 2, "two XML analysis contexts");
+            window.FindFirstDescendant(cf => cf.ByName("Split").And(cf.ByControlType(FlaUI.Core.Definitions.ControlType.RadioButton))).Patterns.SelectionItem.Pattern.Select();
+            Check("Plant.almproj", "NorthOnly", "SouthOnly");
+            Check("South.almproj", "SouthOnly", "NorthOnly");
+            Check("Plant.almproj", "NorthOnly", "SouthOnly");
+            ide.Automation.Documents.Item(workspace.AlarmPath).Close(vsSaveChanges.vsSaveChangesNo);
+            Assert.Equal(original, File.ReadAllText(workspace.AlarmPath));
+
+            void Check(string project, string expected, string excluded)
+            {
+                contexts.Expand(); contexts.Items.Single(item => item.Text.Contains(project)).Select(); contexts.Collapse();
+                string marked = original.Replace("literal", "$(" + expected.Substring(0, 3) + "¦)");
+                var selection = (TextSelection)ide.Automation.Documents.Item(workspace.AlarmPath).Selection;
+                selection.SelectAll(); selection.Insert(marked.Replace("¦", ""));
+                selection.MoveToAbsoluteOffset(marked.IndexOf('¦') + 1);
+                window.FindFirstDescendant(cf => cf.ByAutomationId("WpfTextView")).Focus();
+                ide.Automation.ExecuteCommand("Edit.ListMembers", "");
+                VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByAutomationId("$(" + expected + ")")) != null, "XML context candidate " + expected);
+                Assert.Null(window.FindFirstDescendant(cf => cf.ByAutomationId("$(" + excluded + ")")));
+                RequireXmlInput(ide, window, workspace.AlarmPath); Keyboard.Type(VirtualKeyShort.TAB);
+                VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath).Contains("$(" + expected + ")"), "XML context insertion " + expected);
+            }
+        }
 
         private static void CheckAutomatic(VisualStudioSession ide, UiTestWorkspace workspace)
         {
@@ -259,6 +406,21 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 Assert.Equal("<Al", File.ReadAllText(path));
             }
         }
+    }
+
+    [Trait("Category", "UIIntegration"), Trait("Host", "VisualStudio"), Trait("Area", "XmlSemanticCompletion")]
+    public sealed class XmlSemanticCompletionTests
+    {
+        private readonly ITestOutputHelper _output;
+        public XmlSemanticCompletionTests(ITestOutputHelper output) { _output = output; }
+        [UiFact("2022"), Trait("VSVersion", "2022")]
+        public Task SemanticCompletion2022() => UiTestRun.ExecuteAsync("2022", "XmlSemantic", _output, XmlCompletionTests.CheckSemantic);
+        [UiFact("2026"), Trait("VSVersion", "2026")]
+        public Task SemanticCompletion2026() => UiTestRun.ExecuteAsync("2026", "XmlSemantic", _output, XmlCompletionTests.CheckSemantic);
+        [UiFact("2022"), Trait("VSVersion", "2022")]
+        public Task SemanticContexts2022() => UiTestRun.ExecuteAsync("2022", "XmlSemanticContexts", _output, XmlCompletionTests.CheckSemanticContexts);
+        [UiFact("2026"), Trait("VSVersion", "2026")]
+        public Task SemanticContexts2026() => UiTestRun.ExecuteAsync("2026", "XmlSemanticContexts", _output, XmlCompletionTests.CheckSemanticContexts);
     }
 
     [Trait("Category", "UIIntegration"), Trait("Host", "VisualStudio"), Trait("Area", "XmlDefinitionCompletion")]

@@ -1,7 +1,7 @@
 # Milestone twelve: XML IntelliSense and native Shared Projects
 
-Status: implementation authorized on 2026-10-27; iterations 1–2 complete.
-Iterations 3–8 remain to be implemented and validated.
+Status: implementation authorized on 2026-10-27; iterations 1–3 complete.
+Iterations 4–8 remain to be implemented and validated.
 The owner confirmed the scope and recommended defaults and activated the goal
 on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
 check usage throughout and stop before crossing that threshold. Do not merge or
@@ -532,3 +532,68 @@ Validation evidence:
 
 No remaining scoped iteration-2 blocker. Iterations 3–8 remain unstarted. Existing manual/vendor/release gates
 are unchanged. Latest allowance check: 68% remaining, above the 15% stop.
+
+### Iteration 3 — completed semantic XML completion
+
+Shared candidate construction and filtering now serve the designer and XML
+completion from detached analysis data. XML caret mapping distinguishes literal
+identity/assignment fields from expression fields and maps XML entity offsets
+without resolving expressions. A per-view service borrows the embedded designer
+context or owns a standalone registry adapter, validates saved inputs before
+display and insertion, and owns cancellation and shutdown work.
+
+The shared factory preserves designer matching rules: case-insensitive parameter
+prefixes, key-only localization substring search with prefix priority, compiler
+template signatures, case-sensitive lookup/list identities, bound-list searches,
+record-only sibling expressions and reference eligibility. XML insertion escapes
+only markup, preserves surrounding text/entities, and selects empty template
+arguments without resolving them. Parameter assignments and identities remain
+literal. No compiler/SDK contract or fingerprint change is needed.
+
+The native semantic set owns an observable candidate collection and implements
+recalculation; the default legacy set does not refresh an asynchronously prepared
+list itself. Updates retain the selected token when possible. Pending rows cannot
+commit. Every accepted semantic insertion checks saved bytes again, then checks
+the view snapshot, caret, selection, context generation and read-only span before
+one Undo transaction. Escape, changed inputs, new requests and view close cancel
+owned work. Embedded views borrow the designer context without disposing it;
+standalone views dispose only their own registry adapter. Document versions are
+compared against their persisted buffer owner; the XML view is stamped separately.
+
+Validation so far:
+
+- Initial focused semantic suite: **26 passed**. Expanded full extension suite:
+  **724 passed**, no failures/skips. Final suite with an additional XML record-scope
+  case passed **725**, no failures/skips. It covers entity spans, literal/unsupported fields, explicit
+  selection, escaped/nested expressions, localization matching/template arguments,
+  bound-list descriptions, lookup casing, record siblings and invalid references.
+- Extension build passed with **zero warnings/errors** after the UI-thread guard
+  correction. Native final builds also succeeded.
+- VS2022 final selection: **7 passed**, no failures/skips, through
+  `eng/test-visualstudio.ps1` with filter
+  `Area=XmlSemanticCompletion|Area=XmlCompletion|FullyQualifiedName~LanguageAndSavedCompletion`.
+  TRX directory: `2257902ca6ac4d24935311e765013ea7`.
+- VS2026: **6 passed** in `f187b464aee148c09c407f37ef33ece2`; its semantic case
+  stopped at a focus guard before keyboard injection after the test's deliberate
+  DTE edit. After explicitly restoring source focus, the expanded semantic case
+  passed in `a05a02ba26b5491a96f30f01af8e2e0b`. Thus all seven unique scoped cases
+  passed against the final production behavior. The successful recovery also
+  checks Escape cancellation. Both hosts check buffer/resource stale insertion
+  rejection, saved-only resources, unsaved declarations, native insertion/Undo,
+  embedded/standalone views and selected-project isolation in Split mode.
+- Earlier exploratory native failures exposed the missing completion-set refresh,
+  the base list's update behavior and a remembered XML-only test view. They are
+  retained in artifacts and are not counted as passes. An observable list and
+  explicit test view/focus setup resolved these issues. Temporary lifecycle
+  diagnostics were removed before the final native checks.
+
+- Final unit command: `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj --no-restore -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration3/FinalUnit`.
+- Packaged VSIX/consumer integration: **13 passed per framework**, net472/net8.0,
+  no failures/skips. Command: `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj --no-restore -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration3/Package`.
+- Documentation, links, paths and `git diff --check` reviewed. All native/WPF
+  suites ran sequentially. No compiler contract, source format or SDK build
+  behavior changed. Temporary diagnostic tracing is absent from the final code.
+
+No remaining scoped iteration-3 blocker. Automatic lookup/project XML completion
+and native Shared Project production support remain iterations 4–8. Existing
+manual/vendor/release gates are unchanged. Latest allowance: 63% remaining.
