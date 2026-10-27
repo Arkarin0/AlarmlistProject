@@ -2,6 +2,7 @@
 
 Status: implementation authorized on 2026-10-27; iterations 1–8 complete.
 Scoped combined acceptance passes on both supported IDE hosts and task frameworks.
+Follow-up iterations 9–10 are planned below; their implementation is not started.
 The owner confirmed the scope and recommended defaults and activated the goal
 on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
 check usage throughout and stop before crossing that threshold. Do not merge or
@@ -1176,3 +1177,73 @@ is implied. Completion timings are descriptive, not a latency guarantee or heap
 collectibility proof. Latest account allowance check: **42% remaining**, above
 the owner's **15% reserve**. The persistent example and user guides match the
 validated behavior.
+
+## Planned follow-up iterations — 2026-10-27
+
+The owner reported missing completion in
+`<Step>$(loc:Instruction.Set, path="$(loc:", property="", value="")</Step>`
+and requested that the ordinary example also include a Shared Project. These
+follow-ups extend this plan without changing completed iteration numbering or
+claiming their acceptance. This is planning only; the completed goal covers 1–8.
+
+### 9 — Localization argument completion and quote handling (planned)
+
+- **Deliverable:** reproduce the reported caret/selection context and improve
+  discoverability/insertion of supported argument expressions in XML and designer
+  fields. Test empty quoted slots, selected quotes, typing inside a literal slot,
+  incomplete tokens and existing trailing arguments. A committed expression must
+  replace the appropriate slot/quotes without damaging surrounding text.
+- **Contract:** quoted argument values are literals; the compiler does not rescan
+  them. Direct nested localization arguments are unsupported. Do not silently
+  offer an evaluated nested localization expression or change compiler syntax.
+  Supported unquoted parameter/path/property/button/meta/list/item expressions
+  remain subject to their existing context rules and available argument bindings.
+  If the owner wants nested localization evaluation, record that as a separate
+  language decision before implementing it.
+- **Dependencies:** completed expression completion and named-argument contracts.
+  Inspect shared lexical context/candidate adapters and compiler parsing before
+  choosing the smallest editor change; retain XML/designer parity.
+- **Validation:** focused lexical/candidate/insertion tests, the exact reported
+  negative case, supported argument examples, XML escaping and one-step Undo;
+  native designer/embedded/native XML probes on both hosts. Preserve stale-result,
+  cancellation and selected-consumer checks. Document valid syntax beside examples.
+- **Completion:** supported argument editing is discoverable and source preserving;
+  unsupported literal/nested-localization cases are not advertised as evaluated
+  expressions. Record evidence and commit before proceeding to the next iteration.
+
+### 10 — Native Shared Project in the ordinary playground (planned)
+
+- **Deliverable:** add a native Shared Project to **example/Example.sln**, which the
+  existing VS2022/2026 launchers open. Reuse **example/Shared** and its existing
+  ALMX, RESX and lookup files through a .shproj/.projitems pair imported by North
+  and South. The separate example/SharedProjects remains a focused acceptance
+  fixture; it does not substitute for updating the ordinary playground.
+- Move shared input membership from duplicated consumer includes and common
+  Directory.Build.targets into the shared .projitems. Preserve physical paths,
+  portable links where required, declaration order, existing alarm counts,
+  consumer parameters/resources, cultures and intentional analyzer diagnostics.
+  Retain project-local sources and North/South differences. Add native solution
+  sharing metadata; the shared container produces no compiler artifact.
+- Scope common analyzer checks and consumer-only items/targets so the native
+  shared container does not run consumer compilation or analyzer preparation.
+  Keep eng/prepare-example.ps1 and both existing launchers preparing matching SDK
+  assets without replacing edited sources, imports, projects or solution files.
+- **Dependencies:** completed shared build/native/context implementation. Implement
+  after iteration 9 in the follow-up sequence; no compiler-language expansion is
+  required for this example integration.
+- **Validation:** extend ExamplePlaygroundTests and packaged asset copying to
+  include .shproj/.projitems; build North/South on net472/net8.0 and both desktop
+  task hosts. Verify unchanged intended outputs, counts and analyzer diagnostics,
+  no duplicate inputs, consumer-only builds with the container unloaded, and
+  repeated preparation preserving an edited copy. On both IDE hosts, exercise
+  launch/preparation, solution load/reopen, shared owner browsing, consumer context
+  selection and native reference removal/re-addition. Update the ordinary README
+  instructions and relevant project-map guidance with the implementation.
+- **Completion:** the default launcher solution visibly contains the native Shared
+  Project and both consumers use its saved membership; checks pass and the focused
+  implementation/tests/documentation/evidence are committed together.
+
+Planning review: existing solution/project/import paths and preparation/test entry
+points were inspected. No implementation tests were run for these planned changes.
+The owner's existing edit to example/North/Alarms.almx is unrelated and must remain
+untouched and unstaged throughout the follow-up work.
