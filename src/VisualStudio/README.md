@@ -52,8 +52,35 @@ files also receive common MSBuild structural hints. Default MSBuild namespace
 documents retain native general structure commands; prefixed MSBuild XML remains
 with native namespace tooling. Unmatched typed names pass through to native XML
 completion. Property values, conditions and file paths are not evaluated by these
-hints. User-selected native schemas remain unchanged. Shared Project probes are isolated tests;
-the production SDK/templates do not yet advertise native Shared Project support.
+hints. User-selected native schemas remain unchanged.
+
+**Add New Project > Alarmlist Shared Project** creates a native `.shproj` container
+with a `.projitems` import and sample ALMX, saved translations and lookup files.
+Install Visual Studio's native Shared Project tooling and make the matching SDK
+package feed available. The container uses native sharing infrastructure with
+Alarmlist file rules; it produces no separate compiled artifact. Its design-rule
+import pins the SDK version used to build the extension. Consumer command-line
+builds need only the `.projitems` and sources, not the shared container or IDE.
+
+Select the consumer's Dependencies node and use **Add Reference > Shared Projects**
+to check the shared project. Saving persists an import with `Label="Shared"` in
+the consumer. Each consumer resolves those sources using its own properties,
+cultures and references. **Dependencies > Shared projects** projects the evaluated
+shared items into each consumer. Open a projected item to edit its physical shared
+file; membership changes belong to the owning shared project. Captions use `Link`
+when supplied, otherwise the path relative to the shared import. Uncheck the
+reference to remove that import; shared
+files remain on disk. Add/open/rename/remove shared items in the owning shared
+project. ALMX, `.resx` and `.almlookup` files use Compile, AlarmlistResource and
+AlarmlistLookup build actions respectively. Remove excludes an item while keeping
+its file; Delete is the ordinary physical-file deletion action.
+
+Shared item paths use `$(MSBuildThisFileDirectory)` so they remain relative to the
+import, including after renaming or moving the consumer. See the
+[SDK shared import contract](../SDK/Alarmlist.SDK/README.md#shared-source-imports)
+for conditions, repeated-file identity, conflicting metadata and library portable
+names. Shared document context selection and combined acceptance remain under
+Milestone 12 iterations 7–8.
 
 The [milestone-three plan](MILESTONE-3.md) covers project-wide reference analysis,
 inherited fields with WPF chain-icon adorners, inherited test-procedure rows,

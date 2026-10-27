@@ -14,4 +14,5 @@
   <data name="BuildFiles"><value>Builddateien</value></data>
   <data name="AlarmLibraries"><value>Alarmbibliotheken</value></data>
   <data name="Documents"><value>Dokumente</value></data>
+  <data name="SharedProjects" xml:space="preserve"><value>Freigegebene Projekte</value></data>
 </root>

@@ -798,6 +798,15 @@ loaded. Release the matching SDK before distributing a VSIX using these capabili
 
 ## Shared source imports
 
+The matching extension provides **Alarmlist Shared Project** and native
+**Add Reference > Shared Projects** management. Its `.shproj` uses the installed
+Visual Studio sharing container and imports `tools/Alarmlist.Shared.targets`
+through an explicit SDK `Import` with separate `Sdk` and `Version` attributes.
+This adds file rules and Alarmlist item templates without importing consumer
+build targets or creating an analysis context for the container. Native Shared
+Project tooling is required to load it in the IDE. See the
+[Visual Studio workflow](../../VisualStudio/README.md).
+
 An ordinary MSBuild `.projitems` import can supply ALMX, saved RESX and lookup
 inputs to multiple `.almproj` consumers. Each consumer compiles those sources
 with its own properties, cultures, references and diagnostic settings. The shared

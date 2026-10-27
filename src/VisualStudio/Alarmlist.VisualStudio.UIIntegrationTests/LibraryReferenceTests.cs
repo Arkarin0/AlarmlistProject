@@ -153,6 +153,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     "native reference manager");
                 File.WriteAllLines(Path.Combine(workspace.DirectoryPath, add ? "reference-manager-add.txt" : "reference-manager-remove.txt"),
                     dialog.FindAllDescendants().Select(item => item.ControlType + " | " + item.Properties.AutomationId.ValueOrDefault + " | " + (item.Properties.Name.ValueOrDefault ?? "")));
+                // Native reference management remembers its last provider. A
+                // preceding shared-project action can leave that tab selected.
+                var projectsTab = dialog.FindAllDescendants().FirstOrDefault(item => item.Name == "Projects" || item.Name == "Projekte");
+                Assert.NotNull(projectsTab);
+                projectsTab.Click();
                 AutomationElement library = null;
                 VisualStudioSession.Wait(() => (library = dialog.FindFirstDescendant(cf =>
                     cf.ByName("Library").And(cf.ByControlType(ControlType.CheckBox)))) != null, "library project choice");

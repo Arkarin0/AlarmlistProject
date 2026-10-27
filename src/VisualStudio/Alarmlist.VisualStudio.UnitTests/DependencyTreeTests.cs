@@ -98,6 +98,33 @@ namespace Alarmlist.VisualStudio.UnitTests
             finally { CultureInfo.CurrentUICulture = previous; }
         }
 
+        [Fact]
+        public void SharedProjectionUsesEvaluatedImportOwnershipConditionsAndFirstPhysicalMembershipWithoutBuilds()
+        {
+            string shared = Path.Combine(_directory, "Shared Assets"); Directory.CreateDirectory(shared);
+            string imports = Path.Combine(shared, "Shared.projitems"), project = Path.Combine(_directory, "Plant.almproj");
+            File.WriteAllText(imports, "<Project><ItemGroup><Compile Include='$(MSBuildThisFileDirectory)A.almx;$(MSBuildThisFileDirectory)./A.almx'/>"
+                + "<Compile Include='$(MSBuildThisFileDirectory)Hidden.almx' Visible='false'/>"
+                + "<AlarmlistResource Include='$(MSBuildThisFileDirectory)Labels.en.resx' Link='Captions/English.resx'/><AlarmlistLookup Include='$(MSBuildThisFileDirectory)Hmi.almlookup'/>"
+                + "<Compile Include='$(MSBuildThisFileDirectory)Release.almx' Condition=\"'$(Configuration)' == 'Release'\"/></ItemGroup></Project>");
+            File.WriteAllText(project, "<Project InitialTargets='DoNotBuild'><Import Project='Shared Assets/Shared.projitems' Condition=\"'$(EnableShared)' != 'false'\"/>"
+                + "<ItemGroup><Compile Include='Local.almx'/></ItemGroup><Target Name='DoNotBuild'><Error Text='Never run'/></Target></Project>");
+            using (var projects = new ProjectCollection())
+            {
+                var debug = projects.LoadProject(project, new Dictionary<string, string> { ["Configuration"] = "Debug" }, null);
+                var first = AlarmlistDependenciesTree.CaptureSharedInputs(debug.CreateProjectInstance(), project);
+                Assert.Equal(new[] { "A.almx", "Labels.en.resx", "Hmi.almlookup" }, Assert.Single(first).Value.Select(item => Path.GetFileName(item.Path)));
+                Assert.Equal(new[] { "A.almx", "Captions/English.resx", "Hmi.almlookup" }, Assert.Single(first).Value.Select(item => item.Caption));
+                Assert.Equal(imports, Assert.Single(first).Key);
+                var release = projects.LoadProject(project, new Dictionary<string, string> { ["Configuration"] = "Release" }, null);
+                Assert.Equal(4, Assert.Single(AlarmlistDependenciesTree.CaptureSharedInputs(release.CreateProjectInstance(), project)).Value.Length);
+                var removed = projects.LoadProject(project, new Dictionary<string, string> { ["EnableShared"] = "false" }, null);
+                Assert.Empty(AlarmlistDependenciesTree.CaptureSharedInputs(removed.CreateProjectInstance(), project));
+                Assert.Equal(3, Assert.Single(first).Value.Length);
+                Assert.Single(Directory.GetFiles(shared)); // No target, source parsing or file enumeration for membership.
+            }
+        }
+
         public void Dispose() { Directory.Delete(_directory, recursive: true); }
     }
 }

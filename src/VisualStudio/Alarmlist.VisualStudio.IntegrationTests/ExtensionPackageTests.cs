@@ -68,11 +68,11 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("\"almx\"=dword:00000028", xmlRegistration);
                 Assert.Contains("Languages\\File Extensions\\.almx", xmlRegistration);
                 Assert.Contains("{F6819A78-A205-47B5-BE1C-675B3C7F0B8E}", xmlRegistration);
-                Assert.Equal(4, package.Entries.Count(entry => entry.FullName.EndsWith(".vstemplate")));
+                Assert.Equal(5, package.Entries.Count(entry => entry.FullName.EndsWith(".vstemplate")));
                 var projectTemplates = package.Entries.Where(entry =>
                     entry.FullName.StartsWith("ProjectTemplates/", StringComparison.Ordinal)
                     && entry.FullName.EndsWith(".vstemplate", StringComparison.Ordinal)).ToArray();
-                Assert.Equal(2, projectTemplates.Length);
+                Assert.Equal(3, projectTemplates.Length);
                 Assert.All(projectTemplates, entry => Assert.Equal("true", XDocument.Parse(Read(entry))
                     .Descendants(s_templateNamespace + "CreateInPlace").Single().Value));
                 var catalogs = package.Entries.Where(entry => entry.FullName.EndsWith(".vstman")).ToArray();
@@ -150,6 +150,10 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                     XDocument.Parse(Read(entry)).Root.Attribute("Sdk").Value));
                 var project = XDocument.Parse(Read(projects[0]));
                 string sdk = project.Root.Attribute("Sdk").Value;
+                XNamespace msbuild = "http://schemas.microsoft.com/developer/msbuild/2003";
+                var shared = XDocument.Parse(Read(vsix.Entries.Single(entry => entry.FullName.EndsWith("/AlarmlistShared.shproj", StringComparison.Ordinal))));
+                var sharedSdk = shared.Root.Elements(msbuild + "Import").Single(item => item.Attribute("Sdk") != null);
+                Assert.Equal(sdk, sharedSdk.Attribute("Sdk").Value + "/" + sharedSdk.Attribute("Version").Value);
                 const string prefix = "Alarmlist.MSBuild.SDK/";
                 Assert.StartsWith(prefix, sdk);
                 string version = sdk.Substring(prefix.Length);
@@ -162,8 +166,51 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                     Assert.Equal(version, metadata.Element(ns + "version").Value);
                     Assert.NotNull(package.GetEntry("tasks/net472/Alarmlist.Core.dll"));
                     Assert.NotNull(package.GetEntry("tasks/net8.0/Alarmlist.Core.dll"));
+                    Assert.NotNull(package.GetEntry("tools/Alarmlist.Shared.targets"));
                     Assert.Equal(Read(package.GetEntry("tools/Schemas/AlarmlistLookup.xsd")), Read(vsix.GetEntry("Schemas/AlarmlistLookup.xsd")));
                 }
+            }
+        }
+
+        [Fact]
+        public void PackagedSharedTemplateInputsBuildInAConsumerWithoutLoadingTheContainer()
+        {
+            using (var app = CreateApp(nameof(PackagedSharedTemplateInputsBuildInAConsumerWithoutLoadingTheContainer)))
+            using (var package = OpenPackage())
+            {
+                string shared = Path.Combine(app.WorkingDirectory, "Shared Assets");
+                Directory.CreateDirectory(shared);
+                Instantiate(package, "ProjectTemplates/", shared, "Shared", "AlarmlistShared.vstemplate");
+                Instantiate(package, "ProjectTemplates/", app.WorkingDirectory, "Plant");
+                string projectPath = Path.Combine(app.WorkingDirectory, "Plant.almproj");
+                XDocument project = XDocument.Load(projectPath);
+                project.Root.Add(new XElement("Import", new XAttribute("Project", "Shared Assets/Shared.projitems"), new XAttribute("Label", "Shared")));
+                project.Save(projectPath);
+                app.Build(_output);
+                Assert.Equal(2, XDocument.Load(app.OutputPath).Descendants("Alarm").Count());
+                Assert.Contains("Shared.Shared", File.ReadAllText(app.OutputPath));
+                Assert.False(Directory.Exists(Path.Combine(shared, "bin")));
+                XNamespace ns = "http://schemas.microsoft.com/developer/msbuild/2003";
+                var items = XDocument.Load(Path.Combine(shared, "Shared.projitems"));
+                foreach (string kind in new[] { "Compile", "AlarmlistResource", "AlarmlistLookup" })
+                    Assert.StartsWith("$(MSBuildThisFileDirectory)", Assert.Single(items.Descendants(ns + kind)).Attribute("Include").Value);
+                // The usual solution layout places the shared project beside
+                // its consumers. Remove this test's deliberate default-glob
+                // overlap before testing exported names in library mode.
+                project.Root.Add(new XElement("PropertyGroup", new XElement("OutputType", "Library")),
+                    new XElement("ItemGroup", new XElement("Compile", new XAttribute("Remove", "Shared Assets/**/*.almx")),
+                        new XElement("AlarmlistResource", new XAttribute("Remove", "Shared Assets/**/*.resx")),
+                        new XElement("AlarmlistLookup", new XAttribute("Remove", "Shared Assets/**/*.almlookup"))));
+                // Re-add the import after Remove so the shared items remain.
+                project.Root.Elements("Import").Remove();
+                project.Root.Add(new XElement("Import", new XAttribute("Project", "Shared Assets/Shared.projitems"), new XAttribute("Label", "Shared")));
+                project.Save(projectPath);
+                app.Build(_output);
+                string libraryPath = Directory.GetFiles(Path.Combine(app.WorkingDirectory, "bin"), "*.almlib", SearchOption.AllDirectories).Single();
+                var library = XDocument.Load(libraryPath); XNamespace artifact = library.Root.Name.Namespace;
+                Assert.Contains(library.Root.Element(artifact + "Sources").Elements(), source => (string)source.Attribute("Name") == "Shared/Alarms.almx");
+                Assert.Equal("Shared/Translations.en.resx", (string)Assert.Single(library.Root.Element(artifact + "Resources").Elements()).Attribute("Name"));
+                Assert.Equal("Shared/Devices.almlookup", (string)Assert.Single(library.Root.Element(artifact + "Lookups").Elements()).Attribute("Name"));
             }
         }
 

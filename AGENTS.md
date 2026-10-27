@@ -555,6 +555,21 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   snapshot APIs. Shared imports use MSBuildThisFileDirectory for physical paths;
   IDE capture evaluates saved imports without executing targets. XLIFF resource
   capture uses the same identity policy. Matching rebuilt SDK/VSIX are required.
+- Milestone 12 iteration 6 uses the installed native C# Shared Project container
+  with SharedProjectAppliesTo=Alarmlist, not a new project factory. The dedicated
+  template imports only SDK tools/Alarmlist.Shared.targets for file rules and item
+  templates, using explicit Import Sdk/Version attributes. Do not import the
+  consumer build pipeline or add the Alarmlist analysis capability to .shproj.
+  Keep SharedProjectReferences/SharedImports on consumers. Shared files belong to
+  .projitems with MSBuildThisFileDirectory paths; native reference removal must
+  preserve them. Native Shared Project tooling is an IDE prerequisite only.
+  Consumer projections use the existing dependency-tree graft, evaluated
+  ProjectInstance.ImportPaths and DefiningProjectFullPath metadata. Preserve
+  conditions, hidden items, first physical membership and Link captions. Do not
+  enumerate source directories, enable unrelated Managed capabilities or execute
+  targets for browsing. Imported source nodes open physical shared files, while
+  consumer projection membership remains non-removable; use the owning shared
+  project for item changes and native reference management for imports.
 - Explicit ExportAlarmlistXliff reads saved resources and writes XLIFF 2.0 plus
   local baseline sidecars, independently of Build/Clean. Keep exact culture values,
   protected expressions, stable keys and baseline presence/comments. Validate all

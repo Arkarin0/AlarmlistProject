@@ -6,6 +6,7 @@
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <data name="Dependencies" xml:space="preserve"><value>Dependencies</value></data>
   <data name="Projects" xml:space="preserve"><value>Projects</value></data>
+  <data name="SharedProjects" xml:space="preserve"><value>Shared projects</value></data>
   <data name="Packages"><value>Packages</value></data>
   <data name="Analyzers"><value>Analyzers</value></data>
   <data name="Pending"><value>Restore pending</value></data>

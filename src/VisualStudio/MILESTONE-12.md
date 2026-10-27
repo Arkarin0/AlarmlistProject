@@ -1,7 +1,7 @@
 # Milestone twelve: XML IntelliSense and native Shared Projects
 
-Status: implementation authorized on 2026-10-27; iterations 1–4 complete.
-Iteration 5 is complete; iterations 6–8 remain to be implemented and validated.
+Status: implementation authorized on 2026-10-27; iterations 1–6 complete.
+Iterations 7–8 remain to be implemented and validated.
 The owner confirmed the scope and recommended defaults and activated the goal
 on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
 check usage throughout and stop before crossing that threshold. Do not merge or
@@ -739,3 +739,122 @@ sequential. SDK usage and durable repository guidance document the new policy.
 No remaining scoped iteration-5 blocker. Final diff, paths and documentation were
 reviewed. Latest allowance: 57% remaining, above the 15% reserve. Native creation,
 shared context lifecycle and combined acceptance remain iterations 6–8.
+
+### Iteration 6 — completed native Shared Project management
+
+The SDK advertises SharedProjectReferences and SharedImports for consumers. A
+new Alarmlist Shared Project template uses the installed native C# sharing
+container, setting SharedProjectAppliesTo=Alarmlist and the existing Alarmlist
+item-template GUID. It imports only SDK Alarmlist.Shared.targets file rules, not
+consumer build targets or the Alarmlist analysis capability. Shared ownership
+stays in .projitems with import-relative Compile/resource/lookup items. The
+container has no compiler output. Consumer CLI builds require no loaded .shproj.
+
+The template follows the installed native CSharp/SharedProject template and
+CodeSharing props/targets on both supported hosts. It retains their shared GUID,
+HasSharedItems, native project registration and source-container lifecycle.
+Alarmlist item schemas replace C# item defaults so .resx and .almlookup additions
+use the correct compiler input kinds. Packaging copies the authoritative SDK
+rules, pins the matching SDK version and generates definition-aware ALMX samples
+through the existing template generator. No new project factory was introduced.
+
+An initial creation probe used the Project-level SDK name/version shorthand on
+an Import. Corrected to separate Sdk and Version attributes following the
+[MSBuild SDK import contract](https://learn.microsoft.com/en-us/visualstudio/msbuild/how-to-use-project-sdk).
+The corrected installed template passes native creation. A package-catalog test
+also initially assumed a separate catalog for CSharp; VSSDK retains one project
+catalog, so the assertion now checks two catalogs with three project templates.
+Failed reports remain distinct from passing evidence.
+
+Validation so far:
+
+- Installed SharedProjectManagement passes on VS2022 and VS2026. It creates the
+  actual shipped template, checks owned sample items, adds/removes native shared
+  references, verifies persisted imports, builds two independent consumers and
+  checks no physical source loss. Expanded cases cover all three input types:
+  Add Existing, XML open, correct .projitems build action, rename and Remove
+  preserving files, plus ALMX Add From Template. It builds with the container
+  unloaded, reloads it, saves/reopens the solution and builds IDE-authored consumer
+  imports from the command line. Final report identifiers will be recorded below.
+- SDK DesignTimeTests/SharedInputTests: **8 per framework passed**, no failures or
+  skips. Command: dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj
+  --no-restore --filter 'FullyQualifiedName~DesignTimeTests|FullyQualifiedName~SharedInputTests'
+  -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration6/SDK.
+- Extension package suite: **13 passed / 1 failed per framework**; the failure
+  was the catalog-count assumption above. After its correction, that case passes
+  on both frameworks (PackageRecovery). All **14 unique cases** now have passing
+  final evidence, including the new shipped shared-template consumer build and
+  SDK version/schema payload checks. Reports: Iteration6/Package, PackageRecovery.
+- Native library/NuGet regressions exposed remembered UI state: the Reference
+  Manager retained Shared Projects and package-tree inspection activated a project
+  preview. Tests now select Projects and reactivate NuGet before their respective
+  actions. Captured screenshots/UI trees support those corrections. Reruns pending.
+
+The scoped iteration remains open until its final native regression/projection
+checks pass. Existing compiler/task and full SDK evidence from iteration 5 remains
+applicable; this iteration changes design-time capabilities, templates and rules.
+
+Projection follow-up: expanded native tree inspection showed that the general
+Shared Project capabilities did not graft source nodes into this custom project's
+tree. The existing dependency-tree provider now adds Shared projects from evaluated
+ProjectInstance.ImportPaths and DefiningProjectFullPath item metadata. Conditions,
+hidden items and first physical membership are retained; captions use Link or an
+import-relative path. Imported source nodes open the same physical file and cannot
+remove membership from the consumer. Item changes remain native owner operations.
+This follows the existing project/package graft pattern rather than enabling
+unrelated Managed capabilities to obtain private providers. No build target or
+source directory scan is used for browsing. Missing-source nodes show warnings.
+
+The source-projection probe initially selected the new Shared reference node
+instead of the actual Shared project for unload. It now distinguishes the
+project-root node from projection children; projection display/opening had passed
+before that test-only failure. SDK/template defaults also supply conditional
+portable Link names for consumers (not the owning .shproj), so the shipped samples
+work in a library outside its source directory. Packaged application and library
+consumer checks pass on both frameworks after this addition.
+
+- Full extension unit suite after projection code: **796 passed**, no failures or
+  skips, Iteration6/Unit. The new capture test covers all input kinds, imported
+  ownership, conditions, hidden items, duplicate paths, Link captions and target-
+  free membership. Focused dependency/rule checks: **20 passed**, TreeUnit.
+- Final full extension package suite: **14 per framework passed**, no failures or
+  skips, PackageFinal. Expanded shared-template application/library test: **1 per
+  framework passed**, SharedLibraryPackage. The latter is the only test expanded
+  after PackageFinal; production projection code is unchanged after that run.
+- Native library/NuGet references: **2 passed VS2022** in
+  a4a72580db364edea81b4e0b4b1d9faf; **3 passed VS2026**, including pre-projection
+  shared management, in de9e170306b74ea5a70117ed8ea368ba. These regressions cover
+  the final SDK capabilities/template/rules. The later projection branch activates
+  only for .projitems imports; existing project/package paths retain their behavior.
+- First source-projection management recovery passed **1 VS2022** in
+  027e4ddea1b648828c1f48be02f5a8d0, including projected source opening and disabled
+  consumer Delete. Final metadata-caption/template-link runs on both hosts remain
+  to be recorded before completing this iteration.
+
+Final iteration-6 acceptance supersedes the pending notes above:
+
+- Final SharedProjectManagement: **1 passed per host**, no failures/skips,
+  ec0e04c4628240ccb8616e13ba25e693 (VS2022) and
+  39ee622b5a924abcae37ada01a297e52 (VS2026). These runs include final conditional
+  portable template links, Link-aware projections, source opening, disabled
+  consumer membership deletion, owner item creation/open/rename/remove, two
+  consumer builds, shared unload/reload, solution reopen, native reference removal
+  and command-line Rebuild of the IDE-authored consumer. Both verify installed
+  payload bytes through the standard deployment fixture.
+- Native command: powershell.exe -NoProfile -ExecutionPolicy Bypass -File
+  eng/test-visualstudio.ps1 -VisualStudioPath '<selected installed host>'
+  -Filter 'Area=SharedProjectManagement'. Reference regression filters are
+  Area=LibraryReferences|Area=LibraryPackages. All native and WPF suites ran
+  sequentially; only fixture-owned IDEs were closed.
+- Final unit command: dotnet test
+  src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj
+  --no-restore -v quiet --logger trx --results-directory
+  artifacts/log/Debug/Milestone12/Iteration6/Unit. PackageFinal uses the matching
+  IntegrationTests project; SharedLibraryPackage filters FullyQualifiedName~PackagedSharedTemplate.
+- Source, template assets, commands, paths, links and final diff reviewed. Build
+  passed with zero warnings/errors. No compiler/analysis/library contract changed.
+  Latest allowance: 55% remaining, above the 15% reserve.
+
+No remaining scoped iteration-6 blocker. Shared context selection and lifecycle
+remain iteration 7; combined acceptance, persistent example and performance
+reports remain iteration 8. Existing manual/vendor/release gates stay visible.
