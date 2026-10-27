@@ -1,5 +1,8 @@
 # Visual Studio project integration
 
+For user-facing editor, completion and Alarm Summary guides, start with the
+[documentation index](../../documentation/README.md).
+
 Milestone one supplies a CPS project type for `.almproj`, project and ALMX item
 templates, Solution Explorer file management, project properties, and
 Build/Rebuild/Clean through `Alarmlist.MSBuild.SDK`. Compiler errors are reported

@@ -1,5 +1,8 @@
 # Alarmlist.MSBuild.SDK
 
+For user-facing feature guides and step-by-step workflows, start with the
+[documentation index](../../../documentation/README.md).
+
 An MSBuild SDK that compiles `.almx` source files into one XML alarmlist per selected culture.
 It supports `dotnet msbuild` with .NET SDK 8 or later and Visual Studio MSBuild
 with .NET Framework 4.7.2 or later. The package includes the compiler, task

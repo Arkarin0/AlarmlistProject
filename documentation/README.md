@@ -4,6 +4,48 @@ Feature descriptions explain what an Alarmlist capability does, when to use it,
 and its supported behavior. Tutorials guide a user through numbered actions to
 achieve a concrete, verifiable result.
 
+## Start here
+
+Follow [Build your first alarmlist](tutorials/build-your-first-alarmlist.md) for a
+small command-line project, or [Edit and inspect alarms](tutorials/edit-and-inspect-alarms.md)
+to explore the existing Visual Studio playground. The references below describe
+implemented behavior; custom fields and collections require a rebuilt toolset.
+
+## Feature reference
+
+| Topic | What it covers |
+| --- | --- |
+| [Project builds](features/project-builds.md) | Inputs, output paths, cultures and Build/Clean behavior |
+| [Inheritance and expressions](features/alarm-inheritance-and-expressions.md) | Abstract templates, references, parameters and scope |
+| [Test procedures](features/test-procedures.md) | Named groups, titles, entry ordering, Clear and creation defaults |
+| [Localization](features/localization.md) | RESX strings, culture fallback and independent summary language |
+| [XLIFF exchange](features/xliff-translation-exchange.md) | Export, baselines, dry run, apply and conflicts |
+| [Lookups and instruction templates](features/lookups-and-instruction-templates.md) | Named lists, HMI catalogues and translated arguments |
+| [Alarm libraries](features/alarm-libraries.md) | Project/NuGet references, transitive dependencies and packing |
+| [Diagnostics and analyzers](features/diagnostics-and-analyzers.md) | EditorConfig, severity policy and opt-in rules |
+| [Shared projects](features/shared-projects.md) | Shared membership and consumer-specific analysis |
+| [Visual Studio editing](features/visual-studio-editing.md) | Designer/Split/XML, drafts, inheritance and navigation |
+| [XML completion](features/xml-completion.md) | Structure, expressions, references and context selection |
+| [Alarm Summary](features/alarm-summary.md) | Resolved tables, details, XML and column preferences |
+| [Custom fields and collections](features/custom-fields-and-collections.md) | Rebuilt definitions, typed values, collections and optional procedures |
+
+## Tutorials
+
+The first-build, translation and lookup exercises share a small FirstAlarm
+project. Other tutorials use the named checked-in playground and can be followed
+independently after preparing its tools.
+
+1. [Build your first alarmlist](tutorials/build-your-first-alarmlist.md).
+2. [Author reusable alarms and procedures](tutorials/author-reusable-alarms.md).
+3. [Translate alarms](tutorials/translate-alarms.md).
+4. [Exchange translations with XLIFF](tutorials/exchange-translations.md).
+5. [Use lookups in translated instructions](tutorials/use-lookups-in-instructions.md).
+6. [Edit and inspect alarms in Visual Studio](tutorials/edit-and-inspect-alarms.md).
+7. [Reuse alarm libraries](tutorials/reuse-alarm-libraries.md).
+8. [Share sources between projects](tutorials/share-sources-between-projects.md).
+9. [Configure diagnostic policy](tutorials/configure-diagnostics.md).
+10. [Explore custom fields and collections](tutorials/explore-custom-definitions.md).
+
 ## Create an article
 
 1. Copy the [feature template](features/TEMPLATE.md) or
@@ -23,15 +65,5 @@ achieve a concrete, verifiable result.
 Describe current supported behavior. Keep implementation plans and historical
 acceptance evidence in the milestone documents rather than user articles.
 
-## Template iteration 1
-
-Deliverable: both templates, this authoring guide, and repository instructions
-requiring their use. This documentation-only iteration has no implementation
-dependencies. Completion requires review of the diff, headings, filenames, links,
-and consistency; builds and tests are not required.
-
-Validation record: reviewed both templates for the agreed structure, explicit
-expected results, optional sections, and placeholder instructions. Relative links
-and changed-file whitespace were checked. No product examples or API changes were
-introduced. Builds and tests were not run (documentation only). No remaining
-validation blockers.
+Documentation coverage and review evidence are maintained in the
+[documentation plan](PLAN.md).

@@ -32,14 +32,48 @@ from planned acceptance and commit the completed iteration.
 - Planning adjustment: feature references link directly to tutorials. Bundle
   those articles into iteration 1 to keep committed links usable; iteration 2
   adds navigation and audits coverage rather than introducing the linked files.
-- Iteration 1 complete: added 13 feature guides and 10 workflow tutorials using
+- Iteration 1 complete (`abb318b`): added 13 feature guides and 10 workflow tutorials using
   the established templates. Checked current SDK targets, standard definition,
   output writer, scoped-property/list/procedure tests, example configuration and
   preparation scripts, and custom-definition/sample-analyzer guides. A PowerShell
   review verified 79 local article links and parsed 20 XML fragments; no article
   placeholders remained. `git diff --check` passed. Builds/tests were not run
   (documentation only); workflows were reviewed against source, not replayed.
-- Iteration 2: pending.
+- Iteration 2 complete: indexed all 13 feature guides and 10 tutorials, linked the
+  index from SDK/extension guides, and recorded the documentation location in the
+  repository map. Verified every article against required template headings,
+  index reachability and local links including heading anchors. The final review
+  resolved 107 documentation links and both SDK/IDE guide entry links. Historical
+  template evidence now lives here rather than in the user index.
+  `git diff --check` passed. Builds/tests were not run (documentation only).
+
+## Coverage audit
+
+| Current capability | Documentation and source evidence |
+| --- | --- |
+| SDK compilation and outputs | Project builds + first-build tutorial; SDK Alarmlist.targets and XML output writer |
+| References, expressions and templates | Inheritance guide + reusable-alarm tutorial; scoped-property regression tests and standard definition |
+| Procedures and creation defaults | Procedure guide + reusable-alarm tutorial; procedure-group tests and SDK creation-setting documentation |
+| RESX and translation exchange | Localization/XLIFF guides + translation/exchange tutorials; SDK exchange targets, XliffExport and import profile |
+| Lists, HMI catalogues and instruction arguments | Lookup guide + instruction tutorial; list-expression tests, embedded lookup schema and HMI specification |
+| Libraries and distribution | Library guide + project/package tutorial; SDK reference/Pack targets and independent library sample |
+| Diagnostic policy and analyzers | Diagnostic guide + policy tutorial; DiagnosticPolicy, sample analyzer and physical-source example configuration |
+| Shared membership and contexts | Shared-project guide + sharing tutorial; shared imports/sample and current extension documentation |
+| Designer, completion and resolved inspection | Editing/completion/summary guides + IDE tutorial; current extension and default/custom playground guides |
+| Fork-time typed fields and collections | Custom-definition guide + isolated-playground tutorial; definition generator and capability-paired sample definitions |
+
+All articles have requirements, examples or starting inputs, expected outcomes,
+troubleshooting and related links. Conditional template sections were omitted
+where inapplicable. No placeholders remain in published articles. The examples
+use repository-relative locations and current source formats. No planned feature
+is presented as available without its required custom toolset.
+
+## Earlier template iteration
+
+Template iteration 1 was completed in `12de066`: feature/tutorial templates,
+authoring guide and repository instructions. Diff, links and template structure
+were reviewed; builds/tests were not run (documentation only). This historical
+record was moved here from the user index without changing its completed status.
 
 ## Validation limits
 
