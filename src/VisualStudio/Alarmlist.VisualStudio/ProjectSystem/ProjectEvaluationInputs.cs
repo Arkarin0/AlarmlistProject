@@ -33,7 +33,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             var paths = new HashSet<string>(instance?.ImportPaths ?? Enumerable.Empty<string>(), StringComparer.OrdinalIgnoreCase) { path };
             var hints = new List<AnalysisDiscoveryGlob>();
             if (recovery && previous != null) { paths.UnionWith(previous.Paths); hints.AddRange(previous.Globs); }
-            try { hints.AddRange(SavedProjectEvaluation.CaptureDiscoveryHints(path, globals, token, imported => paths.Add(imported))); }
+            try { hints.AddRange(SavedProjectEvaluation.CaptureDiscoveryHints(path, globals, token, imported => paths.Add(imported), paths.ToArray())); }
             catch (Exception exception) when (recovery && SdkAnalysisBridge.IsRecoverable(exception)) { }
             var times = dependentTimes?.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
             var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
@@ -42,7 +42,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 token.ThrowIfCancellationRequested();
                 if (recovery) { files[file] = null; continue; }
                 CheckTime(file);
-                files.Add(file, File.ReadAllBytes(file));
+                files.Add(file, ReadBytes(file));
                 CheckTime(file);
             }
             return new ProjectEvaluationInputs(files, hints, recovery);
@@ -65,11 +65,19 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 foreach (var file in _files)
                 {
                     token.ThrowIfCancellationRequested();
-                    if (!file.Value.SequenceEqual(File.ReadAllBytes(file.Key))) return false;
+                    if (!file.Value.SequenceEqual(ReadBytes(file.Key))) return false;
                 }
                 return true;
             }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception)) { token.ThrowIfCancellationRequested(); return false; }
+        }
+        private static byte[] ReadBytes(string path)
+        {
+            // Analysis must not deny the native project system a save/atomic
+            // rename. Content is revalidated before publication and actions.
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var captured = new MemoryStream())
+            { stream.CopyTo(captured); return captured.ToArray(); }
         }
         // Disk discovery-glob events are promoted to null by the input source.
         // An ALMX buffer event keeps its physical path and must not reevaluate

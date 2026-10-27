@@ -1,7 +1,7 @@
 # Milestone twelve: XML IntelliSense and native Shared Projects
 
-Status: implementation authorized on 2026-10-27; iterations 1–7 complete.
-Iteration 8 remains to be implemented and validated.
+Status: implementation authorized on 2026-10-27; iterations 1–8 complete.
+Scoped combined acceptance passes on both supported IDE hosts and task frameworks.
 The owner confirmed the scope and recommended defaults and activated the goal
 on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
 check usage throughout and stop before crossing that threshold. Do not merge or
@@ -972,4 +972,207 @@ No remaining scoped iteration-7 blocker. Native shell save/reload prompts retain
 their ordinary workflow. Combined acceptance, persistent example and descriptive
 performance evidence remain iteration 8; existing manual/vendor/release gates remain.
 
-Final acceptance remains pending. Existing manual/vendor/release gates remain.
+Milestone-wide acceptance remains pending under iteration 8. Existing manual/vendor/release gates remain.
+
+### Iteration 8 — combined acceptance and usage documentation (complete)
+
+Implementation and completed evidence:
+
+- Added example/SharedProjects: one native container with ALMX, English/German
+  RESX and a named lookup, plus North/South consumers with distinct parameters and
+  Summary cultures. Sources import relative to .projitems; native solution sharing
+  metadata and conditional portable links match the shipped template contract.
+- eng/prepare-shared-example.ps1 reads the SDK pin from the built VSIX, selects a
+  package-content-specific cache, and restores only the consumers. It writes only
+  ignored resolver/feed configuration and generated restore state. It preserves
+  source/import/project/solution files and restores NUGET_PACKAGES. -ExampleRoot
+  supports isolated copies; -MSBuildPath selects desktop restore.
+- Preparation and direct dotnet msbuild builds of North/South passed. An isolated
+  copy with an edited ALMX comment retained every copied source/project hash over
+  two preparation runs: artifacts/SharedExamplePreparation/a8405e53485a45ef874e3d532597e1cc.
+- PersistentSharedExampleBuildsBothConsumersWithoutChangingSources validates the
+  checked-in example through the packaged SDK, including cultures, parameters,
+  literal lookup output, no container artifact and byte-preserved sources. The
+  seven SharedInputTests pass on both frameworks (Iteration8/SDK) and on both
+  desktop MSBuild hosts, net472 (Desktop2022/Desktop2026), without failures/skips.
+  Desktop commands restore the previous ALARMLIST_TEST_MSBUILD_PATH afterward.
+- SharedExampleAcceptance copies the persistent example into a private workspace,
+  exercises completion/Undo in all three formats, unsaved ALMX fan-out, saved-only
+  resources/lookups, consumer diagnostics and pinned Summary, then Save/build,
+  reopen and native reference removal/re-addition with source preservation.
+  Native acceptance remains pending. Its relocated solution needs the SDK pin at
+  the fixture solution root. XML tabs can add a virtual Miscellaneous Files entry
+  to DTE.Projects: readiness now counts the three physical projects and Save skips
+  virtual entries. The retained project-load.txt records names, kinds and paths.
+- XmlCompletionPerformance records first-use and twenty warm requests per surface
+  on a 1,000-alarm project. Probes are structural prefixes; incomplete ALMX remains
+  intentionally editable while semantic analysis can be unavailable. Timings include
+  native UI automation and the 100 ms retry-poll cadence, with no latency threshold.
+  It closes/reopens ALMX and verifies saved source/project/lookup bytes. Cancellation,
+  stale insertion, stopped work and detached subscriptions retain separate iteration
+  3/7 unit/native evidence; process memory is not used as collectibility proof.
+- VS2022 measurement passed in the two-case run
+  a8ba4f39cfd34c4d9802b608cbba7374 (the example readiness probe failed separately).
+  Raw report: VisualStudioUI/XmlCompletionPerformance/2022/d387c0a5a6b1447eaafa1f1b7ae7c08b/completion-latency.json.
+  First-use/p50/p95 milliseconds: embedded ALMX 868/91/975; native ALMX 90/70/716;
+  lookup 1123/56/796; project 127/89/508. Reopened ALMX probe: 962 ms. These are
+  descriptive command-to-visible measurements, not isolated provider CPU timings.
+  Iteration 1's smaller first-use probes are the historical baseline, not a controlled
+  workload comparison. Long-line probes explicitly scroll their caret into view;
+  DTE TryToShow is unsupported for project XML and is not called there.
+
+Remaining essential gates: both-host combined example acceptance, VS2026 latency
+report, relevant final regression checks, documentation/diff review and commit.
+Earlier compiler/task/SDK/extension acceptance is reused unless changed inputs or
+new failures require repetition. Existing manual/vendor/release gates remain visible.
+
+VS2022 combined example now passes **1 case**, no failures/skips, in
+97f683a896eb494bb24c168ce0899b08. It covers all stated editing/culture/lookup/
+diagnostic/Summary checks, explicit Save/build, a fresh owned IDE, native reference
+removal and re-addition. Removing the only source import correctly reports the
+existing "No ALMX files were provided" compiler error and preserves previous
+output; the test now verifies that established contract, then verifies successful
+builds after re-addition. The example guide documents this behavior. Native template/
+item-management regression and VS2026 combined/performance acceptance remain.
+
+Final-regression findings and fixes:
+
+- Repeating SharedProjectManagement exposed a native Save/Rename interaction:
+  physical ALMX rename completed while .projitems retained the old include. A
+  longer wait alone did not fix it. A controlled, temporary reevaluation-subscription
+  probe was restored before final acceptance; no reduced-function mode is shipped.
+- File.ReadAllBytes freshness checks and MSBuild's disk XML loader denied existing
+  writer handles. Freshness reads now use FileShare.ReadWrite|Delete. Watch-hint
+  evaluation seeds its private MSBuild collection from captured known XML roots,
+  keeping strong roots through evaluation rather than reopening editable imports
+  through MSBuild's writer-denying loader. CPS still owns membership/in-memory edits;
+  private XML roots are never saved. Existing byte/time/publication guards remain.
+- The new writer-coexistence regression reproduces the old sharing failure and
+  verifies capture/freshness checks with a native-style write handle, followed by
+  changed-byte rejection. All **6** ProjectEvaluationInputTests pass in
+  Iteration8/WriterRegressionFinal; full extension validation is being repeated.
+- Fallback reevaluation now waits past the native UI transaction at application
+  idle, resumes on the pool and verifies its requesting analysis-state identity
+  before acquiring/using the CPS write lock. Native CPS updates supersede stale
+  queued requests. This avoids reevaluating a consumer midway through its owner's
+  rename/save; cancellation still precedes unload's asynchronous queue drain.
+- SharedProjectManagement now passes **1 VS2022 case**, no failures/skips, in
+  dbcea955082046309f6e39658d8c8284 with normal reevaluation enabled. All three input
+  kinds rename/remove with persisted membership; create/reference/build/unload/
+  reopen and source-preservation checks pass. The fixture waits for persisted
+  membership, not just the earlier physical rename notification.
+
+These fixes are within combined acceptance's lifecycle integration scope. Final
+both-host native regressions and full unit/package/SDK validation remain pending.
+
+Full extension unit suite after the writer/deferred-refresh changes: **812 passed**,
+no failures/skips, Iteration8/UnitFinal. A threading-analyzer warning on the initial
+dispatcher idle callback was resolved using the supported JoinableTaskFactory
+WithPriority(...ApplicationIdle).SwitchToMainThreadAsync API, followed by a pool
+continuation. The final extension build succeeds with **zero warnings/errors**.
+Both-host native acceptance is being repeated against that API/payload.
+
+Final VS2022 regression run: **8 passed**, no failures/skips, in
+a5460ef76d294656a1b1637a2c21ce45. This includes SharedProjectManagement,
+SharedContexts, SharedRecovery, both XmlSemanticCompletion cases,
+DependencyLifecycle, SharedExampleAcceptance and XmlCompletionPerformance.
+The packaged extension integration suite also passes **14 per framework**,
+net472/net8.0, in Iteration8/PackageFinal.
+
+Final VS2022 latency report:
+VisualStudioUI/XmlCompletionPerformance/2022/a9d5601f743a4d97af94a198e1b2bb32/completion-latency.json.
+Rounded first-use/p50/p95 milliseconds: embedded ALMX **1000/57/772**;
+native ALMX **59/76/867**; lookup **829/57/809**; project **91/59/113**.
+The reopened ALMX probe takes **72 ms**. Each main surface has 20 warm requests;
+interpret these UI-automation measurements with the polling/baseline limits above.
+
+The first final VS2026 group exposed two test-readiness failures: SharedRecovery's
+direct UIA focus query timed out (0x80131505), and SharedExampleAcceptance queried
+the lookup view before UIA exposed a visible WpfTextView. The captured example
+screen shows the intended XML editor and text. RequireXmlInput now uses the existing
+bounded readiness wait (including its explicit transient UIA timeout handling),
+still requiring the active physical document, foreground process and actual editor
+or completion-list keyboard focus. New example/performance probes also wait for
+the visible editor to gain focus before invoking completion. No product behavior
+or stale-insertion/source-preservation assertion was relaxed. Affected native
+checks will be repeated on both hosts. Run 5463ac64e54640f1a33b00f718b29c08
+has **6 passed, 2 failed**, no skips; the two failed cases are not acceptance
+evidence. Shared management/contexts, both semantic cases, dependency lifecycle
+and performance passed in that run; recovery and example acceptance remain gates.
+
+VS2026 affected-case repeat: **3 passed**, no failures/skips, in
+8a9fc7861ab94215b0af2b990ff74fdd. SharedRecovery, SharedExampleAcceptance and
+XmlCompletionPerformance pass with bounded readiness and all original behavioral
+assertions. Together with the five unaffected cases above, all eight final native
+gates pass on VS2026; a matching affected-case repeat on VS2022 is underway.
+
+VS2026 latency report:
+VisualStudioUI/XmlCompletionPerformance/2026/5a6fe02949b04a76a2191832fd0642d2/completion-latency.json.
+Rounded first-use/p50/p95 milliseconds: embedded ALMX **104/45/766**;
+native ALMX **41/44/786**; lookup **451/54/859**; project **72/49/97**.
+Reopened ALMX: **84 ms**. All four surfaces have 20 warm requests. These are
+descriptive samples with the same polling and workload interpretation as VS2022.
+
+VS2022's readiness-adjusted measurement also passes. Retained report:
+VisualStudioUI/XmlCompletionPerformance/2022/04ae231c49934baabfc552c8bfabfd41/completion-latency.json.
+Rounded first-use/p50/p95 milliseconds: embedded ALMX **935/58/896**;
+native ALMX **679/63/899**; lookup **763/62/990**; project **83/58/163**.
+Reopened ALMX: **85 ms**. This repeat uses the same 1,000-alarm workload and
+20 warm requests per main surface; both VS2022 reports remain historical evidence.
+
+VS2022 affected-case repeat: **3 passed**, no failures/skips, in
+3a5b7d92a5ea47fc8fb6f262489f19c8. Together with its eight-case final run and
+VS2026's results above, every scoped final native gate passes on both installed
+hosts: Visual Studio 2022 17.14.36930 and Visual Studio 2026 18.10.12224.
+The preparation script parses, all ten checked-in example XML files are well
+formed, reviewed local Markdown links resolve, and git diff --check passes.
+Full packaged SDK regression is being repeated after all native fixtures finish;
+no XLIFF test overlaps a native fixture.
+
+The exact final extension payload also passes the full unit suite: **812 passed**,
+no failures/skips, Iteration8/UnitExactFinal. This repeat includes the supported
+idle-priority API and shared-read/private-root capture changes used by final native
+acceptance. Compiler/task sources, contracts and package runtime contents are
+unchanged from their iteration-5/7 validated results; those broad compiler/task
+checks are reused. Iteration 8 repeats full SDK/package integration and native
+consumer workflows for its changed example and host lifecycle integration.
+
+Final iteration-8 acceptance supersedes its pending notes above:
+
+| Check | Final result |
+| --- | --- |
+| Full extension unit suite | **812 passed**, net472, Iteration8/UnitExactFinal. |
+| Packaged extension integration | **14 passed per framework**, net472/net8.0, Iteration8/PackageFinal. |
+| Full packaged SDK suite | **92 passed net472; 89 passed net8.0**, Iteration8/SDKFinal. |
+| Shared-input package tests with desktop MSBuild | **7 passed per IDE host**, net472, Desktop2022/Desktop2026. |
+| Native combined/regression acceptance | All **8 scoped cases per host** pass, with the bounded-readiness repeats and retained run IDs above. |
+| Completion measurement/lifecycle | First-use plus **20 warm requests per surface**, 1,000 alarms, both hosts; close/reopen and unchanged saved files pass. Separate stale/cancel/detachment checks pass. |
+| Example preparation and documentation | Repeated preparation preserves edited sources/projects; script/XML/link/diff checks pass. |
+
+All final suites above have zero failures/skips. The first VS2026 group's two
+readiness failures remain recorded as failed attempts, followed by passing
+affected-case repeats; they are not presented as successful acceptance.
+
+Validation commands used from the repository root (retained reports above):
+
+```powershell
+dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj --no-restore -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration8/UnitExactFinal
+dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj --no-restore -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration8/PackageFinal
+dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj --no-restore -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration8/SDKFinal
+```
+
+Native commands use eng/test-visualstudio.ps1 with -VisualStudioPath selecting
+each installed host. The final group filter is
+`Area=SharedProjectManagement|Area=SharedContexts|Area=SharedRecovery|Area=XmlSemanticCompletion|Area=DependencyLifecycle|Area=SharedExampleAcceptance|Area=XmlCompletionPerformance`;
+affected-case repeats use
+`Area=SharedRecovery|Area=SharedExampleAcceptance|Area=XmlCompletionPerformance`.
+Fixtures run sequentially and close only their owned experimental IDE instances.
+WPF unit validation starts after native fixtures finish. No SDK XLIFF fixture
+overlaps a native fixture.
+
+No remaining scoped implementation blocker. Earlier milestones' separately
+documented manual/vendor/release gates are unchanged; no release, merge or push
+is implied. Completion timings are descriptive, not a latency guarantee or heap
+collectibility proof. Latest account allowance check: **42% remaining**, above
+the owner's **15% reserve**. The persistent example and user guides match the
+validated behavior.

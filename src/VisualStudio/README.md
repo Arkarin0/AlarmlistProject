@@ -96,7 +96,20 @@ import, including after renaming or moving the consumer. See the
 [SDK shared import contract](../SDK/Alarmlist.SDK/README.md#shared-source-imports)
 for conditions, repeated-file identity, conflicting metadata and library portable
 names. Shared document selection/lifecycle evidence is recorded in
-[Milestone 12 iteration 7](MILESTONE-12.md); combined acceptance remains iteration 8.
+[Milestone 12 iteration 7](MILESTONE-12.md); iteration 8 records passing combined
+acceptance and completion measurements on both supported hosts.
+The [Shared Projects playground](../../example/SharedProjects/README.md) provides
+two consumers and shared ALMX/RESX/lookup files. Prepare it with
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File eng/prepare-shared-example.ps1`,
+then open its solution. Preparation preserves edited source and project files.
+
+For repeatable native acceptance, run `eng/test-visualstudio.ps1` with the chosen
+IDE path and `-Filter 'Area=SharedExampleAcceptance'`. The separate
+`Area=XmlCompletionPerformance` fixture records first-use and 20 warm requests
+for embedded ALMX, native ALMX, lookup and project XML with 1,000 alarms. Its JSON
+report includes UI automation and 100 ms polling overhead; timings are descriptive,
+without machine-dependent pass thresholds. Close/reopen and saved-source checks
+are functional gates, alongside the separate cancellation/lifecycle regressions.
 
 The [milestone-three plan](MILESTONE-3.md) covers project-wide reference analysis,
 inherited fields with WPF chain-icon adorners, inherited test-procedure rows,

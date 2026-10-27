@@ -364,14 +364,31 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         {
             ide.RequireForeground();
             Assert.Equal(Path.GetFullPath(path), Path.GetFullPath(ide.Automation.ActiveDocument.FullName), ignoreCase: true);
-            AutomationElement editor = window.FindAllDescendants(cf => cf.ByAutomationId("WpfTextView")).FirstOrDefault(item => !item.IsOffscreen);
-            Assert.NotNull(editor);
-            if (editor.Properties.HasKeyboardFocus.ValueOrDefault && !editor.IsOffscreen) return;
-            AutomationElement completion = window.FindFirstDescendant(cf => cf.ByAutomationId("DefaultCompletionPresenter"));
-            Assert.NotNull(completion);
-            Assert.True(completion.Properties.HasKeyboardFocus.ValueOrDefault
-                || completion.FindAllDescendants().Any(item => item.Properties.HasKeyboardFocus.ValueOrDefault),
-                "The source editor or its native completion list must own keyboard focus.");
+            VisualStudioSession.Wait(() =>
+            {
+                AutomationElement editor = window.FindAllDescendants(cf => cf.ByAutomationId("WpfTextView")).FirstOrDefault(item => !item.IsOffscreen);
+                if (editor == null) return false;
+                if (editor.Properties.HasKeyboardFocus.ValueOrDefault) return true;
+                AutomationElement completion = window.FindFirstDescendant(cf => cf.ByAutomationId("DefaultCompletionPresenter"));
+                return completion != null && (completion.Properties.HasKeyboardFocus.ValueOrDefault
+                    || completion.FindAllDescendants().Any(item => item.Properties.HasKeyboardFocus.ValueOrDefault));
+            }, "the source editor or its native completion list owns keyboard focus");
+            ide.RequireForeground();
+            Assert.Equal(Path.GetFullPath(path), Path.GetFullPath(ide.Automation.ActiveDocument.FullName), ignoreCase: true);
+        }
+
+        internal static void FocusXmlInput(VisualStudioSession ide, Window window, string path)
+        {
+            VisualStudioSession.Wait(() =>
+            {
+                if (!string.Equals(Path.GetFullPath(path), Path.GetFullPath(ide.Automation.ActiveDocument.FullName), StringComparison.OrdinalIgnoreCase)) return false;
+                window.SetForeground();
+                var editor = window.FindAllDescendants(cf => cf.ByAutomationId("WpfTextView")).FirstOrDefault(item => !item.IsOffscreen);
+                if (editor == null) return false;
+                editor.Focus();
+                return editor.Properties.HasKeyboardFocus.ValueOrDefault;
+            }, "visible XML editor and keyboard focus for " + Path.GetFileName(path));
+            RequireXmlInput(ide, window, path);
         }
 
         private static void CheckRoot(VisualStudioSession ide, UiTestWorkspace workspace)

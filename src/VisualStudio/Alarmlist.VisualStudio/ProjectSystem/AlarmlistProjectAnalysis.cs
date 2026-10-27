@@ -29,7 +29,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         private readonly ProjectAnalysisRegistry _registry;
         private readonly LiveDiagnosticTableSource _diagnostics;
         private readonly IProjectLockService _projectLocks;
-        private ActionBlock<ConfiguredProject> _reevaluations;
+        private ActionBlock<Tuple<ConfiguredProject, ProjectAnalysisState>> _reevaluations;
         private CancellationTokenSource _loadCancellation;
         private IDisposable _diagnosticSubscription;
         private ProjectAnalysisService _analysis;
@@ -55,7 +55,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 _loadCancellation = CancellationTokenSource.CreateLinkedTokenSource(DisposalToken);
                 _analysis = new ProjectAnalysisService(new ProjectAnalysisInputSource(_documents), _factory, ThreadHelper.JoinableTaskContext);
                 _analysis.EvaluationInvalidated += OnEvaluationInvalidated;
-                _reevaluations = new ActionBlock<ConfiguredProject>(RequestReevaluationAsync, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 1 });
+                _reevaluations = new ActionBlock<Tuple<ConfiguredProject, ProjectAnalysisState>>(RequestReevaluationAsync, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 1 });
                 _diagnosticSubscription = _diagnostics.Attach(_analysis);
                 _registry.Add(_analysis, SetPreviewCultureAsync, new ProjectUserSetting(ReadPreviewLayoutAsync, WritePreviewLayoutAsync));
                 _active.Changed += OnActiveChanged;
@@ -144,25 +144,41 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         private void OnEvaluationInvalidated(object sender, EventArgs args)
         {
             lock (_gate)
-                if (ReferenceEquals(sender, _analysis) && _active.ActiveConfiguredProject is ConfiguredProject active) _reevaluations?.Post(active);
+                if (ReferenceEquals(sender, _analysis) && _active.ActiveConfiguredProject is ConfiguredProject active)
+                    _reevaluations?.Post(Tuple.Create(active, _analysis.Current));
         }
 
-        private async Task RequestReevaluationAsync(ConfiguredProject project)
+        private async Task RequestReevaluationAsync(Tuple<ConfiguredProject, ProjectAnalysisState> request)
         {
+            ConfiguredProject project = request.Item1;
+            ProjectAnalysisState expected = request.Item2;
             try
             {
                 CancellationToken loadToken;
                 lock (_gate)
                 {
-                    if (_analysis == null || !ReferenceEquals(project, _active.ActiveConfiguredProject) || DisposalToken.IsCancellationRequested) return;
+                    if (_analysis == null || !ReferenceEquals(expected, _analysis.Current)
+                        || !ReferenceEquals(project, _active.ActiveConfiguredProject) || DisposalToken.IsCancellationRequested) return;
                     loadToken = _loadCancellation.Token;
                 }
                 using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(loadToken, _active.ConfigurationActiveCancellationToken))
                 {
+                    // File events precede completion of native shared-item UI
+                    // transactions. Let that work finish before asking CPS to
+                    // reevaluate, and skip this fallback if CPS already updated.
+                    var dispatcher = System.Windows.Threading.Dispatcher.FromThread(ThreadHelper.JoinableTaskContext.MainThread);
+                    await ThreadHelper.JoinableTaskFactory.WithPriority(dispatcher,
+                        System.Windows.Threading.DispatcherPriority.ApplicationIdle).SwitchToMainThreadAsync(cancellation.Token);
+                    await TaskScheduler.Default;
+                    lock (_gate)
+                        if (_analysis == null || !ReferenceEquals(expected, _analysis.Current)
+                            || !ReferenceEquals(project, _active.ActiveConfiguredProject)) return;
                     await _projectLocks.WriteLockAsync(async access =>
                     {
                         var token = cancellation.Token;
                         token.ThrowIfCancellationRequested();
+                        lock (_gate)
+                            if (_analysis == null || !ReferenceEquals(expected, _analysis.Current)) return;
                         var evaluated = await access.GetProjectAsync(project, token);
                         // Let CPS own disk reloads and its import cache. Calling
                         // ProjectRootElement.Reload marks XML dirty even when

@@ -1,0 +1,29 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+Project("{117E1E3B-8DC0-44BF-A627-4E41F84721D8}") = "North", "North\North.almproj", "{1945E4A7-6680-4955-98A8-10948D97AA01}"
+EndProject
+Project("{117E1E3B-8DC0-44BF-A627-4E41F84721D8}") = "South", "South\South.almproj", "{1945E4A7-6680-4955-98A8-10948D97AA02}"
+EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Shared", "Shared\Shared.shproj", "{1945E4A7-6680-4955-98A8-10948D97AA03}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1945E4A7-6680-4955-98A8-10948D97AA01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1945E4A7-6680-4955-98A8-10948D97AA01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1945E4A7-6680-4955-98A8-10948D97AA01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1945E4A7-6680-4955-98A8-10948D97AA01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1945E4A7-6680-4955-98A8-10948D97AA02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1945E4A7-6680-4955-98A8-10948D97AA02}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1945E4A7-6680-4955-98A8-10948D97AA02}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1945E4A7-6680-4955-98A8-10948D97AA02}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Shared\Shared.projitems*{1945e4a7-6680-4955-98a8-10948d97aa01}*SharedItemsImports = 5
+		Shared\Shared.projitems*{1945e4a7-6680-4955-98a8-10948d97aa02}*SharedItemsImports = 5
+		Shared\Shared.projitems*{1945e4a7-6680-4955-98a8-10948d97aa03}*SharedItemsImports = 13
+	EndGlobalSection
+EndGlobal

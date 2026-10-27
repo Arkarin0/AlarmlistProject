@@ -182,12 +182,24 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     string renamed = "Renamed" + input.Name;
                     item.Name = renamed; sharedProject.Save("");
                     VisualStudioSession.Wait(() => File.Exists(Path.Combine(sharedDirectory, renamed)) && !File.Exists(path), "shared physical rename");
-                    Assert.Contains(XDocument.Load(imports).Descendants(ns + input.Kind), element =>
-                        ((string)element.Attribute("Include"))?.EndsWith(renamed, StringComparison.Ordinal) == true);
+                    VisualStudioSession.Wait(() =>
+                    {
+                        // Physical rename can precede the native shared model's
+                        // metadata update. Flush the fixture's project only when
+                        // it can persist that update; filesystem completion alone
+                        // is not proof of saved project membership.
+                        sharedProject.Save("");
+                        return XDocument.Load(imports).Descendants(ns + input.Kind).Any(element =>
+                            ((string)element.Attribute("Include"))?.EndsWith(renamed, StringComparison.Ordinal) == true);
+                    }, "shared renamed membership persisted");
                     item.Remove(); sharedProject.Save("");
                     Assert.True(File.Exists(Path.Combine(sharedDirectory, renamed)));
-                    Assert.DoesNotContain(XDocument.Load(imports).Descendants(ns + input.Kind), element =>
-                        ((string)element.Attribute("Include"))?.EndsWith(renamed, StringComparison.Ordinal) == true);
+                    VisualStudioSession.Wait(() =>
+                    {
+                        sharedProject.Save("");
+                        return !XDocument.Load(imports).Descendants(ns + input.Kind).Any(element =>
+                            ((string)element.Attribute("Include"))?.EndsWith(renamed, StringComparison.Ordinal) == true);
+                    }, "shared removed membership persisted");
                 }
             }
 

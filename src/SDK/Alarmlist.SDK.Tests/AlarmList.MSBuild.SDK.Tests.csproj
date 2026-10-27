@@ -24,8 +24,11 @@
              Exclude="../../../example/Libraries/**/bin/**;../../../example/Libraries/**/obj/**;../../../example/Libraries/**/.*/**"
              Link="testassets/LibraryExample/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../../example/**/*.almx;../../../example/**/*.resx;../../../example/**/*.almlookup;../../../example/**/*.almproj;../../../example/**/.editorconfig;../../../example/Directory.Build.props;../../../example/Directory.Build.targets"
-             Exclude="../../../example/**/bin/**;../../../example/**/obj/**;../../../example/**/.*/**"
+             Exclude="../../../example/**/bin/**;../../../example/**/obj/**;../../../example/**/.*/**;../../../example/SharedProjects/**"
              Link="testassets/Example/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../example/SharedProjects/**/*.almx;../../../example/SharedProjects/**/*.almproj;../../../example/SharedProjects/**/*.resx;../../../example/SharedProjects/**/*.almlookup;../../../example/SharedProjects/**/*.projitems;../../../example/SharedProjects/**/*.shproj;../../../example/SharedProjects/Directory.Build.props;../../../example/SharedProjects/Directory.Build.targets;../../../example/SharedProjects/SharedProjects.sln;../../../example/SharedProjects/.editorconfig"
+             Exclude="../../../example/SharedProjects/**/bin/**;../../../example/SharedProjects/**/obj/**;../../../example/SharedProjects/**/.*/**"
+             Link="testassets/SharedExample/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false">
       <SkipGetTargetFrameworkProperties Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">true</SkipGetTargetFrameworkProperties>
       <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>

@@ -50,6 +50,25 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Fact]
+        public void FreshnessReadsCoexistWithNativeProjectWritersAndDetectTheirChangedBytes()
+        {
+            var guard = Capture();
+            using (var projects = new ProjectCollection())
+            {
+                var instance = projects.LoadProject(ProjectPath).CreateProjectInstance();
+                using (var writer = new FileStream(ImportPath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+                {
+                    Assert.True(guard.IsCurrent(CancellationToken.None));
+                    var simultaneous = ProjectEvaluationInputs.Capture(instance, ProjectPath, new Dictionary<string, string>(), null, CancellationToken.None);
+                    Assert.True(simultaneous.IsCurrent(CancellationToken.None));
+                    writer.WriteByte((byte)' '); writer.Flush();
+                    Assert.False(guard.IsCurrent(CancellationToken.None));
+                    Assert.False(simultaneous.IsCurrent(CancellationToken.None));
+                }
+            }
+        }
+
+        [Fact]
         public void AFileChangedAfterADiskBasedCpsSnapshotIsRejectedBeforeCapture()
         {
             var times = new Dictionary<string, DateTime> { [ImportPath] = File.GetLastWriteTimeUtc(ImportPath).AddSeconds(-1) };

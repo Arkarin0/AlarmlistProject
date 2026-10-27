@@ -849,6 +849,13 @@ names for shared inputs outside a library project. Conflicting names fail instea
 of choosing an import silently. Older SDKs retain their earlier duplicate-input
 behavior; distribute matching rebuilt tools for this workflow.
 
+The [native Shared Projects example](../../../example/SharedProjects/README.md)
+contains two consumers and shared ALMX, translations and lookups. Run
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File eng/prepare-shared-example.ps1`
+from the repository root to select the SDK matching the built extension. Preparation
+restores consumers without replacing their edited source/project files. Consumer
+builds work with `dotnet msbuild` or desktop MSBuild independently of the `.shproj`.
+
 ## Build and test this repository
 
 From the repository root:

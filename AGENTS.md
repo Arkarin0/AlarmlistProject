@@ -82,6 +82,11 @@ fallback and schema choices, and never change machine-wide schema catalogs.
 `Area=XmlCatalogCompletion` validates installed lookup/project hints without
 opening an XSD; `NativeSchemaBaseline` uses ordinary XML to test native tooling
 independently. Run these fixtures sequentially with other native/WPF suites.
+Milestone 12 combined example acceptance uses `Area=SharedExampleAcceptance`;
+`Area=XmlCompletionPerformance` records first-use and 20 warm structural requests
+per XML surface with 1,000 alarms. Keep native 100 ms polling overhead explicit,
+use descriptive p50/p95 reports without latency thresholds, and validate stale
+insertion/cancellation separately. Never infer collectibility from process memory.
 Native XML completion fork acceptance uses
 `eng/test-alarm-collection-fork.ps1 -Designer -SkipConsumers
 -XmlCompletion` with both IDE paths. Run it sequentially with native fixtures in
@@ -252,6 +257,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
 | `example/` | Persistent two-project designer playground opened by the launchers; `eng/prepare-example.ps1` prepares the SDK matching the built VSIX without replacing sample sources. |
 | `example/Libraries/` | Independent four-project library playground, including two consumers and transitive parameter/resource/lookup overrides; `eng/prepare-library-example.ps1` prepares its matching SDK without touching North/South. |
+| `example/SharedProjects/` | Native Shared Project with ALMX, saved translations/lookups and two consumers; `eng/prepare-shared-example.ps1` selects the matching SDK without replacing edited sources/projects. |
 | `template/` | Reference XML implementation/tests outside the current solution; active implementation lives in `src/`. |
 
 Read `src/SDK/Alarmlist.SDK/README.md` for SDK usage and
@@ -671,6 +677,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   request authoritative CPS reevaluation without targets or source saves. Leave
   disk reloads and XML cache ownership to CPS; ProjectRootElement.Reload itself
   marks XML dirty and must not be used to refresh live project imports.
+  Freshness reads must share read/write/delete access. Seed private watch-hint
+  evaluations from captured XML roots rather than MSBuild's writer-denying disk
+  loader. Queue fallback reevaluation past native UI transactions and stamp it
+  with the requesting analysis state; discard it when CPS has already advanced.
   Localization completion uses
   SDK catalogue/provenance, revalidates saved inputs before display and insertion,
   and discards late results after editing, focus or context changes. Navigate RESX

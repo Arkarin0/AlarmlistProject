@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Text.RegularExpressions;
+using System.Xml;
 using Alarmlist.ConfigurationInput;
 using Alarmlist.VisualStudio.Analysis;
 using Microsoft.Build.Evaluation;
@@ -45,19 +46,36 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                     glob.Excludes.Concat(glob.Removes))).Concat(CaptureImportCandidates(evaluated, token));
 
         internal static IReadOnlyList<AnalysisDiscoveryGlob> CaptureDiscoveryHints(string projectPath, IDictionary<string, string> globals, CancellationToken token,
-            Action<string> observeImport = null)
+            Action<string> observeImport = null, IEnumerable<string> capturedPaths = null)
         {
             using (var collection = new ProjectCollection(globals))
             {
                 try
                 {
                     token.ThrowIfCancellationRequested();
+                    // MSBuild's disk XML loader denies writers. Seed this private
+                    // collection from shared-read snapshots of CPS's known roots
+                    // so ordinary analysis cannot block native Save/Rename.
+                    var roots = new List<Microsoft.Build.Construction.ProjectRootElement>();
+                    foreach (string path in (capturedPaths ?? new[] { projectPath }).Distinct(StringComparer.OrdinalIgnoreCase))
+                    {
+                        token.ThrowIfCancellationRequested();
+                        if (!File.Exists(path)) continue;
+                        using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                        using (var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null }, path))
+                        {
+                            var root = Microsoft.Build.Construction.ProjectRootElement.Create(reader, collection);
+                            root.FullPath = path; roots.Add(root);
+                        }
+                    }
                     // Tolerant evaluation supplies watch hints only. Its item set
                     // must never replace CPS's authoritative consumer membership.
                     var project = new Project(projectPath, globals, null, collection, ProjectLoadSettings.IgnoreMissingImports);
                     observeImport?.Invoke(projectPath);
                     foreach (var import in project.Imports) observeImport?.Invoke(import.ImportedProject.FullPath);
-                    return CaptureDiscoveryGlobs(project, token).ToArray();
+                    var hints = CaptureDiscoveryGlobs(project, token).ToArray();
+                    GC.KeepAlive(roots); // The collection's XML cache may hold weak references.
+                    return hints;
                 }
                 finally { collection.UnloadAllProjects(); }
             }

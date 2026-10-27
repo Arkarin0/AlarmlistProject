@@ -22,9 +22,9 @@ syntax, open questions and statements about future work in that history.
 | External alarm analyzers | Implemented, including NuGet analyzer packages | [Milestone 6](src/VisualStudio/MILESTONE-6.md), [9](src/VisualStudio/MILESTONE-9.md) |
 | EditorConfig and diagnostic severity | Implemented; .globalconfig excluded | [Milestone 6](src/VisualStudio/MILESTONE-6.md) |
 | Warnings as errors and NoWarn | Implemented for configurable diagnostics | [Milestone 6](src/VisualStudio/MILESTONE-6.md) |
-| Visual Studio Shared Projects | Native feasibility validated; production integration pending | [Milestone 12](src/VisualStudio/MILESTONE-12.md) |
+| Visual Studio Shared Projects | Implemented; both-host native and packaged consumer acceptance passes | [Milestone 12](src/VisualStudio/MILESTONE-12.md) |
 | Custom procedure groups and creation defaults | Implemented | [Milestone 8](src/VisualStudio/MILESTONE-8.md) |
-| IntelliSense | Designer and scoped ALMX/lookup/project XML completion implemented; milestone 12 combined acceptance pending | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
+| IntelliSense | Designer and scoped ALMX/lookup/project XML completion implemented and validated | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
 | External alarm-definition generation | Implemented for supported scalars and collections | [Milestone 11](src/VisualStudio/MILESTONE-11.md) |
 
 ## Historical implementation and planning updates
@@ -519,8 +519,13 @@ documents controls such as `ReferenceOutputAssembly` and `OutputItemType`.
 Proposed on 2026-10-09; assigned to
 [milestone twelve](src/VisualStudio/MILESTONE-12.md) on 2026-10-26.
 Native `.shproj`/`.projitems` support is confirmed scope; implementation was
-authorized on 2026-10-27 and native feasibility checks have passed. The
-milestone records accepted behavior, iterations and actual evidence.
+authorized on 2026-10-27. Native creation/reference/item management, independent
+consumer builds, shared document selection and lifecycle are implemented and
+validated. Combined acceptance passes on both supported IDE hosts and task
+frameworks. The milestone records scope, actual evidence and the persistent
+Shared Projects example.
+
+### Original proposal and design history
 
 Support Visual Studio Shared Projects so several `.almproj` consumers can share
 ALMX sources and associated resources/lookups. Follow the shared-source model:
@@ -601,18 +606,18 @@ the Roslyn options-provider API alone does not add support to `.almproj`.
 
 ## IntelliSense
 
-**Partially implemented:** applicable designer fields support reference names,
+**Implemented in the documented scopes:** applicable designer fields support reference names,
 well-known/custom properties, localization keywords, lookup/named-list expressions
 and argument suggestions. See [milestone four](src/VisualStudio/MILESTONE-4.md),
 [five](src/VisualStudio/MILESTONE-5.md) and [seven](src/VisualStudio/MILESTONE-7.md).
 Generated scalar/collection fields reuse expression controls and completion in
-[milestone eleven](src/VisualStudio/MILESTONE-11.md). Broader ALMX XML-editor
-IntelliSense is in progress in
+[milestone eleven](src/VisualStudio/MILESTONE-11.md). XML-editor
+IntelliSense is implemented and validated in
 [milestone twelve](src/VisualStudio/MILESTONE-12.md), covering `.almx`,
 `.almlookup` and `.almproj` files.
 ALMX structural/semantic and automatic lookup/project XML completion are
 implemented within the milestone's documented contexts. See its validation
-evidence and remaining combined acceptance gates.
+evidence, measurement interpretation and separately retained release gates.
 
 ### Original proposal and design history
 

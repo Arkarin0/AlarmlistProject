@@ -17,6 +17,25 @@ namespace Alarmlist.MSBuild.SDK.Tests
         public SharedInputTests(TestProjectFixture fixture, ITestOutputHelper output) { _fixture = fixture; _output = output; }
 
         [Fact]
+        public void PersistentSharedExampleBuildsBothConsumersWithoutChangingSources()
+        {
+            var app = _fixture.CreateTestApp("SharedExample");
+            var originals = Directory.GetFiles(app.WorkingDirectory, "*", SearchOption.AllDirectories)
+                .Where(path => new[] { ".almproj", ".almx", ".resx", ".almlookup", ".shproj", ".projitems", ".sln" }.Contains(Path.GetExtension(path)))
+                .ToDictionary(path => path, File.ReadAllBytes);
+            foreach (string name in new[] { "North", "South" })
+            {
+                string directory = Path.Combine(app.WorkingDirectory, name);
+                Assert.Equal(0, app.RunProject(_output, Path.Combine(directory, name + ".almproj"), "/restore", "/t:Rebuild").ExitCode);
+                Assert.Equal(name + ": Ready", Name(Output(directory, name, "en")));
+                Assert.Equal(name + ": Bereit", Name(Output(directory, name, "de-DE")));
+                Assert.Contains("<Description>READY</Description>", File.ReadAllText(Output(directory, name, "en")));
+            }
+            Assert.False(Directory.Exists(Path.Combine(app.WorkingDirectory, "Shared", "bin")));
+            Assert.All(originals, source => Assert.Equal(source.Value, File.ReadAllBytes(source.Key)));
+        }
+
+        [Fact]
         public void RepeatedImportsAndDefaultGlobsCompileEachPhysicalSharedInputOnce()
         {
             var app = _fixture.CreateTestApp("SharedInputs");
