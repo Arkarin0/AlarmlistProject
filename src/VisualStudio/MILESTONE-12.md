@@ -1,8 +1,8 @@
 # Milestone twelve: XML IntelliSense and native Shared Projects
 
-Status: implementation authorized on 2026-10-27; iterations 1–9 complete.
+Status: implementation authorized on 2026-10-27; iterations 1–10 complete.
 Scoped combined acceptance passes on both supported IDE hosts and task frameworks.
-Follow-up iterations 9–10 were authorized on 2026-10-27; iteration 10 is not started.
+Follow-up iterations 9–10 were authorized and completed on 2026-10-27.
 The owner confirmed the scope and recommended defaults and activated the goal
 on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
 check usage throughout and stop before crossing that threshold. Do not merge or
@@ -1178,7 +1178,7 @@ collectibility proof. Latest account allowance check: **42% remaining**, above
 the owner's **15% reserve**. The persistent example and user guides match the
 validated behavior.
 
-## Planned follow-up iterations — 2026-10-27
+## Follow-up iterations — 2026-10-27
 
 The owner reported missing completion in
 `<Step>$(loc:Instruction.Set, path="$(loc:", property="", value="")</Step>`
@@ -1212,7 +1212,7 @@ on dev/milestone-12 on 2026-10-27, preserving the 15% allowance reserve.
   unsupported literal/nested-localization cases are not advertised as evaluated
   expressions. Record evidence and commit before proceeding to the next iteration.
 
-### 10 — Native Shared Project in the ordinary playground (planned)
+### 10 — Native Shared Project in the ordinary playground (complete)
 
 - **Deliverable:** add a native Shared Project to **example/Example.sln**, which the
   existing VS2022/2026 launchers open. Reuse **example/Shared** and its existing
@@ -1244,8 +1244,8 @@ on dev/milestone-12 on 2026-10-27, preserving the 15% allowance reserve.
   Project and both consumers use its saved membership; checks pass and the focused
   implementation/tests/documentation/evidence are committed together.
 
-Planning review: existing solution/project/import paths and preparation/test entry
-points were inspected. No implementation tests were run for these planned changes.
+At planning time, existing solution/project/import paths and preparation/test entry
+points were inspected. No tests ran during that documentation-only planning step.
 The owner's existing edit to example/North/Alarms.almx is unrelated and must remain
 untouched and unstaged throughout the follow-up work.
 
@@ -1353,3 +1353,98 @@ Final iteration-9 acceptance supersedes its pending notes above:
 
 Iteration 9 has no remaining scoped blocker. Iteration 10 remains authorized and
 must follow its own consumer/native/preparation gates before completion.
+
+### Iteration 10 implementation evidence (complete)
+
+- The default Example.sln now contains the native Shared.shproj container and
+  solution sharing metadata. North/South import Shared.projitems; it owns the
+  existing four ALMX sources, three RESX cultures and two lookup files. Physical
+  source paths, consumer links and source order are retained. Local sources and
+  consumer parameters/cultures remain independent. Shared builds no alarm artifact.
+- Directory.Build.targets scopes analyzer preparation checks and consumer-only
+  metadata to .almproj. The preparation helper accepts -ExampleRoot for edited
+  isolated copies, uses its matching package-content cache/feed, and preserves
+  source/import/project/solution bytes. Existing launchers keep their default path.
+- ExamplePlaygroundTests now checks both consumers with the .shproj absent,
+  all cultures, alarm counts/identities, parameterized procedures, shared captions,
+  diagnostics and source preservation. **4 tests per framework pass**, net472/
+  net8.0, Iteration10/SDKExampleFinal. The first run's new assertion used source
+  Step tags rather than compiled TestProcedureItem tags; it was corrected to the
+  existing output contract, with no production change.
+- Native DefaultSharedExample exercises the actual preparation script twice on
+  an edited copy, desktop container evaluation, shared owner browsing, consumer
+  selection, unsaved buffer fan-out/Undo, Save/reopen, reference management and
+  unloaded-container consumer builds. The first build needed explicit Window/
+  Process aliases. First run 5d30fcc0280345eb864b540de9b2e1d9 encounters transient
+  DTE project-kind initialization; its bounded load query now handles that state.
+  The next probe exposed an incorrect test assumption: native CodeSharing uses
+  the C# automation Kind (confirmed by prior management evidence), while the
+  solution factory is Shared Project. Acceptance now checks the actual Kind,
+  .shproj path and IsCodeSharingProject=true. Neither failed probe is acceptance.
+- Same-workspace before/after comparison against c293aa6 passes: **all six compiled
+  XML outputs are byte-for-byte identical** (North/South × keyword/en/de-DE).
+  Only the four private composition files were switched for the baseline; alarm/
+  resource/lookup bytes and current packaged SDK stayed identical. Report:
+  artifacts/m12-example-parity/29818c2d/parity-result.json. The incorrect-Kind
+  readiness attempt is retained as b62c84cc2e4b498db848fe0ea9cccf2d, not a pass.
+- Run 49a41a9c1b444e389bb09bfed5534b74 passes preparation/evaluation/build and
+  initial context values but uses the XML-only replacement helper, which closes
+  designer views by contract. The fixture now edits the existing buffer instead,
+  preserving its designer and shared document selection. All source assertions
+  remain; the unsaved test requires distinct Shared 001/002 consumer results.
+- VS2022 native default-playground acceptance passes **1 case**, no failures/
+  skips, 3cc79d29664f48e2bf47ad0926c85cba. Both actual preparation runs preserve
+  edited sources/configuration/projects/solution bytes. Desktop container evaluation
+  confirms four ALMX inputs, three RESX files, two lookups, IsCodeSharingProject,
+  no analyzer and no analysis compiler path. Both consumers keep 12/8 unique alarms
+  per culture. Shared browsing, different consumer values, unsaved parameter fan-out
+  (001/002), one Undo, explicit Save, a fresh owned IDE, native reference removal/
+  re-addition, container unload/reload and independent consumer builds all pass.
+  Matching VS2026 and final packaged regression gates remain.
+- VS2026 native default-playground acceptance also passes **1 case**, no failures/
+  skips, 80df4fa6876f40e3b83ca96267c6e40c. Both-host native gates now pass with the
+  same preserved-input/preparation/evaluation/editing/reopen/reference/unload checks.
+  Script parsing, reviewed local documentation links and git diff --check pass.
+  Root North/Alarms.almx still has its iteration-9 SHA-256; no alarm/resource/lookup
+  source was changed by iteration 10. Desktop/full SDK checks are the final gates.
+- Desktop MSBuild example tests pass **4 per host**, net472, with VS2022 and
+  VS2026 MSBuild: Iteration10/Desktop2022 and Desktop2026. The previous
+  ALARMLIST_TEST_MSBUILD_PATH environment value is restored. Full packaged SDK
+  regression runs after all native fixtures finish, avoiding XLIFF/native overlap.
+
+Final iteration-10 acceptance supersedes its pending notes above:
+
+| Gate | Result |
+| --- | --- |
+| Full packaged SDK regression | **93 passed net472; 90 passed net8.0**, zero failures/skips, Iteration10/SDKFull. |
+| Focused example package tests | **4 passed per framework**, SDKExampleFinal; **4 per desktop host**, Desktop2022/Desktop2026, zero failures/skips. |
+| Native default playground | **1 complete two-phase case per IDE host**, zero failures/skips: VS2022 3cc79d29664f48e2bf47ad0926c85cba; VS2026 80df4fa6876f40e3b83ca96267c6e40c. |
+| Output compatibility | All **6 compiled outputs byte-identical** to pre-iteration-10 membership in one isolated workspace, parity-result.json above. |
+| Preparation preservation | Real helper run twice on an edited copy per host; source/configuration/project/import/solution bytes preserved. Environment overrides restored. |
+| Review | XML well formed; preparation script parses; local documentation links and git diff --check pass. No alarm/RESX/lookup source changed. |
+
+Validation commands used from the repository root:
+
+```powershell
+dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj --no-restore -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration10/SDKFull
+dotnet test src/SDK/Alarmlist.SDK.Tests/AlarmList.MSBuild.SDK.Tests.csproj --no-restore --filter FullyQualifiedName~ExamplePlaygroundTests -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration10/SDKExampleFinal
+```
+
+Desktop repeats select each installed MSBuild.exe with ALARMLIST_TEST_MSBUILD_PATH,
+--framework net472 and the same focused filter. Native repeats use
+eng/test-visualstudio.ps1 with each installed -VisualStudioPath and
+-Filter 'Area=DefaultSharedExample'. Their private copies exercise the launchers'
+actual preparation helper and solution contents without opening or rewriting the
+user's persistent playground. The existing launchers still use the default root.
+
+No compiler/task/SDK runtime or extension production code changes in iteration 10;
+iteration 9's **830 unit** and **14-per-framework package integration** passes are
+reused. Native and full SDK checks cover the changed example, preparation and
+packaged test assets. Earlier failed test-authoring/readiness probes remain recorded
+above and do not substitute for final acceptance.
+
+Iterations 9 and 10 have no remaining scoped blocker. Prior milestones' separately
+documented manual/vendor/release gates remain unchanged. No merge, push or release
+is implied. Final allowance check: **35% remaining**, preserving the requested
+**15% reserve**. North/Alarms.almx retains its recorded SHA-256 and stays outside
+the iteration's changes.

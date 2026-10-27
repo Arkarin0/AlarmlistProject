@@ -74,6 +74,42 @@ namespace Alarmlist.MSBuild.SDK.Tests
         }
 
         [Fact]
+        public void OrdinarySharedPlaygroundBuildsBothConsumersWithoutItsContainerAndPreservesInputs()
+        {
+            TestApp app = CreateExample();
+            var originals = Directory.GetFiles(app.WorkingDirectory, "*", SearchOption.AllDirectories)
+                .Where(path => new[] { ".almx", ".resx", ".almlookup", ".almproj", ".shproj", ".projitems", ".props", ".targets", ".sln" }.Contains(Path.GetExtension(path)))
+                .ToDictionary(path => path, File.ReadAllBytes);
+            string container = Path.Combine(app.WorkingDirectory, "Shared", "Shared.shproj");
+            Assert.True(File.Exists(container));
+            File.Move(container, container + ".held");
+            try
+            {
+                foreach (string name in new[] { "North", "South" })
+                {
+                    string project = Path.Combine(app.WorkingDirectory, name, name + ".almproj");
+                    BuildResult built = app.RunProject(_output, project, "/t:Rebuild");
+                    Assert.True(built.ExitCode == 0, built.Output);
+                    Assert.Contains("Plant.Shared.Diagnostics.PrefixWarning", built.Output);
+                    foreach (string culture in new[] { "keyword", "en", "de-DE" })
+                    {
+                        XElement[] alarms = XDocument.Load(Path.Combine(app.WorkingDirectory, name, "bin", "Debug", culture, name + ".Alarmlist.xml")).Root.Elements("Alarm").ToArray();
+                        Assert.Equal(name == "North" ? 12 : 8, alarms.Length);
+                        Assert.Equal(alarms.Length, alarms.Select(alarm => alarm.Element("FullyQualifiedName").Value).Distinct().Count());
+                        XElement pump = alarms.Single(alarm => alarm.Element("FullyQualifiedName").Value == "Plant.Pump.PressureLow");
+                        Assert.Equal("P-001", pump.Element("Code").Value);
+                        if (culture == "en") Assert.Equal(name + " pump pressure low", pump.Element("Name").Value);
+                        if (culture != "keyword") Assert.Contains(alarms.Single(alarm => alarm.Element("FullyQualifiedName").Value == "Plant.Outlet.Vacuum").Descendants("TestProcedureItem"),
+                            step => step.Value.Contains(name == "North" ? "001" : "002"));
+                    }
+                }
+            }
+            finally { File.Move(container + ".held", container); }
+            Assert.False(Directory.Exists(Path.Combine(app.WorkingDirectory, "Shared", "bin")));
+            Assert.All(originals, input => Assert.Equal(input.Value, File.ReadAllBytes(input.Key)));
+        }
+
+        [Fact]
         public void UnpreparedExampleExplainsHowToPrepareWithoutWritingOutput()
         {
             var app = _fixture.CreateTestApp("Example");

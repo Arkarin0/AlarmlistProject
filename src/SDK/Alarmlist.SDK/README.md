@@ -855,6 +855,10 @@ contains two consumers and shared ALMX, translations and lookups. Run
 from the repository root to select the SDK matching the built extension. Preparation
 restores consumers without replacing their edited source/project files. Consumer
 builds work with `dotnet msbuild` or desktop MSBuild independently of the `.shproj`.
+The default [North/South playground](../../../example/README.md) also contains a
+native Shared Project in `example/Example.sln`; the existing VS launchers prepare
+and open it. Its common sources/catalogues have one `.projitems` membership, with
+consumer-specific parameters, resources and analyzer settings retained.
 
 ## Build and test this repository
 

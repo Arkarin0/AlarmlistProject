@@ -82,7 +82,10 @@ fallback and schema choices, and never change machine-wide schema catalogs.
 `Area=XmlCatalogCompletion` validates installed lookup/project hints without
 opening an XSD; `NativeSchemaBaseline` uses ordinary XML to test native tooling
 independently. Run these fixtures sequentially with other native/WPF suites.
-Milestone 12 combined example acceptance uses `Area=SharedExampleAcceptance`;
+Milestone 12 default-playground acceptance uses `Area=DefaultSharedExample` and
+the real preparation script on edited isolated copies. Preserve shared membership
+and consumer-specific analyzer scopes; the shared container must have no analyzer
+or compiler pipeline. `Area=SharedExampleAcceptance` covers the focused playground;
 `Area=XmlCompletionPerformance` records first-use and 20 warm structural requests
 per XML surface with 1,000 alarms. Keep native 100 ms polling overhead explicit,
 use descriptive p50/p95 reports without latency thresholds, and validate stale
@@ -255,7 +258,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
 | `eng/tools/AlarmDefinitionGenerator/` | net8.0 build-time XML definition validation and deterministic compiler/host metadata generation; shared targets write only intermediate outputs. Its adjacent UnitTests project and `eng/test-alarm-definition-generation.ps1` cover generation and build lifecycle. |
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
-| `example/` | Persistent two-project designer playground opened by the launchers; `eng/prepare-example.ps1` prepares the SDK matching the built VSIX without replacing sample sources. |
+| `example/` | Default North/South designer playground with a native Shared Project for common ALMX/RESX/lookups, opened by the launchers; `eng/prepare-example.ps1` prepares matching SDK/analyzers without replacing sources, membership or solution files. `-ExampleRoot` supports isolated copies. |
 | `example/Libraries/` | Independent four-project library playground, including two consumers and transitive parameter/resource/lookup overrides; `eng/prepare-library-example.ps1` prepares its matching SDK without touching North/South. |
 | `example/SharedProjects/` | Native Shared Project with ALMX, saved translations/lookups and two consumers; `eng/prepare-shared-example.ps1` selects the matching SDK without replacing edited sources/projects. |
 | `template/` | Reference XML implementation/tests outside the current solution; active implementation lives in `src/`. |

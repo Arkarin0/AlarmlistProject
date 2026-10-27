@@ -16,6 +16,15 @@ experimental instance before running the launcher again. No manual NuGet feed or
 SDK version setup is needed. `--deploy-only` prepares everything without opening
 the IDE; use **File > Open > Project/Solution** to open `Example.sln` yourself.
 
+The solution contains **North**, **South**, and the native **Shared** Project.
+Shared owns the common ALMX, translations and lookup files through
+`Shared/Shared.projitems`, imported by both consumers. Edit shared membership in
+Shared; the consumer projections open the same physical files. Use the consumer's
+**Dependencies > Add Reference > Shared Projects** to remove/re-add its reference.
+Removing a reference preserves the files. Shared produces no compiled artifact;
+North/South command-line builds also work with the container unloaded.
+Loading Shared in the IDE requires installed native Shared Project tooling.
+
 ## Start here
 
 1. Open **North > Alarms.almx**. Try Designer, Split, and XML modes. Select
@@ -25,9 +34,10 @@ the IDE; use **File > Open > Project/Solution** to open `Example.sln` yourself.
 2. Select `Plant.Pump.PressureLow.Panel` in the same file. Name and Code are local;
    Category and Description come through two references from **North/Base.almx**.
    Try the reference picker, **Go to reference**, and **Go to source**.
-3. Open **North > PressureLow.almx**, the linked file also included by South.
+3. Open **Shared > PressureLow.almx** (also projected by North and South).
    Choose North, then South in **Analysis project context** to compare the same
-   source against different bases. This demonstrates project-context selection.
+   source against different bases and languages. Opening from Shared requires a
+   consumer choice. XML mode has the equivalent **Project context** selector.
 4. Open **View > Other Windows > Alarm Summary**. Its **Alarm table** shows
    the current project's concrete alarms; filter or sort the columns, select a
    row for **Selected alarm** details, and use **Compiled XML** for the whole
@@ -66,7 +76,7 @@ ampersands in the resources also provide examples for source-preserving editing.
 
 Each project has its own **Translations.en.resx** and **Translations.de.resx**.
 They use the same `Pump.*` keys with different North/South translations. Both
-projects also link the common catalogues under **Shared**, containing
+projects also import the common catalogues owned by **Shared**, containing
 `Shared.LogPressure` and `Shared.Reset`. These are saved RESX build inputs,
 editable in Visual Studio's built-in resource editor.
 
@@ -111,7 +121,7 @@ fallback. Undo or restore the German entry before building again.
 Open **North > HmiInstructions.almx** and select **Plant.Outlet.Vacuum**. South
 links the same file. The abstract **Templates.Hmi.Vacuum** supplies procedure
 expressions and a parameter declaration, and is excluded from compiled output.
-Both projects link **Shared/Hmi.almlookup** through `Directory.Build.targets`.
+Both projects import **Shared/Hmi.almlookup** through `Shared/Shared.projitems`.
 This file represents output from another tool; its German code identifiers stay
 stable while RESX translates each ordered segment and property/button label.
 
@@ -300,7 +310,8 @@ starting Visual Studio:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File eng/prepare-example.ps1
-dotnet msbuild example/Example.sln /t:Build
+dotnet msbuild example/North/North.almproj /t:Build
+dotnet msbuild example/South/South.almproj /t:Build
 ```
 
 Run these commands from the repository root. Use `-Configuration Release` when
@@ -316,13 +327,17 @@ local package feed is used. Its cache is under `.packages/<package SHA256>/`, so
 rebuilding the SDK with the same version still loads fresh contents. Local
 `Directory.Build.props/targets` keep the repository's Arcade configuration out of
 these consumer projects, following the existing SDK test/acceptance fixtures.
-The targets file also links the common HMI, electrical and diagnostic samples,
-the saved EditorConfig files, and the prepared analyzer. Analyzer DLLs live under
+Shared/Shared.projitems owns the common HMI, electrical and diagnostic samples.
+The targets file links saved EditorConfig files and the prepared analyzer only
+for the two consumers. Analyzer DLLs live under
 ignored `.analyzers/net472/` and `.analyzers/net8.0/`; rerunning preparation updates
 them without replacing ALMX, RESX, lookup or EditorConfig inputs. Preparation
 restores the projects but does not compile their output. After analyzer replacement,
 the IDE renews its isolated analysis domain; use a fresh desktop MSBuild process
 (`/nr:false`) for command-line builds.
+Preparation preserves edited project/import/solution files as well as sources.
+`-ExampleRoot` selects an existing isolated copy for acceptance checks; normal
+launcher use continues to prepare this directory and open `Example.sln`.
 The launchers clear `NUGET_PACKAGES` only in their child process environment so
 the IDE honors this isolated cache; they do not change user NuGet settings.
 

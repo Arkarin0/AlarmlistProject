@@ -821,9 +821,12 @@ For manual testing, run `scripts/start-vs2022.bat` or `scripts/start-vs2026.bat`
 Each launcher finds the matching installed Visual Studio, builds and deploys the
 extension, prepares the matching SDK for [the example playground](../../example/README.md),
 then opens `example/Example.sln` in its `AlarmlistExp` instance. The example contains
-local alarms, multi-file inheritance, linked North/South contexts, and procedure
+North/South consumers and a native Shared Project owning their common ALMX,
+RESX and lookup inputs, plus local alarms, multi-file inheritance and procedure
 Clear cases. Its SDK feed/version/cache are configured automatically; exploratory
-source edits are preserved. Close that experimental instance before rerunning the
+source/project/import/solution edits are preserved. `Area=DefaultSharedExample`
+validates this actual preparation and native workflow on edited isolated copies.
+Close that experimental instance before rerunning the
 launcher. Add `--deploy-only` to build, deploy, and prepare without opening the IDE.
 For other test solutions, configure the SDK package feed as described above.
 

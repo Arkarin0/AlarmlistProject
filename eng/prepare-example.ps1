@@ -3,14 +3,16 @@
 param(
   [ValidateSet('Debug', 'Release')]
   [string]$Configuration = 'Debug',
-  [string]$MSBuildPath
+  [string]$MSBuildPath,
+  [string]$ExampleRoot
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $repoRoot = Split-Path $PSScriptRoot -Parent
-$exampleRoot = Join-Path $repoRoot 'example'
+if (!$ExampleRoot) { $ExampleRoot = Join-Path $repoRoot 'example' }
+$exampleRoot = (Resolve-Path -LiteralPath $ExampleRoot).Path
 $vsixPath = Join-Path $repoRoot "artifacts/bin/Alarmlist.VisualStudio/$Configuration/net472/Alarmlist.VisualStudio.vsix"
 if (!(Test-Path -LiteralPath $vsixPath)) {
   throw 'Build the extension first, or run scripts/start-vs2022.bat or scripts/start-vs2026.bat.'
@@ -49,6 +51,7 @@ foreach ($framework in @('net472', 'net8.0')) {
 # A content-specific cache avoids stale compiler assemblies without deleting caches.
 $packageHash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash.ToLowerInvariant()
 $cacheRelativePath = ".packages/$packageHash"
+$escapedFeed = [Security.SecurityElement]::Escape((Join-Path $repoRoot "artifacts/packages/$Configuration/NonShipping"))
 @{ 'msbuild-sdks' = @{ 'Alarmlist.MSBuild.SDK' = $sdkVersion } } |
   ConvertTo-Json | Set-Content (Join-Path $exampleRoot 'global.json') -Encoding UTF8
 @"
@@ -60,7 +63,7 @@ $cacheRelativePath = ".packages/$packageHash"
   </config>
   <packageSources>
     <clear />
-    <add key="local" value="../artifacts/packages/$Configuration/NonShipping" />
+    <add key="local" value="$escapedFeed" />
   </packageSources>
   <disabledPackageSources><clear /></disabledPackageSources>
   <packageSourceMapping>
