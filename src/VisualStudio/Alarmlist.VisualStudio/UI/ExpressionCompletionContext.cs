@@ -10,12 +10,52 @@ namespace Alarmlist.VisualStudio.UI
     /// <summary>Lexical edit context only; expression semantics remain in the SDK.</summary>
     internal static class ExpressionCompletionContext
     {
+        internal static bool IsTokenCharacter(char character) => char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '-'
+            || character == ':' || character == '#' || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.NonSpacingMark
+            || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.SpacingCombiningMark;
+        internal static bool IsPrefix(string prefix)
+        {
+            int colon = prefix.IndexOf(':');
+            if (colon < 0) return prefix.All(character => char.IsLetterOrDigit(character) || character == '_');
+            string kind = prefix.Substring(0, colon);
+            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta" || kind == "list" || kind == "item")
+                && prefix.Substring(colon + 1).All(character => IsTokenCharacter(character) && character != ':' && (kind != "loc" || character != '#'));
+        }
+
         public static int FindStart(string text, int caret, out bool argument)
         {
             Stack<int> calls = ActiveCalls(text, caret);
             argument = calls.Any(call => call >= 0 && text.Substring(call, caret - call).StartsWith("$(loc:", StringComparison.Ordinal)
                 && text.IndexOf(',', call, caret - call) >= 0);
             return calls.Count == 0 ? -1 : calls.Peek();
+        }
+
+        public static ExpressionEdit FindExpression(string text, int caret)
+        {
+            int start = FindStart(text, caret, out bool argument);
+            string prefix = start < 0 ? null : text.Substring(start + 2, caret - start - 2);
+            if (prefix != null && IsPrefix(prefix))
+            {
+                int end = caret;
+                while (end < text.Length && IsTokenCharacter(text[end])) end++;
+                if (end < text.Length && text[end] == ')') end++;
+                return new ExpressionEdit(start, end, prefix, argument);
+            }
+            // Quotes remain literal until the user explicitly accepts a candidate.
+            // Only a whole-slot expression draft can replace its enclosing quotes;
+            // never reinterpret an expression embedded in ordinary literal text.
+            ArgumentEdit slot = FindArgument(text, caret, 0);
+            if (slot == null || slot.Start >= text.Length || text[slot.Start] != '"') return null;
+            int contentStart = slot.Start + 1, contentEnd = slot.End;
+            if (contentEnd > contentStart && text[contentEnd - 1] == '"') contentEnd--;
+            if (caret < contentStart + 2 || caret > contentEnd
+                || !text.Substring(contentStart, caret - contentStart).StartsWith("$(", StringComparison.Ordinal)) return null;
+            prefix = text.Substring(contentStart + 2, caret - contentStart - 2);
+            if (!IsPrefix(prefix)) return null;
+            int tail = caret;
+            while (tail < contentEnd && IsTokenCharacter(text[tail])) tail++;
+            if (tail < contentEnd && text[tail] == ')') tail++;
+            return tail == contentEnd ? new ExpressionEdit(slot.Start, slot.End, prefix, true) : null;
         }
 
         public static ArgumentEdit FindArgument(string text, int caret, int selectionLength)
@@ -87,6 +127,16 @@ namespace Alarmlist.VisualStudio.UI
             }
             return calls;
         }
+    }
+
+    internal sealed class ExpressionEdit
+    {
+        public int Start { get; }
+        public int End { get; }
+        public string Prefix { get; }
+        public bool IsArgument { get; }
+        public ExpressionEdit(int start, int end, string prefix, bool argument)
+        { Start = start; End = end; Prefix = prefix; IsArgument = argument; }
     }
 
     internal sealed class ArgumentEdit

@@ -22,6 +22,105 @@ modes. The designer and embedded Visual Studio source view share one document
 buffer, including edits made from additional windows. The
 [milestone-two design](MILESTONE-2.md) records its architecture and references.
 
+[Milestone twelve](MILESTONE-12.md) adds XML IntelliSense and native Shared
+Projects in stages. ALMX XML views offer structural completion for elements,
+attributes, closing names and enum/boolean literals. Suggestions follow the
+rebuilt alarm definition, including collections and optional procedures. Invoke
+List Members/Complete Word, or type a tag/attribute name or a quote. Tab/Enter
+commits a selected suggestion, Escape dismisses it and Undo restores the previous
+text without saving. Existing delimiters are preserved; defaults are not inserted
+implicitly. Comments, CDATA and foreign namespaces do not receive ALMX structural
+suggestions. In expression fields, type `$(` or invoke completion to insert
+parameters, localization templates, lookup/list expressions or record siblings.
+`ReferenceName` offers eligible alarm identifiers; parameter `Name` attributes
+offer declared names. Identity fields and parameter assignment values remain
+literal. Semantic suggestions follow the designer's selected project context;
+standalone XML shows a **Project context** selector for the same document. The
+opening consumer is selected when Visual Studio supplies one; an ambiguous open
+requires a choice. An explicit choice stays with the open physical document
+across designer/XML windows and analysis refreshes. Membership removal or unload
+clears that choice; unavailable evaluation retains the consumer while blocking
+semantic actions. Restoring a removed consumer does not silently select it again.
+Alarm Summary retains its own explicit project selection. Changing context or
+Designer/Split/XML mode preserves private designer drafts. Unsaved shared ALMX
+text reaches each consumer independently; resources and lookups remain saved-only.
+Saved project/import edits invalidate semantic results until CPS reevaluates;
+missing imports retain recovery watches. Native Shared Project reload prompts
+remain Visual Studio actions and never authorize discarding unsaved project edits.
+Saved resources/lookups are checked
+before display and insertion, while ALMX changes use current buffers. Changing
+the source, context or saved inputs rejects an old insertion.
+
+Localization template arguments keep quoted text literal. In an empty slot, invoke
+Ctrl+Space (or select its quotes first) to choose a supported expression. Typing a
+whole-slot draft such as `path="$(path:Service.)"` also offers completion; accepting
+it replaces the quotes with `path=$(path:Service.Vakuum)`. Other arguments remain
+unchanged. Embedded tokens in ordinary literal text are not expanded. Direct
+nested localization arguments such as `path="$(loc:Key)"` do not resolve another
+translation and are not offered as evaluated argument expressions.
+If analysis changes while choosing a suggestion, invoke completion again; an
+interrupted completion key preserves the current draft instead of committing it.
+
+Lookup XML completion loads the authoritative schema shipped with the extension.
+Use `urn:alarmlist:lookup:1`, either as the default namespace or through a prefix.
+Elements, attributes, closing names and the root namespace declaration are offered
+without opening an XSD first. Lookup values, labels, keys and metadata remain
+literal. This does not change native XML validation or global schema catalogs.
+
+Project XML completion offers SDK settings, input items and editable metadata,
+including boolean/enum values, resource `Culture`, parameter `Value`, reference
+metadata and shared-import attributes/`Label="Shared"`. Namespace-free `.almproj`
+files also receive common MSBuild structural hints. Default MSBuild namespace
+documents retain native general structure commands; prefixed MSBuild XML remains
+with native namespace tooling. Unmatched typed names pass through to native XML
+completion. Property values, conditions and file paths are not evaluated by these
+hints. User-selected native schemas remain unchanged.
+
+**Add New Project > Alarmlist Shared Project** creates a native `.shproj` container
+with a `.projitems` import and sample ALMX, saved translations and lookup files.
+Install Visual Studio's native Shared Project tooling and make the matching SDK
+package feed available. The container uses native sharing infrastructure with
+Alarmlist file rules; it produces no separate compiled artifact. Its design-rule
+import pins the SDK version used to build the extension. Consumer command-line
+builds need only the `.projitems` and sources, not the shared container or IDE.
+
+Select the consumer's Dependencies node and use **Add Reference > Shared Projects**
+to check the shared project. Saving persists an import with `Label="Shared"` in
+the consumer. Each consumer resolves those sources using its own properties,
+cultures and references. **Dependencies > Shared projects** projects the evaluated
+shared items into each consumer. Open a projected item to edit its physical shared
+file; membership changes belong to the owning shared project. Captions use `Link`
+when supplied, otherwise the path relative to the shared import. Uncheck the
+reference to remove that import; shared
+files remain on disk. Add/open/rename/remove shared items in the owning shared
+project. ALMX, `.resx` and `.almlookup` files use Compile, AlarmlistResource and
+AlarmlistLookup build actions respectively. Remove excludes an item while keeping
+its file; Delete is the ordinary physical-file deletion action.
+Visual Studio may prompt to save related dirty documents before project unload.
+The extension preserves its normal Save/Cancel workflow and never saves or
+discards shared text automatically. Selecting a project can show its preview tab;
+reactivate the shared document to inspect its consumer context after unload.
+
+Shared item paths use `$(MSBuildThisFileDirectory)` so they remain relative to the
+import, including after renaming or moving the consumer. See the
+[SDK shared import contract](../SDK/Alarmlist.SDK/README.md#shared-source-imports)
+for conditions, repeated-file identity, conflicting metadata and library portable
+names. Shared document selection/lifecycle evidence is recorded in
+[Milestone 12 iteration 7](MILESTONE-12.md); iteration 8 records passing combined
+acceptance and completion measurements on both supported hosts.
+The [Shared Projects playground](../../example/SharedProjects/README.md) provides
+two consumers and shared ALMX/RESX/lookup files. Prepare it with
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File eng/prepare-shared-example.ps1`,
+then open its solution. Preparation preserves edited source and project files.
+
+For repeatable native acceptance, run `eng/test-visualstudio.ps1` with the chosen
+IDE path and `-Filter 'Area=SharedExampleAcceptance'`. The separate
+`Area=XmlCompletionPerformance` fixture records first-use and 20 warm requests
+for embedded ALMX, native ALMX, lookup and project XML with 1,000 alarms. Its JSON
+report includes UI automation and 100 ms polling overhead; timings are descriptive,
+without machine-dependent pass thresholds. Close/reopen and saved-source checks
+are functional gates, alongside the separate cancellation/lifecycle regressions.
+
 The [milestone-three plan](MILESTONE-3.md) covers project-wide reference analysis,
 inherited fields with WPF chain-icon adorners, inherited test-procedure rows,
 live diagnostics, and resolved preview. It recommends section-level local copies
@@ -289,8 +388,9 @@ Changes persist the shared AlarmlistCulture through CPS; global values are fixed
 and read-only/overridden project settings report an error. Choosing a language
 does not commit an ALMX draft or change AlarmlistCultures. Focused expression
 fields retain their raw text and selection during analysis refresh.
-Leaving the designer for a shell control keeps a draft private. Enter, Save,
-layout changes, and moving to another designer field still commit it.
+Leaving the designer for a shell control, changing the project context, or
+switching Designer/Split/XML keeps a draft private. Enter, Save and moving to
+another ordinary designer field still commit it.
 The toolbar uses the SDK's [native combo command pattern](https://github.com/microsoft/VSSDK-Extensibility-Samples/tree/master/Combo_Box)
 and editor command routing, without a global reference to an editor or project.
 
@@ -721,9 +821,12 @@ For manual testing, run `scripts/start-vs2022.bat` or `scripts/start-vs2026.bat`
 Each launcher finds the matching installed Visual Studio, builds and deploys the
 extension, prepares the matching SDK for [the example playground](../../example/README.md),
 then opens `example/Example.sln` in its `AlarmlistExp` instance. The example contains
-local alarms, multi-file inheritance, linked North/South contexts, and procedure
+North/South consumers and a native Shared Project owning their common ALMX,
+RESX and lookup inputs, plus local alarms, multi-file inheritance and procedure
 Clear cases. Its SDK feed/version/cache are configured automatically; exploratory
-source edits are preserved. Close that experimental instance before rerunning the
+source/project/import/solution edits are preserved. `Area=DefaultSharedExample`
+validates this actual preparation and native workflow on edited isolated copies.
+Close that experimental instance before rerunning the
 launcher. Add `--deploy-only` to build, deploy, and prepare without opening the IDE.
 For other test solutions, configure the SDK package feed as described above.
 

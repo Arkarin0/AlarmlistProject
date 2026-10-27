@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>$safeprojectname$.Shared</FullyQualifiedName>
+    <Name>Shared alarm</Name>
+  </Alarm>
+</Alarmlist>

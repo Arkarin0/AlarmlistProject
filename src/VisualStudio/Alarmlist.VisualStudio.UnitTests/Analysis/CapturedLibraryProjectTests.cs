@@ -35,7 +35,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             var captured = Capture();
             Assert.Equal("Plant.Library", captured.PackageId);
             Assert.Equal("1.0", captured.PackageVersion); // The isolated SDK normalizes package identity.
-            Assert.Equal(2, captured.Sources.Count);
+            Assert.Single(captured.Sources);
             Assert.All(captured.Sources, source => Assert.Equal("<Alarmlist/>", source.Text));
             Assert.Equal("", Assert.Single(captured.Context.Resources).Culture);
             Assert.Equal("Shared/Input.almx", captured.PortableNames[captured.Sources[0].FilePath]);

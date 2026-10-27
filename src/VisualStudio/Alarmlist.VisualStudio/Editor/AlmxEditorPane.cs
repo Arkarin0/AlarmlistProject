@@ -30,6 +30,7 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly IEditorLayoutSettings _settings;
         private readonly IContentTypeRegistryService _contentTypes;
         private readonly VsDesignerAnalysisFactory _analysis;
+        private readonly string _openingProject;
         private AlmxDocumentSession _session;
         private EditFileControlViewModel _viewModel;
         private EditorLayoutViewModel _layout;
@@ -63,7 +64,8 @@ namespace Alarmlist.VisualStudio.Editor
 
         public AlmxEditorPane(System.IServiceProvider site, OleServiceProvider oleSite,
             IVsEditorAdaptersFactoryService adapters, IVsTextLines lines, AlmxDocumentSessionFactory sessions,
-            EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, VsDesignerAnalysisFactory analysis, bool xmlOnly) : base(site)
+            EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, VsDesignerAnalysisFactory analysis, bool xmlOnly,
+            string openingProject = null) : base(site)
         {
             _oleSite = oleSite;
             _adapters = adapters;
@@ -74,6 +76,7 @@ namespace Alarmlist.VisualStudio.Editor
             _settings = settings;
             _contentTypes = contentTypes;
             _analysis = analysis;
+            _openingProject = openingProject;
         }
 
         protected override void Initialize()
@@ -102,11 +105,13 @@ namespace Alarmlist.VisualStudio.Editor
             if (_textHost == null || !(sourceElement is System.Windows.FrameworkElement sourceControl))
                 throw new InvalidOperationException("Visual Studio did not create the ALMX source editor.");
             _session = _sessions.GetOrCreate(buffer, _lines, (IVsQueryEditQuerySave2)GetService(typeof(SVsQueryEditQuerySave)));
-            _viewModel = _viewModels.Create(_session.Model, _analysis.Create(buffer));
+            IDesignerAnalysis viewAnalysis = _analysis.Create(buffer, _openingProject);
+            _viewModel = _viewModels.Create(_session.Model, viewAnalysis);
+            _textHost.TextView.Properties[typeof(IDesignerAnalysis)] = viewAnalysis;
             _shell = (IVsUIShell)GetService(typeof(SVsUIShell));
             _viewModel.PropertyChanged += OnPreviewLanguageChanged;
             _session.Attach(_viewModel);
-            _layout = new EditorLayoutViewModel(_settings, _session.CommitPending, _xmlOnly);
+            _layout = new EditorLayoutViewModel(_settings, _xmlOnly);
             _control = new SplitEditorControl(_layout, new EditFileControl(_viewModel), sourceControl);
             _control.PreviewKeyDown += OnKeyDown;
             Content = _control;
@@ -151,6 +156,7 @@ namespace Alarmlist.VisualStudio.Editor
                 if (_control != null) { _control.PreviewKeyDown -= OnKeyDown; _control.Dispose(); }
                 if (_viewModel != null)
                 {
+                    _textHost?.TextView.Properties.RemoveProperty(typeof(IDesignerAnalysis));
                     _viewModel.PropertyChanged -= OnPreviewLanguageChanged;
                     _session.Detach(_viewModel);
                     _viewModel.Dispose();
@@ -170,9 +176,18 @@ namespace Alarmlist.VisualStudio.Editor
 
         int IVsDeferredDocView.get_CmdUIGuid(out Guid commandUi) { commandUi = new Guid(AlmxEditorFactory.EditorGuid); return VSConstants.S_OK; }
         int IVsDeferredDocView.get_DocView(out IntPtr view) { view = Marshal.GetIUnknownForObject(this); return VSConstants.S_OK; }
+        private static bool IsCompletionCommand(Guid group, uint id) => group == VSConstants.VSStd2K
+            && (id == (uint)VSConstants.VSStd2KCmdID.SHOWMEMBERLIST || id == (uint)VSConstants.VSStd2KCmdID.COMPLETEWORD
+                || id == (uint)VSConstants.VSStd2KCmdID.AUTOCOMPLETE);
+
         public int QueryStatus(ref Guid group, uint count, OLECMD[] commands, IntPtr text)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            if (count == 1 && IsCompletionCommand(group, commands[0].cmdID) && _control?.HandleDesignerCompletion(false) == true)
+            {
+                commands[0].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+                return VSConstants.S_OK;
+            }
             if (group == VSConstants.VSStd2K && count == 1 && commands[0].cmdID == (uint)VSConstants.VSStd2KCmdID.RETURN
                 && _control?.HandleDesignerReturn(false, Keyboard.Modifiers) == true)
             {
@@ -215,6 +230,7 @@ namespace Alarmlist.VisualStudio.Editor
         public int Exec(ref Guid group, uint id, uint options, IntPtr input, IntPtr output)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            if (IsCompletionCommand(group, id) && _control?.HandleDesignerCompletion(true) == true) return VSConstants.S_OK;
             // VS can translate Shift+Enter to RETURN before WPF receives a key
             // event. Never forward a designer field's return to the XML view.
             if (group == VSConstants.VSStd2K && id == (uint)VSConstants.VSStd2KCmdID.RETURN

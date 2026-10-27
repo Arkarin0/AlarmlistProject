@@ -144,9 +144,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Theory]
-        [InlineData("Debug", new[] { "Z.almx", "A.almx", "Z.almx" })]
-        [InlineData("Release", new[] { "Z.almx", "A.almx", "Z.almx", "Release.almx" })]
-        public void EvaluationCapturesConditionalInputsInOrderWithDuplicatesAndSdkFromTheSameSnapshot(string configuration, string[] expected)
+        [InlineData("Debug", new[] { "Z.almx", "A.almx" })]
+        [InlineData("Release", new[] { "Z.almx", "A.almx", "Release.almx" })]
+        public void EvaluationCapturesConditionalUniqueInputsInFirstOrderAndSdkFromTheSameSnapshot(string configuration, string[] expected)
         {
             using (var directory = new TempDirectory())
             using (var projects = new ProjectCollection())

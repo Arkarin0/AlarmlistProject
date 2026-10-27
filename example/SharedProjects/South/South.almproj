@@ -1,0 +1,6 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup Label="Globals"><ProjectGuid>{1945E4A7-6680-4955-98A8-10948D97AA02}</ProjectGuid></PropertyGroup>
+  <PropertyGroup><AlarmlistCulture>de-DE</AlarmlistCulture><AlarmlistCultures>keyword;en;de-DE</AlarmlistCultures></PropertyGroup>
+  <ItemGroup><AlarmlistProperty Include="Site" Value="South" /><AlarmlistProperty Include="SouthOnly" Value="South parameter" /></ItemGroup>
+  <Import Project="../Shared/Shared.projitems" Label="Shared" />
+</Project>

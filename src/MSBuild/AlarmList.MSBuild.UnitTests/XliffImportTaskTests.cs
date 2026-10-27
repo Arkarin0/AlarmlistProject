@@ -153,6 +153,18 @@ namespace AlarmList.MSBuild.UnitTests
             return new AlarmlistImportXliffTask { BuildEngine = buildEngine.Object, Resources = snapshots.Select(snapshot => (ITaskItem)new TaskItem(snapshot.FilePath)).ToArray(),
                 ImportFiles = imports, VerifyEditorsClosed = _ => { } };
         }
+        [Fact]
+        public void RepeatedPhysicalResourcesRemainOneImportDestination()
+        {
+            var task = Create();
+            task.Resources = task.Resources.Concat(task.Resources).ToArray();
+            Assert.True(task.Execute());
+            Assert.Single(task.Changes);
+            task.Apply = true;
+            Assert.True(task.Execute());
+            Assert.Single(task.UpdatedResources);
+            Assert.Contains("Neu de", File.ReadAllText(task.UpdatedResources[0].ItemSpec));
+        }
         public void Dispose() { if (Directory.Exists(_directory)) Directory.Delete(_directory, true); }
     }
 }

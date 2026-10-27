@@ -52,7 +52,8 @@ namespace Alarmlist.VisualStudio
         {
             // Shell toolbars live outside this view. Leaving the designer keeps
             // its draft private; moving to another designer control still commits.
-            // Explicit Save/Enter and editor layout changes also commit as before.
+            // Explicit Save/Enter still commits. Consumer and layout choices are
+            // presentation changes and preserve private drafts.
             // A collapsed body can transfer focus to the scroll host, not just
             // its header. Theme templates may also give the header an explicit
             // ToggleButton style, so an implicit Tag setter alone is insufficient.
@@ -61,7 +62,10 @@ namespace Alarmlist.VisualStudio
             if (args.NewFocus is ToggleButton)
                 for (DependencyObject parent = args.NewFocus as DependencyObject; parent != null; parent = VisualTreeHelper.GetParent(parent))
                     if (parent is Expander header && Equals(header.Tag, "PreserveDraft")) return;
-            if (IsKeyboardFocusWithin && !Equals((args.NewFocus as FrameworkElement)?.Tag, "PreserveDraft")) ViewModel.CommitPending();
+            for (DependencyObject parent = args.NewFocus as DependencyObject; parent != null;
+                parent = parent is Visual ? VisualTreeHelper.GetParent(parent) : LogicalTreeHelper.GetParent(parent))
+                if (parent is FrameworkElement element && Equals(element.Tag, "PreserveDraft")) return;
+            if (IsKeyboardFocusWithin) ViewModel.CommitPending();
         }
         private void OnPreviewMouseDown(object sender, MouseButtonEventArgs args) => _inputVersion++;
         private void OnExpandProcedureGroups(object sender, RoutedEventArgs args)
@@ -219,6 +223,14 @@ namespace Alarmlist.VisualStudio
             if (args.Key == Key.Escape) { ViewModel.CancelPending(); args.Handled = true; }
             else if (args.Key == Key.Enter) args.Handled = HandleReturnCommand(true, Keyboard.Modifiers);
         }
+        internal bool HandleCompletionCommand(bool execute)
+        {
+            if (!IsKeyboardFocusWithin || !(Keyboard.FocusedElement is ExpressionTextBox expression)
+                || expression.IsReadOnly || !expression.IsExpressionEnabled) return false;
+            if (execute) expression.HandleCompletionKey(Key.Space, ModifierKeys.Control);
+            return true;
+        }
+
         internal bool HandleReturnCommand(bool execute, ModifierKeys modifiers)
         {
             if (!IsKeyboardFocusWithin || !(Keyboard.FocusedElement is TextBox text)) return false;

@@ -11,6 +11,8 @@
     <ProjectCapability Include="ProjectConfigurationsDeclaredAsItems" />
     <ProjectCapability Include="ProjectReferences" />
     <ProjectCapability Include="ReferenceManagerProjects" />
+    <ProjectCapability Include="SharedProjectReferences" />
+    <ProjectCapability Include="SharedImports" />
     <ProjectCapability Include="PackageReferences" />
   </ItemGroup>
   <ItemGroup Label="ProjectConfigurations" Condition="'@(ProjectConfiguration)' == ''">

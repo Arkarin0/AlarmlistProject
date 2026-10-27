@@ -20,5 +20,6 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         public static string Unresolved => s_resources.GetString("Unresolved", CultureInfo.CurrentUICulture);
         public static string Transitive => s_resources.GetString("Transitive", CultureInfo.CurrentUICulture);
         public static string Projects => s_resources.GetString("Projects", CultureInfo.CurrentUICulture);
+        public static string SharedProjects => s_resources.GetString("SharedProjects", CultureInfo.CurrentUICulture);
     }
 }

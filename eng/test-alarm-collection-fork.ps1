@@ -3,6 +3,7 @@ param(
     [string]$DesktopMSBuildPath,
     [switch]$Designer,
     [switch]$SkipConsumers,
+    [switch]$XmlCompletion,
     [string]$VisualStudio2022Path,
     [string]$VisualStudio2026Path,
     [ValidatePattern('^[A-Za-z][A-Za-z0-9_]*$')]
@@ -11,6 +12,7 @@ param(
 $ErrorActionPreference = 'Stop'
 if (!$SkipConsumers -and !$DesktopMSBuildPath) { throw 'DesktopMSBuildPath is required for consumer acceptance.' }
 if ($SkipConsumers -and !$Designer) { throw 'Select Designer when skipping consumer acceptance.' }
+if ($XmlCompletion -and !$Designer) { throw 'Select Designer for XML completion acceptance.' }
 if ($Designer -and (!$VisualStudio2022Path -or !$VisualStudio2026Path)) { throw 'Both IDE paths are required for designer acceptance.' }
 $repo = Split-Path $PSScriptRoot -Parent
 $files = @(& git -C $repo ls-files --cached --others --exclude-standard)
@@ -51,6 +53,7 @@ foreach ($procedure in @($true, $false)) {
         $settings = @{
             ALARMLIST_RUN_UI_VS_TESTS = '1'
             ALARMLIST_TEST_COLLECTION_DEFINITION = '1'
+            ALARMLIST_TEST_PROCEDURE_ENABLED = $(if ($procedure) { '1' } else { '0' })
             ALARMLIST_VS_ROOT_SUFFIX = $RootSuffix
             ALARMLIST_VS2022_PATH = $VisualStudio2022Path
             ALARMLIST_VS2026_PATH = $VisualStudio2026Path
@@ -69,12 +72,15 @@ foreach ($procedure in @($true, $false)) {
             foreach ($name in $settings.Keys) { [Environment]::SetEnvironmentVariable($name, $settings[$name]) }
             foreach ($version in @('2022', '2026')) {
                 $results = Join-Path $fork "results-$version"
-                & dotnet test $project --no-build --no-restore --filter "Host=VisualStudio&VSVersion=$version&Area=MetadataCollections" --logger trx --results-directory $results *> (Join-Path $fork "native-$version.log")
+                $area = if ($XmlCompletion) { '(Area=XmlCompletion|Area=XmlDefinitionCompletion)' } else { 'Area=MetadataCollections' }
+                & dotnet test $project --no-build --no-restore --filter "Host=VisualStudio&VSVersion=$version&$area" --logger trx --results-directory $results *> (Join-Path $fork "native-$version.log")
                 if ($LASTEXITCODE -ne 0) { throw "Collection designer failed: $fork/native-$version.log" }
                 $reports = @(Get-ChildItem -LiteralPath $results -Filter '*.trx')
                 if ($reports.Count -ne 1) { throw 'Missing collection designer report.' }
                 [xml]$report = Get-Content -LiteralPath $reports[0].FullName -Raw
-                if ([int]$report.TestRun.ResultSummary.Counters.passed -ne 1) { throw 'Collection native case did not pass.' }
+                $expected = if ($XmlCompletion) { 5 } else { 1 }
+                $counts = $report.TestRun.ResultSummary.Counters
+                if ([int]$counts.passed -ne $expected -or [int]$counts.total -ne $expected -or [int]$counts.executed -ne $expected) { throw 'Selected native cases did not all pass.' }
             }
         } finally {
             foreach ($name in $settings.Keys) { [Environment]::SetEnvironmentVariable($name, $previous[$name]) }

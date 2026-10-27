@@ -36,6 +36,10 @@
     <None Include="Templates/**/*" />
     <VSCTCompile Include="AlarmlistCommands.vsct" ResourceName="Menus.ctmenu" />
     <Content Include="Alarmlist.XmlEditor.pkgdef" IncludeInVSIX="true" />
+    <EmbeddedResource Include="../../Compiler/Lookups/AlarmlistLookup.xsd" LogicalName="Alarmlist.VisualStudio.Schemas.AlarmlistLookup.xsd" />
+    <Content Include="../../Compiler/Lookups/AlarmlistLookup.xsd" Link="Schemas/AlarmlistLookup.xsd" IncludeInVSIX="true" />
+    <EmbeddedResource Include="../../SDK/Alarmlist.SDK/tools/Rules/General.xaml;../../SDK/Alarmlist.SDK/tools/Rules/Compile.xaml;../../SDK/Alarmlist.SDK/tools/Rules/Alarmlist*.xaml;../../SDK/Alarmlist.SDK/tools/Rules/ProjectReference.xaml;../../SDK/Alarmlist.SDK/tools/Rules/PackageReference.xaml"
+                      LogicalName="Alarmlist.VisualStudio.ProjectRules.%(Filename)%(Extension)" />
     <!-- These SDK transitive dependencies are supplied by the VS host and are unused here. -->
     <SuppressFromVsix Include="Microsoft.VisualStudio.Linux.ConnectionManager.Store.dll;System.Text.Encodings.Web.dll" />
   </ItemGroup>

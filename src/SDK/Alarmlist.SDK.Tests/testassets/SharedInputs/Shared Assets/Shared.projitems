@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(EnableSharedAssets)' != 'false'">
+    <Compile Include="$(MSBuildThisFileDirectory)*.almx" Link="Shared Assets/%(Filename)%(Extension)" />
+    <AlarmlistResource Include="$(MSBuildThisFileDirectory)*.en.resx" Culture="en" Link="Shared Assets/%(Filename)%(Extension)" />
+    <AlarmlistResource Include="$(MSBuildThisFileDirectory)*.de.resx" Culture="de" Link="Shared Assets/%(Filename)%(Extension)" />
+    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)*.almlookup" Link="Shared Assets/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

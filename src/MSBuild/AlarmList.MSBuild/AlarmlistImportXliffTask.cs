@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Alarmlist.ConfigurationInput;
 using System.Text;
 using Alarmlist.Localization;
 using Alarmlist.Text;
@@ -40,7 +41,9 @@ namespace Alarmlist.MSBuild
                     if (!bytes.TryGetValue(path, out byte[] saved)) bytes.Add(path, saved = File.ReadAllBytes(path));
                     return CapturedXmlFile.Read(saved);
                 }
-                ResxTextSnapshot[] resources = (Resources ?? Array.Empty<ITaskItem>()).Select(item =>
+                var resourceItems = EvaluatedInputSet.Unique(Resources ?? Array.Empty<ITaskItem>(), "AlarmlistResource", Factory.GetFullFilePath,
+                    item => item.MetadataNames.Cast<string>().Any(name => string.Equals(name, "Culture", StringComparison.OrdinalIgnoreCase)) ? item.GetMetadata("Culture") : null);
+                ResxTextSnapshot[] resources = resourceItems.Select(item =>
                 {
                     string path = Factory.GetFullFilePath(item);
                     string culture = item.MetadataNames.Cast<string>().Any(name => string.Equals(name, "Culture", StringComparison.OrdinalIgnoreCase))

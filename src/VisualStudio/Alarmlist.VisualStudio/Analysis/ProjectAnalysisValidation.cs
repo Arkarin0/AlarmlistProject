@@ -10,6 +10,7 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         public static async Task<bool> InputsMatchAsync(IProjectAnalysisInputSource source, ProjectAnalysisState state, CancellationToken token)
         {
+            if (state.Project.Evaluation != null && !await Task.Run(() => state.Project.Evaluation.IsCurrent(token), token).ConfigureAwait(false)) return false;
             var captured = await Task.Run(() => source.CaptureAsync(state.Project.Inputs, token), token).ConfigureAwait(false);
             var resources = await Task.Run(() => source.CaptureResourcesAsync(state.Project.Resources, token), token).ConfigureAwait(false);
             var lookups = await Task.Run(() => source.CaptureLookupsAsync(state.Project.Lookups, token), token).ConfigureAwait(false);
@@ -17,7 +18,8 @@ namespace Alarmlist.VisualStudio.Analysis
             var analyzers = await Task.Run(() => source.CaptureAnalyzersAsync(state.Project.Analyzers, token), token).ConfigureAwait(false);
             if (state.Libraries != null && !await Task.Run(() => state.Libraries.IsCurrent(state.Project, token), token).ConfigureAwait(false)) return false;
             token.ThrowIfCancellationRequested();
-            return captured.Count == state.Inputs.Count && captured.Select((input, index) => input.Matches(state.Inputs[index])).All(matches => matches)
+            return (state.Project.Evaluation == null || await Task.Run(() => state.Project.Evaluation.IsCurrent(token), token).ConfigureAwait(false))
+                && captured.Count == state.Inputs.Count && captured.Select((input, index) => input.Matches(state.Inputs[index])).All(matches => matches)
                 && resources.Count == state.Resources.Count && resources.Select((input, index) => input.Matches(state.Resources[index])).All(matches => matches)
                 && lookups.Count == state.Lookups.Count && lookups.Select((input, index) => input.Matches(state.Lookups[index])).All(matches => matches)
                 && configurations.Count == state.Configurations.Count && configurations.Select((input, index) => input.Matches(state.Configurations[index])).All(matches => matches)

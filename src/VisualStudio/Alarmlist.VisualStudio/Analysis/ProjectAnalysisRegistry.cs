@@ -16,6 +16,7 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         private readonly object _gate = new object();
         private readonly HashSet<ProjectAnalysisService> _projects = new HashSet<ProjectAnalysisService>();
+        private readonly Dictionary<ProjectAnalysisService, AnalysisProject> _lastProjects = new Dictionary<ProjectAnalysisService, AnalysisProject>();
         private readonly Dictionary<ProjectAnalysisService, ProjectUserSetting> _previewLayouts = new Dictionary<ProjectAnalysisService, ProjectUserSetting>();
         private readonly Dictionary<ProjectAnalysisService, Func<AnalysisProject, string, CancellationToken, Task>> _cultureWriters
             = new Dictionary<ProjectAnalysisService, Func<AnalysisProject, string, CancellationToken, Task>>();
@@ -27,6 +28,7 @@ namespace Alarmlist.VisualStudio.Analysis
             lock (_gate)
             {
                 if (!_projects.Add(project)) return;
+                if (project.Current.Project != null) _lastProjects[project] = project.Current.Project;
                 if (cultureWriter != null) _cultureWriters.Add(project, cultureWriter);
                 if (previewLayout != null) _previewLayouts.Add(project, previewLayout);
                 project.Changed += OnChanged;
@@ -39,6 +41,7 @@ namespace Alarmlist.VisualStudio.Analysis
             lock (_gate)
             {
                 if (!_projects.Remove(project)) return;
+                _lastProjects.Remove(project);
                 _cultureWriters.Remove(project);
                 _previewLayouts.TryGetValue(project, out layout); _previewLayouts.Remove(project);
                 project.Changed -= OnChanged;
@@ -54,7 +57,22 @@ namespace Alarmlist.VisualStudio.Analysis
                 return owner != null && _previewLayouts.TryGetValue(owner, out ProjectUserSetting layout) ? layout : null;
             }
         }
-        private void OnChanged(object sender, EventArgs args) => Changed?.Invoke(this, EventArgs.Empty);
+        private void OnChanged(object sender, EventArgs args)
+        {
+            if (sender is ProjectAnalysisService service)
+                lock (_gate)
+                    if (_projects.Contains(service) && service.Current.Project != null) _lastProjects[service] = service.Current.Project;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        // Failed/pending evaluation blocks analysis but does not prove that a
+        // registered consumer stopped owning its documents. A new evaluated
+        // membership or registry removal supplies that evidence.
+        public AnalysisProject GetProject(ProjectAnalysisService service)
+        {
+            lock (_gate) return _projects.Contains(service) && service.Current.Status != ProjectAnalysisStatus.Stopped
+                ? service.Current.Project ?? (_lastProjects.TryGetValue(service, out AnalysisProject previous) ? previous : null) : null;
+        }
 
         public Task SetPreviewCultureAsync(AnalysisProject project, string culture, CancellationToken token)
         {
@@ -71,7 +89,7 @@ namespace Alarmlist.VisualStudio.Analysis
         public IReadOnlyList<ProjectAnalysisService> GetContexts(string documentPath)
         {
             lock (_gate)
-                return _projects.Where(project => project.Current.Project?.Inputs.Contains(documentPath, System.StringComparer.OrdinalIgnoreCase) == true).ToArray();
+                return _projects.Where(project => GetProject(project)?.Inputs.Contains(documentPath, System.StringComparer.OrdinalIgnoreCase) == true).ToArray();
         }
 
         public IReadOnlyList<ProjectAnalysisService> GetProjects()

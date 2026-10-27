@@ -7,6 +7,30 @@ namespace Alarmlist.VisualStudio.Testing
 {
     public static partial class VisualStudioAutomation
     {
+        public static void OpenAdditionalEditorView(object automation, string path, string editorType)
+        {
+            var table = Service<Microsoft.VisualStudio.Shell.Interop.IVsRunningDocumentTable>(automation,
+                typeof(Microsoft.VisualStudio.Shell.Interop.SVsRunningDocumentTable));
+            var open = Service<Microsoft.VisualStudio.Shell.Interop.IVsUIShellOpenDocument>(automation,
+                typeof(Microsoft.VisualStudio.Shell.Interop.SVsUIShellOpenDocument));
+            IntPtr before = IntPtr.Zero, after = IntPtr.Zero;
+            try
+            {
+                Marshal.ThrowExceptionForHR(table.FindAndLockDocument(0, path, out _, out _, out before, out _));
+                Guid editor = new Guid(editorType), primary = Guid.Empty;
+                uint flags = (uint)(Microsoft.VisualStudio.Shell.Interop.__VSSPECIFICEDITORFLAGS.VSSPECIFICEDITOR_DoOpen
+                    | Microsoft.VisualStudio.Shell.Interop.__VSSPECIFICEDITORFLAGS.VSSPECIFICEDITOR_UseEditor);
+                Marshal.ThrowExceptionForHR(open.OpenDocumentViaProjectWithSpecific(path, flags, ref editor, "", ref primary,
+                    out _, out _, out _, out var frame));
+                Marshal.ThrowExceptionForHR(frame.GetGuidProperty((int)Microsoft.VisualStudio.Shell.Interop.__VSFPROPID.VSFPROPID_guidEditorType, out Guid actual));
+                if (actual != editor) throw new InvalidOperationException("The requested editor view was not opened.");
+                Marshal.ThrowExceptionForHR(frame.Show());
+                Marshal.ThrowExceptionForHR(table.FindAndLockDocument(0, path, out _, out _, out after, out _));
+                if (before == IntPtr.Zero || before != after) throw new InvalidOperationException("The additional editor view must retain the physical document data.");
+            }
+            finally { if (before != IntPtr.Zero) Marshal.Release(before); if (after != IntPtr.Zero) Marshal.Release(after); }
+        }
+
         public static void VerifyEditor(object automation, string path)
         {
             var open = Service<Microsoft.VisualStudio.Shell.Interop.IVsUIShellOpenDocument>(automation, typeof(Microsoft.VisualStudio.Shell.Interop.SVsUIShellOpenDocument));

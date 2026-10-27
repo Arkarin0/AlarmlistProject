@@ -64,9 +64,36 @@ Existing plans and iteration records:
 | [Milestone 5](src/VisualStudio/MILESTONE-5.md) | Localization and XLIFF, including HMI lookup, named-list, and preview follow-up iterations; see its [design contract](src/VisualStudio/MILESTONE-5-DESIGN.md) and [lookup specification](src/VisualStudio/HMI-LOOKUPS.md). |
 | [Milestone 6](src/VisualStudio/MILESTONE-6.md) | EditorConfig, diagnostic policy, external analyzers, and compatibility/lifecycle validation iterations. |
 | [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX: procedures, property fields, IntelliSense, searchable references, file/alarm scope separation and preview-table rendering/column preferences; accepted direction and open interaction details. |
-| [Milestone 12](src/VisualStudio/MILESTONE-12.md) | Planned XML IntelliSense for ALMX, .almlookup and .almproj files, and native Visual Studio Shared Projects; implementation has not started. |
+| [Milestone 12](src/VisualStudio/MILESTONE-12.md) | Authorized XML IntelliSense for ALMX, .almlookup and .almproj files, and native Visual Studio Shared Projects; follow its accepted defaults and 15% remaining-allowance stop. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+[Milestone 12](src/VisualStudio/MILESTONE-12.md) uses the native XML completion
+presenter with host lexical context and generated descriptors; compiler-owned
+expression/reference semantics remain in detached analysis. Native XML completion
+shares detached candidate construction with designer controls. Embedded XML borrows
+the designer's selected analysis context; standalone XML must not choose among
+multiple owners. Validate current saved inputs before displaying or inserting
+semantic candidates, and keep request snapshot/caret/selection stamps through
+asynchronous insertion. Native semantic acceptance uses `Area=XmlSemanticCompletion`
+through `eng/test-visualstudio.ps1`, separately from definition-shape checks.
+Lookup XML hints use the embedded authoritative XSD; project hints use embedded
+SDK rules. Keep discovery extension-local, preserve native XML/MSBuild command
+fallback and schema choices, and never change machine-wide schema catalogs.
+`Area=XmlCatalogCompletion` validates installed lookup/project hints without
+opening an XSD; `NativeSchemaBaseline` uses ordinary XML to test native tooling
+independently. Run these fixtures sequentially with other native/WPF suites.
+Milestone 12 default-playground acceptance uses `Area=DefaultSharedExample` and
+the real preparation script on edited isolated copies. Preserve shared membership
+and consumer-specific analyzer scopes; the shared container must have no analyzer
+or compiler pipeline. `Area=SharedExampleAcceptance` covers the focused playground;
+`Area=XmlCompletionPerformance` records first-use and 20 warm structural requests
+per XML surface with 1,000 alarms. Keep native 100 ms polling overhead explicit,
+use descriptive p50/p95 reports without latency thresholds, and validate stale
+insertion/cancellation separately. Never infer collectibility from process memory.
+Native XML completion fork acceptance uses
+`eng/test-alarm-collection-fork.ps1 -Designer -SkipConsumers
+-XmlCompletion` with both IDE paths. Run it sequentially with native fixtures in
+an idle experimental profile; it checks procedure-enabled/disabled definitions.
 [Milestone 11](src/VisualStudio/MILESTONE-11.md) plans fork-time generated alarm
 definitions across compiler, SDK and metadata-driven designer, including typed
 scalar expressions. The collection follow-up advances to analysis 7, analyzer 5
@@ -231,8 +258,9 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
 | `eng/tools/AlarmDefinitionGenerator/` | net8.0 build-time XML definition validation and deterministic compiler/host metadata generation; shared targets write only intermediate outputs. Its adjacent UnitTests project and `eng/test-alarm-definition-generation.ps1` cover generation and build lifecycle. |
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
-| `example/` | Persistent two-project designer playground opened by the launchers; `eng/prepare-example.ps1` prepares the SDK matching the built VSIX without replacing sample sources. |
+| `example/` | Default North/South designer playground with a native Shared Project for common ALMX/RESX/lookups, opened by the launchers; `eng/prepare-example.ps1` prepares matching SDK/analyzers without replacing sources, membership or solution files. `-ExampleRoot` supports isolated copies. |
 | `example/Libraries/` | Independent four-project library playground, including two consumers and transitive parameter/resource/lookup overrides; `eng/prepare-library-example.ps1` prepares its matching SDK without touching North/South. |
+| `example/SharedProjects/` | Native Shared Project with ALMX, saved translations/lookups and two consumers; `eng/prepare-shared-example.ps1` selects the matching SDK without replacing edited sources/projects. |
 | `template/` | Reference XML implementation/tests outside the current solution; active implementation lives in `src/`. |
 
 Read `src/SDK/Alarmlist.SDK/README.md` for SDK usage and
@@ -521,10 +549,36 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   linked/conditional items and output exclusions. Preview AlarmlistCulture is separate.
 - Lookup builds capture saved `AlarmlistLookup` items once with the same input batch.
   Default `**/*.almlookup` inclusion follows source exclusions; explicit, linked,
-  conditional and duplicate inputs retain their semantics. Protect lookup files
+  conditional inputs retain their semantics. Protect lookup files
   from output/manifest/exchange collisions. `AlarmlistLookupSchema` locates the
   packaged authoritative XSD. XLIFF protects named placeholder occurrences as well
   as parameter/lookup expressions, preserving text around leading inline codes.
+- [Milestone 12](src/VisualStudio/MILESTONE-12.md) iteration 5 normalizes evaluated
+  Compile/resource/lookup inputs at task and MSBuild snapshot boundaries. Keep
+  equivalent normalized absolute paths once per consumer in first evaluated order
+  using the platform path comparer; do not resolve filesystem links. Repeated
+  resources must agree on effective raw Culture (omitted infers the filename,
+  explicit empty stays empty). Library duplicates must also agree on portable
+  Link names; application Link is presentation only. Reject metadata conflicts
+  before output installation. Preserve compiler declaration diagnostics and raw
+  snapshot APIs. Shared imports use MSBuildThisFileDirectory for physical paths;
+  IDE capture evaluates saved imports without executing targets. XLIFF resource
+  capture uses the same identity policy. Matching rebuilt SDK/VSIX are required.
+- Milestone 12 iteration 6 uses the installed native C# Shared Project container
+  with SharedProjectAppliesTo=Alarmlist, not a new project factory. The dedicated
+  template imports only SDK tools/Alarmlist.Shared.targets for file rules and item
+  templates, using explicit Import Sdk/Version attributes. Do not import the
+  consumer build pipeline or add the Alarmlist analysis capability to .shproj.
+  Keep SharedProjectReferences/SharedImports on consumers. Shared files belong to
+  .projitems with MSBuildThisFileDirectory paths; native reference removal must
+  preserve them. Native Shared Project tooling is an IDE prerequisite only.
+  Consumer projections use the existing dependency-tree graft, evaluated
+  ProjectInstance.ImportPaths and DefiningProjectFullPath metadata. Preserve
+  conditions, hidden items, first physical membership and Link captions. Do not
+  enumerate source directories, enable unrelated Managed capabilities or execute
+  targets for browsing. Imported source nodes open physical shared files, while
+  consumer projection membership remains non-removable; use the owning shared
+  project for item changes and native reference management for imports.
 - Explicit ExportAlarmlistXliff reads saved resources and writes XLIFF 2.0 plus
   local baseline sidecars, independently of Build/Clean. Keep exact culture values,
   protected expressions, stable keys and baseline presence/comments. Validate all
@@ -574,8 +628,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   compiler project reference, or substitute another SDK on failure. Call bridge
   operations off the UI thread; owners must dispose on SDK/configuration changes
   and unload. `AlarmlistProjectAnalysis` owns the service through CPS dynamic-load
-  callbacks and the active evaluation source. Preserve evaluated Compile order and
-  duplicates, open-buffer precedence (including XML-only views), immediate stale
+  callbacks and the active evaluation source. Preserve evaluated Compile order,
+  open-buffer precedence (including XML-only views), immediate stale
   result invalidation, and generation/text/identity checks before publication.
   Shared VS buffers remain VS-owned; disposing analysis must not close them.
   Document observation must use weak ownership: waiting for TextDocumentDisposed
@@ -591,7 +645,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   are scoped to the project generation, so version equality alone is insufficient.
   Preserve linked project contexts and resource locations without retaining native
   resource-editor graphs. Resource capture must never save buffers or build output.
-- CPS also owns evaluated `AlarmlistLookup` order, duplicates and linked membership.
+- CPS also owns evaluated `AlarmlistLookup` order and linked membership.
   Capture saved lookup bytes only, watch regeneration/deletion, and compare captured
   text/path/order/version before publication, completion or navigation. Lookup drafts
   and close notifications must not expose unsealed changes. The bridge requires the
@@ -600,6 +654,16 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   templates in the IDE. Template completion inserts explicit empty named arguments;
   lookup/member/metadata completion inserts compiler-supplied expressions, with no
   automatic metadata defaults or range validation. Suppress ambiguous path choices.
+  Quoted argument text stays literal. Accepting completion for an empty argument
+  slot or a whole-slot expression draft replaces its enclosing quotes in both
+  designer and XML; never reinterpret tokens embedded in ordinary literal text
+  or suggest evaluated nested localization arguments. See milestone 12 iteration 9.
+  If a suggestion request is withdrawn during analysis refresh, consume its next
+  completion key once only while draft/caret/selection remain unchanged; never
+  turn interrupted acceptance into a source commit or bypass currentness checks.
+  Route native explicit completion commands to the focused editable designer
+  expression field; forwarding them to the hidden XML command target loses the
+  designer request. XML focus retains the normal native XML command route.
 - Designer semantics flow through per-view `IDesignerAnalysis` and the VS adapter.
   Embedded XML keyboard editing inherits native text-editor bindings only while
   the source view has aggregate focus; designer controls retain WPF draft editing.
@@ -613,7 +677,24 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   writer and also provides a window selector when no editor is open. Never retain
   an editor globally for toolbar state. Leaving the designer for shell
   controls preserves drafts; explicit commits and intra-designer focus changes still
-  apply. Localization completion uses
+  apply. Milestone 12 iteration 7 also preserves drafts across consumer selection
+  and Designer/Split/XML mode changes; these presentation actions never commit.
+  Keep the consumer selector's PreserveDraft focus behavior, including its child
+  controls. Enter/Save and ordinary field-to-field commits retain their contracts.
+  Consumer selection belongs to the physical text document, shared across its
+  designer and native XML views through a weak document key. A known opening
+  consumer supplies the initial choice; enumeration order never does. Removing
+  membership or unloading a selected consumer requires a new choice. Failed
+  evaluation retains known ownership while blocking semantic actions. Keep
+  project/import byte guards and recovery watches through missing imports;
+  request authoritative CPS reevaluation without targets or source saves. Leave
+  disk reloads and XML cache ownership to CPS; ProjectRootElement.Reload itself
+  marks XML dirty and must not be used to refresh live project imports.
+  Freshness reads must share read/write/delete access. Seed private watch-hint
+  evaluations from captured XML roots rather than MSBuild's writer-denying disk
+  loader. Queue fallback reevaluation past native UI transactions and stamp it
+  with the requesting analysis state; discard it when CPS has already advanced.
+  Localization completion uses
   SDK catalogue/provenance, revalidates saved inputs before display and insertion,
   and discards late results after editing, focus or context changes. Navigate RESX
   diagnostics through the XML editor without saving pending resource edits.

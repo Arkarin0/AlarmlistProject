@@ -1,0 +1,8 @@
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Shared.PumpReady</FullyQualifiedName>
+    <Name>$(Site): $(loc:Ready)</Name>
+    <Code>001</Code>
+    <Description>$(list:Devices#Ready)</Description>
+  </Alarm>
+</Alarmlist>

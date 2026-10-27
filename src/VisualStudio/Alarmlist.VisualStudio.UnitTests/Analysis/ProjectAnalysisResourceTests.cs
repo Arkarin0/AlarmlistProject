@@ -34,10 +34,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 root.FullPath = Path.Combine(directory.Path, "Plant.almproj");
                 var instance = new ProjectInstance(root, null, null, projects);
                 AnalysisProject snapshot = AlarmlistProjectSnapshot.Capture(instance, root.FullPath, "Release|AnyCPU");
-                Assert.Equal(new[] { "Z.en.resx", "A.resx", "Z.en.resx", "Dotted.Catalogue.resx", "Shared.resx", "Release.en.resx" },
+                Assert.Equal(new[] { "Z.en.resx", "A.resx", "Dotted.Catalogue.resx", "Shared.resx", "Release.en.resx" },
                     snapshot.Resources.Select(resource => Path.GetFileName(resource.FilePath)));
-                Assert.Equal(new[] { null, null, null, "", "de", null }, snapshot.Resources.Select(resource => resource.Culture));
-                Assert.Equal(Path.GetFullPath(Path.Combine(directory.Path, "../Shared.resx")), snapshot.Resources[4].FilePath);
+                Assert.Equal(new[] { null, null, "", "de", null }, snapshot.Resources.Select(resource => resource.Culture));
+                Assert.Equal(Path.GetFullPath(Path.Combine(directory.Path, "../Shared.resx")), snapshot.Resources[3].FilePath);
                 Assert.Equal("de-DE", snapshot.Context.Culture);
                 Assert.Equal("en;keyword", snapshot.BuildCultures);
                 Assert.False(snapshot.IsPreviewCultureGlobal);

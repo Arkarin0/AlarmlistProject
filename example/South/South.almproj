@@ -8,11 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <AlarmlistProperty Include="par1" Value="002" />
-    <AlarmlistResource Include="../Shared/Translations.*.resx">
-      <Link>Shared/%(Filename)%(Extension)</Link>
-    </AlarmlistResource>
-    <Compile Include="../Shared/PressureLow.almx">
-      <Link>PressureLow.almx</Link>
-    </Compile>
   </ItemGroup>
+  <Import Project="../Shared/Shared.projitems" Label="Shared" />
 </Project>

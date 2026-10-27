@@ -1,0 +1,8 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup><MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects><HasSharedItems>true</HasSharedItems><SharedGUID>{1945E4A7-6680-4955-98A8-10948D97AA03}</SharedGUID></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Alarms.almx"><Link Condition="'$(IsCodeSharingProject)' != 'true'">Shared/%(Filename)%(Extension)</Link></Compile>
+    <AlarmlistResource Include="$(MSBuildThisFileDirectory)Translations.*.resx"><Link Condition="'$(IsCodeSharingProject)' != 'true'">Shared/%(Filename)%(Extension)</Link></AlarmlistResource>
+    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)Devices.almlookup"><Link Condition="'$(IsCodeSharingProject)' != 'true'">Shared/%(Filename)%(Extension)</Link></AlarmlistLookup>
+  </ItemGroup>
+</Project>

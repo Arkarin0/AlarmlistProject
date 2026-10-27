@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Alarmlist Shared Project</Name>
+    <Description>Share ALMX, translations and lookup sources between Alarmlist consumers. Requires native Visual Studio Shared Project tooling and the Alarmlist SDK feed.</Description>
+    <ProjectType>CSharp</ProjectType>
+    <TemplateID>Alarmlist.SharedProject</TemplateID>
+    <DefaultName>AlarmlistShared</DefaultName>
+    <ProvideDefaultName>true</ProvideDefaultName>
+    <CreateNewFolder>true</CreateNewFolder>
+    <CreateInPlace>true</CreateInPlace>
+    <SortOrder>120</SortOrder>
+    <LanguageTag>Alarmlist</LanguageTag>
+    <PlatformTag>Windows</PlatformTag>
+    <ProjectTypeTag>Alarmlist</ProjectTypeTag>
+  </TemplateData>
+  <TemplateContent>
+    <Project File="AlarmlistShared.shproj" ReplaceParameters="true" TargetFileName="$safeprojectname$.shproj">
+      <ProjectItem ReplaceParameters="true" TargetFileName="$safeprojectname$.projitems">AlarmlistShared.projitems</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="Alarms.almx">Alarms.almx</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="Translations.en.resx">Translations.en.resx</ProjectItem>
+      <ProjectItem ReplaceParameters="true" TargetFileName="Devices.almlookup">Devices.almlookup</ProjectItem>
+    </Project>
+  </TemplateContent>
+</VSTemplate>

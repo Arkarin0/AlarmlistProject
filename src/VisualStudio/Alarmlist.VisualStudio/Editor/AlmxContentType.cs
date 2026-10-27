@@ -11,5 +11,11 @@ namespace Alarmlist.VisualStudio.Editor
         [FileExtension(".almx")]
         [ContentType("XML")]
         internal static FileExtensionToContentTypeDefinition s_almxFileExtension;
+
+        [Export, FileExtension(".almlookup"), ContentType("XML")]
+        internal static FileExtensionToContentTypeDefinition s_lookupFileExtension;
+
+        [Export, FileExtension(".almproj"), ContentType("XML")]
+        internal static FileExtensionToContentTypeDefinition s_projectFileExtension;
     }
 }

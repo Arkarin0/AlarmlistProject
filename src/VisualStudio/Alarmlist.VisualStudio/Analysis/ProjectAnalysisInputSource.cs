@@ -29,6 +29,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private string[] _documentPaths = Array.Empty<string>();
         private string[] _dependencyPaths = Array.Empty<string>();
         private AnalysisDiscoveryGlob[] _dependencyGlobs = Array.Empty<AnalysisDiscoveryGlob>();
+        private AnalysisDiscoveryGlob[] _evaluationGlobs = Array.Empty<AnalysisDiscoveryGlob>();
         private AnalysisProject _watchedProject;
         private bool _disposed;
         private bool _restartWatchers;
@@ -47,11 +48,13 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (!ReferenceEquals(project, _watchedProject))
                 { _dependencyPaths = Array.Empty<string>(); _dependencyGlobs = Array.Empty<AnalysisDiscoveryGlob>(); }
                 _watchedProject = project;
+                _evaluationGlobs = project?.Evaluation?.Globs.ToArray() ?? Array.Empty<AnalysisDiscoveryGlob>();
             }
             string[] inputPaths = project == null ? Array.Empty<string>() : project.Inputs
                 .Concat(project.Resources.Select(resource => resource.FilePath))
                 .Concat(project.Lookups)
                 .Concat(project.Analyzers)
+                .Concat(project.Evaluation?.Paths ?? Array.Empty<string>())
                 .Concat(_dependencyPaths.Where(path => !string.Equals(Path.GetFileName(path), ".editorconfig", StringComparison.OrdinalIgnoreCase)))
                 .Concat(string.IsNullOrWhiteSpace(project.CompilerPath) ? Array.Empty<string>() : new[] { project.CompilerPath })
                 .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
@@ -61,7 +64,8 @@ namespace Alarmlist.VisualStudio.Analysis
                     .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             // A synthetic child lets ExistingParent select the glob's fixed directory
             // or its nearest existing ancestor while that directory is absent.
-            string[] discoveryPaths = _dependencyGlobs.SelectMany(glob => glob.Directories)
+            var discoveryGlobs = _dependencyGlobs.Concat(_evaluationGlobs).ToArray();
+            string[] discoveryPaths = discoveryGlobs.SelectMany(glob => glob.Directories)
                 .Select(directory => Path.Combine(directory, ".alarmlist-discovery-watch")).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             string[] paths = inputPaths.Concat(configurationPaths).Concat(discoveryPaths).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
             lock (_lifecycleGate)
@@ -85,7 +89,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 {
                     var directories = inputPaths.Select(path => (Directory: ExistingParent(path), Recursive: true, Filter: "*"))
                         .Concat(configurationPaths.Select(path => (Directory: ExistingParent(path), Recursive: false, Filter: ".editorconfig")))
-                        .Concat(_dependencyGlobs.SelectMany(glob => glob.Directories.Select(directory =>
+                        .Concat(discoveryGlobs.SelectMany(glob => glob.Directories.Select(directory =>
                             (Directory: ExistingParent(Path.Combine(directory, ".alarmlist-discovery-watch")),
                              Recursive: glob.Recursive || !Directory.Exists(directory), Filter: "*")))).Distinct();
                     foreach (var directory in directories)
@@ -242,7 +246,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private void NotifyDisk(string path)
         {
             AnalysisDiscoveryGlob[] globs;
-            lock (_gate) { if (_disposed) return; globs = _dependencyGlobs; }
+            lock (_gate) { if (_disposed) return; globs = _dependencyGlobs.Concat(_evaluationGlobs).ToArray(); }
             if (globs.Any(glob => glob.Matches(path) || (Directory.Exists(path) && glob.IntersectsDirectory(path)))) Notify(null);
             else Notify(path);
         }
@@ -289,6 +293,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     _documentPaths = Array.Empty<string>();
                     _dependencyPaths = Array.Empty<string>();
                     _dependencyGlobs = Array.Empty<AnalysisDiscoveryGlob>();
+                    _evaluationGlobs = Array.Empty<AnalysisDiscoveryGlob>();
                     _watchedProject = null;
                 }
                 _documents.Changed -= OnDocumentChanged;

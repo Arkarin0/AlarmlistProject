@@ -271,29 +271,25 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
-        public void ConflictInDesignerModeStillAllowsShowingXmlForRepair()
+        public void APrivateDraftDoesNotBlockShowingXmlForRepair()
         {
             var settings = new TestSettings();
             settings.Write("Mode", "Designer");
-            var layout = new EditorLayoutViewModel(settings, () => false, false);
+            var layout = new EditorLayoutViewModel(settings, false);
             layout.SetMode(EditorMode.XML);
-            Assert.Equal(EditorMode.Split, layout.Mode);
+            Assert.Equal(EditorMode.XML, layout.Mode);
         }
 
         [Fact]
-        public void LayoutChangesPersistWithoutChangingDocumentAndCommitCanBlockSwitch()
+        public void LayoutChangesPersistWithoutChangingDocument()
         {
             var settings = new TestSettings();
-            bool canCommit = false;
-            var layout = new EditorLayoutViewModel(settings, () => canCommit, false);
-            layout.SetMode(EditorMode.XML);
-            Assert.Equal(EditorMode.Split, layout.Mode);
-            canCommit = true;
+            var layout = new EditorLayoutViewModel(settings, false);
             layout.SetMode(EditorMode.XML);
             layout.SideBySide = true;
             layout.Swapped = true;
             layout.Proportion = 0.65;
-            var restored = new EditorLayoutViewModel(settings, () => true, false);
+            var restored = new EditorLayoutViewModel(settings, false);
             Assert.Equal(EditorMode.XML, restored.Mode);
             Assert.True(restored.SideBySide);
             Assert.True(restored.Swapped);

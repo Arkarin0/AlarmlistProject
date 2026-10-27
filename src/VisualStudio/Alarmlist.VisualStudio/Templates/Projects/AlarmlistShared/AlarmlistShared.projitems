@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>$guid1$</SharedGUID>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Alarms.almx">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">$safeprojectname$/%(Filename)%(Extension)</Link>
+    </Compile>
+    <AlarmlistResource Include="$(MSBuildThisFileDirectory)Translations.en.resx">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">$safeprojectname$/%(Filename)%(Extension)</Link>
+    </AlarmlistResource>
+    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)Devices.almlookup">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">$safeprojectname$/%(Filename)%(Extension)</Link>
+    </AlarmlistLookup>
+  </ItemGroup>
+</Project>

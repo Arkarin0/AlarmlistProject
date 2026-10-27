@@ -234,6 +234,8 @@
       <TextBlock Grid.Column="1" Text="{Binding ProjectContextLabel}" ToolTip="{Binding SelectedProjectPath}" TextWrapping="Wrap" VerticalAlignment="Center"
                  Visibility="{Binding HasSingleProjectContext, Converter={StaticResource Visibility}}" AutomationProperties.Name="Current project context" />
       <ComboBox x:Name="ProjectContextSelector" Grid.Column="1" ItemsSource="{Binding Projects}" SelectedValuePath="ProjectPath" SelectedValue="{Binding SelectedProjectPath}"
+                Tag="PreserveDraft"
+                Style="{DynamicResource {x:Static shell:VsResourceKeys.ComboBoxStyleKey}}"
                 Visibility="{Binding HasMultipleProjects, Converter={StaticResource Visibility}}" ToolTip="Choose which project supplies analysis for this linked file."
                 AutomationProperties.Name="Analysis project context">
         <ComboBox.ItemContainerStyle><Style TargetType="ComboBoxItem">
