@@ -26,6 +26,116 @@ syntax, open questions and statements about future work in that history.
 | Custom procedure groups and creation defaults | Implemented | [Milestone 8](src/VisualStudio/MILESTONE-8.md) |
 | IntelliSense | Designer and scoped ALMX/lookup/project XML completion implemented and validated | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
 | External alarm-definition generation | Implemented for supported scalars and collections | [Milestone 11](src/VisualStudio/MILESTONE-11.md) |
+| Explain this value | Proposed; high priority; unassigned | Proposal below |
+| Find All References and safe Rename | Proposed; high priority; unassigned | Proposal below |
+| Semantic comparison and Git integration | Proposed; high priority; unassigned | Proposal below |
+| Export-provider interface | Proposed; high priority; unassigned | Proposal below |
+| Change-impact analysis | Proposed; unassigned | Proposal below |
+| Analyzer quick fixes | Proposed; unassigned | Proposal below |
+| Localization coverage dashboard | Proposed; unassigned | Proposal below |
+| Alarm unit-style tests | Proposed; unassigned | Proposal below |
+| Bulk editing | Proposed; unassigned | Proposal below |
+
+## Priorities and scope
+
+Priority decision (2026-10-27): Explain this value, Find All References and safe
+Rename, semantic comparison with Git integration, and the export-provider
+interface have equal high priority. Their implementation order is undecided.
+The other new proposals below have no assigned priority or milestone.
+
+Printable alarm documentation belongs to another project and is outside this
+backlog. The export-provider proposal does not include printable documentation.
+
+## Explain this value
+
+Proposed on 2026-10-27; high priority; no milestone assigned.
+
+Provide a navigable explanation of how a field obtains its resolved value:
+inherited source, local overrides, parameter assignments, translation fallback
+and the final result. Reuse compiler-owned provenance and resolution results;
+let users navigate to the contributing sources. Presentation and handling of
+unavailable or invalid values remain to be defined during milestone planning.
+
+## Find All References and safe Rename
+
+Proposed on 2026-10-27; high priority; no milestone assigned.
+
+Discover usages of alarms, parameters, localization keys, lookup entries and
+procedure groups. Preview coordinated rename changes across editable project
+and shared sources, and identify references in read-only packages. Define the
+search boundary, identity rules and conflict handling during milestone planning.
+
+## Semantic comparison and Git integration
+
+Proposed on 2026-10-27; high priority; no milestone assigned.
+
+Compare alarm identities and resolved fields, translations and procedures across
+builds or revisions without XML-formatting noise. Make changes caused by shared
+templates, parameters or resources visible in the resulting alarms.
+
+The milestone containing this feature must also include Git-aware diff,
+revision comparison, three-way merge and conflict-resolution workflows.
+Define source-versus-resolved comparison, culture/toolset context and the exact
+Git/editor integration during milestone planning. Comparison and merge need
+distinct behavior: resolved differences explain effects, while merge operations
+must preserve authored source expressions and expose conflicts for review.
+
+## Export-provider interface
+
+Proposed on 2026-10-27; high priority; no milestone assigned.
+
+Provide an extensible interface for output generation from compiler-resolved
+data, without duplicating expression or localization evaluation. CSV, JSON and
+HMI-specific import formats are possible providers. Provider contracts,
+distribution, selection, configuration and failure handling remain open for
+milestone planning. Printable alarm documentation remains outside this project.
+
+## Change-impact analysis
+
+Proposed on 2026-10-27; no milestone assigned.
+
+Identify alarms and known consumer projects affected by changes to shared
+templates, parameters, translations or other shared inputs. Show the affected
+sources and resolved values where available. Define discovery boundaries and
+how unavailable consumers are reported; do not imply coverage of unknown users
+of a published library.
+
+## Analyzer quick fixes
+
+Proposed on 2026-10-27; no milestone assigned.
+
+Allow alarm analyzers to offer previewable corrections alongside diagnostics,
+including a scoped "Fix all" action. Define the edit contract, supported scopes,
+conflict/stale-input handling and Undo behavior during milestone planning.
+
+## Localization coverage dashboard
+
+Proposed on 2026-10-27; no milestone assigned.
+
+Show missing keys, translations obtained only through fallback, and potentially
+unused entries by culture. Navigate to resources and affected alarms. Reuse
+compiler-owned lookup results and distinguish potentially unused entries from
+proven unused entries within a defined project/dependency scope.
+
+## Alarm unit-style tests
+
+Proposed on 2026-10-27; no milestone assigned.
+
+Provide unit-style tests for alarm definitions and reusable libraries. Supply
+source/library inputs, parameters and cultures, then assert resolved values or
+expected diagnostics. For example, verify a translated field's final text or
+the error produced by a missing required parameter. Support automated regression
+checks in CI. These tests cover compilation semantics, not PLC runtime behavior;
+the test format, runner and IDE integration remain open.
+
+## Bulk editing
+
+Proposed on 2026-10-27; no milestone assigned.
+
+Preview and apply common changes across selected alarms. Explicitly distinguish
+editing a shared base from creating local overrides, preserve expressions and
+support Undo. Selection scopes, supported operations and handling of conflicting
+or read-only inputs remain to be defined during milestone planning.
 
 ## Historical implementation and planning updates
 
