@@ -2,9 +2,13 @@
 [$RootKey$\Editors\{FA3CD31E-987B-443A-9B81-186104E8DAC1}\Extensions]
 "almx"=dword:00000028
 "almlookup"=dword:00000028
+"almproj"=dword:00000028
 
 [$RootKey$\Languages\File Extensions\.almx]
 @="{F6819A78-A205-47B5-BE1C-675B3C7F0B8E}"
 
 [$RootKey$\Languages\File Extensions\.almlookup]
+@="{F6819A78-A205-47B5-BE1C-675B3C7F0B8E}"
+
+[$RootKey$\Languages\File Extensions\.almproj]
 @="{F6819A78-A205-47B5-BE1C-675B3C7F0B8E}"

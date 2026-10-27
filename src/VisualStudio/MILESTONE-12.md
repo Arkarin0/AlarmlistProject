@@ -1,7 +1,7 @@
 # Milestone twelve: XML IntelliSense and native Shared Projects
 
-Status: implementation authorized on 2026-10-27; iterations 1–3 complete.
-Iterations 4–8 remain to be implemented and validated.
+Status: implementation authorized on 2026-10-27; iterations 1–4 complete.
+Iterations 5–8 remain to be implemented and validated.
 The owner confirmed the scope and recommended defaults and activated the goal
 on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
 check usage throughout and stop before crossing that threshold. Do not merge or
@@ -597,3 +597,74 @@ Validation so far:
 No remaining scoped iteration-3 blocker. Automatic lookup/project XML completion
 and native Shared Project production support remain iterations 4–8. Existing
 manual/vendor/release gates are unchanged. Latest allowance: 63% remaining.
+
+### Iteration 4 — completed lookup and project XML completion
+
+Lookup hints are read from the authoritative XSD embedded into the extension and
+also shipped as `Schemas/AlarmlistLookup.xsd`. XML namespace bindings select its
+element/attribute model, including prefixed lookup documents. Literal catalogue
+values do not receive expression suggestions. Schema loading prohibits DTDs and
+external resolution and reads no project content. Compiler validation remains
+authoritative; this adds completion, not a diagnostic engine.
+
+Project hints read embedded SDK CPS rules for public project settings, input
+items and editable metadata, with documented build-setting additions. Namespace-
+free `.almproj` files get common structural MSBuild hints; default MSBuild namespace
+documents retain native general structure commands and get SDK-specific hints.
+Unmatched SDK prefixes fall through to native XML/MSBuild completion. Prefixed
+MSBuild documents remain with native namespace tooling. No project evaluation,
+target execution, restore or path enumeration occurs when requesting hints.
+
+The extension-local candidate approach follows iteration 1's accepted discovery
+direction. Microsoft's [schema-cache documentation](https://learn.microsoft.com/en-us/visualstudio/xml-tools/schema-cache?view=visualstudio)
+describes machine-wide catalog installation; this implementation leaves those
+catalogs and authored schema markers alone. Common MSBuild contexts follow the
+[MSBuild XML reference](https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-project-file-schema-reference).
+The ordinary XML editor, native validation and user schema choices remain in place.
+
+Initial focused suite: **56 passed**. Final full suite passed **784**, including
+**59** catalog cases with prefix declarations, nested extension-payload exclusion
+and deterministic ordering coverage. No failures/skips.
+Build passed with zero warnings/errors. The VSIX contains the linked schema at
+the expected path. Native probes verify no schema needs to be opened first and
+compare native MSBuild Undo behavior with ordinary `.csproj` editing.
+
+Native validation evidence:
+
+- Final completion selection passed **8 per host**, no failures/skips, with
+  `Area=XmlCatalogCompletion|Area=XmlCompletion|Area=XmlSemanticCompletion|FullyQualifiedName~LanguageAndSavedCompletion`
+  through `eng/test-visualstudio.ps1`. TRX directories:
+  `79fe9dc24aff4c8e9e0c4cc6ec0a467e` (VS2022) and
+  `c63a2a2cdbaa42be9cddad875dceecc5` (VS2026).
+- The catalog case covers fourteen edit/cancel/Undo probes per host: lookup
+  default/prefixed namespaces and namespace declarations, schema attributes,
+  namespace-free project structure, SDK settings/items/metadata/enum values,
+  shared-import labels and native MSBuild structure in `.almproj`/`.csproj`.
+  Extension insertions undo exactly once; native insertions retain their existing
+  two Undo units on both file types and hosts. Source files remain unsaved.
+- Independent native-schema regression was moved to ordinary `.xml`, preventing
+  the lookup provider from satisfying it. Final reruns passed **1 per host**:
+  `4ad2dcad54044bb5819883266e1b5cc7` (VS2022),
+  `8fe2ebcb43484ffeb9d6c5f8a1074baa` (VS2026).
+- The deployment fixture verifies all installed VSIX payload bytes, including the
+  linked schema, before running the owned IDE. No global schema cache was changed.
+- Exploratory failures exposed candidate-order dependence and a native Undo
+  assumption; stable ordering and comparison with ordinary MSBuild corrected the
+  probes. A broader run exposed cancellation from unchanged selected-context
+  notifications during startup. The service now ignores those notifications;
+  real selected-state changes and saved-input validation still cancel stale work.
+  The semantic fixture builds its valid project before editing, and both final
+  hosts pass buffer/resource stale rejection and context switches. Failed reports
+  are retained separately and are not counted as successful selections.
+
+- Full unit command: `dotnet test src/VisualStudio/Alarmlist.VisualStudio.UnitTests/Alarmlist.VisualStudio.UnitTests.csproj --no-restore -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration4/Unit`.
+- Packaged extension/SDK consumer checks passed **13 per framework**, net472 and
+  net8.0, no failures/skips. The package test compares VSIX and SDK lookup schemas
+  exactly; embedded SDK rule hints are checked against authoritative rule assets
+  in the unit suite. Command: `dotnet test src/VisualStudio/Alarmlist.VisualStudio.IntegrationTests/Alarmlist.VisualStudio.IntegrationTests.csproj --no-restore -v quiet --logger trx --results-directory artifacts/log/Debug/Milestone12/Iteration4/Package`.
+- Documentation, links, paths and diff review passed. Native/WPF suites were
+  sequential. No compiler/SDK contracts or runtime build behavior changed.
+
+No remaining scoped iteration-4 blocker. Native Shared Project production work
+and combined acceptance remain iterations 5–8. Existing manual/vendor/release
+gates remain unchanged. Latest allowance: 60% remaining, above the 15% reserve.

@@ -76,6 +76,12 @@ multiple owners. Validate current saved inputs before displaying or inserting
 semantic candidates, and keep request snapshot/caret/selection stamps through
 asynchronous insertion. Native semantic acceptance uses `Area=XmlSemanticCompletion`
 through `eng/test-visualstudio.ps1`, separately from definition-shape checks.
+Lookup XML hints use the embedded authoritative XSD; project hints use embedded
+SDK rules. Keep discovery extension-local, preserve native XML/MSBuild command
+fallback and schema choices, and never change machine-wide schema catalogs.
+`Area=XmlCatalogCompletion` validates installed lookup/project hints without
+opening an XSD; `NativeSchemaBaseline` uses ordinary XML to test native tooling
+independently. Run these fixtures sequentially with other native/WPF suites.
 Native XML completion fork acceptance uses
 `eng/test-alarm-collection-fork.ps1 -Designer -SkipConsumers
 -XmlCompletion` with both IDE paths. Run it sequentially with native fixtures in

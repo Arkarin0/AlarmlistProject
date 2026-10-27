@@ -54,6 +54,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             const string original = "<Alarmlist><Alarm><FullyQualifiedName>Current</FullyQualifiedName><Name>literal</Name></Alarm><Alarm><FullyQualifiedName>Template</FullyQualifiedName><Name>Template caption</Name></Alarm></Alarmlist>";
             File.WriteAllText(workspace.AlarmPath, original);
             VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
+            workspace.Build(ide, 2);
             using var automation = new UIA3Automation();
             var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             foreach (bool standalone in new[] { false, true })
@@ -332,14 +333,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         private static void CheckNativeSchemas(VisualStudioSession ide, UiTestWorkspace workspace)
         {
             string schema = Path.Combine(AppContext.BaseDirectory, "testassets", "AlarmlistLookup.xsd");
-            // Native XML indexes open schemas. This feasibility baseline does not
-            // claim automatic deployed lookup association (iteration 4).
+            // Keep the native schema regression on ordinary XML so extension-
+            // local .almlookup hints cannot satisfy this independent baseline.
             ide.Automation.ItemOperations.OpenFile(schema);
             using var automation = new UIA3Automation();
             var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             foreach (var probe in new[]
             {
-                (File: "Probe.almlookup", Text: "<Lookup xmlns=\"urn:alarmlist:lookup:1\">\r\n  <Pa", Completion: "Path"),
+                (File: "Probe.xml", Text: "<Lookup xmlns=\"urn:alarmlist:lookup:1\">\r\n  <Pa", Completion: "Path"),
                 (File: "Probe.almproj", Text: "<Project xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">\r\n  <Prop", Completion: "PropertyGroup")
             })
             {
@@ -359,7 +360,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             }
         }
 
-        private static void RequireXmlInput(VisualStudioSession ide, Window window, string path)
+        internal static void RequireXmlInput(VisualStudioSession ide, Window window, string path)
         {
             ide.RequireForeground();
             Assert.Equal(Path.GetFullPath(path), Path.GetFullPath(ide.Automation.ActiveDocument.FullName), ignoreCase: true);

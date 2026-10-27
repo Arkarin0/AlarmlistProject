@@ -162,6 +162,7 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                     Assert.Equal(version, metadata.Element(ns + "version").Value);
                     Assert.NotNull(package.GetEntry("tasks/net472/Alarmlist.Core.dll"));
                     Assert.NotNull(package.GetEntry("tasks/net8.0/Alarmlist.Core.dll"));
+                    Assert.Equal(Read(package.GetEntry("tools/Schemas/AlarmlistLookup.xsd")), Read(vsix.GetEntry("Schemas/AlarmlistLookup.xsd")));
                 }
             }
         }

@@ -37,8 +37,22 @@ offer declared names. Identity fields and parameter assignment values remain
 literal. Semantic suggestions follow the designer's selected project context;
 standalone XML uses its sole owning project. Saved resources/lookups are checked
 before display and insertion, while ALMX changes use current buffers. Changing
-the source, context or saved inputs rejects an old insertion. Automatic lookup and
-project XML completion follow in a later iteration. Shared Project probes are isolated tests;
+the source, context or saved inputs rejects an old insertion.
+
+Lookup XML completion loads the authoritative schema shipped with the extension.
+Use `urn:alarmlist:lookup:1`, either as the default namespace or through a prefix.
+Elements, attributes, closing names and the root namespace declaration are offered
+without opening an XSD first. Lookup values, labels, keys and metadata remain
+literal. This does not change native XML validation or global schema catalogs.
+
+Project XML completion offers SDK settings, input items and editable metadata,
+including boolean/enum values, resource `Culture`, parameter `Value`, reference
+metadata and shared-import attributes/`Label="Shared"`. Namespace-free `.almproj`
+files also receive common MSBuild structural hints. Default MSBuild namespace
+documents retain native general structure commands; prefixed MSBuild XML remains
+with native namespace tooling. Unmatched typed names pass through to native XML
+completion. Property values, conditions and file paths are not evaluated by these
+hints. User-selected native schemas remain unchanged. Shared Project probes are isolated tests;
 the production SDK/templates do not yet advertise native Shared Project support.
 
 The [milestone-three plan](MILESTONE-3.md) covers project-wide reference analysis,

@@ -43,12 +43,15 @@ namespace Alarmlist.VisualStudio.Editor
             => buffer.Properties.TryGetProperty(typeof(ITextDocument), out ITextDocument document)
                 && string.Equals(Path.GetExtension(document.FilePath), ".almx", StringComparison.OrdinalIgnoreCase);
 
+        private static string Extension(ITextBuffer buffer)
+            => buffer.Properties.TryGetProperty(typeof(ITextDocument), out ITextDocument document) ? (Path.GetExtension(document.FilePath) ?? "").ToLowerInvariant() : "";
+
         internal static bool CanRequest(ITextView view, bool explicitInvocation)
         {
-            if (view.IsClosed || view.Selection.Mode == TextSelectionMode.Box || !IsAlmx(view.TextBuffer)) return false;
+            if (view.IsClosed || view.Selection.Mode == TextSelectionMode.Box) return false;
             int caret = view.Caret.Position.BufferPosition.Position;
             if (TryGetCompletions(view.TextBuffer, caret, out _, out _)) return true;
-            if (view.TextBuffer.IsReadOnly(caret)) return false;
+            if (!IsAlmx(view.TextBuffer) || view.TextBuffer.IsReadOnly(caret)) return false;
             var selection = view.Selection.StreamSelectionSpan.SnapshotSpan;
             return XmlExpressionCompletion.Request(view.TextBuffer.CurrentSnapshot.GetText(), caret,
                 selection.Start.Position, selection.Length, explicitInvocation) != null;
@@ -58,11 +61,20 @@ namespace Alarmlist.VisualStudio.Editor
             out IReadOnlyList<XmlCompletionCandidate> candidates)
         {
             edit = null; candidates = Array.Empty<XmlCompletionCandidate>();
-            if (!IsAlmx(buffer)) return false;
+            string extension = Extension(buffer);
+            if (extension != ".almx" && extension != ".almlookup" && extension != ".almproj") return false;
             string text = buffer.CurrentSnapshot.GetText();
             edit = XmlCompletionContext.Find(text, caret);
             if (edit == null || buffer.IsReadOnly(new Span(edit.Start, edit.Length))) return false;
-            candidates = AlmxXmlGrammar.Complete(text, edit);
+            candidates = extension == ".almx" ? AlmxXmlGrammar.Complete(text, edit)
+                : extension == ".almlookup" ? LookupXmlCompletion.Complete(text, edit) : ProjectXmlCompletion.Complete(text, edit);
+            // A project hint must not consume a request for another MSBuild
+            // construct. Let the native XML/MSBuild command chain handle it.
+            if (extension == ".almproj")
+            {
+                string prefix = text.Substring(edit.Start, Math.Max(0, caret - edit.Start));
+                if (prefix.Length != 0 && !candidates.Any(item => item.Label.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))) return false;
+            }
             return candidates.Count != 0;
         }
 
@@ -71,12 +83,12 @@ namespace Alarmlist.VisualStudio.Editor
             ThreadHelper.ThrowIfNotOnUIThread();
             ITextSnapshot snapshot = _buffer.CurrentSnapshot;
             SnapshotPoint? point = session.GetTriggerPoint(snapshot);
-            if (!point.HasValue || !IsAlmx(_buffer) || session.TextView.Selection.Mode == TextSelectionMode.Box || _buffer.IsReadOnly(point.Value.Position)) return;
+            if (!point.HasValue || session.TextView.Selection.Mode == TextSelectionMode.Box || _buffer.IsReadOnly(point.Value.Position)) return;
             bool structural = TryGetCompletions(_buffer, point.Value.Position, out XmlCompletionEdit edit, out var candidates);
             bool explicitInvocation = session.Properties.TryGetProperty(typeof(AlmxXmlCompletionListener), out bool explicitValue) && explicitValue;
             var selection = session.TextView.Selection.StreamSelectionSpan.SnapshotSpan;
-            XmlExpressionRequest request = XmlExpressionCompletion.Request(snapshot.GetText(), point.Value.Position,
-                selection.Start.Position, selection.Length, explicitInvocation);
+            XmlExpressionRequest request = IsAlmx(_buffer) ? XmlExpressionCompletion.Request(snapshot.GetText(), point.Value.Position,
+                selection.Start.Position, selection.Length, explicitInvocation) : null;
             if (request != null && !structural)
             {
                 XmlSemanticCompletion context = XmlSemanticCompletion.Get(session.TextView, _buffer, _analysis);

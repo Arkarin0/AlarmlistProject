@@ -38,6 +38,7 @@ namespace Alarmlist.VisualStudio.Editor
         private IDesignerAnalysis _analysis;
         private IDesignerAnalysis _owned;
         private ProjectAnalysisState _validated;
+        private ProjectAnalysisState _observedState;
         private ITextSnapshot _validatedSnapshot;
         private CancellationTokenSource _validation;
         private CancellationTokenSource _commit;
@@ -70,6 +71,7 @@ namespace Alarmlist.VisualStudio.Editor
             if (_analysis != null) _analysis.Changed -= OnAnalysisChanged;
             if (_owned != null && !ReferenceEquals(current, _owned)) { _owned.Dispose(); _owned = null; }
             _analysis = current; _analysis.Changed += OnAnalysisChanged;
+            _observedState = null;
         }
 
         public XmlSemanticBatch GetCandidates(XmlExpressionRequest request, ITextSnapshot snapshot, ICompletionSession session)
@@ -79,6 +81,7 @@ namespace Alarmlist.VisualStudio.Editor
             BindContext();
             AttachSession(session);
             ProjectAnalysisState state = _analysis.Current;
+            _observedState = state;
             if (state == null) return null;
             if (state.Status != ProjectAnalysisStatus.Available || state.Response?.Snapshot == null)
                 return state.Status == ProjectAnalysisStatus.Pending ? Pending(request, "Waiting for project analysis") : null;
@@ -236,6 +239,11 @@ namespace Alarmlist.VisualStudio.Editor
                 {
                     await _work.SwitchToMainThreadAsync(_lifetime.Token);
                     if (_disposed) return;
+                    ProjectAnalysisState current = _analysis?.Current;
+                    // Registry notifications also cover other consumers and
+                    // projects. They must not cancel this unchanged context.
+                    if (ReferenceEquals(current, _observedState)) return;
+                    _observedState = current;
                     Invalidate(); RefreshSession();
                 }
                 catch (OperationCanceledException) { }
