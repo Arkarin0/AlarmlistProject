@@ -1,0 +1,3 @@
+<Project>
+  <Target Name="Build"><Error Text="A consumer must not build the shared container as a referenced binary." /></Target>
+</Project>

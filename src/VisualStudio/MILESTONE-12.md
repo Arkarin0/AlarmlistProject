@@ -1,7 +1,7 @@
 # Milestone twelve: XML IntelliSense and native Shared Projects
 
 Status: implementation authorized on 2026-10-27; iterations 1–4 complete.
-Iterations 5–8 remain to be implemented and validated.
+Iteration 5 is complete; iterations 6–8 remain to be implemented and validated.
 The owner confirmed the scope and recommended defaults and activated the goal
 on `dev/milestone-12`. Maintain at least 15% remaining account usage allowance;
 check usage throughout and stop before crossing that threshold. Do not merge or
@@ -668,3 +668,74 @@ Native validation evidence:
 No remaining scoped iteration-4 blocker. Native Shared Project production work
 and combined acceptance remain iterations 5–8. Existing manual/vendor/release
 gates remain unchanged. Latest allowance: 60% remaining, above the 15% reserve.
+
+### Iteration 5 — completed shared input build contract
+
+Task and evaluated-project capture now share a small lexical input-set helper.
+Equivalent normalized absolute physical paths appear once in first evaluated order;
+Windows uses case-insensitive identity, other platforms case-sensitive identity.
+Filesystem links are not resolved. The first item and its metadata are retained,
+without mutating task input arrays. This boundary does not change compiler raw
+snapshot APIs or suppress duplicate declarations inside/across source files.
+
+Repeated resources compare effective raw Culture: absent metadata uses the same
+filename inference as the compiler; explicit empty remains a catalogue. Culture
+identity is case insensitive. Library inputs additionally compare portable names
+(Link or project-relative default), slash normalized and case sensitive. Conflicts
+produce explicit capture/build errors before output installation. Application Link
+metadata stays presentation only. XLIFF resource capture follows the same policy.
+The filename helper was extracted without changing its public compiler API or
+culture validation/fallback. No contract, format or fingerprint version changed.
+Use matching rebuilt SDK/extension; old SDKs retain their earlier behavior.
+
+Shared import tests use MSBuildThisFileDirectory for ALMX/RESX/lookup paths,
+ordinary consumer conditions and missing/restored optional/required imports.
+Saved capture retains existing discovery hints without executing targets. Two
+consumer builds use different parameter/culture contexts; default-glob overlap,
+spaces, library names, Build/Rebuild/Clean and previous-output preservation are
+covered. An actual packaged-compiler bridge test checks one evaluated shared
+alarm and its consumer-specific translated value. Native management and ongoing
+context/watch lifecycle acceptance remain iterations 6–7.
+
+Architecture references consulted before introducing the helper:
+[Roslyn PathUtilities](https://github.com/dotnet/roslyn/blob/main/src/Compilers/Core/Portable/FileSystem/PathUtilities.cs)
+for platform path handling, and
+[Arcade TestProjectFixture](https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Arcade.Sdk.Tests/Utilities/TestProjectFixture.cs)
+for shared fixture/private consumer isolation. Helpers remain at host/task capture
+boundaries; the compiler still owns parsing, binding, diagnostics and cultures.
+
+Validation to date (TRX under artifacts/log/Debug/Milestone12/Iteration5):
+
+- Compiler full suite: **674 net8.0 / 672 net472 passed**, no failures/skips.
+- Task full unit suite: **99 per framework passed**, no failures/skips.
+- Direct-task integration: **4 per framework passed**, no failures/skips.
+- Packaged SharedInputTests: **6 per framework passed** using dotnet MSBuild
+  (SharedSDKFinal). Initial runs exposed an incorrect keyword-mode test assertion;
+  keyword output correctly retains lookup tokens, while translated output resolves
+  them. Failed reports are retained separately.
+- The same six cases pass under **VS2022 and VS2026 desktop MSBuild**, net472,
+  in Desktop2022/Desktop2026. Each command restored the previous
+  ALARMLIST_TEST_MSBUILD_PATH. These --no-build runs reused the freshly rebuilt
+  matching SDK package and test assets.
+- Extension full unit run: **794 passed / 1 failed**. The failure was an older
+  saved-library assertion expecting repeated physical inputs. After correcting it,
+  **7 focused tests passed**, including all CapturedLibraryProjectTests and the
+  new packaged-compiler parity test (UnitRecovery). No production change followed
+  the full run; all 795 unique cases have passing final evidence.
+- Extension package integration: **13 per framework passed**, no failures/skips.
+- Existing CA1416 warnings in shared TestHelper.SetApartmentState were emitted
+  by compiler/task test builds; no target framework or unrelated helper changed.
+- Full SDK regression: **88 net8.0 / 91 net472 passed**, no failures/skips (SDK).
+
+Commands use dotnet test <project> --no-restore -v quiet --logger trx
+--results-directory artifacts/log/Debug/Milestone12/Iteration5/<suite> for the
+compiler, tasks, direct-task integration, SDK and extension unit/package projects
+listed in AGENTS.md. SharedSDKFinal and both desktop runs filter
+FullyQualifiedName~SharedInputTests; desktop runs also select --framework net472.
+UnitRecovery filters FullyQualifiedName~CapturedLibraryProjectTests or
+FullyQualifiedName~EvaluatedSharedInputsAnalyzeOnce. Native/WPF tests remain
+sequential. SDK usage and durable repository guidance document the new policy.
+
+No remaining scoped iteration-5 blocker. Final diff, paths and documentation were
+reviewed. Latest allowance: 57% remaining, above the 15% reserve. Native creation,
+shared context lifecycle and combined acceptance remain iterations 6–8.

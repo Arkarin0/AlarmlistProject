@@ -1,0 +1,7 @@
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Shared.Alarm</FullyQualifiedName>
+    <Name>$(Site): $(loc:Caption)</Name>
+    <TestProcedure><Group Name="Checks"><Step>$(list:Devices#Ready)</Step></Group></TestProcedure>
+  </Alarm>
+</Alarmlist>

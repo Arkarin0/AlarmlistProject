@@ -540,10 +540,21 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   linked/conditional items and output exclusions. Preview AlarmlistCulture is separate.
 - Lookup builds capture saved `AlarmlistLookup` items once with the same input batch.
   Default `**/*.almlookup` inclusion follows source exclusions; explicit, linked,
-  conditional and duplicate inputs retain their semantics. Protect lookup files
+  conditional inputs retain their semantics. Protect lookup files
   from output/manifest/exchange collisions. `AlarmlistLookupSchema` locates the
   packaged authoritative XSD. XLIFF protects named placeholder occurrences as well
   as parameter/lookup expressions, preserving text around leading inline codes.
+- [Milestone 12](src/VisualStudio/MILESTONE-12.md) iteration 5 normalizes evaluated
+  Compile/resource/lookup inputs at task and MSBuild snapshot boundaries. Keep
+  equivalent normalized absolute paths once per consumer in first evaluated order
+  using the platform path comparer; do not resolve filesystem links. Repeated
+  resources must agree on effective raw Culture (omitted infers the filename,
+  explicit empty stays empty). Library duplicates must also agree on portable
+  Link names; application Link is presentation only. Reject metadata conflicts
+  before output installation. Preserve compiler declaration diagnostics and raw
+  snapshot APIs. Shared imports use MSBuildThisFileDirectory for physical paths;
+  IDE capture evaluates saved imports without executing targets. XLIFF resource
+  capture uses the same identity policy. Matching rebuilt SDK/VSIX are required.
 - Explicit ExportAlarmlistXliff reads saved resources and writes XLIFF 2.0 plus
   local baseline sidecars, independently of Build/Clean. Keep exact culture values,
   protected expressions, stable keys and baseline presence/comments. Validate all
@@ -593,8 +604,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   compiler project reference, or substitute another SDK on failure. Call bridge
   operations off the UI thread; owners must dispose on SDK/configuration changes
   and unload. `AlarmlistProjectAnalysis` owns the service through CPS dynamic-load
-  callbacks and the active evaluation source. Preserve evaluated Compile order and
-  duplicates, open-buffer precedence (including XML-only views), immediate stale
+  callbacks and the active evaluation source. Preserve evaluated Compile order,
+  open-buffer precedence (including XML-only views), immediate stale
   result invalidation, and generation/text/identity checks before publication.
   Shared VS buffers remain VS-owned; disposing analysis must not close them.
   Document observation must use weak ownership: waiting for TextDocumentDisposed
@@ -610,7 +621,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   are scoped to the project generation, so version equality alone is insufficient.
   Preserve linked project contexts and resource locations without retaining native
   resource-editor graphs. Resource capture must never save buffers or build output.
-- CPS also owns evaluated `AlarmlistLookup` order, duplicates and linked membership.
+- CPS also owns evaluated `AlarmlistLookup` order and linked membership.
   Capture saved lookup bytes only, watch regeneration/deletion, and compare captured
   text/path/order/version before publication, completion or navigation. Lookup drafts
   and close notifications must not expose unsealed changes. The bridge requires the

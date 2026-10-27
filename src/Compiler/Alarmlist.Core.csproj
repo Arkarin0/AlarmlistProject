@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <Compile Include="../shared/Configuration/EditorConfigPreamble.cs" Link="Configuration/EditorConfigPreamble.cs" />
+    <Compile Include="../shared/Configuration/ResourceFileName.cs" Link="Configuration/ResourceFileName.cs" />
     <InternalsVisibleTo Include="Alarmlist.Core.UnitTests" />
     <EmbeddedResource Include="Lookups/AlarmlistLookup.xsd" LogicalName="Alarmlist.Lookups.AlarmlistLookup.xsd" />
   </ItemGroup>

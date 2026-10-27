@@ -1,0 +1,12 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup>
+    <AlarmlistCultures>keyword;en;de-DE</AlarmlistCultures>
+    <EnableSharedAssets Condition="'$(EnableSharedAssets)' == ''">true</EnableSharedAssets>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="PartA.almx;sources/**/*.almx" />
+    <AlarmlistProperty Include="Site" Value="North" />
+  </ItemGroup>
+  <Import Project="Shared Assets/Shared.projitems" Label="Shared" Condition="Exists('Shared Assets/Shared.projitems')" />
+  <Import Project="Shared Assets/./Shared.projitems" Label="Shared" Condition="Exists('Shared Assets/Shared.projitems')" />
+</Project>

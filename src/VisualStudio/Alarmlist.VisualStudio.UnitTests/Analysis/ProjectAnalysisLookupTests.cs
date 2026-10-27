@@ -19,7 +19,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
     public partial class ProjectAnalysisInputTests
     {
         [Fact]
-        public void EvaluationPreservesLookupMembershipOrderDuplicatesAndLinks()
+        public void EvaluationPreservesFirstLookupMembershipOrderAndLinks()
         {
             using (var directory = new TempDirectory())
             using (var projects = new ProjectCollection())
@@ -30,8 +30,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 ProjectRootElement root = ProjectRootElement.Create(reader, projects);
                 root.FullPath = Path.Combine(directory.Path, "Plant.almproj");
                 AnalysisProject project = AlarmlistProjectSnapshot.Capture(new ProjectInstance(root, null, null, projects), root.FullPath, "Debug");
-                Assert.Equal(new[] { "B.almlookup", "A.almlookup", "B.almlookup", "Shared.almlookup" }, project.Lookups.Select(Path.GetFileName));
-                Assert.Equal(Path.GetFullPath(Path.Combine(directory.Path, "../Shared.almlookup")), project.Lookups[3]);
+                Assert.Equal(new[] { "B.almlookup", "A.almlookup", "Shared.almlookup" }, project.Lookups.Select(Path.GetFileName));
+                Assert.Equal(Path.GetFullPath(Path.Combine(directory.Path, "../Shared.almlookup")), project.Lookups[2]);
             }
         }
 

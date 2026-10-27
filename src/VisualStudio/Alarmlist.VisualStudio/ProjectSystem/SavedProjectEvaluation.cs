@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Text.RegularExpressions;
+using Alarmlist.ConfigurationInput;
 using Alarmlist.VisualStudio.Analysis;
 using Microsoft.Build.Evaluation;
 
@@ -24,15 +25,13 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             AssetsFile = evaluated.GetPropertyValue("ProjectAssetsFile");
             FrameworkMoniker = evaluated.GetPropertyValue("TargetFrameworkMoniker");
             string directory = Path.GetDirectoryName(project.ProjectPath) + Path.DirectorySeparatorChar;
-            var root = new Uri(directory);
             var portableNames = new Dictionary<string, string>(StringComparer.Ordinal);
+            var physicalNames = new HashSet<string>(EvaluatedInputSet.PathComparer);
             foreach (ProjectItem item in evaluated.GetItems("Compile").Concat(evaluated.GetItems("AlarmlistResource"))
                 .Concat(evaluated.GetItems("AlarmlistLookup")))
             {
                 string path = Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude));
-                string name = item.GetMetadataValue("Link");
-                if (string.IsNullOrWhiteSpace(name)) name = Uri.UnescapeDataString(root.MakeRelativeUri(new Uri(path)).ToString());
-                portableNames[path] = name.Replace('\\', '/');
+                if (physicalNames.Add(path)) portableNames.Add(path, EvaluatedInputSet.PortableName(path, item.GetMetadataValue("Link"), project.ProjectPath));
             }
             PortableNames = new ReadOnlyDictionary<string, string>(portableNames);
             DiscoveryGlobs = Array.AsReadOnly(evaluated.GetAllGlobs()

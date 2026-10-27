@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Alarmlist.ConfigurationInput;
 using Alarmlist.Localization;
 using Alarmlist.Text;
 using Microsoft.Build.Framework;
@@ -31,7 +32,9 @@ namespace Alarmlist.MSBuild
                 if (string.IsNullOrWhiteSpace(OutputDirectory)) throw new ArgumentException("An XLIFF output directory is required.");
                 if (string.IsNullOrWhiteSpace(TargetCultures)) throw new ArgumentException("AlarmlistXliffTargetCultures must name at least one target culture.");
                 var captured = new Dictionary<string, string>(BuildOutputPlan.PathComparer);
-                ResxTextSnapshot[] resources = (Resources ?? Array.Empty<ITaskItem>()).Select(item =>
+                var resourceItems = EvaluatedInputSet.Unique(Resources ?? Array.Empty<ITaskItem>(), "AlarmlistResource", Factory.GetFullFilePath,
+                    item => item.MetadataNames.Cast<string>().Any(name => string.Equals(name, "Culture", StringComparison.OrdinalIgnoreCase)) ? item.GetMetadata("Culture") : null);
+                ResxTextSnapshot[] resources = resourceItems.Select(item =>
                 {
                     CheckCancellation();
                     string path = Factory.GetFullFilePath(item);
