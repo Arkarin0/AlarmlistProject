@@ -59,10 +59,10 @@ namespace Alarmlist.VisualStudio.UI
         private ProjectAnalysisState _choicesState;
         private AnalysisAlarm _choicesAlarm;
         public IReadOnlyList<AnalysisProjectChoice> Projects { get; private set; } = BindingCollection.Create(Array.Empty<AnalysisProjectChoice>());
-        public bool HasMultipleProjects => Projects.Count > 1;
+        public bool HasMultipleProjects => Projects.Count > 1 || (Projects.Count == 1 && SelectedProjectPath == null);
         public bool HasSingleProjectContext => !HasMultipleProjects;
         public string ProjectContextLabel => Projects.FirstOrDefault(project => string.Equals(project.ProjectPath, SelectedProjectPath, StringComparison.OrdinalIgnoreCase))?.Label
-            ?? (Projects.Count == 1 ? Projects[0].Label : "No project context selected");
+            ?? "No project context selected";
         public IReadOnlyList<ReferenceChoice> ReferenceChoices { get; private set; } = Array.Empty<ReferenceChoice>();
         public ReferenceChoice SelectedReferenceChoice
         {
@@ -318,24 +318,19 @@ namespace Alarmlist.VisualStudio.UI
                     _choicesState = state;
                     _choicesAlarm = alarm;
                     string selectedReference = _referenceChoice?.Identifier;
-                    ReferenceChoices = alarm == null ? (IReadOnlyList<ReferenceChoice>)Array.Empty<ReferenceChoice>() : BindingCollection.Create(state.Response.Snapshot.Alarms
-                        .Where(item => !string.IsNullOrEmpty(item.Origin.FullyQualifiedName))
-                        .GroupBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
-                        .Where(group => group.Count() == 1).Select(group => group.Single())
-                        .Where(item => item.IsResolved && item.Origin.Index != alarm.Origin.Index
-                            && item.ReferenceChain.All(origin => origin.Index != alarm.Origin.Index))
-                        .OrderBy(item => item.Origin.FullyQualifiedName, StringComparer.Ordinal)
+                    ReferenceChoices = alarm == null ? (IReadOnlyList<ReferenceChoice>)Array.Empty<ReferenceChoice>() : BindingCollection.Create(ExpressionCompletionCandidates.ReferenceAlarms(state.Response.Snapshot, alarm)
                         .Select(item => new ReferenceChoice(item)));
                     _referenceChoice = ReferenceChoices.FirstOrDefault(item => item.Identifier == selectedReference);
                     Notify(nameof(ReferenceChoices)); Notify(nameof(SelectedReferenceChoice));
                 }
                 _analysisMessage = state == null
-                    ? (Projects.Count > 1 ? "Choose a project context to show inherited values." : "Project analysis is unavailable for this file. Local editing is available.")
+                    ? (Projects.Count > 0 && SelectedProjectPath == null ? "Choose a project context to show inherited values." : "Project analysis is unavailable for this file. Local editing is available.")
                     : state.Status != ProjectAnalysisStatus.Available ? state.Message ?? state.Status.ToString()
                     : alarm == null ? "Waiting for analysis of the current document."
                     : !alarm.IsResolved ? "This alarm's reference could not be resolved. Check ReferenceName."
                     : "Values from " + Path.GetFileName(state.Project.ProjectPath) + " (" + state.Project.Configuration + ").";
                 Notify(nameof(SelectedProjectPath)); Notify(nameof(ProjectContextLabel)); Notify(nameof(AnalysisMessage));
+                Notify(nameof(HasMultipleProjects)); Notify(nameof(HasSingleProjectContext));
                 ApplyReferenceCommand?.Refresh(); GoToReferenceCommand?.Refresh();
             }
             finally { _refreshingAnalysis = false; }

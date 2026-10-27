@@ -39,7 +39,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Fact]
-        public void RecaptureUsesSavedImportsConditionsGlobsAndPreservesDuplicates()
+        public void RecaptureUsesSavedImportsConditionsGlobsAndUniquePhysicalInputs()
         {
             string imports = Path.Combine(_directory, "Inputs.props");
             File.WriteAllText(ProjectPath, "<Project><Import Project='Inputs.props'/></Project>");
@@ -47,14 +47,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             File.WriteAllText(Path.Combine(_directory, "A.almx"), "<Alarmlist/>");
             var globals = new Dictionary<string, string> { ["Configuration"] = "Release" };
             var first = SavedProjectEvaluation.Capture(ProjectPath, globals, CancellationToken.None);
-            Assert.Equal(2, first.Project.Inputs.Count);
-            Assert.Equal(first.Project.Inputs[0], first.Project.Inputs[1]);
+            Assert.Single(first.Project.Inputs);
             Assert.Contains(imports, first.Imports);
             File.WriteAllText(imports, "<Project><ItemGroup><Compile Include='*.almx'/></ItemGroup></Project>");
             File.WriteAllText(Path.Combine(_directory, "B.almx"), "<Alarmlist/>");
             var next = SavedProjectEvaluation.Capture(ProjectPath, globals, CancellationToken.None);
             Assert.Equal(new[] { "A.almx", "B.almx" }, next.Project.Inputs.Select(Path.GetFileName));
-            Assert.Equal(2, first.Project.Inputs.Count);
+            Assert.Single(first.Project.Inputs);
             File.Delete(imports);
             Assert.ThrowsAny<Exception>(() => SavedProjectEvaluation.Capture(ProjectPath, globals, CancellationToken.None));
             File.WriteAllText(imports, "<Project/>");

@@ -1,21 +1,16 @@
 <Project>
   <!-- Keep repository build targets out of this standalone SDK consumer. -->
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.almproj'">
     <_ExampleAnalyzerRuntime Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_ExampleAnalyzerRuntime>
     <_ExampleAnalyzerRuntime Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_ExampleAnalyzerRuntime>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.almproj'">
     <!-- prepare-example.ps1 builds these explicit references for both hosts. -->
     <AlarmlistAnalyzer Include="$(MSBuildThisFileDirectory).analyzers/$(_ExampleAnalyzerRuntime)/Alarmlist.SampleAnalyzer.dll" />
     <None Include="$(MSBuildThisFileDirectory).editorconfig" Link="Configuration/Example.editorconfig" />
     <None Include="$(MSBuildProjectDirectory)/.editorconfig" Link="Configuration/Project.editorconfig" />
-    <Compile Include="$(MSBuildThisFileDirectory)Shared/Diagnostics.almx" Link="Diagnostics.Shared.almx" />
-    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)Shared/Hmi.almlookup" Link="Shared/Hmi.almlookup" />
-    <Compile Include="$(MSBuildThisFileDirectory)Shared/HmiInstructions.almx" Link="HmiInstructions.almx" />
-    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)Shared/Electrical.almlookup" Link="Shared/Electrical.almlookup" />
-    <Compile Include="$(MSBuildThisFileDirectory)Shared/ElectricalInstructions.almx" Link="ElectricalInstructions.almx" />
   </ItemGroup>
-  <Target Name="CheckExampleAnalyzer" BeforeTargets="Compile" Condition="'$(DesignTimeBuild)' != 'true'">
+  <Target Name="CheckExampleAnalyzer" BeforeTargets="Compile" Condition="'$(MSBuildProjectExtension)' == '.almproj' and '$(DesignTimeBuild)' != 'true'">
     <Error Condition="!Exists('$(MSBuildThisFileDirectory).analyzers/$(_ExampleAnalyzerRuntime)/Alarmlist.SampleAnalyzer.dll')"
            Text="Prepare the example SDK and analyzer first with eng/prepare-example.ps1, or scripts/start-vs2022.bat / scripts/start-vs2026.bat." />
   </Target>

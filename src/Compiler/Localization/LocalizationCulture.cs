@@ -3,8 +3,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
+using Alarmlist.ConfigurationInput;
 
 namespace Alarmlist.Localization
 {
@@ -39,13 +39,6 @@ namespace Alarmlist.Localization
 
         /// <summary>Infers the raw culture suffix without accessing the file. Empty denotes an unqualified catalogue.</summary>
         public static string InferResourceCulture(string filePath)
-        {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A resource path is required.", nameof(filePath));
-            string name = Path.GetFileNameWithoutExtension(filePath);
-            int separator = name.LastIndexOf('.');
-            if (separator == name.Length - 1 && separator >= 0)
-                throw new ArgumentException("A dotted resource filename must have a culture suffix or explicit Culture metadata.", nameof(filePath));
-            return separator < 0 ? string.Empty : name.Substring(separator + 1);
-        }
+            => ResourceFileName.InferCulture(filePath);
     }
 }

@@ -20,6 +20,8 @@ namespace Alarmlist.VisualStudio.UI
         private readonly GridSplitter _splitter = new GridSplitter { Background = System.Windows.Media.Brushes.Gray };
         internal bool HandleDesignerReturn(bool execute, ModifierKeys modifiers)
             => _designer is EditFileControl editor && editor.HandleReturnCommand(execute, modifiers);
+        internal bool HandleDesignerCompletion(bool execute)
+            => _designer is EditFileControl editor && editor.HandleCompletionCommand(execute);
         internal bool NavigateSource(int position, string expectedText)
             => _designer is EditFileControl editor && editor.NavigateSource(position, expectedText);
         public SplitEditorControl(EditorLayoutViewModel layout, FrameworkElement designer, FrameworkElement source)

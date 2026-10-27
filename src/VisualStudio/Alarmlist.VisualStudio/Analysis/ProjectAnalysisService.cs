@@ -28,6 +28,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private readonly List<AnalysisDiscoveryGlob> _dependencyWatchGlobs = new List<AnalysisDiscoveryGlob>();
         private bool _resetBridge;
         private bool _stopped;
+        private bool _awaitingEvaluation;
         private long _generation;
         private Task _stopTask;
         private ProjectAnalysisState _current = new ProjectAnalysisState(0, null, ProjectAnalysisStatus.Pending, "Waiting for project evaluation.");
@@ -35,6 +36,7 @@ namespace Alarmlist.VisualStudio.Analysis
         // Notifications carry no captured state: subscribers read Current, even
         // when their dispatcher processes a notification after another update.
         public event EventHandler Changed;
+        public event EventHandler EvaluationInvalidated;
         public ProjectAnalysisState Current { get { lock (_gate) return _current; } }
 
         public ProjectAnalysisService(IProjectAnalysisInputSource inputs, ISdkAnalysisBridgeFactory factory, JoinableTaskContext threading,
@@ -55,6 +57,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (_stopped) return;
                 _resetBridge |= !project.HasSameCompilerContext(_project);
                 _project = project;
+                _awaitingEvaluation = false;
                 ScheduleLocked("Analyzing current project inputs.");
             }
             Changed?.Invoke(this, EventArgs.Empty);
@@ -66,27 +69,76 @@ namespace Alarmlist.VisualStudio.Analysis
             {
                 if (_stopped) return;
                 _project = null;
+                _awaitingEvaluation = false;
                 _resetBridge = true;
                 ScheduleLocked(reason);
             }
             Changed?.Invoke(this, EventArgs.Empty);
         }
 
+        public void InvalidateEvaluation(string reason, bool failed = false)
+        {
+            lock (_gate)
+            {
+                if (_stopped) return;
+                _pending?.Cancel(); _awaitingEvaluation = true;
+                _current = new ProjectAnalysisState(++_generation, _project,
+                    failed ? ProjectAnalysisStatus.Incomplete : ProjectAnalysisStatus.Pending, reason);
+            }
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        public async Task RecoverEvaluationAsync(AnalysisProject recovery, string reason)
+        {
+            lock (_gate) if (_stopped) return;
+            InvalidateEvaluation(reason, failed: true);
+            long generation;
+            lock (_gate) generation = _generation;
+            bool applied = false;
+            await _analysisGate.ExecuteAsync(() =>
+            {
+                lock (_gate)
+                {
+                    if (_stopped || !_awaitingEvaluation || generation != _generation) return Task.CompletedTask;
+                    _project = recovery;
+                    _current = new ProjectAnalysisState(_generation, recovery, ProjectAnalysisStatus.Incomplete, reason);
+                    applied = true;
+                }
+                // Keep recovery watches through failed CPS capture. No analysis
+                // starts until a new authoritative evaluation is supplied.
+                _inputs.Watch(recovery);
+                return Task.CompletedTask;
+            }).ConfigureAwait(false);
+            if (applied) Changed?.Invoke(this, EventArgs.Empty);
+        }
+
         private void OnInputChanged(object sender, AnalysisFileChangedEventArgs args)
         {
+            bool evaluationChanged;
             lock (_gate)
             {
                 if (_stopped || _project == null) return;
                 bool compilerChanged = args.Path == null || string.Equals(args.Path, _project.CompilerPath, StringComparison.OrdinalIgnoreCase)
                     || _project.Analyzers.Contains(args.Path, StringComparer.OrdinalIgnoreCase);
-                if (!compilerChanged && !_project.Inputs.Contains(args.Path, StringComparer.OrdinalIgnoreCase)
-                    && !_project.Resources.Any(resource => string.Equals(resource.FilePath, args.Path, StringComparison.OrdinalIgnoreCase))
-                    && !_project.Lookups.Contains(args.Path, StringComparer.OrdinalIgnoreCase)
-                    && !string.Equals(System.IO.Path.GetFileName(args.Path), ".editorconfig", StringComparison.OrdinalIgnoreCase)) return;
                 _resetBridge |= compilerChanged;
-                ScheduleLocked("Project inputs changed.");
+                evaluationChanged = _project.Evaluation?.MatchesPath(args.Path) == true;
+                if (evaluationChanged)
+                {
+                    _pending?.Cancel(); _awaitingEvaluation = true;
+                    _current = new ProjectAnalysisState(++_generation, _project, ProjectAnalysisStatus.Pending, "Waiting for changed project/import evaluation.");
+                }
+                else
+                {
+                    if (_awaitingEvaluation) return;
+                    if (!compilerChanged && !_project.Inputs.Contains(args.Path, StringComparer.OrdinalIgnoreCase)
+                        && !_project.Resources.Any(resource => string.Equals(resource.FilePath, args.Path, StringComparison.OrdinalIgnoreCase))
+                        && !_project.Lookups.Contains(args.Path, StringComparer.OrdinalIgnoreCase)
+                        && !string.Equals(System.IO.Path.GetFileName(args.Path), ".editorconfig", StringComparison.OrdinalIgnoreCase)) return;
+                    ScheduleLocked("Project inputs changed.");
+                }
             }
             Changed?.Invoke(this, EventArgs.Empty);
+            if (evaluationChanged) EvaluationInvalidated?.Invoke(this, EventArgs.Empty);
         }
 
         private void ScheduleLocked(string reason)
@@ -127,6 +179,8 @@ namespace Alarmlist.VisualStudio.Analysis
                         _dependencyWatchGlobs.Clear();
                     }
                     if (project == null) return;
+                    if (project.Evaluation != null && !project.Evaluation.IsCurrent(token))
+                    { RequireReevaluation(generation); return; }
                     var analyzers = await _inputs.CaptureAnalyzersAsync(project.Analyzers, token).ConfigureAwait(false);
                     if (_bridgeAnalyzers != null && !AnalyzersMatch(analyzers, _bridgeAnalyzers)) CloseBridge();
                     if (_bridge == null)
@@ -189,6 +243,8 @@ namespace Alarmlist.VisualStudio.Analysis
                     var verifiedConfigurations = await _inputs.CaptureConfigurationsAsync(project.Inputs, token).ConfigureAwait(false);
                     var verifiedAnalyzers = await _inputs.CaptureAnalyzersAsync(project.Analyzers, token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();
+                    if (project.Evaluation != null && !project.Evaluation.IsCurrent(token))
+                    { RequireReevaluation(generation); return; }
                     if (captured.Count != verified.Count || captured.Where((input, index) => !input.Matches(verified[index])).Any()
                         || resources.Count != verifiedResources.Count || resources.Where((input, index) => !input.Matches(verifiedResources[index])).Any()
                         || lookups.Count != verifiedLookups.Count || lookups.Where((input, index) => !input.Matches(verifiedLookups[index])).Any()
@@ -239,6 +295,18 @@ namespace Alarmlist.VisualStudio.Analysis
                 _current = state;
             }
             Changed?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void RequireReevaluation(long generation)
+        {
+            lock (_gate)
+            {
+                if (_stopped || generation != _generation) return;
+                _pending?.Cancel(); _awaitingEvaluation = true;
+                _current = new ProjectAnalysisState(++_generation, _project, ProjectAnalysisStatus.Pending, "Project/import inputs changed during analysis.");
+            }
+            Changed?.Invoke(this, EventArgs.Empty);
+            EvaluationInvalidated?.Invoke(this, EventArgs.Empty);
         }
 
         private static bool AnalyzersMatch(IReadOnlyList<CapturedAnalyzerReference> left, IReadOnlyList<CapturedAnalyzerReference> right)

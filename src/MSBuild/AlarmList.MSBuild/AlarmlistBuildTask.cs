@@ -70,6 +70,12 @@ namespace Alarmlist.MSBuild
                     return false;
 
                 bool library = BuildOutputPlan.IsLibrary(OutputType);
+                Func<ITaskItem, string> link = library ? item => item.GetMetadata("Link") : (Func<ITaskItem, string>)null;
+                var compileItems = EvaluatedInputSet.Unique(Compile ?? Array.Empty<ITaskItem>(), "Compile", Factory.GetFullFilePath, link: link, projectPath: ProjectPath);
+                var resourceItems = EvaluatedInputSet.Unique(Resources ?? Array.Empty<ITaskItem>(), "AlarmlistResource", Factory.GetFullFilePath,
+                    item => item.MetadataNames.Cast<string>().Any(name => string.Equals(name, "Culture", StringComparison.OrdinalIgnoreCase)) ? item.GetMetadata("Culture") : null,
+                    link, ProjectPath);
+                var lookupItems = EvaluatedInputSet.Unique(Lookups ?? Array.Empty<ITaskItem>(), "AlarmlistLookup", Factory.GetFullFilePath, link: link, projectPath: ProjectPath);
                 if (!library && (Compile == null || Compile.Length == 0) && (LibraryReferences == null || LibraryReferences.Length == 0))
                 {
                     Log.LogError("No ALMX files were provided to the Alarmlist compiler.");
@@ -77,7 +83,7 @@ namespace Alarmlist.MSBuild
                 }
 
                 ITaskItem[] outputs = BuildOutputPlan.Create(OutputDirectory, OutputFileName, Cultures, OutputType);
-                string[] sourceFiles = (Compile ?? Array.Empty<ITaskItem>()).ToIncludeList();
+                string[] sourceFiles = compileItems.Select(Factory.GetFullFilePath).ToArray();
                 IReadOnlyList<CapturedEditorConfig> configurations = SavedEditorConfigCapture.Capture(sourceFiles, _cancellation.Token);
                 IReadOnlyList<CapturedAnalyzerReference> analyzers = SavedAnalyzerCapture.Capture(
                     (Analyzers ?? Array.Empty<ITaskItem>()).Select(Factory.GetFullFilePath), _cancellation.Token);
@@ -93,14 +99,14 @@ namespace Alarmlist.MSBuild
                 }
                 AlmxTextSnapshot[] sources = _compileAction == null
                     ? sourceFiles.Select(path => new AlmxTextSnapshot(Capture(path), path, 0)).ToArray() : Array.Empty<AlmxTextSnapshot>();
-                ResxTextSnapshot[] resources = (Resources ?? Array.Empty<ITaskItem>()).Select(item =>
+                ResxTextSnapshot[] resources = resourceItems.Select(item =>
                 {
                     string path = Factory.GetFullFilePath(item);
                     string culture = item.MetadataNames.Cast<string>().Any(name => string.Equals(name, "Culture", StringComparison.OrdinalIgnoreCase))
                         ? item.GetMetadata("Culture") : LocalizationCulture.InferResourceCulture(path);
                     return new ResxTextSnapshot(Capture(path), path, 0, culture);
                 }).ToArray();
-                LookupTextSnapshot[] lookups = (Lookups ?? Array.Empty<ITaskItem>()).Select(item =>
+                LookupTextSnapshot[] lookups = lookupItems.Select(item =>
                 {
                     string path = Factory.GetFullFilePath(item);
                     return new LookupTextSnapshot(Capture(path), path, 0);
@@ -143,7 +149,7 @@ namespace Alarmlist.MSBuild
                             properties, diagnosticOptions, loader.Analyzers).WithLibraries(libraryInputs);
                         var identity = new LibraryIdentity(PackageId, NuGet.Versioning.NuGetVersion.Parse(PackageVersion).ToNormalizedString());
                         LibraryBuildResult result = new AlarmCompiler().CreateLibrary(identity, sources, context,
-                            _cancellation.Token, CapturePortableNames());
+                            _cancellation.Token, CapturePortableNames(compileItems.Concat(resourceItems).Concat(lookupItems)));
                         LogDiagnostics(result.Diagnostics);
                         success = result.Success;
                         if (result.Success)
@@ -204,19 +210,14 @@ namespace Alarmlist.MSBuild
             if (_cancelled) throw new OperationCanceledException("Alarmlist compilation was cancelled.");
         }
 
-        private IReadOnlyDictionary<string, string> CapturePortableNames()
+        private IReadOnlyDictionary<string, string> CapturePortableNames(IEnumerable<ITaskItem> items)
         {
             if (string.IsNullOrWhiteSpace(ProjectPath)) throw new ArgumentException("A library build requires ProjectPath.");
-            string directory = Path.GetDirectoryName(Path.GetFullPath(ProjectPath)) + Path.DirectorySeparatorChar;
-            var root = new Uri(directory);
             var names = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (ITaskItem item in (Compile ?? Array.Empty<ITaskItem>()).Concat(Resources ?? Array.Empty<ITaskItem>())
-                .Concat(Lookups ?? Array.Empty<ITaskItem>()))
+            foreach (ITaskItem item in items)
             {
                 string path = Factory.GetFullFilePath(item);
-                string name = item.GetMetadata("Link");
-                if (string.IsNullOrWhiteSpace(name)) name = Uri.UnescapeDataString(root.MakeRelativeUri(new Uri(path)).ToString());
-                names[path] = name.Replace('\\', '/');
+                names[path] = EvaluatedInputSet.PortableName(path, item.GetMetadata("Link"), ProjectPath);
             }
             return names;
         }

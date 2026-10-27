@@ -311,9 +311,11 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Empty(session.View.ReferenceChoices);
                     Assert.True(session.View.CanEdit);
                 }
+                session.Analysis.SelectedProjectPath = project.ProjectPath;
                 session.Analysis.Set(null);
                 Assert.Contains("unavailable", session.View.AnalysisMessage);
                 session.Analysis.Projects = new[] { project, new AnalysisProject("Second.almproj", "Release", null, project.Inputs) };
+                session.Analysis.SelectedProjectPath = null;
                 session.Analysis.Set(null);
                 Assert.Contains("Choose a project", session.View.AnalysisMessage);
                 session.View.SelectedProjectPath = "Second.almproj";

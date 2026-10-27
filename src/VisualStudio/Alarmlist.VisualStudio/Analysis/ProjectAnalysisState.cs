@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Alarmlist.ConfigurationInput;
+using Alarmlist.VisualStudio.ProjectSystem;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
@@ -28,12 +29,13 @@ namespace Alarmlist.VisualStudio.Analysis
         public string FrameworkMoniker { get; }
         public string SolutionConfigurationContents { get; }
         public IReadOnlyDictionary<string, string> EvaluationGlobalProperties { get; }
+        public ProjectEvaluationInputs Evaluation { get; }
 
         public AnalysisProject(string projectPath, string configuration, string compilerPath, IEnumerable<string> inputs, AnalysisContext context = null,
             IEnumerable<AnalysisResourceItem> resources = null, string buildCultures = null, bool isPreviewCultureGlobal = false, IEnumerable<string> lookups = null,
             IEnumerable<string> analyzers = null, IEnumerable<AnalysisReferenceItem> projectReferences = null,
             IEnumerable<AnalysisReferenceItem> packageReferences = null, IDictionary<string, string> evaluationGlobalProperties = null,
-            string assetsFile = null, string frameworkMoniker = null, string solutionConfigurationContents = null)
+            string assetsFile = null, string frameworkMoniker = null, string solutionConfigurationContents = null, ProjectEvaluationInputs evaluation = null)
         {
             ProjectPath = projectPath;
             Configuration = configuration;
@@ -50,9 +52,15 @@ namespace Alarmlist.VisualStudio.Analysis
             AssetsFile = assetsFile;
             FrameworkMoniker = frameworkMoniker;
             SolutionConfigurationContents = solutionConfigurationContents;
+            Evaluation = evaluation;
             EvaluationGlobalProperties = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(
                 evaluationGlobalProperties ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase));
         }
+
+        public AnalysisProject WithEvaluation(ProjectEvaluationInputs evaluation) => new AnalysisProject(ProjectPath, Configuration, CompilerPath, Inputs, Context,
+            Resources, BuildCultures, IsPreviewCultureGlobal, Lookups, Analyzers, ProjectReferences, PackageReferences,
+            EvaluationGlobalProperties.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase),
+            AssetsFile, FrameworkMoniker, SolutionConfigurationContents, evaluation);
 
         public bool HasSameCompilerContext(AnalysisProject other)
         {

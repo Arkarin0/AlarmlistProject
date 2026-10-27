@@ -124,6 +124,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
             void SelectVersion(string version)
             {
+                // Tree inspection can activate the project-file preview after
+                // package-content checks. Return to the native package tab
+                // before querying its controls.
+                foreach (EnvDTE.Window candidate in ide.Automation.Windows)
+                    if (candidate.Caption.Contains("NuGet") && candidate.Caption.Contains("Plant")) { candidate.Activate(); break; }
                 var versions = Find("_versions").AsComboBox();
                 versions.Expand();
                 // VS2026 exposes the version dropdown in a separate popup,

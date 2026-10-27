@@ -1,0 +1,30 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>{845D315A-A986-4EB2-8A28-537D182782B1}</SharedGUID>
+  </PropertyGroup>
+  <ItemGroup>
+    <AlarmlistResource Include="$(MSBuildThisFileDirectory)Translations.*.resx">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">Shared/%(Filename)%(Extension)</Link>
+    </AlarmlistResource>
+    <Compile Include="$(MSBuildThisFileDirectory)PressureLow.almx">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">PressureLow.almx</Link>
+    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)Diagnostics.almx">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">Diagnostics.Shared.almx</Link>
+    </Compile>
+    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)Hmi.almlookup">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">Shared/Hmi.almlookup</Link>
+    </AlarmlistLookup>
+    <Compile Include="$(MSBuildThisFileDirectory)HmiInstructions.almx">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">HmiInstructions.almx</Link>
+    </Compile>
+    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)Electrical.almlookup">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">Shared/Electrical.almlookup</Link>
+    </AlarmlistLookup>
+    <Compile Include="$(MSBuildThisFileDirectory)ElectricalInstructions.almx">
+      <Link Condition="'$(IsCodeSharingProject)' != 'true'">ElectricalInstructions.almx</Link>
+    </Compile>
+  </ItemGroup>
+</Project>

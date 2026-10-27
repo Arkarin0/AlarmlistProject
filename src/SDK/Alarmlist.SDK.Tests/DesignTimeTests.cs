@@ -34,6 +34,8 @@ namespace Alarmlist.MSBuild.SDK.Tests
             Assert.Contains("SourceItemsFromImports", capabilities);
             Assert.Contains("ProjectReferences", capabilities);
             Assert.Contains("ReferenceManagerProjects", capabilities);
+            Assert.Contains("SharedProjectReferences", capabilities);
+            Assert.Contains("SharedImports", capabilities);
             Assert.Contains("PackageReferences", capabilities);
             Assert.DoesNotContain("Managed", capabilities);
             Assert.Equal(new[] { "Debug|AnyCPU", "Release|AnyCPU" }, File.ReadAllLines(Path.Combine(app.WorkingDirectory, "configurations.txt")));

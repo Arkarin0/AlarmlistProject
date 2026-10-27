@@ -796,6 +796,70 @@ previews. The bridge requires context-aware analysis and compiled XML preview;
 older SDK contracts report explicit update guidance. No alternate compiler is
 loaded. Release the matching SDK before distributing a VSIX using these capabilities.
 
+## Shared source imports
+
+The matching extension provides **Alarmlist Shared Project** and native
+**Add Reference > Shared Projects** management. Its `.shproj` uses the installed
+Visual Studio sharing container and imports `tools/Alarmlist.Shared.targets`
+through an explicit SDK `Import` with separate `Sdk` and `Version` attributes.
+This adds file rules and Alarmlist item templates without importing consumer
+build targets or creating an analysis context for the container. Native Shared
+Project tooling is required to load it in the IDE. See the
+[Visual Studio workflow](../../VisualStudio/README.md).
+
+An ordinary MSBuild `.projitems` import can supply ALMX, saved RESX and lookup
+inputs to multiple `.almproj` consumers. Each consumer compiles those sources
+with its own properties, cultures, references and diagnostic settings. The shared
+container produces no library or binary; import the `.projitems` rather than
+adding a `ProjectReference` to its `.shproj`.
+
+Use import-relative paths explicitly. MSBuild otherwise interprets item paths
+relative to the consuming project:
+
+```xml
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Condition="'$(EnableSharedAlarms)' != 'false'">
+    <Compile Include="$(MSBuildThisFileDirectory)Alarms/*.almx" Link="Shared/%(Filename)%(Extension)" />
+    <AlarmlistResource Include="$(MSBuildThisFileDirectory)Resources/*.resx" Link="Shared/%(Filename)%(Extension)" />
+    <AlarmlistLookup Include="$(MSBuildThisFileDirectory)Lookups/*.almlookup" Link="Shared/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
+```
+
+The consumer imports it with `<Import Project="../Shared/Shared.projitems" Label="Shared" />`.
+Ordinary MSBuild conditions, item updates/removals and glob exclusions determine
+the evaluated membership. Analysis evaluates saved imports without executing
+their targets. Command-line consumers do not need the `.shproj` loaded in an IDE.
+
+The matching Milestone 12 SDK and extension include equivalent repeated inputs
+once per consumer, including overlaps with default globs. Identity is the
+normalized absolute path, case insensitive on Windows and case sensitive on
+other platforms; filesystem links are not resolved. First evaluated order and
+metadata are retained. This does not suppress duplicate declarations within a
+file or across different files, nor merge project property declarations.
+
+Repeated resource inputs must have equivalent cultures: omitted `Culture` infers
+the filename suffix, while explicit empty `Culture` remains an unqualified
+catalogue. Culture comparison is case insensitive. Conflicts fail before output
+installation. XLIFF export/import uses the same resource identity rule.
+Application `Link` metadata is presentation only. Library inputs also require
+equivalent portable names (`Link`, or the project-relative path when omitted),
+with slash normalization and case-sensitive comparison. Specify portable `Link`
+names for shared inputs outside a library project. Conflicting names fail instead
+of choosing an import silently. Older SDKs retain their earlier duplicate-input
+behavior; distribute matching rebuilt tools for this workflow.
+
+The [native Shared Projects example](../../../example/SharedProjects/README.md)
+contains two consumers and shared ALMX, translations and lookups. Run
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File eng/prepare-shared-example.ps1`
+from the repository root to select the SDK matching the built extension. Preparation
+restores consumers without replacing their edited source/project files. Consumer
+builds work with `dotnet msbuild` or desktop MSBuild independently of the `.shproj`.
+The default [North/South playground](../../../example/README.md) also contains a
+native Shared Project in `example/Example.sln`; the existing VS launchers prepare
+and open it. Its common sources/catalogues have one `.projitems` membership, with
+consumer-specific parameters, resources and analyzer settings retained.
+
 ## Build and test this repository
 
 From the repository root:

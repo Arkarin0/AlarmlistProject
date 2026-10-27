@@ -35,6 +35,9 @@ namespace Alarmlist.VisualStudio.UI
         private int _tokenEnd;
         private int _completionVersion;
         private int _pendingCompletionVersion;
+        private string _completionIntentText;
+        private int _completionIntentCaret;
+        private int _completionIntentSelection;
 
         public string RawText { get => (string)GetValue(RawTextProperty); set => SetValue(RawTextProperty, value); }
         public string ResolvedText { get => (string)GetValue(ResolvedTextProperty); set => SetValue(ResolvedTextProperty, value); }
@@ -69,7 +72,7 @@ namespace Alarmlist.VisualStudio.UI
             _status.SetResourceReference(ForegroundProperty, EnvironmentColors.ComboBoxTextBrushKey);
             _status.Loaded += (sender, args) => { _status.Text = ""; AnnounceSelection(); };
             _popup = new Popup { Child = border, PlacementTarget = this, Placement = PlacementMode.Bottom, StaysOpen = true, AllowsTransparency = false };
-            Unloaded += (sender, args) => CloseCompletion();
+            Unloaded += (sender, args) => { _completionIntentText = null; CloseCompletion(); };
         }
 
         private static void OnDisplayChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) => ((ExpressionTextBox)sender).RefreshDisplay();
@@ -99,6 +102,7 @@ namespace Alarmlist.VisualStudio.UI
 
         protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs args)
         {
+            _completionIntentText = null;
             CloseCompletion();
             base.OnLostKeyboardFocus(args);
             RefreshDisplay();
@@ -131,28 +135,38 @@ namespace Alarmlist.VisualStudio.UI
             }
             if (!IsCompletionOpen)
             {
-                if (!IsCompletionPending) return false;
-                if (key == Key.Escape) { _dismissedText = RawText; CloseCompletion(); return true; }
+                if (!IsCompletionPending)
+                {
+                    if (!HasCompletionIntent || (key != Key.Enter && key != Key.Tab && key != Key.Escape)) return false;
+                    _completionIntentText = null;
+                    if (key == Key.Escape) _dismissedText = RawText;
+                    return true;
+                }
+                if (key == Key.Escape) { _completionIntentText = null; _dismissedText = RawText; CloseCompletion(); return true; }
                 return key == Key.Enter || key == Key.Tab;
             }
-            if (key == Key.Escape) { _dismissedText = RawText; CloseCompletion(); return true; }
-            if (key == Key.Enter || key == Key.Tab) { AcceptCompletion(); return true; }
+            if (key == Key.Escape) { _completionIntentText = null; _dismissedText = RawText; CloseCompletion(); return true; }
+            if (key == Key.Enter || key == Key.Tab) { _completionIntentText = null; AcceptCompletion(); return true; }
             if (key != Key.Down && key != Key.Up) return false;
             _list.SelectedIndex = (_list.SelectedIndex + (key == Key.Down ? 1 : _list.Items.Count - 1)) % _list.Items.Count;
             _list.ScrollIntoView(_list.SelectedItem);
             return true;
         }
 
+        private bool HasCompletionIntent => _completionIntentText != null && _completionIntentText == RawText
+            && _completionIntentCaret == CaretIndex && _completionIntentSelection == SelectionLength;
+
         private void RefreshCompletion()
         {
             if (_popup == null) return;
+            if (!HasCompletionIntent) _completionIntentText = null;
             if (!IsLoaded || !IsKeyboardFocusWithin || !IsExpressionEnabled || IsReadOnly || Suggestions == null || _dismissedText == RawText)
             { CloseCompletion(); return; }
             string raw = RawText ?? "";
             int caret = Math.Min(CaretIndex, raw.Length);
-            _tokenStart = ExpressionCompletionContext.FindStart(raw, caret, out bool argument);
-            string prefix = _tokenStart < 0 ? null : raw.Substring(_tokenStart + 2, caret - _tokenStart - 2);
-            if (prefix != null && !IsPrefix(prefix)) prefix = null;
+            ExpressionEdit expression = ExpressionCompletionContext.FindExpression(raw, caret);
+            _tokenStart = expression?.Start ?? -1;
+            string prefix = expression?.Prefix;
             ArgumentEdit slot = prefix == null ? ExpressionCompletionContext.FindArgument(raw, SelectionLength == 0 ? caret : SelectionStart, SelectionLength) : null;
             bool boundSlot = slot != null && ArgumentBindings?.OfType<ArgumentCompletionBinding>()
                 .Any(item => item.TemplateKey == slot.TemplateKey && item.ArgumentName == slot.ArgumentName) == true;
@@ -166,18 +180,20 @@ namespace Alarmlist.VisualStudio.UI
             }
             else
             {
-                if (prefix == null) { _tokenStart = SelectionStart; _tokenEnd = SelectionStart + SelectionLength; prefix = ""; }
+                if (prefix == null) { _tokenStart = slot?.Start ?? SelectionStart; _tokenEnd = slot?.End ?? (SelectionStart + SelectionLength); prefix = ""; }
                 else
                 {
-                    _tokenEnd = caret;
-                    while (_tokenEnd < raw.Length && IsTokenCharacter(raw[_tokenEnd])) _tokenEnd++;
-                    if (_tokenEnd < raw.Length && raw[_tokenEnd] == ')') _tokenEnd++;
+                    _tokenEnd = expression.End;
                 }
                 matches = FindMatches(Suggestions, prefix);
-                if (argument) matches = matches.Where(match => !match.IsLocalization).ToArray();
+                if (expression?.IsArgument == true || slot != null) matches = matches.Where(match => !match.IsLocalization).ToArray();
             }
             string selectedName = (_list.SelectedItem as PropertyCompletion)?.Name;
             if (matches.Length == 0) { CloseCompletion(); return; }
+            // An analysis refresh can withdraw a visible list just before Enter.
+            // Consume that completion key once for this exact editing context;
+            // never turn an interrupted acceptance into a source commit.
+            _completionIntentText = raw; _completionIntentCaret = caret; _completionIntentSelection = SelectionLength;
             if (matches.Any(match => match.RequiresValidation))
             {
                 _popup.IsOpen = false;
@@ -185,18 +201,6 @@ namespace Alarmlist.VisualStudio.UI
                 return;
             }
             ShowCompletion(matches, selectedName);
-        }
-
-        private static bool IsTokenCharacter(char character) => char.IsLetterOrDigit(character) || character == '_' || character == '.' || character == '-'
-            || character == ':' || character == '#' || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.NonSpacingMark
-            || char.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.SpacingCombiningMark;
-        private static bool IsPrefix(string prefix)
-        {
-            int colon = prefix.IndexOf(':');
-            if (colon < 0) return prefix.All(character => char.IsLetterOrDigit(character) || character == '_');
-            string kind = prefix.Substring(0, colon);
-            return (kind == "loc" || kind == "path" || kind == "property" || kind == "button" || kind == "meta" || kind == "list" || kind == "item")
-                && prefix.Substring(colon + 1).All(character => IsTokenCharacter(character) && character != ':' && (kind != "loc" || character != '#'));
         }
 
         private async Task ShowValidatedCompletionAsync(PropertyCompletion[] matches, string selectedName, string raw, int caret, int selectionLength, IEnumerable suggestions, int version)
@@ -217,20 +221,7 @@ namespace Alarmlist.VisualStudio.UI
         }
 
         internal static PropertyCompletion[] FindMatches(IEnumerable suggestions, string prefix)
-        {
-            if (prefix.StartsWith("loc:", StringComparison.Ordinal))
-            {
-                string query = prefix.Substring(4);
-                // Match the key, never translated text or template argument names.
-                // Stable ordering retains catalogue order within each match group.
-                return suggestions.OfType<PropertyCompletion>().Where(property => property.IsLocalization
-                    && property.LocalizationKey.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)
-                    .OrderByDescending(property => property.LocalizationKey.StartsWith(query, StringComparison.OrdinalIgnoreCase)).ToArray();
-            }
-            return suggestions.OfType<PropertyCompletion>().Where(property => property.Name.StartsWith(prefix,
-                property.RequiresValidation && !property.Name.StartsWith("item:", StringComparison.Ordinal)
-                    ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase)).ToArray();
-        }
+            => ExpressionCompletionCandidates.FindMatches(suggestions.OfType<PropertyCompletion>(), prefix);
 
         private void AnnounceSelection()
         {

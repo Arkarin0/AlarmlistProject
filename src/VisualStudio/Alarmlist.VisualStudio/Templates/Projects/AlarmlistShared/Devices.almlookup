@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Lookup xmlns="urn:alarmlist:lookup:1">
+  <List Key="SharedDevices"><Entry Key="Ready" Value="READY" /></List>
+</Lookup>

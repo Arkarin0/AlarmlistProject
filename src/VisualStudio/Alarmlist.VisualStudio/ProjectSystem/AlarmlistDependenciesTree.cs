@@ -52,6 +52,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 !string.Equals(project.GetPropertyValue(dimension.Key), dimension.Value, StringComparison.OrdinalIgnoreCase)))
                 return Task.CompletedTask;
             ImmutableDictionary<string, bool> references = CaptureReferences(project, update.Value.FullPath);
+            var sharedInputs = CaptureSharedInputs(project, update.Value.FullPath);
             return SubmitTreeUpdateAsync((previous, exports, token) =>
             {
                 token.ThrowIfCancellationRequested();
@@ -80,6 +81,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                     root = group.Parent;
                 }
                 else if (group != null) root = root.Remove(group);
+                root = UpdateSharedInputs(root, sharedInputs);
                 _treeProject = AlarmlistProjectSnapshot.Capture(project, update.Value.FullPath, active.ProjectConfiguration.Name);
                 _treeConfigured = active;
                 root = UpdatePackages(root);
@@ -140,7 +142,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         public override IProjectTree FindByPath(IProjectTree root, string path)
         {
             if (string.IsNullOrEmpty(path)) return null;
-            if (root.Flags.Contains("AlarmlistProjectReference")
+            if ((root.Flags.Contains("AlarmlistProjectReference") || root.Flags.Contains("AlarmlistSharedInput"))
                 && string.Equals(root.FilePath, path, StringComparison.OrdinalIgnoreCase)) return root;
             foreach (IProjectTree child in root.Children)
             {

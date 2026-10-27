@@ -2,6 +2,7 @@
 
 using System;
 using System.ComponentModel.Composition;
+using System.IO;
 using System.Runtime.InteropServices;
 using Alarmlist.VisualStudio.UI;
 using Microsoft.VisualStudio;
@@ -94,7 +95,10 @@ namespace Alarmlist.VisualStudio.Editor
                     return VSConstants.VS_E_INCOMPATIBLEDOCDATA;
             }
 
-            AlmxEditorPane pane = new AlmxEditorPane(_site, _oleSite, _adapters, lines, _sessions, _viewModels, _settings, _contentTypes, _analysis, physicalView == "XML");
+            string openingProject = null;
+            if (hierarchy is IVsProject owner && ErrorHandler.Succeeded(owner.GetMkDocument(VSConstants.VSITEMID_ROOT, out string projectPath))
+                && string.Equals(Path.GetExtension(projectPath), ".almproj", StringComparison.OrdinalIgnoreCase)) openingProject = projectPath;
+            AlmxEditorPane pane = new AlmxEditorPane(_site, _oleSite, _adapters, lines, _sessions, _viewModels, _settings, _contentTypes, _analysis, physicalView == "XML", openingProject);
             try
             {
                 docView = Marshal.GetIUnknownForObject(pane);

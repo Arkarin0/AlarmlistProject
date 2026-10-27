@@ -30,7 +30,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             restored = new DesignerLayoutViewModel(settings);
             Assert.Equal(0.25, restored.FileProportion); Assert.True(restored.FileExpanded);
             restored.FileProportion = 10; Assert.Equal(0.8, restored.FileProportion);
-            Assert.Equal(0.5, new EditorLayoutViewModel(settings, () => true, false).Proportion);
+            Assert.Equal(0.5, new EditorLayoutViewModel(settings, false).Proportion);
         }
 
         [Theory]

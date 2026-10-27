@@ -74,56 +74,10 @@ namespace Alarmlist.VisualStudio.UI
                 : Enumerable.Empty<ArgumentCompletionBinding>());
             Notify(nameof(CompletionBindings));
             CompletionProperties = BindingCollection.Create(current && alarm?.IsResolved == true && !identityDraft && !parameterDraft
-                ? alarm.Properties.Select(property => new PropertyCompletion(property, !HasPending))
-                    .Concat(state.Response.Snapshot.Translations.OrderBy(translation => translation.Key, StringComparer.Ordinal)
-                        .Select(translation => new PropertyCompletion(translation,
-                            alarm.LocalizationUses.FirstOrDefault(use => use.Translation.Key == translation.Key), !HasPending)))
-                    .Concat(TemplateCompletions(state.Response.Snapshot))
-                    .Concat(LookupCompletions(state.Response.Snapshot))
-                    .Concat(ListCompletions(state.Response.Snapshot))
+                ? ExpressionCompletionCandidates.Create(state.Response.Snapshot, alarm, alarm.Properties, !HasPending)
                 : Enumerable.Empty<PropertyCompletion>());
             Notify(nameof(CompletionProperties)); Notify(nameof(IsAbstract));
         }
 
-        private static IEnumerable<PropertyCompletion> TemplateCompletions(AnalysisSnapshot snapshot)
-        {
-            foreach (AnalysisTranslation translation in snapshot.Translations.OrderBy(item => item.Key, StringComparer.Ordinal))
-            {
-                // Keyword mode has no supplying language. Offer each distinct signature
-                // explicitly, using compiler-parsed names without interpreting RESX here.
-                IEnumerable<IReadOnlyList<string>> signatures = translation.IsKeyword
-                    ? snapshot.ResourceEntries.Where(entry => entry.Key == translation.Key && entry.IsValid && !entry.IsAmbiguous)
-                        .Select(entry => entry.PlaceholderNames)
-                    : new[] { translation.PlaceholderNames };
-                foreach (var signature in signatures.Where(names => names.Count != 0)
-                    .GroupBy(names => string.Join("\0", names.OrderBy(name => name, StringComparer.Ordinal)), StringComparer.Ordinal))
-                    yield return new PropertyCompletion(translation.Key, signature.First());
-            }
-        }
-
-        private static IEnumerable<PropertyCompletion> LookupCompletions(AnalysisSnapshot snapshot)
-        {
-            foreach (AnalysisLookupPath path in snapshot.LookupPaths.Where(item => !item.IsAmbiguous).OrderBy(item => item.Key, StringComparer.Ordinal))
-            {
-                yield return new PropertyCompletion(path.Expression, path.Value, "path");
-                foreach (AnalysisLookupMember member in path.Members)
-                {
-                    string metadata = string.Join("; ", member.Metadata.Select(item => item.Name + "=" + item.Value));
-                    yield return new PropertyCompletion(member.Expression, member.Value, member.Kind + (metadata.Length == 0 ? "" : "; " + metadata));
-                    foreach (AnalysisLookupMetadata item in member.Metadata)
-                        yield return new PropertyCompletion(item.Expression, item.Value, "stored metadata; inserted only when selected");
-                }
-            }
-        }
-
-        private static IEnumerable<PropertyCompletion> ListCompletions(AnalysisSnapshot snapshot)
-        {
-            foreach (AnalysisLookupList list in snapshot.LookupLists.OrderBy(item => item.Key, StringComparer.Ordinal))
-            {
-                AnalysisArgumentBinding[] bindings = snapshot.ArgumentBindings.Where(binding => binding.IsAvailable && binding.ListKey == list.Key).ToArray();
-                foreach (AnalysisLookupListEntry entry in list.Entries.Where(item => !item.IsAmbiguous).OrderBy(item => item.Key, StringComparer.Ordinal))
-                    yield return new PropertyCompletion(entry, bindings);
-            }
-        }
     }
 }

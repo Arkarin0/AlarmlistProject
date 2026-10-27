@@ -28,6 +28,9 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         private readonly ISdkAnalysisBridgeFactory _factory;
         private readonly ProjectAnalysisRegistry _registry;
         private readonly LiveDiagnosticTableSource _diagnostics;
+        private readonly IProjectLockService _projectLocks;
+        private ActionBlock<Tuple<ConfiguredProject, ProjectAnalysisState>> _reevaluations;
+        private CancellationTokenSource _loadCancellation;
         private IDisposable _diagnosticSubscription;
         private ProjectAnalysisService _analysis;
         private IDisposable _link;
@@ -37,9 +40,10 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         [ImportingConstructor]
         public AlarmlistProjectAnalysis(IActiveConfiguredProjectSubscriptionService subscriptions,
             IActiveConfiguredProjectProvider active, IOpenAnalysisDocuments documents,
-            ISdkAnalysisBridgeFactory factory, ProjectAnalysisRegistry registry, LiveDiagnosticTableSource diagnostics)
+            ISdkAnalysisBridgeFactory factory, ProjectAnalysisRegistry registry, LiveDiagnosticTableSource diagnostics,
+            IProjectLockService projectLocks)
             : base(new JoinableTaskContextNode(ThreadHelper.JoinableTaskContext))
-        { _subscriptions = subscriptions; _active = active; _documents = documents; _factory = factory; _registry = registry; _diagnostics = diagnostics; }
+        { _subscriptions = subscriptions; _active = active; _documents = documents; _factory = factory; _registry = registry; _diagnostics = diagnostics; _projectLocks = projectLocks; }
 
         public async Task LoadAsync()
         {
@@ -48,11 +52,14 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             {
                 DisposalToken.ThrowIfCancellationRequested();
                 if (_analysis != null) return;
+                _loadCancellation = CancellationTokenSource.CreateLinkedTokenSource(DisposalToken);
                 _analysis = new ProjectAnalysisService(new ProjectAnalysisInputSource(_documents), _factory, ThreadHelper.JoinableTaskContext);
+                _analysis.EvaluationInvalidated += OnEvaluationInvalidated;
+                _reevaluations = new ActionBlock<Tuple<ConfiguredProject, ProjectAnalysisState>>(RequestReevaluationAsync, new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 1 });
                 _diagnosticSubscription = _diagnostics.Attach(_analysis);
                 _registry.Add(_analysis, SetPreviewCultureAsync, new ProjectUserSetting(ReadPreviewLayoutAsync, WritePreviewLayoutAsync));
                 _active.Changed += OnActiveChanged;
-                _updates = new ActionBlock<IProjectVersionedValue<IProjectSnapshot>>(OnEvaluation,
+                _updates = new ActionBlock<IProjectVersionedValue<IProjectSnapshot>>(OnEvaluationAsync,
                     new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = 1 });
                 _link = _subscriptions.ProjectSource.SourceBlock.LinkTo(_updates, new DataflowLinkOptions { PropagateCompletion = true });
                 _observation = ObserveCompletionAsync(_updates, _analysis);
@@ -134,29 +141,101 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             }
         }
 
-        private void OnEvaluation(IProjectVersionedValue<IProjectSnapshot> update)
+        private void OnEvaluationInvalidated(object sender, EventArgs args)
         {
             lock (_gate)
+                if (ReferenceEquals(sender, _analysis) && _active.ActiveConfiguredProject is ConfiguredProject active)
+                    _reevaluations?.Post(Tuple.Create(active, _analysis.Current));
+        }
+
+        private async Task RequestReevaluationAsync(Tuple<ConfiguredProject, ProjectAnalysisState> request)
+        {
+            ConfiguredProject project = request.Item1;
+            ProjectAnalysisState expected = request.Item2;
+            try
             {
-                if (_analysis == null) return;
+                CancellationToken loadToken;
+                lock (_gate)
+                {
+                    if (_analysis == null || !ReferenceEquals(expected, _analysis.Current)
+                        || !ReferenceEquals(project, _active.ActiveConfiguredProject) || DisposalToken.IsCancellationRequested) return;
+                    loadToken = _loadCancellation.Token;
+                }
+                using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(loadToken, _active.ConfigurationActiveCancellationToken))
+                {
+                    // File events precede completion of native shared-item UI
+                    // transactions. Let that work finish before asking CPS to
+                    // reevaluate, and skip this fallback if CPS already updated.
+                    var dispatcher = System.Windows.Threading.Dispatcher.FromThread(ThreadHelper.JoinableTaskContext.MainThread);
+                    await ThreadHelper.JoinableTaskFactory.WithPriority(dispatcher,
+                        System.Windows.Threading.DispatcherPriority.ApplicationIdle).SwitchToMainThreadAsync(cancellation.Token);
+                    await TaskScheduler.Default;
+                    lock (_gate)
+                        if (_analysis == null || !ReferenceEquals(expected, _analysis.Current)
+                            || !ReferenceEquals(project, _active.ActiveConfiguredProject)) return;
+                    await _projectLocks.WriteLockAsync(async access =>
+                    {
+                        var token = cancellation.Token;
+                        token.ThrowIfCancellationRequested();
+                        lock (_gate)
+                            if (_analysis == null || !ReferenceEquals(expected, _analysis.Current)) return;
+                        var evaluated = await access.GetProjectAsync(project, token);
+                        // Let CPS own disk reloads and its import cache. Calling
+                        // ProjectRootElement.Reload marks XML dirty even when
+                        // reading saved bytes, creating false native conflicts.
+                        evaluated.MarkDirty(); // Evaluation only; no XML edit, checkout, save or target execution.
+                    }, cancellation.Token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception))
+            {
+                lock (_gate) _analysis?.InvalidateEvaluation("Cannot refresh project evaluation: " + exception.Message, failed: true);
+            }
+        }
+
+        private async Task OnEvaluationAsync(IProjectVersionedValue<IProjectSnapshot> update)
+        {
+            ProjectAnalysisService analysis;
+            ConfiguredProject active;
+            CancellationToken loadToken;
+            lock (_gate)
+            {
+                analysis = _analysis; active = _active.ActiveConfiguredProject;
+                if (analysis == null || active == null || _active.ConfigurationActiveCancellationToken.IsCancellationRequested) return;
+                loadToken = _loadCancellation.Token;
+            }
+            var instance = update.Value.ProjectInstance;
+            if (instance != null && active.ProjectConfiguration.Dimensions.Any(dimension =>
+                !string.Equals(instance.GetPropertyValue(dimension.Key), dimension.Value, StringComparison.OrdinalIgnoreCase))) return;
+            using (var cancellation = CancellationTokenSource.CreateLinkedTokenSource(loadToken, _active.ConfigurationActiveCancellationToken))
+            {
+                var token = cancellation.Token;
+                AnalysisProject snapshot = null;
+                var globals = instance?.GlobalProperties.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase)
+                    ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var dimension in active.ProjectConfiguration.Dimensions) globals[dimension.Key] = dimension.Value;
+                analysis.InvalidateEvaluation("Capturing current project evaluation.");
                 try
                 {
-                    ConfiguredProject active = _active.ActiveConfiguredProject;
-                    if (active == null || _active.ConfigurationActiveCancellationToken.IsCancellationRequested) return;
-                    var project = update.Value.ProjectInstance;
-                    if (project == null)
-                    {
-                        _analysis.Suspend("Project evaluation is incomplete.");
-                        return;
-                    }
-                    // The active source can still have a previous configuration's
-                    // update queued when Changed fires. Do not reactivate that result.
-                    if (active.ProjectConfiguration.Dimensions.Any(dimension =>
-                        !string.Equals(project.GetPropertyValue(dimension.Key), dimension.Value, StringComparison.OrdinalIgnoreCase))) return;
-                    _analysis.UpdateProject(AlarmlistProjectSnapshot.Capture(project, update.Value.FullPath, active.ProjectConfiguration.Name));
+                    if (instance == null) throw new InvalidOperationException("Project evaluation is incomplete.");
+                    snapshot = AlarmlistProjectSnapshot.Capture(instance, update.Value.FullPath, active.ProjectConfiguration.Name);
+                    var evaluation = ProjectEvaluationInputs.Capture(instance, update.Value.FullPath, globals, update.Value.DependentFileTimes, token);
+                    token.ThrowIfCancellationRequested();
+                    lock (_gate)
+                        if (ReferenceEquals(_analysis, analysis) && ReferenceEquals(active, _active.ActiveConfiguredProject)) analysis.UpdateProject(snapshot.WithEvaluation(evaluation));
                 }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { }
                 catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception))
-                { _analysis.Suspend("Cannot capture project evaluation: " + exception.Message); }
+                {
+                    // Keep previous ownership and watches when a missing import
+                    // prevents a new evaluated membership from being captured.
+                    var previous = analysis.Current.Project ?? _registry.GetProject(analysis);
+                    snapshot = previous ?? snapshot ?? new AnalysisProject(update.Value.FullPath, active.ProjectConfiguration.Name, null, Array.Empty<string>());
+                    var recovery = ProjectEvaluationInputs.Capture(instance, update.Value.FullPath, globals, null, token, snapshot.Evaluation, recovery: true);
+                    token.ThrowIfCancellationRequested();
+                    await analysis.RecoverEvaluationAsync(snapshot.WithEvaluation(recovery), "Cannot capture project evaluation: " + exception.Message).ConfigureAwait(false);
+                }
             }
         }
 
@@ -178,11 +257,16 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         {
             ProjectAnalysisService analysis;
             Task observation;
+            Task reevaluations;
+            CancellationTokenSource lifetime;
             lock (_gate)
             {
                 analysis = _analysis;
                 if (analysis == null) return;
                 _analysis = null;
+                lifetime = _loadCancellation; _loadCancellation = null;
+                analysis.EvaluationInvalidated -= OnEvaluationInvalidated;
+                _reevaluations.Complete(); reevaluations = _reevaluations.Completion; _reevaluations = null;
                 _diagnosticSubscription.Dispose();
                 _diagnosticSubscription = null;
                 _active.Changed -= OnActiveChanged;
@@ -194,11 +278,14 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 _observation = null;
                 _registry.Remove(analysis);
             }
+            lifetime.Cancel();
             await analysis.StopAsync().ConfigureAwait(false);
             // Drain the already completed/unlinked dataflow without blocking the UI.
 #pragma warning disable VSTHRD003
             await observation.ConfigureAwait(false);
+            await reevaluations.ConfigureAwait(false);
 #pragma warning restore VSTHRD003
+            lifetime.Dispose();
         }
     }
 }

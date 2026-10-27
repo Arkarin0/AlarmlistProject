@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Text.RegularExpressions;
+using System.Xml;
+using Alarmlist.ConfigurationInput;
 using Alarmlist.VisualStudio.Analysis;
 using Microsoft.Build.Evaluation;
 
@@ -24,22 +26,59 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             AssetsFile = evaluated.GetPropertyValue("ProjectAssetsFile");
             FrameworkMoniker = evaluated.GetPropertyValue("TargetFrameworkMoniker");
             string directory = Path.GetDirectoryName(project.ProjectPath) + Path.DirectorySeparatorChar;
-            var root = new Uri(directory);
             var portableNames = new Dictionary<string, string>(StringComparer.Ordinal);
+            var physicalNames = new HashSet<string>(EvaluatedInputSet.PathComparer);
             foreach (ProjectItem item in evaluated.GetItems("Compile").Concat(evaluated.GetItems("AlarmlistResource"))
                 .Concat(evaluated.GetItems("AlarmlistLookup")))
             {
                 string path = Path.GetFullPath(Path.Combine(directory, item.EvaluatedInclude));
-                string name = item.GetMetadataValue("Link");
-                if (string.IsNullOrWhiteSpace(name)) name = Uri.UnescapeDataString(root.MakeRelativeUri(new Uri(path)).ToString());
-                portableNames[path] = name.Replace('\\', '/');
+                if (physicalNames.Add(path)) portableNames.Add(path, EvaluatedInputSet.PortableName(path, item.GetMetadataValue("Link"), project.ProjectPath));
             }
             PortableNames = new ReadOnlyDictionary<string, string>(portableNames);
-            DiscoveryGlobs = Array.AsReadOnly(evaluated.GetAllGlobs()
+            DiscoveryGlobs = Array.AsReadOnly(CaptureDiscoveryGlobs(evaluated, token).ToArray());
+        }
+
+        private static IEnumerable<AnalysisDiscoveryGlob> CaptureDiscoveryGlobs(Project evaluated, CancellationToken token)
+            => evaluated.GetAllGlobs()
                 .Where(glob => new[] { "Compile", "AlarmlistResource", "AlarmlistLookup", "AlarmlistAnalyzer", "ProjectReference" }
                     .Contains(glob.ItemElement.ItemType, StringComparer.OrdinalIgnoreCase))
-                .Select(glob => new AnalysisDiscoveryGlob(Path.GetDirectoryName(project.ProjectPath), glob.IncludeGlobs,
-                    glob.Excludes.Concat(glob.Removes))).Concat(CaptureImportCandidates(evaluated, token)).ToArray());
+                .Select(glob => new AnalysisDiscoveryGlob(Path.GetDirectoryName(evaluated.FullPath), glob.IncludeGlobs,
+                    glob.Excludes.Concat(glob.Removes))).Concat(CaptureImportCandidates(evaluated, token));
+
+        internal static IReadOnlyList<AnalysisDiscoveryGlob> CaptureDiscoveryHints(string projectPath, IDictionary<string, string> globals, CancellationToken token,
+            Action<string> observeImport = null, IEnumerable<string> capturedPaths = null)
+        {
+            using (var collection = new ProjectCollection(globals))
+            {
+                try
+                {
+                    token.ThrowIfCancellationRequested();
+                    // MSBuild's disk XML loader denies writers. Seed this private
+                    // collection from shared-read snapshots of CPS's known roots
+                    // so ordinary analysis cannot block native Save/Rename.
+                    var roots = new List<Microsoft.Build.Construction.ProjectRootElement>();
+                    foreach (string path in (capturedPaths ?? new[] { projectPath }).Distinct(StringComparer.OrdinalIgnoreCase))
+                    {
+                        token.ThrowIfCancellationRequested();
+                        if (!File.Exists(path)) continue;
+                        using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                        using (var reader = XmlReader.Create(stream, new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null }, path))
+                        {
+                            var root = Microsoft.Build.Construction.ProjectRootElement.Create(reader, collection);
+                            root.FullPath = path; roots.Add(root);
+                        }
+                    }
+                    // Tolerant evaluation supplies watch hints only. Its item set
+                    // must never replace CPS's authoritative consumer membership.
+                    var project = new Project(projectPath, globals, null, collection, ProjectLoadSettings.IgnoreMissingImports);
+                    observeImport?.Invoke(projectPath);
+                    foreach (var import in project.Imports) observeImport?.Invoke(import.ImportedProject.FullPath);
+                    var hints = CaptureDiscoveryGlobs(project, token).ToArray();
+                    GC.KeepAlive(roots); // The collection's XML cache may hold weak references.
+                    return hints;
+                }
+                finally { collection.UnloadAllProjects(); }
+            }
         }
 
         private static IEnumerable<AnalysisDiscoveryGlob> CaptureImportCandidates(Project evaluated, CancellationToken token)
