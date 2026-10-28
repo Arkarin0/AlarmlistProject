@@ -17,6 +17,7 @@ implemented behavior; custom fields and collections require a rebuilt toolset.
 | --- | --- |
 | [Project builds](features/project-builds.md) | Inputs, output paths, cultures and Build/Clean behavior |
 | [Export providers](features/export-providers.md) | Select outputs, register external providers and manage owned artifacts |
+| [JSON export format](features/json-export-format.md) | Versioned resolved JSON, typed values and collection/procedure shapes |
 | [Inheritance and expressions](features/alarm-inheritance-and-expressions.md) | Abstract templates, references, parameters and scope |
 | [Test procedures](features/test-procedures.md) | Named groups, titles, entry ordering, Clear and creation defaults |
 | [Localization](features/localization.md) | RESX strings, culture fallback and independent summary language |

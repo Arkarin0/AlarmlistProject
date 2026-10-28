@@ -88,3 +88,9 @@ output-name example, explicit DLL and NuGet registration, runtime asset selectio
 last-success discovery and Clean. Implementation/validation evidence and remaining
 JSON/zenon/native acceptance gates are recorded in
 [src/VisualStudio/MILESTONE-13.md](../src/VisualStudio/MILESTONE-13.md).
+
+Milestone 13 iteration 7 adds the JSON format reference and index links. Its
+packaged examples cover JSON-only and XML+JSON selection, two cultures,
+transactional failure preservation and both desktop task hosts. Generated scalar
+and collection fixtures cover wire types and identical bytes across frameworks;
+see the milestone record for commands and results.

@@ -29,7 +29,7 @@ syntax, open questions and statements about future work in that history.
 | Explain this value | Proposed; high priority; unassigned | Proposal below |
 | Find All References and safe Rename | Proposed; high priority; unassigned | Proposal below |
 | Semantic comparison and Git integration | Proposed; high priority; unassigned | Proposal below |
-| Export-provider interface | Authorized for Milestone 13; implementation pending | [Milestone 13](src/VisualStudio/MILESTONE-13.md) |
+| Export-provider interface | Milestone 13 in progress: XML/JSON and provider infrastructure implemented; zenon/final acceptance pending | [Milestone 13](src/VisualStudio/MILESTONE-13.md) |
 | Change-impact analysis | Proposed; unassigned | Proposal below |
 | Analyzer quick fixes | Proposed; unassigned | Proposal below |
 | Localization coverage dashboard | Proposed; unassigned | Proposal below |
@@ -82,7 +82,9 @@ must preserve authored source expressions and expose conflicts for review.
 
 ## Export-provider interface
 
-Authorized for Milestone 13 on 2026-10-28; implementation pending.
+Authorized for Milestone 13 on 2026-10-28; implementation in progress.
+XML/JSON and provider infrastructure are implemented; zenon and final acceptance
+remain in the milestone plan.
 
 The [milestone plan](src/VisualStudio/MILESTONE-13.md) defines selectable XML/JSON
 exports, an external zenon keyword-XML provider, NuGet/DLL distribution and

@@ -189,6 +189,7 @@ namespace Alarmlist.MSBuild
                     {
                         var providers = providerLoader.Providers.ToDictionary(provider => provider.Id, StringComparer.OrdinalIgnoreCase);
                         providers.Add("XML", new XmlAlarmlistExportProvider());
+                        providers.Add("JSON", new JsonAlarmlistExportProvider());
                         var actualOutputs = new List<ITaskItem>();
                         var uniqueOutputs = new HashSet<string>(BuildOutputPlan.PathComparer);
                         foreach (var compiled in compiledCultures)

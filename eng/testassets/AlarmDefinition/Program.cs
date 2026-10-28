@@ -49,6 +49,13 @@ internal static class Program
             var artifact = new XmlAlarmlistExportProvider().Export(new ExportRequest(document, "alarms.xml"), System.Threading.CancellationToken.None).Single();
             string providerXml = System.Text.Encoding.UTF8.GetString(artifact.GetContent()).TrimStart('\ufeff');
             Check(providerXml == new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList), "alternate scalar XML provider parity");
+            var json = ExportJsonChecks.Alarm(ExportJsonChecks.Read(result));
+            var countJson = ExportJsonChecks.Field(json, "Count");
+            Check((string)countJson.Element("value").Attribute("type") == "number" && countJson.Element("value").Value == "42", "JSON integer is a number");
+            Check(ExportJsonChecks.Field(json, "Price").Element("value").Value == "12.5" && (string)ExportJsonChecks.Field(json, "Enabled").Element("value").Attribute("type") == "boolean", "JSON decimal and boolean types");
+            Check(ExportJsonChecks.Field(json, "Priority").Element("value").Value == "High" && (string)ExportJsonChecks.Field(json, "Priority").Element("value").Attribute("type") == "string", "JSON enum token");
+            Check(ExportJsonChecks.Field(json, "Day").Element("value").Value == "2024-02-29" && ExportJsonChecks.Field(json, "Clock").Element("value").Value == "12:34:56.12" && ExportJsonChecks.Field(json, "Instant").Element("value").Value == "2024-02-29T12:34:56.12+02:00", "JSON temporal strings keep compiler canonical values");
+            Check(ExportJsonChecks.Field(json, "__type").Element("value").Value == "literal-name", "JSON field names never become reserved serializer members");
             string xml = new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList);
             Check(xml.Contains("<Price>12.5</Price>") && xml.Contains("<Enabled>true</Enabled>") && xml.Contains("12:34:56.12+02:00"), "canonical output");
         }
@@ -60,6 +67,13 @@ internal static class Program
         Check(absent.Count == null && absent.GetField("Count").State == AlarmFieldValueState.Absent, "optional absence");
         Check(absent.Code == 7 && absent.GetField("Code").IsDefault && absent.GetField("Code").RawText == null, "typed literal default");
         Check(absent.Literal == "$(NotAnExpression)", "defaults are literal");
+        var absentJson = ExportJsonChecks.Alarm(ExportJsonChecks.Read(Compile("")));
+        Check(ExportJsonChecks.Field(absentJson, "Count").Element("state").Value == "absent" && (string)ExportJsonChecks.Field(absentJson, "Count").Element("value").Attribute("type") == "null", "JSON optional absence");
+        Check(ExportJsonChecks.Field(absentJson, "Code").Element("isDefault").Value == "true", "JSON default marker");
+        var deferredJson = ExportJsonChecks.Alarm(ExportJsonChecks.Read(Compile("<Count>$(loc:Number)</Count>")));
+        Check(ExportJsonChecks.Field(deferredJson, "Count").Element("state").Value == "deferred" && (string)ExportJsonChecks.Field(deferredJson, "Count").Element("value").Attribute("type") == "null" && ExportJsonChecks.Field(deferredJson, "Count").Element("canonicalText").Value == "$(loc:Number)", "JSON typed keyword deferral");
+        var exactJson = ExportJsonChecks.Alarm(ExportJsonChecks.Read(Compile("<Count>9223372036854775807</Count><Price>79228162514264337593543950335</Price><Ratio>1e308</Ratio>")));
+        Check(ExportJsonChecks.Field(exactJson, "Count").Element("value").Value == "9223372036854775807" && ExportJsonChecks.Field(exactJson, "Price").Element("value").Value == "79228162514264337593543950335" && ExportJsonChecks.Field(exactJson, "Ratio").Element("value").Value == "1E308", "JSON numbers retain full compiler precision and exponent");
         var defaultText = ExportDocument.Create(Compile(""), "keyword").Alarms.Single().Fields.Single(field => field.Name == "Literal").Text;
         Check(defaultText.Segments.Single().Kind == ExportTextSegmentKind.Literal && defaultText.ResolvedText == "$(NotAnExpression)", "Export generated scalar defaults stay literal");
         Check(absent.identity == "identifier", "lowercase field cannot shadow generated constructor parameters");

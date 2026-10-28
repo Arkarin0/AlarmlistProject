@@ -539,6 +539,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   failure also preserves previous outputs. Preserve legacy BOM-free XML build
   bytes independently of the standalone XML file writer's encoding preamble.
   SDK verification exporters must compile against the packaged compiler contract.
+  Built-in JSON format 1 uses ordered field/collection records, compiler canonical
+  numeric values and explicit valid/absent/deferred states. Preserve Int64/Decimal
+  digits, enum tokens and temporal canonical strings; never re-evaluate expressions
+  or pass generated CLR enum objects to a serializer. Keep format version separate
+  from the provider contract and library format versions.
 
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
   package registration through ordinary build assets selecting net472 for desktop

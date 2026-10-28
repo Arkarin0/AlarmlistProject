@@ -22,6 +22,7 @@ Library produces a reusable library artifact and rejects an explicit export list
 An empty or absent AlarmlistExportTypes defaults to XML. An explicit list replaces
 that default, so selecting only an external provider produces only its artifacts.
 IDs are case-insensitive; duplicates and unknown providers fail the build.
+The built-in JSON provider supplies [versioned structured JSON](json-export-format.md).
 
 Each selected provider runs for each configured culture and returns at least one
 artifact. Artifacts can be binary and can use nested paths below that culture's
@@ -38,7 +39,7 @@ are no longer produced. Output paths must not follow symbolic links or junctions
 
 ## Configuration or syntax
 
-Set AlarmlistExportTypes to a semicolon-separated list. XML is built in. External
+Set AlarmlistExportTypes to a semicolon-separated list. XML and JSON are built in. External
 providers register AlarmlistExportProvider items, either from a package's ordinary
 build assets or directly in the project. Package registration does not select a
 provider automatically. Packages select their asset by MSBuildRuntimeType and

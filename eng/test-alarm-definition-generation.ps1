@@ -53,6 +53,7 @@ try {
   <Field Name="identity" Type="String" Default="identifier" />
   <Field Name="Enum" Type="String" Default="enum-name" />
   <Field Name="DateTime" Type="String" Default="date-name" />
+  <Field Name="__type" Type="String" Default="literal-name" />
   <Field Name="Price" Type="Decimal" />
   <Field Name="Ratio" Type="Double" />
   <Field Name="Enabled" Type="Boolean" />
@@ -79,6 +80,7 @@ try {
     <Compile Include="$sharedSource" />
     <Compile Include="$repoRoot/src/shared/Configuration/ResourceFileName.cs" />
     <Compile Include="$runtimeChecks" />
+    <Compile Include="$repoRoot/eng/testassets/Exports/ExportJsonChecks.cs" />
     <Compile Include="$sampleAnalyzer" />
     <EmbeddedResource Include="$lookupSchema" LogicalName="Alarmlist.Lookups.AlarmlistLookup.xsd" />
   </ItemGroup>
@@ -88,6 +90,10 @@ try {
   Invoke-CheckedDotNet 'run-all-types-net8' @((Join-Path $repoRoot 'artifacts/bin/GeneratedTypes/Debug/net8.0/GeneratedTypes.dll'))
   & (Join-Path $repoRoot 'artifacts/bin/GeneratedTypes/Debug/net472/GeneratedTypes.exe') *> (Join-Path $runRoot 'run-all-types-net472.log')
   if ($LASTEXITCODE -ne 0) { throw 'Alternate runtime checks failed on net472.' }
+  $coreHashes = @(Select-String -LiteralPath (Join-Path $runRoot 'run-all-types-net8.log') -Pattern '^JSON_SHA256:' | ForEach-Object Line)
+  $desktopHashes = @(Select-String -LiteralPath (Join-Path $runRoot 'run-all-types-net472.log') -Pattern '^JSON_SHA256:' | ForEach-Object Line)
+  if ($coreHashes.Count -eq 0 -or ($coreHashes -join ';') -ne ($desktopHashes -join ';')) { throw 'JSON output differs between task frameworks.' }
+
   [xml]$requiredDefinition = Get-Content -LiteralPath $typeDefinition -Raw
   $requiredDefinition.AlarmDefinition.Field | Where-Object Name -eq 'Code' | ForEach-Object { $_.RemoveAttribute('Default') }
   $requiredDefinition.Save($typeDefinition)

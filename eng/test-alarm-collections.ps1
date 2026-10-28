@@ -34,6 +34,7 @@ try {
     <Compile Include="$repoRoot/src/shared/Configuration/EditorConfigPreamble.cs" />
     <Compile Include="$repoRoot/src/shared/Configuration/ResourceFileName.cs" />
     <Compile Include="$repoRoot/eng/testassets/AlarmCollections/Program.cs" />
+    <Compile Include="$repoRoot/eng/testassets/Exports/ExportJsonChecks.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisSnapshot.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisCollections.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisContractReader.cs" />
@@ -58,6 +59,12 @@ try {
         Invoke-Checked "$procedure-net8" @((Join-Path $repoRoot 'artifacts/bin/CollectionRuntimeChecks/Debug/net8.0/CollectionRuntimeChecks.dll'))
         & (Join-Path $repoRoot 'artifacts/bin/CollectionRuntimeChecks/Debug/net472/CollectionRuntimeChecks.exe') *> (Join-Path $runRoot "$procedure-net472.log")
         if ($LASTEXITCODE -ne 0) { throw "$procedure net472 checks failed. See $runRoot" }
+        if ($procedure -ne 'minimum') {
+            $coreHashes = @(Select-String -LiteralPath (Join-Path $runRoot "$procedure-net8.log") -Pattern '^JSON_SHA256:' | ForEach-Object Line)
+            $desktopHashes = @(Select-String -LiteralPath (Join-Path $runRoot "$procedure-net472.log") -Pattern '^JSON_SHA256:' | ForEach-Object Line)
+            if ($coreHashes.Count -eq 0 -or ($coreHashes -join ';') -ne ($desktopHashes -join ';')) { throw "JSON output differs between task frameworks: $procedure" }
+        }
+
     }
     Write-Output "Collection runtime checks passed on both frameworks with procedures enabled and disabled. Evidence: $runRoot"
 } finally { Pop-Location }

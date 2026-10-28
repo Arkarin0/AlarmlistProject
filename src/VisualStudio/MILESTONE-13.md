@@ -297,3 +297,62 @@ CatalogXmlCompletionTests, SavedProjectGraphTests and ProjectAnalysisInputTests.
 
 No remaining scoped 5b/6 blocker. Iterations 7 (JSON), 8 (zenon) and 9 (integrated
 native/fork/documentation acceptance) remain authorized and incomplete.
+
+### Iteration 7 evidence — complete
+
+- Added built-in metadata-driven JSON provider, formatVersion 1, producing exact
+  BOM-free UTF-8 artifacts without source I/O or expression re-evaluation. Uses
+  the platform JsonReaderWriterFactory writer on both frameworks; no serializer
+  package dependency/version changes. Reference:
+  https://learn.microsoft.com/en-us/dotnet/api/system.runtime.serialization.json.jsonreaderwriterfactory
+- Wire format contains culture, semantic definition fingerprint, capability and
+  ordered descriptors/alarms/fields/collections/procedures. Field names are values
+  in ordered records rather than dynamic serializer members, preserving names
+  such as __type. Scalar records carry valid/absent/deferred state, default flag,
+  canonical text and typed JSON value. Numeric canonical digits are written
+  directly; temporal strings and enum tokens are never reformatted or reparsed.
+  Keyword-mode typed deferral remains distinct from absence and explicit empty.
+- SDK now selects JSON alone or alongside XML/external providers. Defaults and XML
+  bytes remain unchanged. JSON format 1 rejects unknown Option_ metadata before
+  publication. OutputFileName uses the existing shared request configuration.
+- Core tests cover UTF-8/no BOM, quotes/slashes/control characters/Unicode, null
+  versus empty, all procedure kinds, culture fallback, keyword states, stable
+  ordering/bytes under three current cultures, empty lists, cancellation and
+  unsupported options. net8 tests also parse bytes with System.Text.Json.
+- Generated scalar fixture adds a valid __type field and checks Int64 maximum,
+  Decimal maximum, large Double exponent, booleans, enum tokens, canonical dates/
+  times/timestamps, literal defaults and numeric keyword deferral. Collection
+  fixture checks simple/record shapes, empty collections, inherited duplicate
+  ordering and procedure capability. Both scripts compare actual JSON SHA-256
+  vectors across net472/net8.0, rather than inferring parity from matching counts.
+- Packaged tests compile/build JSON-only and XML+JSON in keyword/en, inspect
+  resolved fields and titles, keep numeric-looking strings unchanged, verify
+  deterministic rebuilds, reject unsupported options, preserve all artifacts and
+  manifest on later-culture failure, retain Application compatibility and clean
+  both formats. The existing DLL/NuGet provider case is included in focused runs.
+- Added the versioned JSON feature/format reference, linked from the index and
+  export guide; updated contract/instruction/backlog/coverage status. Reviewed
+  local paths/links/placeholders, example syntax and git diff --check.
+
+Scoped acceptance:
+
+| Gate | Result |
+| --- | --- |
+| Full compiler suite | 692 net472 / 694 net8.0 passed, zero failures/skips; Iteration7/Compiler TRX records. Final focused JSON rerun: 3 per framework passed. |
+| Task suites | 124 unit and 4 build integration tests per framework passed, zero failures/skips. |
+| Packaged JSON + external provider cases | 2 per test framework passed, zero failures/skips; Iteration7/SDKFocused. |
+| VS2022 / VS2026 desktop packaged JSON | 1 per host passed net472, zero failures/skips; Iteration7/Desktop17 and Desktop18. |
+| Scalar generation/lifecycle/runtime | Both frameworks pass, including exact JSON byte-vector parity; AlarmDefinitionGeneration/af432bc6a51647f89bc68ce1d2a1aa8a. |
+| Collection generation/runtime | Both frameworks pass for enabled/disabled procedures and minimum counts, with JSON byte-vector parity; AlarmCollections/2f79f57967ae4b7f831f0d7ec7322c17. |
+
+Commands used dotnet test on compiler/task projects with --no-restore -v quiet
+-m:1 -nr:false; SDK focused filter was FullyQualifiedName~JsonExportTests|FullyQualifiedName~ExportProviderTests,
+with --logger trx and results under artifacts/log/Debug/Milestone13/Iteration7.
+Desktop repeats use --framework net472 --no-build and each installed MSBuild.exe;
+ALARMLIST_TEST_MSBUILD_PATH is restored afterward. Generator commands are
+eng/test-alarm-definition-generation.ps1 and eng/test-alarm-collections.ps1.
+The existing CA1416 TestHelper warning remains. Prior full SDK evidence remains
+in 5b/6; integrated final regressions repeat under iteration 9 after zenon.
+
+No remaining scoped iteration-7 blocker. Zenon and final native/fork acceptance
+remain authorized and incomplete; the milestone goal is not complete.

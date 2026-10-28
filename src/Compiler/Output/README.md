@@ -1,7 +1,7 @@
 # Export provider contract
 
 Milestone 13 is in progress. SDK builds now invoke selected XML and external
-providers; built-in JSON and the zenon sample remain subsequent iterations.
+providers, including built-in JSON. The zenon sample remains a subsequent iteration.
 
 `IAlarmlistExportProvider` receives an `ExportRequest` and cancellation token and
 returns artifacts. Providers must use the resolved document and metadata rather
@@ -56,3 +56,10 @@ to XML; semicolon-empty IDs and duplicate IDs are errors. These settings are
 activated by SDK builds through the 5b/6 publication boundary.
 NuGet providers register the same items through selected package build assets,
 choosing their net472/net8.0 assembly by MSBuildRuntimeType, not TargetFramework.
+
+JSON format version 1 uses the platform JsonReaderWriterFactory writer available
+on both frameworks, with no new package dependency. It writes detached canonical
+numbers/booleans directly and canonical temporal/enum text as strings. Field names
+are values in ordered scalar-record arrays, avoiding reserved JSON member names.
+See the [wire format](../../../documentation/features/json-export-format.md).
+JSON returns exact UTF-8 bytes without BOM and has no provider options in version 1.

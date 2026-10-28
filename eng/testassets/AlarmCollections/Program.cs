@@ -57,6 +57,14 @@ internal static class Program
         Check((string)exportDocument.Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single().Single(field => field.Name == "Priority").Value == "High", "export record enum token");
         var exportArtifact = new Alarmlist.Output.XmlAlarmlistExportProvider().Export(new Alarmlist.Output.ExportRequest(exportDocument, "alarms.xml"), System.Threading.CancellationToken.None).Single();
         Check(System.Text.Encoding.UTF8.GetString(exportArtifact.GetContent()).TrimStart('\ufeff') == new Alarmlist.Output.XmlAlarmlistOutputWriter().WriteToString(exportResult.AlarmList), "collection XML provider parity");
+        var jsonRoot = ExportJsonChecks.Read(exportResult);
+        var jsonAlarm = ExportJsonChecks.Alarm(jsonRoot);
+        Check(jsonRoot.Element("hasTestProcedure").Value == (AlarmDefinition.HasTestProcedure ? "true" : "false"), "JSON procedure capability");
+        Check(jsonRoot.Element("collectionDefinitions").Elements("item").Select(collection => collection.Element("name").Value).SequenceEqual(new[] { "Tags", "Numbers", "Checks" }), "JSON generated collection metadata order");
+        var jsonCollections = jsonAlarm.Element("collections").Elements("item").ToDictionary(collection => collection.Element("name").Value);
+        Check(ExportJsonChecks.Field(jsonCollections["Tags"].Element("items").Element("item"), "Item").Element("value").Value == "one", "JSON simple collection shape");
+        Check(ExportJsonChecks.Field(jsonCollections["Checks"].Element("items").Element("item"), "Priority").Element("value").Value == "High", "JSON record enum token");
+        Check(!jsonCollections["Numbers"].Element("items").Elements().Any(), "JSON empty collection is an array");
         var empty = Compile("");
         Check(!empty.Diagnostics.Any(diagnostic => diagnostic.Id == "ALM0031"), "Keyword builds do not warn about enum captions");
         var captionContext = new CompilationContext(Array.Empty<ResxTextSnapshot>(), "de-DE");
@@ -125,6 +133,9 @@ internal static class Program
         var inherited = new AlarmCompiler().CompileSnapshots(new[] { baseSource, childSource });
         Check(inherited.Success && inherited.AlarmList.Single().GetCollection("Tags").Items.Select(value => value.GetField("Item").CanonicalText).SequenceEqual(new[] { "base", "same", "same" }), "Inherited-first order and duplicate values");
         Check((long)inherited.AlarmList.Single().GetCollection("Checks").Items.Single().GetField("Copy").Value == 4, "Inherited records evaluate in consuming alarm scope");
+        var inheritedJson = ExportJsonChecks.Alarm(ExportJsonChecks.Read(inherited));
+        var inheritedTags = inheritedJson.Element("collections").Elements("item").Single(collection => collection.Element("name").Value == "Tags");
+        Check(inheritedTags.Element("items").Elements("item").Select(record => ExportJsonChecks.Field(record, "Item").Element("value").Value).SequenceEqual(new[] { "base", "same", "same" }), "JSON inherited order and duplicate items");
         var cleared = new AlarmCompiler().CompileSnapshots(new[] { baseSource, Snapshot(Alarm("<ReferenceName>Base</ReferenceName><Tags><Item>discard</Item><Clear/><Item>new</Item></Tags><Checks><Clear/></Checks>")) });
         Check(cleared.Success && cleared.AlarmList.Single().GetCollection("Checks").Items.Count == 0 && cleared.AlarmList.Single().GetCollection("Tags").Items.Count == 1, "Clear removes inherited and preceding local entries and defers excluded contextual evaluation");
         var emptyContainer = new AlarmCompiler().CompileSnapshots(new[] { baseSource, Snapshot(Alarm("<ReferenceName>Base</ReferenceName><Properties><Property Name='P' Value='3'/></Properties><Tags/>")) });
