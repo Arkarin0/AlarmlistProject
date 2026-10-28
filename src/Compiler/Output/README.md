@@ -38,3 +38,19 @@ IsDeferred distinguishes keyword-mode typed expressions from concrete typed
 values; their canonical text is preserved but their typed Value can be null.
 Absent and explicit empty remain distinct. SDK export activation and the zenon
 provider are still pending.
+Provider loader foundation (iteration 5a): ExportProviderReference declares an ID,
+assembly path, exact public entry type and immutable captured images. The loader
+loads only that type, validates ID/version, and disposes providers and all loading
+scopes on failure. It shares captured assembly loading with analyzers: collectible
+contexts on .NET 8, captured byte loading with conflict/restart guidance on desktop
+CLR. Paths are identity only after capture; the compiler loader reads no files.
+
+Build configuration uses AlarmlistExportTypes and AlarmlistExportProvider items.
+Metadata names are AssemblyPath, TypeName, Dependencies, OutputFileName and
+Option_<name>. Dependencies are explicitly declared DLL paths, relative to the
+provider assembly's directory unless absolute. The host contract DLL cannot be
+replaced. Only selected external providers are captured. Empty selection defaults
+to XML; semicolon-empty IDs and duplicate IDs are errors. These settings are not
+activated by SDK builds until the publication/discovery boundary in 5b/6.
+NuGet providers will register the same items through selected package build assets,
+choosing their net472/net8.0 assembly by MSBuildRuntimeType, not TargetFramework.

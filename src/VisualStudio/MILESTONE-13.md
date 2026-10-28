@@ -63,7 +63,12 @@ profiles; never close user IDEs.
    formatted lookups without changing existing expression semantics. Validate
    inherited child context, translated arguments, keyword/concrete cultures and
    absent/default values. Do not claim zenon support until this gate passes.
-5. **Provider selection/loading.** Wire Exports/Application/Library and export IDs
+5. **Provider selection/loading.** Deliver 5a (captured provider loader and
+   configuration validation) as an independently tested foundation. Deliver 5b
+   (task/SDK activation and packaged consumers) together with iteration 6's
+   publication boundary: multi-file providers cannot safely run through the old
+   text-only transaction or predicted single-file output discovery.
+   Wire Exports/Application/Library and export IDs
    through task and SDK. Add explicit DLL and declared NuGet provider loading,
    dependencies and host-framework selection. Validate duplicate/missing IDs,
    incompatible providers and design-time nonexecution in packaged consumers.
@@ -192,3 +197,34 @@ Tests not run (documentation only).
 - Output authoring README updated; git diff --check passes. No scoped blocker.
   SDK activation, concrete exporters and packaged/native acceptance remain in
   iterations 5–9; none are claimed complete by these compiler checks.
+
+### Iteration 5a evidence — complete; iteration 5b remains
+
+- Extracted existing analyzer captured-byte loading into shared internal
+  Extensibility/CapturedAssemblyScope. Analyzer behavior and lifecycle are retained;
+  providers reuse its .NET 8 collectible contexts and desktop identity/conflict
+  guard instead of introducing a separate binding policy.
+- Added captured ExportAssemblyImage/ExportProviderReference and provider loader
+  for explicitly declared public entry types. Validates declared/runtime IDs,
+  contract version and duplicate/reserved IDs. Disposes partial instances/scopes
+  on failure. Tests load a test-only provider from absent source paths and verify
+  multiple/binary artifacts, precise rejection failures, recovery, defensive
+  images and collectible-context selection; no process-memory inference.
+- Added build-only ExportConfiguration for ID selection, registration metadata,
+  explicitly declared dependency capture, host-contract protection, options and
+  output-name validation. Only selected external code is captured. Exports is
+  accepted as the Application alias by the existing output planner. Empty/absent
+  selection defaults XML; Library rejects a nonempty explicit selection.
+- Test authoring exposed reserved MSBuild FileName metadata. Use OutputFileName
+  for provider output overrides; the provider request's FileName API is unchanged.
+- Adjusted remaining plan dependencies: 5a is an isolated foundation commit;
+  5b activation/package gates share iteration 6's transactional artifact boundary.
+  Existing SDK builds remain XML-only until that boundary. NuGet distribution,
+  dependency asset selection, and design-time nonexecution still require packaged
+  consumer evidence; no claim that full iteration 5 is complete.
+- Full compiler tests: 689 net472 / 691 net8.0 pass, no failures/skips. Includes
+  existing analyzer disposal/unloading and repeated collectible-load tests.
+  Task unit tests: 106 per framework pass. Task integration: 4 per framework pass.
+  Commands: dotnet test for each compiler/task test project with --no-restore
+  -v quiet -m:1 -nr:false. Existing CA1416 TestHelper warning remains.
+- Output authoring notes and git diff --check reviewed. No 5a scoped blocker.

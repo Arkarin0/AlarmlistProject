@@ -247,7 +247,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | Location | Responsibility |
 | --- | --- |
 | `documentation/` | User-facing feature references and workflow tutorials; start with its README and use the section templates. Documentation coverage and review evidence are recorded in `documentation/PLAN.md`. |
-| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, and detached snapshot/provenance results in `Analysis/`. |
+| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, detached snapshot/provenance results in `Analysis/`, and captured tooling assembly binding in `Extensibility/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
 | `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-5 sample rule; also a package/UI test asset. |
 | `src/shared/Configuration/` | Saved EditorConfig discovery and analyzer/dependency byte capture shared by build and IDE hosts; no compiler file I/O. |
