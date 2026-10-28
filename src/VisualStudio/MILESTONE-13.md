@@ -52,7 +52,7 @@ profiles; never close user IDEs.
    property decisions; link from instructions/backlog. Review diff and links;
    no build needed. Complete when the durable plan is committed.
 2. **Artifact primitives.** Add immutable binary/text artifact and segmented-text
-   primitives under Output, with contract version. Test defensive copies, Unicode,
+   primitives under Output; introduce the provider contract version in iteration 3. Test defensive copies, Unicode,
    ordering and invalid inputs on net472/net8.0. No build activation yet.
 3. **Resolved provider contract.** Add immutable detached document/metadata model,
    provider request/result interface and XML adapter. Preserve default XML bytes.
@@ -99,3 +99,19 @@ No product validation or implementation acceptance is claimed yet.
 
 Iteration 1: plan/backlog/instruction links reviewed; git diff --check passed.
 Tests not run (documentation only).
+
+### Iteration 2 evidence — complete
+
+- Added ExportArtifact with defensive byte copies and strict BOM-free UTF-8 text
+  creation, plus immutable ordered ExportText/ExportTextSegment primitives.
+  Filesystem validation deliberately remains the publication host responsibility.
+- Literal text resembling expressions or zenon delimiters stays literal. These
+  primitives do not yet capture compiler evaluation boundaries or activate exports.
+- Output tests: 5 passed per framework (net472/net8.0), no failures/skips:
+  dotnet test src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj --filter FullyQualifiedName~Alarmlist.Output.Tests --no-restore -v quiet
+- Full compiler regression: 675 net472 and 677 net8.0 passed, no failures/skips:
+  dotnet test src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj --no-build --no-restore -v quiet
+- Existing CA1416 warning in shared TestHelper remains. No task/SDK or IDE behavior
+  changed; downstream package/native acceptance belongs to its later iterations.
+  Reviewed diff and git diff --check. Iteration 3 is next; provider compatibility,
+  detached resolved document and XML adaptation are not implemented yet.
