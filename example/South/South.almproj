@@ -3,6 +3,8 @@
     <ProjectGuid>{E6C107BB-2274-43E4-BBC6-A97AEF44625B}</ProjectGuid>
   </PropertyGroup>
   <PropertyGroup>
+    <OutputType>Exports</OutputType>
+    <AlarmlistExportTypes>JSON</AlarmlistExportTypes>
     <AlarmlistCulture>keyword</AlarmlistCulture>
     <AlarmlistCultures>keyword;en;de-DE</AlarmlistCultures>
   </PropertyGroup>

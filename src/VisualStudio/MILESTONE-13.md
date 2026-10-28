@@ -1,7 +1,7 @@
 # Milestone 13 — Export providers
 
-Status: complete. All nine planned iterations and their scoped acceptance gates
-have passed. Vendor runtime import certification is excluded.
+Status: complete, including authorized follow-up iteration 10. All scoped
+acceptance gates have passed. Vendor runtime import certification is excluded.
 
 ## Outcome and confirmed scope
 
@@ -494,3 +494,74 @@ existing shared TestHelper CA1416 warning remains. No essential gate is unavaila
 and no scoped implementation blocker remains. This completes Milestone 13;
 full zenon import/language-table generation, vendor runtime certification and
 unrelated historical milestone release gates remain outside this milestone.
+
+### Iteration 10 — per-project example exports (authorized)
+
+Deliver North=XML, South=JSON and a standalone Zenon=Zenon project in Example.sln.
+Preserve North/South sources, shared imports, localization exercises and 12/8
+alarm counts. Zenon owns one compatible keyword/literal sample and en/de resources,
+building keyword/en/de-DE without importing formatted shared instructions.
+Preparation builds matching exporter assets, generates ignored Example.local.props
+for its version, restores all three projects and keys its cache on both packages.
+Never rewrite edited sources/projects/solution during preparation.
+
+Update SDK/native fixtures and playground documentation with the behavior.
+Acceptance: focused packaged example/provider tests on both frameworks and desktop
+MSBuild hosts; Clean/Rebuild and stale South XML retirement; native
+Area=DefaultSharedExample on both IDEs, preparation twice on edited isolated copies,
+four loaded projects and format-specific output assertions. Run native checks
+sequentially with other desktop suites and account for shared/RDP input. Record
+actual results separately below and commit this iteration only after gates pass.
+
+### Iteration 10 evidence — complete
+
+- North explicitly selects XML; South selects JSON. Added standalone Zenon to
+  Example.sln with Debug/Release configurations, one alarm, a Position=1 project
+  value, plain en/de resources and keyword/en/de-DE build cultures. Its Name and
+  procedure Step emit @YouPlacedAtPositionKeyword@ 1 @atLocationkeyword@. Only
+  Zenon references the provider package; it has no Shared import. Existing
+  North/South ALMX/RESX/lookups and Shared membership are unchanged.
+- Preparation builds matching dual-runtime exporter assets, generates ignored
+  Example.local.props for the package version, maps both packages to the private
+  feed and restores all three applications. Both package contents contribute to
+  the cache hash. Hashing uses framework SHA-256 streams to support child Windows
+  PowerShell environments where Get-FileHash is unavailable. No machine settings
+  or global module paths were changed.
+- SDK fixtures read South's actual JSON fields, identities and procedure entries.
+  Existing diagnostics/severity, inheritance, culture, source-preservation and
+  failed-build output/manifest assertions remain. New coverage builds all three
+  formats, verifies 12/8/1 alarms and exact Zenon text per culture, seeds old South
+  XML and verifies retirement, then checks each project's Clean/Rebuild while
+  preserving other project outputs and unrelated files.
+- Native DefaultSharedExample copies all four projects, prepares twice after an
+  isolated source edit, verifies source/project/import/solution hashes and native
+  Shared membership, and checks actual XML/JSON/zenon outputs after loading and
+  reopening. Existing shared consumer context, Undo and unload/reload checks remain.
+  Used idle Alarmlist13Exp profiles on both hosts; the user's existing AlarmlistExp
+  IDE remained open. Native checks ran sequentially.
+- Updated playground walkthrough/preparation/output documentation, the editor
+  tutorial, zenon feature reference, documentation coverage and repository map.
+  Reviewed changed local links, XML/project/solution configuration and diff.
+
+| Gate | Result |
+| --- | --- |
+| Focused SDK example + packaged zenon | 6 net472 / 6 net8.0 passed, no failures/skips; Milestone13/Iteration10/SDK. |
+| VS2022 desktop MSBuild | 6 net472 passed, no failures/skips; Iteration10/Desktop17. |
+| VS2026 desktop MSBuild | 6 net472 passed, no failures/skips; Iteration10/Desktop18. |
+| VS2022 native DefaultSharedExample | 1 passed, no failures/skips; VisualStudioUI/TestResults/4c4743cd2f06462db34c64312c5533ae. |
+| VS2026 native DefaultSharedExample | 1 passed, no failures/skips; VisualStudioUI/TestResults/bd0493ad70f948858868b83e0179d7af. |
+| Checked-in working example | Prepared and built all three projects, verified 12/8/1 alarms in each culture, exact keyword text, old South XML removal and unchanged source hashes; Iteration10/WorkingExample. |
+
+SDK commands use dotnet test with filter
+FullyQualifiedName~ExamplePlaygroundTests|FullyQualifiedName~ZenonExportTests,
+--no-restore -v quiet -m:1 -nr:false --logger trx and results under
+artifacts/log/Debug/Milestone13/Iteration10. Desktop repeats use --framework net472
+--no-build and each installed MSBuild.exe via ALARMLIST_TEST_MSBUILD_PATH, restored
+afterward. Native commands use eng/test-visualstudio.ps1 with each installed host,
+-RootSuffix Alarmlist13Exp -Filter Area=DefaultSharedExample. Final local preparation
+uses eng/prepare-example.ps1 followed by dotnet msbuild on North/South/Zenon with
+/t:Build /nr:false. Generated version/feed/cache and build outputs remain ignored.
+
+git diff --check and changed documentation local links pass. No scoped blocker
+remains. Compiler/provider contracts and behavior are unchanged; full unrelated
+compiler/extension suites were not rerun for this example-only follow-up.

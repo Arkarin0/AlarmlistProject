@@ -1,4 +1,5 @@
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)Example.local.props" Condition="Exists('$(MSBuildThisFileDirectory)Example.local.props')" />
   <!-- This is an SDK consumer, so do not inherit the repository's Arcade build. -->
   <PropertyGroup>
     <!-- The diagnostics exercise starts with visible warnings and successful builds. -->

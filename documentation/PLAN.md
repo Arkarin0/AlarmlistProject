@@ -113,3 +113,11 @@ hosts. Native export builds and installed XML hints pass on both supported IDEs;
 full SDK, VSIX and IDE unit regressions pass. Changed local links, paths,
 placeholders and diff were reviewed. Vendor import certification
 remains excluded from the keyword-XML feature.
+
+Milestone 13 follow-up iteration 10 updates the default playground to North XML,
+South JSON and a standalone Zenon keyword example. Its README documents outputs,
+preparation, resource fallback and keyword-only scope; existing shared localization
+exercises stay unchanged. Focused SDK tests pass on both frameworks and desktop
+hosts; native DefaultSharedExample passes on both IDEs. The checked-in playground
+is prepared and builds all three formats. Validation evidence is recorded in the
+milestone plan.

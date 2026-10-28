@@ -3,6 +3,8 @@
     <ProjectGuid>{301BE86B-718D-44FB-BA93-929F7686E197}</ProjectGuid>
   </PropertyGroup>
   <PropertyGroup>
+    <OutputType>Exports</OutputType>
+    <AlarmlistExportTypes>XML</AlarmlistExportTypes>
     <AlarmlistCulture>en</AlarmlistCulture>
     <AlarmlistCultures>keyword;en;de-DE</AlarmlistCultures>
   </PropertyGroup>

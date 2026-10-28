@@ -17,7 +17,7 @@ the repository root. Use the existing `example/Example.sln` playground.
 Run `scripts/start-vs2026.bat`, or `scripts/start-vs2022.bat` for that host.
 
 Expected result: the launcher builds/deploys matching tools, prepares the SDK and
-sample analyzer, and opens Example.sln in AlarmlistExp. Preparation preserves
+sample analyzer and zenon exporter, and opens Example.sln in AlarmlistExp. Preparation preserves
 source edits, so a previously modified playground may show different values.
 
 ### 2. Edit a local scalar field

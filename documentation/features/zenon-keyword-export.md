@@ -17,6 +17,9 @@ The package contains net472 and net8.0 provider assets, selected by the executin
 MSBuild runtime. Reference the package in each exporting project; registration
 does not propagate through project references or select the provider automatically.
 
+The repository's prepared [example playground](../../example/README.md#try-per-project-exports)
+includes a standalone Zenon project alongside North's XML and South's JSON exports.
+
 ## How it works
 
 Provider ID `Zenon` uses compiler-owned localization segments in fields,

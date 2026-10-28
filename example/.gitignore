@@ -1,4 +1,5 @@
 # Prepared from the current VSIX/SDK by eng/prepare-example.ps1.
 /global.json
 /NuGet.Config
+/Example.local.props
 /.analyzers/
