@@ -1,5 +1,9 @@
 # Milestone 13 — Export providers
 
+Status: complete. All nine planned iterations and their scoped acceptance gates
+have passed. Native catalogue and editor-unit initial failures are retained below
+with their successful repeats. Vendor runtime import certification is excluded.
+
 ## Outcome and confirmed scope
 
 Authorized on 2026-10-28. Build resolved alarms through selectable XML, JSON and
@@ -100,7 +104,8 @@ collection values, compilation evaluator, task output plan, transaction, SDK
 targets and pinned Arcade integration. Existing enum-based writer selection is
 XML-only; existing transaction stages text, requiring binary support later.
 
-No product validation or implementation acceptance is claimed yet.
+At initial planning, no product validation or implementation acceptance was
+claimed. Completed iteration evidence follows.
 
 Iteration 1: plan/backlog/instruction links reviewed; git diff --check passed.
 Tests not run (documentation only).
@@ -416,3 +421,87 @@ The existing shared TestHelper CA1416 warning remains. git diff --check passes.
 
 No scoped iteration-8 blocker. Iteration 9's full integrated regressions,
 native/fork acceptance and guided export tutorial remain authorized and incomplete.
+
+### Iteration 9 evidence — complete
+
+- Added native Area=ExportBuild on both IDE hosts. Loads an Exports project whose
+  selected provider DLL contains invalid bytes and verifies resolved Alarm Summary
+  data before any Build. A valid matching zenon DLL then builds alongside XML/JSON.
+  Reopening with an invalid DLL keeps analysis usable; a failed Build preserves
+  outputs. Selecting JSON succeeds without loading the unselected invalid provider,
+  removes old XML/zenon files, and supports Clean and Build.
+- Installed XML catalogue acceptance adds Exports, Application and
+  AlarmlistExportTypes candidates, including insertion/Escape/Undo checks. VS2022
+  passed both export/catalogue cases. VS2026 passed ExportBuild; its first catalogue
+  run timed out on the pre-existing first lookup candidate Path. The failure
+  screenshot shows another application foreground with the completion popup.
+  A separate owned-IDE catalogue repeat passed without a product change. Both
+  successful hosts closed their owned test IDEs; no user IDE was closed.
+- Added -Exports to collection-fork/consumer fixtures. Builds a matching external
+  zenon package and verifies XML/JSON/zenon through both ProjectReference and NuGet
+  library consumption. Verification compiles against extracted packaged compiler
+  DLLs, never compiler project references. Checks retyped numeric Code, canonical
+  scalars, removed fields, metadata fingerprint, collection sibling values and
+  procedure capability. Zenon equals ordinary XML for these literal-only sources.
+  Analyzer/scalar/cardinality failures preserve all export and manifest hashes.
+  JSON-only switching removes old files; Clean/Rebuild round-trips all formats.
+- The first fork consumer run exposed PowerShell scalar unrolling of a one-element
+  command-prefix array. Corrected to an explicit string array. Successful consumer
+  repeats and enabled/disabled forks supersede that fixture failure.
+- Guided export tutorial uses actual XML/JSON/zenon examples and checks hashes
+  after delimiter failure, format switching and Clean. Executed its XML code blocks
+  in an isolated local-feed directory; every expected result passed. Extended
+  provider-authoring notes cover runtime packaging, detachment, dependencies,
+  cancellation/disposal and trusted-code boundaries. Local links/placeholders and
+  git diff --check reviewed.
+- Separate isolated shared-project check builds North with XML+JSON and South with
+  JSON only, inspects en/de-DE consumer-specific values, verifies source hashes,
+  no shared-container outputs, and South Clean preserving North output. Initial
+  setup inherited repository feed mappings; clearing those in its private config
+  fixed setup. No checked-in playground sources/configuration were changed.
+
+Passing evidence so far:
+
+| Gate | Evidence |
+| --- | --- |
+| VS2022 export build + installed XML hints | 2 passed, no failures/skips; VisualStudioUI/TestResults/307fb511a2b84c38bb7ea479ec965f71. |
+| VS2026 export build | Passed in initial two-case run; catalogue failure is separately superseded. |
+| VS2026 installed XML hints repeat | 1 passed, no failures/skips; VisualStudioUI/TestResults/09df5551db504e579977fc2ee53d1cc6. |
+| Procedure-enabled fork, VS2022 desktop + .NET MSBuild | col13/27db5d96/consumer-checks/cbcd6de4. |
+| Procedure-enabled fork, VS2026 desktop + .NET MSBuild | col13/67ce9429/consumer-checks/6ba1a61f. |
+| Procedure-disabled fork, VS2026 desktop + .NET MSBuild | col13/f4a3c3ea/consumer-checks/f8859e32. |
+| Procedure-disabled fork, VS2022 desktop + .NET MSBuild | col13/f4a3c3ea/consumer-checks/e2f0eda6. |
+| Actual tutorial examples | Milestone13/Iteration9/Tutorial/4ad9bfa6b7f548ea89ddccc20a284848. |
+| Shared export selection and cultures | Milestone13/Iteration9/SharedExports/72da47359f8a48a6896a5d710f45798d. |
+| Full VSIX/package integration | 14 per framework passed, no failures/skips; Iteration9/ExtensionPackage. |
+| Full SDK regression | 96 net472 / 93 net8.0 passed, no failures/skips; Iteration9/SDKFull. |
+| Full IDE unit regression repeat | 832 net472 passed, no failures/skips; Iteration9/ExtensionUnitRepeat. |
+
+The first full IDE unit run passed 830 and failed two WithdrawnCompletion cases
+(Return/Tab), at the final source-edit count assertion. All three key cases passed
+in isolation with identical binaries (Iteration9/ExtensionCompletionFocused).
+A full identical-binary repeat passed all 832. No editor behavior or assertion was
+changed to obtain the passing result; the non-reproduced initial failures remain
+visible as a test-stability limitation, rather than an inferred product diagnosis.
+
+Compiler/task/zenon production code is unchanged since iteration 8's full
+dual-framework acceptance, including legacy XML byte parity and generated
+scalar/collection runtime fixtures; that evidence remains applicable.
+
+Commands: eng/test-visualstudio.ps1 with each installed IDE path and
+-Filter 'Area=ExportBuild|Area=XmlCatalogCompletion'; VS2026 catalogue repeat uses
+-Filter 'Area=XmlCatalogCompletion'. Collection acceptance uses
+eng/test-alarm-collection-fork.ps1 -Exports -DesktopMSBuildPath <host>, and
+eng/test-alarm-definition-fork-consumers.ps1 -Collections -Exports -ForkRoot <fork>
+for the second desktop host. Full SDK/VSIX/unit suites use dotnet test on their
+projects with --no-restore -v quiet --logger trx --results-directory under
+artifacts/log/Debug/Milestone13/Iteration9; SDK/package builds use -m:1 -nr:false.
+The unit repeat uses --no-build; focused completion filter is
+FullyQualifiedName~WithdrawnCompletionKeepsTheNextKey. Native and WPF suites ran
+sequentially, separately from SDK XLIFF tests. Environment overrides were restored.
+
+Reviewed focused diffs, changed documentation links and git diff --check. The
+existing shared TestHelper CA1416 warning remains. No essential gate is unavailable
+and no scoped implementation blocker remains. This completes Milestone 13;
+full zenon import/language-table generation, vendor runtime certification and
+unrelated historical milestone release gates remain outside this milestone.

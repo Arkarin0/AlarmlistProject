@@ -102,4 +102,4 @@ resolution and retain these same keyword markers in the zenon artifact.
 
 See [export providers](export-providers.md), [localization](localization.md),
 [JSON export](json-export-format.md), and
-[build your first alarmlist](../tutorials/build-your-first-alarmlist.md).
+[export resolved alarms](../tutorials/export-resolved-alarms.md).

@@ -552,6 +552,12 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Its ordinary package build assets register both task runtimes without shipping
   the host compiler or activating transitively. Full zenon import/language-table
   generation and vendor runtime certification remain outside milestone 13.
+  Milestone 13 native export acceptance uses Area=ExportBuild alongside
+  Area=XmlCatalogCompletion on both IDE hosts. Run sequentially with native/WPF
+  suites. Collection fork acceptance adds -Exports to build the matching zenon
+  package and validate XML/JSON/zenon through project/NuGet library consumers,
+  failure preservation and output switching/Clean/Rebuild. Repeat consumer checks
+  with -Collections -Exports against each installed desktop MSBuild host.
 
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
   package registration through ordinary build assets selecting net472 for desktop

@@ -97,3 +97,5 @@ Sources and expressions remain unchanged.
 See [project builds](project-builds.md), [localization](localization.md), and
 [build your first alarmlist](../tutorials/build-your-first-alarmlist.md).
 Provider authors can read the [contract notes](../../src/Compiler/Output/README.md).
+Follow [export resolved alarms](../tutorials/export-resolved-alarms.md) for a
+complete XML/JSON/zenon selection and failure-preservation exercise.

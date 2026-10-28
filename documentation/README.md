@@ -48,6 +48,7 @@ independently after preparing its tools.
 8. [Share sources between projects](tutorials/share-sources-between-projects.md).
 9. [Configure diagnostic policy](tutorials/configure-diagnostics.md).
 10. [Explore custom fields and collections](tutorials/explore-custom-definitions.md).
+11. [Export resolved alarms](tutorials/export-resolved-alarms.md).
 
 ## Create an article
 

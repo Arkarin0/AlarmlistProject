@@ -81,3 +81,13 @@ To add coverage, add a named asset directory and a feature test in the collectio
 Use `_fixture.CreateTestApp("AssetName")` and `app.Build(_output)` for a successful
 build, or `app.Run(_output, "/t:Build")` to assert a failure. Assertions should
 check build behavior and outputs rather than the literal spelling of targets.
+
+Export acceptance uses ExportProviderTests, JsonExportTests and ZenonExportTests.
+The test feed includes the production zenon package for both runtimes. The isolated
+verification provider compiles against extracted SDK assemblies and demonstrates
+declared dependencies plus multiple binary/text artifacts. Repeat these cases
+against both installed desktop MSBuild hosts, restoring the previous environment
+value afterward. Custom-definition package acceptance uses
+`eng/test-alarm-collection-fork.ps1 -Exports -DesktopMSBuildPath ...`; consumer-only
+repeats use `eng/test-alarm-definition-fork-consumers.ps1 -Collections -Exports`.
+See the [milestone evidence](../../VisualStudio/MILESTONE-13.md).

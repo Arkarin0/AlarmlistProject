@@ -9,4 +9,7 @@
     <Compile Include="Verify.cs" />
     <Reference Include="Alarmlist.Core" HintPath="$(ForkSdkPath)/tasks/$(TargetFramework)/Alarmlist.Core.dll" />
   </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Runtime.Serialization" />
+  </ItemGroup>
 </Project>

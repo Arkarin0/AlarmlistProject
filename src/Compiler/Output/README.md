@@ -1,7 +1,7 @@
 # Export provider contract
 
-Milestone 13 is in progress. SDK builds now invoke selected XML and external
-providers, including built-in JSON. The zenon sample remains a subsequent iteration.
+SDK builds invoke selected built-in XML/JSON and external providers. The packaged
+zenon sample lives in [src/Exporters](../../Exporters/Alarmlist.Exporters.Zenon/README.md).
 
 `IAlarmlistExportProvider` receives an `ExportRequest` and cancellation token and
 returns artifacts. Providers must use the resolved document and metadata rather
@@ -55,6 +55,41 @@ to XML; semicolon-empty IDs and duplicate IDs are errors. These settings are
 activated by SDK builds through the 5b/6 publication boundary.
 NuGet providers register the same items through selected package build assets,
 choosing their net472/net8.0 assembly by MSBuildRuntimeType, not TargetFramework.
+
+## Implement and package a provider
+
+Implement a public concrete IAlarmlistExportProvider with a public parameterless
+constructor. Keep its ID stable, return ContractVersion=1, and use a null required
+definition fingerprint only when all supported fields/collections are handled
+through metadata. Call request.ValidateCompatibility(this), check cancellation
+between work units, and reject unsupported options explicitly. Preserve compiler
+ordering, absent/default/deferred distinctions and typed values. Do not evaluate
+source, resolve resources again, discover dependencies or publish files yourself.
+
+Return one or more ExportArtifact values. Each path must be relative to the culture
+root and unique across every provider selected in that build. Bytes can represent
+any format; ExportArtifact.FromText provides strict BOM-free UTF-8. Nested paths
+are supported in returned artifacts. Request.FileName is a suggested filename;
+the registration's OutputFileName override accepts a filename without a directory.
+All artifacts must be detached from provider types so they remain usable after
+disposal/unloading. A provider may implement IDisposable; disposal failure prevents
+publication just like export failure. Whole-process crashes are not rollback gates.
+
+Build runtime assets for net472 and net8.0 against the matching compiler contract.
+Do not ship Alarmlist.Core.dll or privately bind another copy. Put entry/dependency
+DLLs under tools/<framework> and register the explicit entry type from ordinary
+build props/targets. Use MSBuildRuntimeType to select the task-host asset. Avoid
+buildTransitive and automatic export selection; the consuming project chooses its
+IDs. Explicitly list dependency DLLs in Dependencies. The production
+[zenon package project](../../Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj)
+demonstrates packaging; its build targets demonstrate runtime selection.
+
+Validate consumers against the extracted packaged SDK contract. The isolated
+[verification provider](../../SDK/Alarmlist.SDK.Tests/testassets/Exports/Provider)
+and [SDK tests](../../SDK/Alarmlist.SDK.Tests/ExportProviderTests.cs) cover DLL/NuGet
+registration, declared dependencies, multiple binary/text artifacts, failure
+preservation and nonexecution during discovery/Clean/design-time builds. Providers
+are trusted build code; collectible loading controls lifetime rather than permissions.
 
 JSON format version 1 uses the platform JsonReaderWriterFactory writer available
 on both frameworks, with no new package dependency. It writes detached canonical

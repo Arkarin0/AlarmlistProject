@@ -100,5 +100,17 @@ README examples. The SDK fixture verifies private NuGet and direct DLL selection
 the exact mixed-keyword example, filename overrides, both task runtimes, later-
 culture failure preservation and discovery/design-time/Clean nonexecution with an
 invalid provider image. The scalar/collection fixtures verify custom definitions.
-The guided export tutorial and integrated native acceptance remain iteration 9;
+Iteration 9 supplies the guided export tutorial and integrated native acceptance;
 no vendor import certification is claimed.
+
+Milestone 13 iteration 9 completes the export tutorial, provider-authoring notes
+and SDK/native testing links. Executed the tutorial's actual XML code blocks in
+an isolated local-feed directory: XML+JSON, zenon, delimiter-failure hash
+preservation, JSON-only switching and Clean all pass. Separate shared consumers
+verify independent selection and cultures. Custom-definition project/package
+consumers verify all formats against the extracted SDK contract on both desktop
+hosts. Native export builds and installed XML hints pass on both supported IDEs;
+full SDK, VSIX and IDE unit regressions pass. Initial catalogue/unit failures and
+successful repeats remain documented in the milestone evidence. Changed local
+links, paths, placeholders and diff were reviewed. Vendor import certification
+remains excluded from the keyword-XML feature.
