@@ -72,6 +72,7 @@ Existing plans and iteration records:
 | [Milestone 5](src/VisualStudio/MILESTONE-5.md) | Localization and XLIFF, including HMI lookup, named-list, and preview follow-up iterations; see its [design contract](src/VisualStudio/MILESTONE-5-DESIGN.md) and [lookup specification](src/VisualStudio/HMI-LOOKUPS.md). |
 | [Milestone 6](src/VisualStudio/MILESTONE-6.md) | EditorConfig, diagnostic policy, external analyzers, and compatibility/lifecycle validation iterations. |
 | [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX: procedures, property fields, IntelliSense, searchable references, file/alarm scope separation and preview-table rendering/column preferences; accepted direction and open interaction details. |
+| [Milestone 13](src/VisualStudio/MILESTONE-13.md) | Export providers: Library/Exports project purpose, selectable XML/JSON/Zenon, external packages/DLLs and transactional artifacts. |
 | [Milestone 12](src/VisualStudio/MILESTONE-12.md) | Authorized XML IntelliSense for ALMX, .almlookup and .almproj files, and native Visual Studio Shared Projects; follow its accepted defaults and 15% remaining-allowance stop. |
 
 Read the selected plan's current status and remaining gates before resuming it.
