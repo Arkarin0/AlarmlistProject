@@ -12,6 +12,19 @@ namespace Alarmlist.Output
 {
     public sealed class XmlAlarmlistExportProvider : IAlarmlistExportProvider
     {
+        private readonly Func<ExportScalar, string> _renderScalar;
+        private readonly Func<ExportText, string> _renderText;
+
+        public XmlAlarmlistExportProvider()
+            : this(value => value?.CanonicalText, text => text?.ResolvedText) { }
+
+        /// <summary>Projects detached text into the existing XML shape without evaluating source expressions.</summary>
+        public XmlAlarmlistExportProvider(Func<ExportScalar, string> renderScalar, Func<ExportText, string> renderText)
+        {
+            _renderScalar = renderScalar ?? throw new ArgumentNullException(nameof(renderScalar));
+            _renderText = renderText ?? throw new ArgumentNullException(nameof(renderText));
+        }
+
         public string Id => "XML";
         public int ContractVersion => ExportDocument.ContractVersion;
         public string RequiredDefinitionFingerprint => null;
@@ -37,7 +50,7 @@ namespace Alarmlist.Output
                         {
                             ExportScalar value = alarm.Fields.FirstOrDefault(item => item.Name == field.Name);
                             if (field.Type == "String" || value?.CanonicalText != null)
-                                writer.WriteElementString(field.Name, value?.CanonicalText);
+                                writer.WriteElementString(field.Name, _renderScalar(value));
                         }
                         foreach (ExportCollectionMetadata metadata in request.Document.Collections)
                         {
@@ -46,9 +59,9 @@ namespace Alarmlist.Output
                             foreach (IReadOnlyList<ExportScalar> item in collection.Items)
                             {
                                 writer.WriteStartElement("Item");
-                                if (metadata.Kind == "Simple") writer.WriteString(item.FirstOrDefault(field => field.Name == "Item")?.CanonicalText);
+                                if (metadata.Kind == "Simple") writer.WriteString(_renderScalar(item.FirstOrDefault(field => field.Name == "Item")));
                                 else foreach (ExportScalar field in item)
-                                    if (field.CanonicalText != null) writer.WriteElementString(field.Name, field.CanonicalText);
+                                    if (field.CanonicalText != null) writer.WriteElementString(field.Name, _renderScalar(field));
                                 writer.WriteEndElement();
                             }
                             writer.WriteEndElement();
@@ -60,12 +73,12 @@ namespace Alarmlist.Output
                             {
                                 writer.WriteStartElement("Group");
                                 writer.WriteAttributeString("Name", group.Name);
-                                writer.WriteElementString("Title", group.Title);
+                                writer.WriteElementString("Title", _renderText(group.TitleText));
                                 foreach (ExportProcedureEntry entry in group.Entries)
                                 {
                                     writer.WriteStartElement("TestProcedureItem");
                                     writer.WriteAttributeString("Kind", entry.Kind);
-                                    writer.WriteString(entry.Text);
+                                    writer.WriteString(_renderText(entry.ExportText));
                                     writer.WriteEndElement();
                                 }
                                 writer.WriteEndElement();

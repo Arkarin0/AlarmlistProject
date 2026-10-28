@@ -37,8 +37,7 @@ use segments, not scan ResolvedText, to produce keyword-preserving output.
 
 IsDeferred distinguishes keyword-mode typed expressions from concrete typed
 values; their canonical text is preserved but their typed Value can be null.
-Absent and explicit empty remain distinct. The zenon provider remains a subsequent
-iteration.
+Absent and explicit empty remain distinct.
 
 Provider loader foundation (iteration 5a): ExportProviderReference declares an ID,
 assembly path, exact public entry type and immutable captured images. The loader
@@ -63,3 +62,11 @@ numbers/booleans directly and canonical temporal/enum text as strings. Field nam
 are values in ordered scalar-record arrays, avoiding reserved JSON member names.
 See the [wire format](../../../documentation/features/json-export-format.md).
 JSON returns exact UTF-8 bytes without BOM and has no provider options in version 1.
+
+XmlAlarmlistExportProvider also accepts scalar/text projection delegates. Its
+parameterless constructor preserves legacy bytes; projections reuse metadata and
+XML escaping without duplicating the output structure or evaluating source.
+The external Alarmlist.Exporters.Zenon package uses this surface to render keys as
+@Key@. It rejects literal delimiters, adjacent keys without literal separators and
+RequiresSubstitution segments. Its package contains only provider runtime assets,
+ordinary build registration and a README; it relies on the host's compiler contract.

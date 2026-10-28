@@ -356,3 +356,63 @@ in 5b/6; integrated final regressions repeat under iteration 9 after zenon.
 
 No remaining scoped iteration-7 blocker. Zenon and final native/fork acceptance
 remain authorized and incomplete; the milestone goal is not complete.
+
+### Iteration 8 evidence — complete
+
+- Added external Alarmlist.Exporters.Zenon package with explicit provider ID Zenon,
+  ordinary build assets selecting net472/net8.0 by MSBuildRuntimeType, and a
+  configurable filename defaulting to $(MSBuildProjectName).Zenon.xml. Package
+  includes both DLLs, build registration and README; tests reject compiler copies,
+  lib assets, buildTransitive activation and package dependencies.
+- Shared XML provider now accepts detached scalar/text projections while retaining
+  its parameterless constructor and legacy serialization. Zenon reuses that shape
+  and XML escaping. Key segments become @Key@; literals/defaults and concrete typed
+  canonical values are preserved. No source scanning/evaluation or provider I/O.
+- Rejects literal @, adjacent keys without a nonempty literal separator,
+  RequiresSubstitution keys and unsupported provider options before publication.
+  This is keyword XML, not a full vendor import file or language-table exporter.
+  COPA-DATA language-switching reference reviewed:
+  https://download.copadata.com/fileadmin/user_upload/Downloads/Dokumentation/820SP0/ENGLISH/Manual/Language_switch.pdf
+- Tests cover exact user example in keyword/en, child-context inheritance,
+  procedure field references, escaped/parameter token-looking literals, lookup
+  labels/metadata, cancellation and rejected representations. A .NET 8 test retains
+  artifacts plus the disposed loader and proves its collectible context dies by
+  WeakReference; it does not infer unloading from process memory.
+- Packaged consumers verify private NuGet and direct DLL registration, no automatic
+  selection, actual host asset path, XML+JSON+Zenon coexistence, default/override
+  names, retired artifact cleanup and previous complete bytes/manifest after
+  delimiter and later-culture substitution failure. GetTargetPath, design-time
+  Build and Clean succeed after the selected DLL is replaced with invalid bytes.
+- Generated scalar fixture covers canonical numeric values and token-looking
+  defaults; collection fixture covers deferred typed keys and sibling references,
+  plus enabled/disabled procedure capability. Both frameworks pass.
+- Added user feature guide, packaged configuration examples, authoring notes,
+  index/coverage/backlog/instruction updates. Reviewed links, paths and diff.
+  Initial unit build lacked the test's direct compiler reference (the package
+  deliberately uses PrivateAssets); corrected. Initial package override test used
+  a directory where OutputFileName accepts only filenames; corrected to keywords.xml.
+  Neither failed attempt is counted as acceptance.
+
+Scoped acceptance:
+
+| Gate | Result |
+| --- | --- |
+| Full compiler regression, including legacy XML byte parity | 692 net472 / 694 net8.0 passed, no failures/skips. |
+| Zenon unit tests | 9 net472 / 10 net8.0 passed, no failures/skips; extra .NET 8 collectible lifetime test. |
+| Packaged XML/JSON/external/zenon cases | 3 per framework passed, no failures/skips; Iteration8/SDKFinal. |
+| Desktop VS2022 / VS2026 MSBuild zenon | 1 per host passed net472, no failures/skips; Iteration8/Desktop17 and Desktop18. |
+| Task suites | 124 unit and 4 integration tests per framework passed, no failures/skips. |
+| Generated scalar/lifecycle | Both runtimes pass; AlarmDefinitionGeneration/f1e6baa238fb48ab9b454438d227bfaa. |
+| Generated collections | Both runtimes and procedure capabilities pass; AlarmCollections/057173ad8ebe452da50440546769a9f6. |
+
+Commands used dotnet test on compiler, zenon, SDK and task projects with
+--no-restore -v quiet -m:1 -nr:false --logger trx; results are under
+artifacts/log/Debug/Milestone13/Iteration8. SDK focused filter combines
+ZenonExportTests|JsonExportTests|ExportProviderTests. Desktop repeats use
+--framework net472 --no-build with ALARMLIST_TEST_MSBUILD_PATH selected from each
+installed IDE and restored afterward. Generator scripts are
+eng/test-alarm-definition-generation.ps1 and eng/test-alarm-collections.ps1.
+The existing shared TestHelper CA1416 warning remains. git diff --check passes.
+
+No scoped iteration-8 blocker. Iteration 9's full integrated regressions,
+native/fork acceptance and guided export tutorial remain authorized and incomplete.

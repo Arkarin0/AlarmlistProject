@@ -94,3 +94,11 @@ packaged examples cover JSON-only and XML+JSON selection, two cultures,
 transactional failure preservation and both desktop task hosts. Generated scalar
 and collection fixtures cover wire types and identical bytes across frameworks;
 see the milestone record for commands and results.
+
+Milestone 13 iteration 8 adds the zenon keyword-XML feature reference and packaged
+README examples. The SDK fixture verifies private NuGet and direct DLL selection,
+the exact mixed-keyword example, filename overrides, both task runtimes, later-
+culture failure preservation and discovery/design-time/Clean nonexecution with an
+invalid provider image. The scalar/collection fixtures verify custom definitions.
+The guided export tutorial and integrated native acceptance remain iteration 9;
+no vendor import certification is claimed.

@@ -249,6 +249,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `documentation/` | User-facing feature references and workflow tutorials; start with its README and use the section templates. Documentation coverage and review evidence are recorded in `documentation/PLAN.md`. |
 | `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, detached snapshot/provenance results in `Analysis/`, and captured tooling assembly binding in `Extensibility/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
+| `src/Exporters/` | External zenon keyword-XML provider/package and its dual-framework tests; SDK tests verify packaged NuGet and DLL consumers. |
 | `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-5 sample rule; also a package/UI test asset. |
 | `src/shared/Configuration/` | Saved EditorConfig discovery and analyzer/dependency byte capture shared by build and IDE hosts; no compiler file I/O. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
@@ -544,6 +545,13 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   digits, enum tokens and temporal canonical strings; never re-evaluate expressions
   or pass generated CLR enum objects to a serializer. Keep format version separate
   from the provider contract and library format versions.
+  The external zenon provider renders compiler-owned localization segments as
+  @Key@ through the shared XML projection. Preserve literal/default/typed values;
+  reject literal @, adjacent keys without a nonempty literal separator, and keys
+  requiring substitution. Never infer keyword boundaries from resolved strings.
+  Its ordinary package build assets register both task runtimes without shipping
+  the host compiler or activating transitively. Full zenon import/language-table
+  generation and vendor runtime certification remain outside milestone 13.
 
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
   package registration through ordinary build assets selecting net472 for desktop

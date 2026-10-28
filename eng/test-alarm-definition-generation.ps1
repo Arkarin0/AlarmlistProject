@@ -81,6 +81,7 @@ try {
     <Compile Include="$repoRoot/src/shared/Configuration/ResourceFileName.cs" />
     <Compile Include="$runtimeChecks" />
     <Compile Include="$repoRoot/eng/testassets/Exports/ExportJsonChecks.cs" />
+    <Compile Include="$repoRoot/src/Exporters/Alarmlist.Exporters.Zenon/ZenonExportProvider.cs" />
     <Compile Include="$sampleAnalyzer" />
     <EmbeddedResource Include="$lookupSchema" LogicalName="Alarmlist.Lookups.AlarmlistLookup.xsd" />
   </ItemGroup>

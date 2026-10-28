@@ -161,6 +161,10 @@ internal static class Program
         Check(keywordExport.Single(field => field.Name == "Copy").IsDeferred && keywordExport.Single(field => field.Name == "Copy").Text.Segments.Single().Text == "Number", "Export keyword sibling boundary and deferred typed state");
         var defaultExport = Alarmlist.Output.ExportDocument.Create(defaults, "keyword").Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single();
         Check(defaultExport.Single(field => field.Name == "Text").Text.Segments.Single().Kind == Alarmlist.Output.ExportTextSegmentKind.Literal && defaultExport.Single(field => field.Name == "Text").Text.ResolvedText == "$(Literal)", "Export record defaults are literal");
+        var zenonArtifact = new Alarmlist.Exporters.Zenon.ZenonExportProvider().Export(new Alarmlist.Output.ExportRequest(Alarmlist.Output.ExportDocument.Create(keyword, "keyword"), "zenon.xml"), System.Threading.CancellationToken.None).Single();
+        var zenonAlarm = XDocument.Parse(System.Text.Encoding.UTF8.GetString(zenonArtifact.GetContent()).TrimStart('\ufeff')).Root.Element("Alarm");
+        Check(zenonAlarm.Element("Checks").Element("Item").Element("Count").Value == "@Number@" && zenonAlarm.Element("Checks").Element("Item").Element("Copy").Value == "@Number@", "Zenon record and sibling keyword projection");
+        Check((zenonAlarm.Element("TestProcedure") != null) == AlarmDefinition.HasTestProcedure, "Zenon optional procedure capability");
         var resources = new[] { new ResxTextSnapshot("<root><data name='Number'><value>5</value></data><data name='Record'><value>$(item:Count)</value></data><data name='Formatted'><value>{value}</value></data></root>", "values.en.resx", 1, "en") };
         var context = new CompilationContext(resources, "en");
         var localized = Compile(Record("<Count>$(loc:Number)</Count><Copy>$(loc:Record)</Copy><Text>$(loc:Formatted, value=$(item:Copy))</Text>"), context);

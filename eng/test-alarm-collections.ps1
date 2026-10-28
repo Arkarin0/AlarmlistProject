@@ -35,6 +35,7 @@ try {
     <Compile Include="$repoRoot/src/shared/Configuration/ResourceFileName.cs" />
     <Compile Include="$repoRoot/eng/testassets/AlarmCollections/Program.cs" />
     <Compile Include="$repoRoot/eng/testassets/Exports/ExportJsonChecks.cs" />
+    <Compile Include="$repoRoot/src/Exporters/Alarmlist.Exporters.Zenon/ZenonExportProvider.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisSnapshot.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisCollections.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisContractReader.cs" />

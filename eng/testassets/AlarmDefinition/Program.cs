@@ -56,6 +56,9 @@ internal static class Program
             Check(ExportJsonChecks.Field(json, "Priority").Element("value").Value == "High" && (string)ExportJsonChecks.Field(json, "Priority").Element("value").Attribute("type") == "string", "JSON enum token");
             Check(ExportJsonChecks.Field(json, "Day").Element("value").Value == "2024-02-29" && ExportJsonChecks.Field(json, "Clock").Element("value").Value == "12:34:56.12" && ExportJsonChecks.Field(json, "Instant").Element("value").Value == "2024-02-29T12:34:56.12+02:00", "JSON temporal strings keep compiler canonical values");
             Check(ExportJsonChecks.Field(json, "__type").Element("value").Value == "literal-name", "JSON field names never become reserved serializer members");
+            var zenon = new Alarmlist.Exporters.Zenon.ZenonExportProvider().Export(new ExportRequest(document, "zenon.xml"), System.Threading.CancellationToken.None).Single();
+            var zenonAlarm = System.Xml.Linq.XDocument.Parse(System.Text.Encoding.UTF8.GetString(zenon.GetContent()).TrimStart('\ufeff')).Root.Element("Alarm");
+            Check(zenonAlarm.Element("Count").Value == "42" && zenonAlarm.Element("Price").Value == "12.5" && zenonAlarm.Element("Literal").Value == "$(NotAnExpression)", "Zenon generated scalar canonical values and literal defaults");
             string xml = new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList);
             Check(xml.Contains("<Price>12.5</Price>") && xml.Contains("<Enabled>true</Enabled>") && xml.Contains("12:34:56.12+02:00"), "canonical output");
         }

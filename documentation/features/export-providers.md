@@ -23,6 +23,7 @@ An empty or absent AlarmlistExportTypes defaults to XML. An explicit list replac
 that default, so selecting only an external provider produces only its artifacts.
 IDs are case-insensitive; duplicates and unknown providers fail the build.
 The built-in JSON provider supplies [versioned structured JSON](json-export-format.md).
+The external [zenon provider](zenon-keyword-export.md) supplies keyword XML.
 
 Each selected provider runs for each configured culture and returns at least one
 artifact. Artifacts can be binary and can use nested paths below that culture's
