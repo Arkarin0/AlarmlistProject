@@ -973,6 +973,9 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   measurements sequentially. They share desktop focus even when their project
   files and experimental profiles are isolated; overlapping runs can close menus
   or redirect keyboard input and invalidate interaction evidence.
+  On shared/RDP desktops, concurrent user keyboard and mouse input can also
+  interfere; account for that input before attributing interaction failures to
+  the product or test stability.
 - Run SDK XLIFF apply tests separately from native IDE tests. Their resource-editor
   guard inspects running IDEs; concurrent test-IDE startup/shutdown can make that
   check fail closed and invalidate an otherwise isolated package-consumer run.

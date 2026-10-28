@@ -83,8 +83,7 @@ must preserve authored source expressions and expose conflicts for review.
 ## Export-provider interface
 
 Completed in Milestone 13 on 2026-10-28. XML/JSON/zenon and provider infrastructure
-are implemented; scoped acceptance evidence and test-stability limitations are
-recorded in the milestone plan.
+are implemented; scoped acceptance evidence is recorded in the milestone plan.
 
 The [milestone plan](src/VisualStudio/MILESTONE-13.md) defines selectable XML/JSON
 exports, an external zenon keyword-XML provider, NuGet/DLL distribution and

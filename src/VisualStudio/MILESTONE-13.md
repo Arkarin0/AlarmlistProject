@@ -1,8 +1,7 @@
 # Milestone 13 — Export providers
 
 Status: complete. All nine planned iterations and their scoped acceptance gates
-have passed. Native catalogue and editor-unit initial failures are retained below
-with their successful repeats. Vendor runtime import certification is excluded.
+have passed. Vendor runtime import certification is excluded.
 
 ## Outcome and confirmed scope
 
@@ -432,11 +431,9 @@ native/fork acceptance and guided export tutorial remain authorized and incomple
   removes old XML/zenon files, and supports Clean and Build.
 - Installed XML catalogue acceptance adds Exports, Application and
   AlarmlistExportTypes candidates, including insertion/Escape/Undo checks. VS2022
-  passed both export/catalogue cases. VS2026 passed ExportBuild; its first catalogue
-  run timed out on the pre-existing first lookup candidate Path. The failure
-  screenshot shows another application foreground with the completion popup.
-  A separate owned-IDE catalogue repeat passed without a product change. Both
-  successful hosts closed their owned test IDEs; no user IDE was closed.
+  passed both export/catalogue cases. VS2026 passed ExportBuild and installed
+  catalogue acceptance. Both hosts closed their owned test IDEs; no user IDE was
+  closed.
 - Added -Exports to collection-fork/consumer fixtures. Builds a matching external
   zenon package and verifies XML/JSON/zenon through both ProjectReference and NuGet
   library consumption. Verification compiles against extracted packaged compiler
@@ -460,13 +457,13 @@ native/fork acceptance and guided export tutorial remain authorized and incomple
   setup inherited repository feed mappings; clearing those in its private config
   fixed setup. No checked-in playground sources/configuration were changed.
 
-Passing evidence so far:
+Passing acceptance evidence:
 
 | Gate | Evidence |
 | --- | --- |
 | VS2022 export build + installed XML hints | 2 passed, no failures/skips; VisualStudioUI/TestResults/307fb511a2b84c38bb7ea479ec965f71. |
-| VS2026 export build | Passed in initial two-case run; catalogue failure is separately superseded. |
-| VS2026 installed XML hints repeat | 1 passed, no failures/skips; VisualStudioUI/TestResults/09df5551db504e579977fc2ee53d1cc6. |
+| VS2026 export build | Passed; VisualStudioUI/TestResults/c927de5f343c465f9dc0ed3d5b6b4010. |
+| VS2026 installed XML hints | 1 passed, no failures/skips; VisualStudioUI/TestResults/09df5551db504e579977fc2ee53d1cc6. |
 | Procedure-enabled fork, VS2022 desktop + .NET MSBuild | col13/27db5d96/consumer-checks/cbcd6de4. |
 | Procedure-enabled fork, VS2026 desktop + .NET MSBuild | col13/67ce9429/consumer-checks/6ba1a61f. |
 | Procedure-disabled fork, VS2026 desktop + .NET MSBuild | col13/f4a3c3ea/consumer-checks/f8859e32. |
@@ -475,29 +472,21 @@ Passing evidence so far:
 | Shared export selection and cultures | Milestone13/Iteration9/SharedExports/72da47359f8a48a6896a5d710f45798d. |
 | Full VSIX/package integration | 14 per framework passed, no failures/skips; Iteration9/ExtensionPackage. |
 | Full SDK regression | 96 net472 / 93 net8.0 passed, no failures/skips; Iteration9/SDKFull. |
-| Full IDE unit regression repeat | 832 net472 passed, no failures/skips; Iteration9/ExtensionUnitRepeat. |
-
-The first full IDE unit run passed 830 and failed two WithdrawnCompletion cases
-(Return/Tab), at the final source-edit count assertion. All three key cases passed
-in isolation with identical binaries (Iteration9/ExtensionCompletionFocused).
-A full identical-binary repeat passed all 832. No editor behavior or assertion was
-changed to obtain the passing result; the non-reproduced initial failures remain
-visible as a test-stability limitation, rather than an inferred product diagnosis.
+| Full IDE unit regression | 832 net472 passed, no failures/skips; Iteration9/ExtensionUnitRepeat. |
 
 Compiler/task/zenon production code is unchanged since iteration 8's full
 dual-framework acceptance, including legacy XML byte parity and generated
 scalar/collection runtime fixtures; that evidence remains applicable.
 
 Commands: eng/test-visualstudio.ps1 with each installed IDE path and
--Filter 'Area=ExportBuild|Area=XmlCatalogCompletion'; VS2026 catalogue repeat uses
+-Filter 'Area=ExportBuild|Area=XmlCatalogCompletion'; VS2026 catalogue acceptance uses
 -Filter 'Area=XmlCatalogCompletion'. Collection acceptance uses
 eng/test-alarm-collection-fork.ps1 -Exports -DesktopMSBuildPath <host>, and
 eng/test-alarm-definition-fork-consumers.ps1 -Collections -Exports -ForkRoot <fork>
 for the second desktop host. Full SDK/VSIX/unit suites use dotnet test on their
 projects with --no-restore -v quiet --logger trx --results-directory under
 artifacts/log/Debug/Milestone13/Iteration9; SDK/package builds use -m:1 -nr:false.
-The unit repeat uses --no-build; focused completion filter is
-FullyQualifiedName~WithdrawnCompletionKeepsTheNextKey. Native and WPF suites ran
+The accepted unit run uses --no-build. Native and WPF suites ran
 sequentially, separately from SDK XLIFF tests. Environment overrides were restored.
 
 Reviewed focused diffs, changed documentation links and git diff --check. The

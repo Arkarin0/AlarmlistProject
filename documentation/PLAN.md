@@ -110,7 +110,6 @@ preservation, JSON-only switching and Clean all pass. Separate shared consumers
 verify independent selection and cultures. Custom-definition project/package
 consumers verify all formats against the extracted SDK contract on both desktop
 hosts. Native export builds and installed XML hints pass on both supported IDEs;
-full SDK, VSIX and IDE unit regressions pass. Initial catalogue/unit failures and
-successful repeats remain documented in the milestone evidence. Changed local
-links, paths, placeholders and diff were reviewed. Vendor import certification
+full SDK, VSIX and IDE unit regressions pass. Changed local links, paths,
+placeholders and diff were reviewed. Vendor import certification
 remains excluded from the keyword-XML feature.
