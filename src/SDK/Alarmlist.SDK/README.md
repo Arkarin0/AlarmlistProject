@@ -3,7 +3,9 @@
 For user-facing feature guides and step-by-step workflows, start with the
 [documentation index](../../../documentation/README.md).
 
-An MSBuild SDK that compiles `.almx` source files into one XML alarmlist per selected culture.
+An MSBuild SDK that compiles `.almx` source files into selected export artifacts
+per culture, using XML by default. See [export providers](../../../documentation/features/export-providers.md)
+for external DLL/NuGet registration, output selection and transactional publication.
 It supports `dotnet msbuild` with .NET SDK 8 or later and Visual Studio MSBuild
 with .NET Framework 4.7.2 or later. The package includes the compiler, task
 assemblies, and their runtime dependencies.

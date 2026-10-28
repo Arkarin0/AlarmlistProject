@@ -2,7 +2,7 @@
   <PropertyGroup>
     <BuildProjectReferences Condition="'$(BuildProjectReferences)' == '' and '$(BuildingInsideVisualStudio)' == 'true'">false</BuildProjectReferences>
     <BuildProjectReferences Condition="'$(BuildProjectReferences)' == ''">true</BuildProjectReferences>
-    <_AlarmlistReferenceRemoveProperties>TargetFramework;RuntimeIdentifier;OutputType;PackageId;PackageVersion;AlarmlistLibraryFileName;CompiledAlarmlistFileName</_AlarmlistReferenceRemoveProperties>
+    <_AlarmlistReferenceRemoveProperties>TargetFramework;RuntimeIdentifier;OutputType;AlarmlistExportTypes;PackageId;PackageVersion;AlarmlistLibraryFileName;CompiledAlarmlistFileName</_AlarmlistReferenceRemoveProperties>
   </PropertyGroup>
 
   <!-- Use MSBuild's solution configuration assignment without importing managed compilation. -->

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net472;net8.0</TargetFrameworks>
+    <AssemblyName>Fixture.Exporter</AssemblyName>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Exporter.cs" />
+    <Reference Include="Alarmlist.Core"><HintPath>$(ContractRoot)/$(TargetFramework)/Alarmlist.Core.dll</HintPath><Private>false</Private></Reference>
+    <ProjectReference Include="Support/Support.csproj" />
+  </ItemGroup>
+</Project>

@@ -79,3 +79,12 @@ record was moved here from the user index without changing its completed status.
 
 Documentation review does not rerun IDE acceptance, package/toolset builds or
 translation-vendor round trips. Vendor interoperability remains unverified.
+
+## Milestone 13 export documentation
+
+The export-provider feature guide, project-build updates and SDK/index links ship
+with Milestone 13 iterations 5b/6. The packaged consumer fixture verifies the XML
+output-name example, explicit DLL and NuGet registration, runtime asset selection,
+last-success discovery and Clean. Implementation/validation evidence and remaining
+JSON/zenon/native acceptance gates are recorded in
+[src/VisualStudio/MILESTONE-13.md](../src/VisualStudio/MILESTONE-13.md).

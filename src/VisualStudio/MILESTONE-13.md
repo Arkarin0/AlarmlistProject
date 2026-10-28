@@ -228,3 +228,72 @@ Tests not run (documentation only).
   Commands: dotnet test for each compiler/task test project with --no-restore
   -v quiet -m:1 -nr:false. Existing CA1416 TestHelper warning remains.
 - Output authoring notes and git diff --check reviewed. No 5a scoped blocker.
+
+### Iterations 5b and 6 evidence — complete
+
+- Activated OutputType=Exports (SDK default) and Application compatibility with
+  AlarmlistExportTypes and explicit AlarmlistExportProvider registrations. XML
+  remains the default; selected external providers can supplement or replace it.
+  Library exports reject an explicit list and never load providers. JSON is
+  reserved but not yet available until iteration 7; selecting it fails before
+  publication rather than silently falling back to XML.
+- Captures saved provider/dependency bytes and protects every declared provider
+  path. Compiles all cultures first, invokes each selected provider with detached
+  data, checks compatibility, validates all returned artifacts, and disposes
+  providers before staging. Null/empty artifact collections and failures are
+  build errors; cancellation/disposal failure cannot publish a partial batch.
+- OutputTransaction stages exact binary bytes while preserving BOM-free existing
+  XML build output and XLIFF text/expected-byte behavior. Preflights/revalidates
+  link-free paths, stages the whole batch, restores ordinary installation or
+  cancellation failures, and retains backups on failed restoration. Unit checks
+  observe an installed binary before triggering recovery.
+- Added export manifest version 3 with actual provider/culture paths, nested
+  artifact support and bounded retained temporary ownership. Versions 1/2 still
+  read; libraries retain version 2. GetTargetPath reads the last successful batch
+  without loading providers; before a first export only XML has a predicted path.
+  Clean removes owned files even after provider removal, preserving unrelated
+  outputs. Output switching removes stale owned artifacts. No directory globbing
+  or recursive output deletion was introduced.
+- Full SDK regression initially found Library-to-Exports temporary-owner scope
+  loss: deletion backups for retired library files are outside culture folders.
+  Corrected scopes now retain their captured original file/root bounds; an added
+  regression checks transition round-trip and rejects a forged escaping owner.
+  Initial 93/90-pass runs with one failure each are superseded by final acceptance.
+- Packaged verification exporter compiles both runtime assemblies against the
+  extracted SDK contract, not a compiler project reference. Tests prove DLL and
+  ordinary NuGet build-asset registration, a declared dependency, actual runtime
+  choice, nested binary/sidecar files, later-culture failure preservation, invalid
+  DLL failure/recovery, missing-package selection failure, output switching,
+  XML-name overrides and GetTargetPath/Clean/design-time nonexecution. Constructor
+  instrumentation is test-only. Package selection path assertions normalize
+  ordinary build/../tools paths; the initial unnormalized assertion was not a pass.
+- SDK project-reference globals and saved IDE dependency evaluation both remove
+  consumer export selection. Exports retains ordinary application analysis.
+  General.xaml offers Exports plus Application compatibility and export selection;
+  embedded XML hints follow the same SDK rule values. No exporter loads in the
+  in-process analysis path. Native functional acceptance remains iteration 9.
+- Added the export feature guide and updated project-build, SDK, authoring/index,
+  coverage and repository instructions. Reviewed local links, XML assets and diff;
+  git diff --check passes. Existing CA1416 TestHelper warning remains.
+
+Final scoped acceptance:
+
+| Gate | Result |
+| --- | --- |
+| Full packaged SDK regression | 94 net472 / 91 net8.0 passed, zero failures/skips; Iteration5b6/SDKFull TRX records. |
+| Task unit suite | 124 per framework passed, zero failures/skips; Iteration5b6/TaskUnit. Focused strengthened rollback rerun: 2 per framework passed. |
+| Task build integration | 4 per framework passed, zero failures/skips. |
+| VS2022 desktop MSBuild packaged export/reference cases | 4 passed net472, zero failures/skips; Iteration5b6/Desktop17. |
+| VS2026 desktop MSBuild packaged export/reference cases | 4 passed net472, zero failures/skips; Iteration5b6/Desktop18. |
+| IDE rule/XML hints and saved project/input tests | 119 passed net472, zero failures/skips. |
+
+Commands used dotnet test with --no-restore -v quiet -m:1 -nr:false for SDK and
+both task projects; SDK acceptance used --logger trx --results-directory
+artifacts/log/Debug/Milestone13/Iteration5b6/SDKFull. Desktop repeats selected
+ALARMLIST_TEST_MSBUILD_PATH for each installed host, --framework net472 --no-build
+and filter FullyQualifiedName~ExportProviderTests|FullyQualifiedName~InvalidReferenceGraphPreservesConsumerOutput;
+the previous environment value was restored. IDE filter combined RuleTests,
+CatalogXmlCompletionTests, SavedProjectGraphTests and ProjectAnalysisInputTests.
+
+No remaining scoped 5b/6 blocker. Iterations 7 (JSON), 8 (zenon) and 9 (integrated
+native/fork/documentation acceptance) remain authorized and incomplete.

@@ -1,0 +1,18 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup>
+    <OutputType>Exports</OutputType>
+    <AlarmlistCultures>keyword;en</AlarmlistCultures>
+    <AlarmlistExportTypes>XML;Fixture</AlarmlistExportTypes>
+  </PropertyGroup>
+  <ItemGroup>
+    <AlarmlistExportProvider Include="Fixture">
+      <AssemblyPath Condition="'$(MSBuildRuntimeType)' == 'Core'">$(MSBuildProjectDirectory)/Provider/bin/Debug/net8.0/Fixture.Exporter.dll</AssemblyPath>
+      <AssemblyPath Condition="'$(MSBuildRuntimeType)' != 'Core'">$(MSBuildProjectDirectory)/Provider/bin/Debug/net472/Fixture.Exporter.dll</AssemblyPath>
+      <Dependencies>Fixture.Support.dll</Dependencies>
+      <TypeName>Fixture.Exporter</TypeName>
+    </AlarmlistExportProvider>
+  </ItemGroup>
+  <Target Name="RecordExportOutputs" AfterTargets="GetTargetPath">
+    <WriteLinesToFile File="outputs.txt" Lines="@(CompiledAlarmlistFiles->'%(FullPath)|%(Culture)|%(ExportProvider)')" Overwrite="true" />
+  </Target>
+</Project>

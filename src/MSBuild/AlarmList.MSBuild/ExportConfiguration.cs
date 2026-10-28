@@ -17,7 +17,7 @@ namespace Alarmlist.MSBuild
         private readonly Dictionary<string, ITaskItem> _registrations;
         private readonly string _projectDirectory;
 
-        internal ExportConfiguration(string outputType, string exportTypes, IEnumerable<ITaskItem> registrations, string projectPath)
+        internal ExportConfiguration(string outputType, string exportTypes, IEnumerable<ITaskItem> registrations, string projectPath, bool requireSelectedProviders = true)
         {
             bool library = BuildOutputPlan.IsLibrary(outputType);
             if (library && !string.IsNullOrWhiteSpace(exportTypes))
@@ -42,7 +42,7 @@ namespace Alarmlist.MSBuild
                 _registrations.Add(item.ItemSpec, item);
             }
             foreach (string id in selected)
-                if (!IsBuiltin(id) && !_registrations.ContainsKey(id))
+                if (requireSelectedProviders && !IsBuiltin(id) && !_registrations.ContainsKey(id))
                     throw new ArgumentException("Export provider '" + id + "' is not registered. Add its NuGet package or an AlarmlistExportProvider DLL declaration.");
             _projectDirectory = string.IsNullOrWhiteSpace(projectPath) ? Environment.CurrentDirectory : Path.GetDirectoryName(Path.GetFullPath(projectPath));
         }
@@ -56,14 +56,11 @@ namespace Alarmlist.MSBuild
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 ITaskItem item = _registrations[id];
-                string path = item.GetMetadata("AssemblyPath");
-                if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Export provider '" + id + "' requires AssemblyPath.");
-                path = Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(_projectDirectory, path));
+                string path = AssemblyPath(id, item);
                 var images = new List<ExportAssemblyImage>();
-                foreach (string value in new[] { path }.Concat(item.GetMetadata("Dependencies").Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)))
+                foreach (string dependency in ReferencePaths(path, item))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    string dependency = Path.GetFullPath(Path.IsPathRooted(value) ? value : Path.Combine(Path.GetDirectoryName(path), value));
                     if (!string.Equals(Path.GetExtension(dependency), ".dll", StringComparison.OrdinalIgnoreCase))
                         throw new ArgumentException("Provider assemblies and dependencies must be DLLs: " + dependency);
                     if (string.Equals(Path.GetFileName(dependency), "Alarmlist.Core.dll", StringComparison.OrdinalIgnoreCase))
@@ -75,13 +72,40 @@ namespace Alarmlist.MSBuild
             return result.AsReadOnly();
         }
 
-        internal ExportRequest Request(string id, ExportDocument document, string outputFileName)
+        internal IEnumerable<string> DeclaredInputPaths()
+        {
+            foreach (var registration in _registrations.Where(pair => !IsBuiltin(pair.Key)))
+            {
+                if (string.IsNullOrWhiteSpace(registration.Value.GetMetadata("AssemblyPath"))) continue;
+                foreach (string path in ReferencePaths(AssemblyPath(registration.Key, registration.Value), registration.Value)) yield return path;
+            }
+        }
+
+        private string AssemblyPath(string id, ITaskItem item)
+        {
+            string path = item.GetMetadata("AssemblyPath");
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Export provider '" + id + "' requires AssemblyPath.");
+            return Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(_projectDirectory, path));
+        }
+
+        private static IEnumerable<string> ReferencePaths(string path, ITaskItem item)
+            => new[] { path }.Concat(item.GetMetadata("Dependencies").Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(value => Path.GetFullPath(Path.IsPathRooted(value) ? value : Path.Combine(Path.GetDirectoryName(path), value))));
+
+        internal string FileName(string id, string outputFileName)
         {
             _registrations.TryGetValue(id, out ITaskItem registration);
             string fileName = registration?.GetMetadata("OutputFileName");
             if (string.IsNullOrEmpty(fileName)) fileName = string.Equals(id, "XML", StringComparison.OrdinalIgnoreCase)
                 ? outputFileName : Path.ChangeExtension(outputFileName, id.ToLowerInvariant());
             BuildOutputPlan.ValidateFileName(fileName);
+            return fileName;
+        }
+
+        internal ExportRequest Request(string id, ExportDocument document, string outputFileName)
+        {
+            _registrations.TryGetValue(id, out ITaskItem registration);
+            string fileName = FileName(id, outputFileName);
             var options = new Dictionary<string, string>(StringComparer.Ordinal);
             if (registration != null)
                 foreach (string name in registration.MetadataNames)

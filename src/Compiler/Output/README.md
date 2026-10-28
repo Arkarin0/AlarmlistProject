@@ -1,6 +1,7 @@
 # Export provider contract
 
-Milestone 13 is in progress. These APIs are not yet activated by SDK builds.
+Milestone 13 is in progress. SDK builds now invoke selected XML and external
+providers; built-in JSON and the zenon sample remain subsequent iterations.
 
 `IAlarmlistExportProvider` receives an `ExportRequest` and cancellation token and
 returns artifacts. Providers must use the resolved document and metadata rather
@@ -14,8 +15,8 @@ from empty strings. Abstract/library analysis is not an export input.
 The provider reports contract version 1. A metadata-driven provider returns null
 for RequiredDefinitionFingerprint; a definition-specific provider returns its
 required semantic fingerprint. The host calls ValidateCompatibility before export
-and reports mismatch with rebuild guidance. Assembly/dependency loading is part
-of the later SDK integration, not this in-memory contract.
+and reports mismatch with rebuild guidance. Assembly/dependency loading uses the captured provider loader; the in-memory
+contract itself performs no filesystem discovery.
 
 Artifacts contain relative names and defensively copied bytes. FromText uses
 strict UTF-8 without BOM; binary exporters specify exact bytes themselves. The
@@ -36,8 +37,9 @@ use segments, not scan ResolvedText, to produce keyword-preserving output.
 
 IsDeferred distinguishes keyword-mode typed expressions from concrete typed
 values; their canonical text is preserved but their typed Value can be null.
-Absent and explicit empty remain distinct. SDK export activation and the zenon
-provider are still pending.
+Absent and explicit empty remain distinct. The zenon provider remains a subsequent
+iteration.
+
 Provider loader foundation (iteration 5a): ExportProviderReference declares an ID,
 assembly path, exact public entry type and immutable captured images. The loader
 loads only that type, validates ID/version, and disposes providers and all loading
@@ -50,7 +52,7 @@ Metadata names are AssemblyPath, TypeName, Dependencies, OutputFileName and
 Option_<name>. Dependencies are explicitly declared DLL paths, relative to the
 provider assembly's directory unless absolute. The host contract DLL cannot be
 replaced. Only selected external providers are captured. Empty selection defaults
-to XML; semicolon-empty IDs and duplicate IDs are errors. These settings are not
-activated by SDK builds until the publication/discovery boundary in 5b/6.
-NuGet providers will register the same items through selected package build assets,
+to XML; semicolon-empty IDs and duplicate IDs are errors. These settings are
+activated by SDK builds through the 5b/6 publication boundary.
+NuGet providers register the same items through selected package build assets,
 choosing their net472/net8.0 assembly by MSBuildRuntimeType, not TargetFramework.

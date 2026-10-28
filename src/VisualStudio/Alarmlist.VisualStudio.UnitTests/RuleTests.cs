@@ -16,8 +16,9 @@ namespace Alarmlist.VisualStudio.UnitTests
         {
             var rule = Assert.IsType<Rule>(XamlServices.Load(Path.Combine(AppContext.BaseDirectory, "Rules", "General.xaml")));
             var output = Assert.IsType<EnumProperty>(rule.Properties.Single(item => item.Name == "OutputType"));
-            Assert.Equal(new[] { "Application", "Library" }, output.AdmissibleValues.Select(value => value.Name));
+            Assert.Equal(new[] { "Exports", "Application", "Library" }, output.AdmissibleValues.Select(value => value.Name));
             Assert.Equal("ProjectFile", rule.DataSource.Persistence);
+            Assert.IsType<StringProperty>(rule.Properties.Single(item => item.Name == "AlarmlistExportTypes"));
             Assert.IsType<StringProperty>(rule.Properties.Single(item => item.Name == "AlarmlistLibraryFileName"));
             foreach (string name in new[] { "PackageId", "PackageVersion" })
             {

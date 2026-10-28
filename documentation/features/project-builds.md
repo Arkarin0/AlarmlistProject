@@ -1,7 +1,7 @@
-# Project builds and resolved XML
+# Project builds and exports
 
 The Alarmlist SDK compiles `.almx` sources in an `.almproj` project into resolved
-XML, with one application output per selected culture.
+exports, using resolved XML by default for each selected culture.
 
 ## When to use it
 
@@ -21,12 +21,15 @@ Default inputs include `**/*.almx`, `**/*.resx`, and `**/*.almlookup`, excluding
 generated output/intermediate and hidden directories. Build recompiles evaluated
 inputs, including conditional membership changes. A failed compilation preserves
 previous outputs. Clean removes owned compiled outputs, preserving source files.
-Library projects produce a library artifact instead of culture-specific XML.
+Library projects produce a library artifact. Export projects can select external
+providers alongside or instead of XML; see [export providers](export-providers.md).
 
 ## Configuration or syntax
 
 | Setting | Purpose | Default |
 | --- | --- | --- |
+| `OutputType` | `Exports` or `Library`; `Application` is an exports compatibility alias | `Exports` |
+| `AlarmlistExportTypes` | Semicolon-separated provider IDs for exports | `XML` |
 | `AlarmlistCultures` | Semicolon-separated output cultures | `keyword` |
 | `OutputPath` | Output directory | `bin/Debug/` in Debug |
 | `CompiledAlarmlistFileName` | Application XML filename | Project name plus `.Alarmlist.xml` |

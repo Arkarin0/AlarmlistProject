@@ -504,10 +504,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 ## MSBuild SDK contracts
 
 - Milestone-nine library builds use OutputType=Library and produce one
-  culture-independent `.almlib`; Application remains the default XML output.
+  culture-independent `.almlib`. Milestone 13 uses Exports as the default project
+  purpose and retains Application as a compatibility alias; XML remains the default
+  export selection.
   Preserve captured library references, portable project-relative/Link names,
   deferred consumer values and transactional output ownership. Manifest version 2
-  distinguishes output kinds and must continue reading version 1. ProjectReference
+  distinguishes library output kinds. Export manifest version 3 records actual
+  provider/culture artifacts and bounded retained temporary ownership scopes;
+  continue reading versions 1 and 2. ProjectReference
   builds use toolset configuration assignment; IDE/BuildProjectReferences=false
   consumption must not rebuild dependencies. GetTargetPath stays local and
   GetAlarmlistReferenceClosure discovers transitive identities/paths without Build.
@@ -519,6 +523,22 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   and installs packages only after successful staging. Preserve runtime asset
   subdirectories in the SDK package. Follow the milestone plan for acceptance
   evidence and remaining editor integration.
+
+- Milestone 13 uses AlarmlistExportTypes to select provider IDs and explicit
+  AlarmlistExportProvider declarations (AssemblyPath, TypeName, Dependencies,
+  OutputFileName and Option_<name>). Capture only selected provider code and
+  explicitly listed dependencies; protect all declared provider paths from
+  Build/Clean collisions. Provider packages use ordinary build assets selected
+  by MSBuildRuntimeType, not the consumer TargetFramework. Never instantiate
+  exporters during design-time builds, library builds, GetTargetPath or Clean.
+  Output discovery uses last-success manifest records; XML keeps its pre-build
+  predicted path. Providers return relative artifact bytes; only the build host
+  publishes them. Validate contract/definition compatibility, input collisions,
+  duplicate paths and links before publication. Compile/export all cultures before
+  staging any selected result. Dispose providers before publication so disposal
+  failure also preserves previous outputs. Preserve legacy BOM-free XML build
+  bytes independently of the standalone XML file writer's encoding preamble.
+  SDK verification exporters must compile against the packaged compiler contract.
 
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
   package registration through ordinary build assets selecting net472 for desktop
@@ -554,7 +574,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   `AlarmlistCultures` (default keyword). Capture inputs once per batch. Validate and
   serialize all cultures before output installation; preserve rollback and ownership
   tracking. Outputs are `<OutputPath>/<culture>/<CompiledAlarmlistFileName>`.
-  Build/GetTargetPath expose `@(CompiledAlarmlistFiles)` with Culture metadata;
+  Build/GetTargetPath expose `@(CompiledAlarmlistFiles)` with Culture metadata
+  (and ExportProvider for export artifacts);
   the task exposes OutputFiles. Preserve explicit-empty resource Culture metadata,
   linked/conditional items and output exclusions. Preview AlarmlistCulture is separate.
 - Lookup builds capture saved `AlarmlistLookup` items once with the same input batch.
