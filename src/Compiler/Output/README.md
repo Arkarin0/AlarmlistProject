@@ -23,6 +23,18 @@ XML provider preserves the legacy writer's encoding/preamble and serialization.
 Only the publication host may validate destinations and install artifacts.
 Cancellation and provider failures must prevent publication of the whole batch.
 
-Text-segment primitives exist, but compiler capture is the next iteration. Do not
-infer localization boundaries by scanning CanonicalText or treat resolved text
-as keyword-preserving input. Zenon support is not available yet.
+Compiler evaluation now captures text segments for fields, collection entries,
+procedure titles and steps. Field/sibling references keep their original key
+boundaries; parameter assignments and defaults remain literal. Localization
+segments contain their key and, in concrete cultures, their translated Expansion.
+RequiresSubstitution marks formatted or expression-dependent translations, which
+cannot be represented by a plain HMI keyword lookup without further support.
+Lookup label keys remain distinct; metadata and named-list values remain literal.
+Keyword-mode ResolvedText preserves the original ALMX token while segments can
+carry the known lookup label keys or literal metadata/list value. Providers must
+use segments, not scan ResolvedText, to produce keyword-preserving output.
+
+IsDeferred distinguishes keyword-mode typed expressions from concrete typed
+values; their canonical text is preserved but their typed Value can be null.
+Absent and explicit empty remain distinct. SDK export activation and the zenon
+provider are still pending.

@@ -150,3 +150,45 @@ Tests not run (documentation only).
   Existing shared TestHelper CA1416 warning remains. git diff --check passed.
 - No remaining scoped iteration-3 blocker. SDK/provider activation, compiler text
   boundaries and native/package acceptance remain in iterations 4–9.
+
+### Iteration 4 evidence — complete
+
+- Expression evaluation now constructs immutable resolved text and ordered literal/
+  localization segments together. Scalar fields, inherited child-context values,
+  field dependencies, collections, sibling references, procedure titles and steps
+  retain compiler-owned boundaries. Defaults, escaped expressions and parameter
+  assignments stay literal; no resolved-string scanning or compiler file I/O.
+- Concrete localization segments expose their translated Expansion and mark
+  formatted/expression-dependent translations RequiresSubstitution. Lookup labels
+  expose their resource keys; paths retain separators. Metadata/list values stay
+  literal even in the keyword-preserving representation, while ResolvedText keeps
+  the existing ALMX token in keyword mode. Existing diagnostics and output text
+  remain unchanged.
+- ExportScalar now exposes Text and IsDeferred. The previous iteration incorrectly
+  rejected available keyword-mode typed results solely because of Deferred state;
+  these are now retained with their raw canonical token and nullable typed Value.
+  Truly unavailable/invalid values still fail export snapshot construction.
+- Procedure item equality/hash remain based on existing Kind/Text semantics; export
+  metadata must not alter resolved item equality. The existing snapshot equality
+  regression caught this during implementation and passes after the correction.
+- New tests cover inherited child assignments, parent-culture fallback, field and
+  procedure dependencies, escapes/literal token-looking values, formatted lookup
+  expansion, absent/empty fields and empty-title fallback. Initial new tests used
+  an unsupported title attribute/resource constructor and were corrected to the
+  existing Title element and captured-resource constructor; no syntax was added.
+- Full compiler regression passes: 683 net472 / 685 net8.0, zero failures/skips:
+  dotnet test src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj --no-restore
+  -v quiet -m:1 -nr:false. Includes the unchanged legacy output regressions.
+- Generated collection fixture passes both frameworks with procedure enabled/
+  disabled and minimum-count variants; new checks cover sibling key boundaries,
+  keyword typed deferral, literal record defaults and nested formatted expansion:
+  eng/test-alarm-collections.ps1, AlarmCollections/0408c0870b3e4a26ab969e13d04c57e3.
+- Full generator lifecycle/scalar fixture passes both frameworks, including new
+  literal-default export assertion: eng/test-alarm-definition-generation.ps1,
+  AlarmDefinitionGeneration/6de00b7b22b346659f844d11ce1823d2.
+- Downstream task suites pass on both frameworks: 99 unit and 4 integration tests
+  per framework. Commands use dotnet test for each task test project with
+  --no-restore -v quiet -m:1 -nr:false. Existing CA1416 TestHelper warning remains.
+- Output authoring README updated; git diff --check passes. No scoped blocker.
+  SDK activation, concrete exporters and packaged/native acceptance remain in
+  iterations 5–9; none are claimed complete by these compiler checks.

@@ -74,7 +74,9 @@ namespace Alarmlist.Output
         {
             Name = value.Name; CanonicalText = value.CanonicalText; Value = value.Value is Enum ? value.CanonicalText : value.Value;
             IsAbsent = value.State == AlarmFieldValueState.Absent; IsDefault = value.IsDefault;
-            if (value.State == AlarmFieldValueState.Invalid || value.State == AlarmFieldValueState.Deferred)
+            IsDeferred = value.State == AlarmFieldValueState.Deferred;
+            Text = value.ExportText ?? Evaluation.PropertyExpression.LiteralText(value.CanonicalText);
+            if (value.State == AlarmFieldValueState.Invalid || (IsDeferred && value.EvaluatedText == null))
                 throw new ArgumentException("Exports require concrete valid scalar values.", nameof(value));
         }
         public string Name { get; }
@@ -83,6 +85,9 @@ namespace Alarmlist.Output
         public object Value { get; }
         public bool IsAbsent { get; }
         public bool IsDefault { get; }
+        /// <summary>Keyword mode can preserve expressions whose typed value needs a concrete culture.</summary>
+        public bool IsDeferred { get; }
+        public ExportText Text { get; }
     }
 
     public sealed class ExportCollection
@@ -117,17 +122,21 @@ namespace Alarmlist.Output
         internal ExportProcedureGroup(ProcedureGroup group)
         {
             Name = group.Name; Title = group.Title;
+            TitleText = group.ExportTitle ?? Evaluation.PropertyExpression.LiteralText(group.Title);
             Entries = ExportDocument.Freeze(group.Entries.Select(entry => new ExportProcedureEntry(entry)));
         }
         public string Name { get; }
         public string Title { get; }
+        public ExportText TitleText { get; }
         public IReadOnlyList<ExportProcedureEntry> Entries { get; }
     }
 
     public sealed class ExportProcedureEntry
     {
-        internal ExportProcedureEntry(TestProcedureItem entry) { Kind = entry.Kind.ToString(); Text = entry.Text; }
+        internal ExportProcedureEntry(TestProcedureItem entry)
+        { Kind = entry.Kind.ToString(); Text = entry.Text; ExportText = entry.ExportText ?? Evaluation.PropertyExpression.LiteralText(entry.Text); }
         public string Kind { get; }
         public string Text { get; }
+        public ExportText ExportText { get; }
     }
 }

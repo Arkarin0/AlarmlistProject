@@ -146,10 +146,18 @@ internal static class Program
 
         var keyword = Compile(Record("<Count>$(loc:Number)</Count><Copy>$(item:Count)</Copy>"));
         Check(keyword.Success && keyword.AlarmList.Single().GetCollection("Checks").Items.Single().Fields.Where(value => value.Name == "Count" || value.Name == "Copy").All(value => value.State == AlarmFieldValueState.Deferred), "Keyword deferral propagates through sibling fields");
+        var keywordExport = Alarmlist.Output.ExportDocument.Create(keyword, "keyword").Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single();
+        Check(keywordExport.Single(field => field.Name == "Copy").IsDeferred && keywordExport.Single(field => field.Name == "Copy").Text.Segments.Single().Text == "Number", "Export keyword sibling boundary and deferred typed state");
+        var defaultExport = Alarmlist.Output.ExportDocument.Create(defaults, "keyword").Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single();
+        Check(defaultExport.Single(field => field.Name == "Text").Text.Segments.Single().Kind == Alarmlist.Output.ExportTextSegmentKind.Literal && defaultExport.Single(field => field.Name == "Text").Text.ResolvedText == "$(Literal)", "Export record defaults are literal");
         var resources = new[] { new ResxTextSnapshot("<root><data name='Number'><value>5</value></data><data name='Record'><value>$(item:Count)</value></data><data name='Formatted'><value>{value}</value></data></root>", "values.en.resx", 1, "en") };
         var context = new CompilationContext(resources, "en");
         var localized = Compile(Record("<Count>$(loc:Number)</Count><Copy>$(loc:Record)</Copy><Text>$(loc:Formatted, value=$(item:Copy))</Text>"), context);
         Check(localized.Success && localized.AlarmList.Single().GetCollection("Checks").Items.Single().GetField("Text").CanonicalText == "5", "Concrete localization and named arguments use record context");
+        var localizedExport = Alarmlist.Output.ExportDocument.Create(localized, "en").Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single();
+        var formattedSegment = localizedExport.Single(field => field.Name == "Text").Text.Segments.Single();
+        Check(formattedSegment.Text == "Formatted" && formattedSegment.RequiresSubstitution && formattedSegment.Expansion.ResolvedText == "5", "Formatted translated record export expansion");
+        Check(formattedSegment.Expansion.Segments.Single().Text == "Record" && formattedSegment.Expansion.Segments.Single().Expansion.Segments.Single().Text == "Number", "Translated sibling dependencies keep nested key boundaries");
         Check(!Compile("<Code>$(loc:Record)</Code>", context).Success, "Localized sibling reference outside record is rejected");
         var deferred = new[] { Snapshot(Alarm(Record("<Count>$(Consumer)</Count><Copy>$(item:Count)</Copy>"))) };
         Check(new AlarmCompiler().AnalyzeLibrarySnapshots(deferred, CompilationContext.Empty).Success, "Unassigned library consumer values defer through sibling dependencies");

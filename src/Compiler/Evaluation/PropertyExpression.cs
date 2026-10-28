@@ -219,6 +219,26 @@ namespace Alarmlist.Evaluation
             return available ? value.ToString() : null;
         }
 
+        internal Output.ExportText EvaluateText(Func<ExpressionToken, Output.ExportText> evaluateToken,
+            Func<string, Output.ExportText> argument = null)
+        {
+            var value = new StringBuilder();
+            var segments = new List<Output.ExportTextSegment>();
+            bool available = true;
+            foreach (Part part in _parts)
+            {
+                Output.ExportText text = part.Token != null ? evaluateToken(part.Token)
+                    : part.Placeholder ? argument?.Invoke(part.Text) : LiteralText(part.Text);
+                if (text == null) available = false;
+                else { value.Append(text.ResolvedText); segments.AddRange(text.Segments); }
+            }
+            return available ? new Output.ExportText(value.ToString(), segments) : null;
+        }
+
+        internal static Output.ExportText LiteralText(string text) => text == null ? null
+            : new Output.ExportText(text, text.Length == 0 ? Array.Empty<Output.ExportTextSegment>()
+                : new[] { Output.ExportTextSegment.Literal(text) });
+
         private readonly struct Part
         {
             internal Part(string text, ExpressionToken token = null, bool placeholder = false) { Text = text; Token = token; Placeholder = placeholder; }

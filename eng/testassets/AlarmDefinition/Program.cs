@@ -60,6 +60,8 @@ internal static class Program
         Check(absent.Count == null && absent.GetField("Count").State == AlarmFieldValueState.Absent, "optional absence");
         Check(absent.Code == 7 && absent.GetField("Code").IsDefault && absent.GetField("Code").RawText == null, "typed literal default");
         Check(absent.Literal == "$(NotAnExpression)", "defaults are literal");
+        var defaultText = ExportDocument.Create(Compile(""), "keyword").Alarms.Single().Fields.Single(field => field.Name == "Literal").Text;
+        Check(defaultText.Segments.Single().Kind == ExportTextSegmentKind.Literal && defaultText.ResolvedText == "$(NotAnExpression)", "Export generated scalar defaults stay literal");
         Check(absent.identity == "identifier", "lowercase field cannot shadow generated constructor parameters");
         Check(absent.Enum == "enum-name" && absent.DateTime == "date-name", "field names cannot shadow scalar helper types");
         Check(!Compile("<Code>11</Code>").Success && !Compile("<Code>-1</Code>").Success, "inclusive bounds enforced");
