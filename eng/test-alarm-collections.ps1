@@ -32,6 +32,7 @@ try {
   <ItemGroup>
     <Compile Include="$repoRoot/src/Compiler/**/*.cs" />
     <Compile Include="$repoRoot/src/shared/Configuration/EditorConfigPreamble.cs" />
+    <Compile Include="$repoRoot/src/shared/Configuration/ResourceFileName.cs" />
     <Compile Include="$repoRoot/eng/testassets/AlarmCollections/Program.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisSnapshot.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisCollections.cs" />

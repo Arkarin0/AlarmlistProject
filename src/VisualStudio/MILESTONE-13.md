@@ -115,3 +115,38 @@ Tests not run (documentation only).
   changed; downstream package/native acceptance belongs to its later iterations.
   Reviewed diff and git diff --check. Iteration 3 is next; provider compatibility,
   detached resolved document and XML adaptation are not implemented yet.
+
+### Iteration 3 evidence — complete
+
+- Added version-1 IAlarmlistExportProvider, ExportRequest and immutable detached
+  ExportDocument with generated field/collection metadata, typed values, ordered
+  procedure groups and concrete culture. Captures mutable lists/options; rejects
+  failed compilations, invalid/deferred scalar states and incompatible contract
+  or definition fingerprints with rebuild guidance. Enum values are detached
+  canonical tokens, not generated enum objects.
+- Added metadata-driven XML adapter. Legacy public APIs are unchanged. Tests
+  compare actual file bytes (including BOM/escaping/newlines) and verify cancellation,
+  compatibility, snapshot independence, generated typed scalars and collections.
+- Added Output/README.md documenting the internal authoring contract and pending
+  segment capture/SDK activation. No provider is loaded by builds or the IDE yet.
+- Updated isolated generation/collection fixture source membership to include the
+  existing ResourceFileName helper required by LocalizationCulture. Initial
+  collection compile exposed that stale fixture membership; fixed run passes.
+- Output tests: 8 per framework passed. Full compiler: 678 net472, 680 net8.0
+  passed, no failures/skips. Downstream task tests: 99 per framework passed.
+  Commands: dotnet test src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj
+  --no-restore --no-build -v minimal; dotnet test
+  src/MSBuild/AlarmList.MSBuild.UnitTests/AlarmList.MSBuild.UnitTests.csproj
+  --no-restore -v quiet -m:1 -nr:false.
+- eng/test-alarm-collections.ps1 passes both frameworks with procedures disabled,
+  enabled and minimum cardinality: AlarmCollections/5b21855d5c3741f4bdf859a75a2f5f57.
+- eng/test-alarm-definition-generation.ps1 passes full lifecycle and alternate
+  typed/required runtime cases on both frameworks:
+  AlarmDefinitionGeneration/d6da312f6cc44410bbd3240d964c43fd. A separate scalar-only
+  diagnostic run also passed, but does not substitute for that full fixture.
+- Initial restricted-process runs encountered silent nested build failure, failed
+  Clean assertions and test-host connection timeouts. Full successful compiler
+  and generation reruns outside that environment supersede those failed attempts.
+  Existing shared TestHelper CA1416 warning remains. git diff --check passed.
+- No remaining scoped iteration-3 blocker. SDK/provider activation, compiler text
+  boundaries and native/package acceptance remain in iterations 4–9.

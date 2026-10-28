@@ -49,6 +49,14 @@ internal static class Program
             Console.WriteLine(_checks + " minimum-count checks passed");
             return;
         }
+        var exportResult = Compile("<Tags><Item>one</Item></Tags>" + Record("<Priority>High</Priority>"));
+        Check(exportResult.Success, "export collection input compiles");
+        var exportDocument = Alarmlist.Output.ExportDocument.Create(exportResult, "keyword");
+        Check(exportDocument.HasTestProcedure == AlarmDefinition.HasTestProcedure, "export procedure capability");
+        Check(exportDocument.Alarms.Single().Collections.Single(collection => collection.Name == "Tags").Items.Single().Single().CanonicalText == "one", "export simple collection");
+        Check((string)exportDocument.Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single().Single(field => field.Name == "Priority").Value == "High", "export record enum token");
+        var exportArtifact = new Alarmlist.Output.XmlAlarmlistExportProvider().Export(new Alarmlist.Output.ExportRequest(exportDocument, "alarms.xml"), System.Threading.CancellationToken.None).Single();
+        Check(System.Text.Encoding.UTF8.GetString(exportArtifact.GetContent()).TrimStart('\ufeff') == new Alarmlist.Output.XmlAlarmlistOutputWriter().WriteToString(exportResult.AlarmList), "collection XML provider parity");
         var empty = Compile("");
         Check(!empty.Diagnostics.Any(diagnostic => diagnostic.Id == "ALM0031"), "Keyword builds do not warn about enum captions");
         var captionContext = new CompilationContext(Array.Empty<ResxTextSnapshot>(), "de-DE");

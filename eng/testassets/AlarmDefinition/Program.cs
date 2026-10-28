@@ -41,6 +41,14 @@ internal static class Program
             Check(alarm.Count == 42 && alarm.Price == 12.5m && alarm.Ratio == 1000 && alarm.Enabled == true && alarm.Priority == PriorityValue.High, "typed scalar accessors");
             Check(alarm.Day == new DateTime(2024, 2, 29) && alarm.Clock == new TimeSpan(0, 12, 34, 56, 120) && alarm.Instant.Value.Offset == TimeSpan.FromHours(2), "typed temporal accessors");
             Check(alarm.GetField("Count").RawText == "+0042" && alarm.GetField("Count").CanonicalText == "42", "raw/canonical separation");
+            var document = ExportDocument.Create(result, "keyword");
+            var exported = document.Alarms.Single();
+            Check((long)exported.Fields.Single(field => field.Name == "Count").Value == 42L, "export numeric primitive");
+            Check((string)exported.Fields.Single(field => field.Name == "Priority").Value == "High", "export enum is a detached token");
+            Check(document.Fields.Single(field => field.Name == "Price").Type == "Decimal", "export generated metadata");
+            var artifact = new XmlAlarmlistExportProvider().Export(new ExportRequest(document, "alarms.xml"), System.Threading.CancellationToken.None).Single();
+            string providerXml = System.Text.Encoding.UTF8.GetString(artifact.GetContent()).TrimStart('\ufeff');
+            Check(providerXml == new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList), "alternate scalar XML provider parity");
             string xml = new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList);
             Check(xml.Contains("<Price>12.5</Price>") && xml.Contains("<Enabled>true</Enabled>") && xml.Contains("12:34:56.12+02:00"), "canonical output");
         }

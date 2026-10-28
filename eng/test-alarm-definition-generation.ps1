@@ -77,6 +77,7 @@ try {
   <ItemGroup>
     <Compile Include="$compilerSources" />
     <Compile Include="$sharedSource" />
+    <Compile Include="$repoRoot/src/shared/Configuration/ResourceFileName.cs" />
     <Compile Include="$runtimeChecks" />
     <Compile Include="$sampleAnalyzer" />
     <EmbeddedResource Include="$lookupSchema" LogicalName="Alarmlist.Lookups.AlarmlistLookup.xsd" />
