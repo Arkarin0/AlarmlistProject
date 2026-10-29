@@ -38,6 +38,7 @@ try {
     <Compile Include="$repoRoot/src/Exporters/Alarmlist.Exporters.Zenon/ZenonExportProvider.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisSnapshot.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisCollections.cs" />
+    <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisExplanation.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisContractReader.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisProperty.cs" />
     <Compile Include="$repoRoot/src/VisualStudio/Alarmlist.VisualStudio/Analysis/AnalysisProcedureCreation.cs" />

@@ -24,6 +24,11 @@ internal static class Program
             var inputs = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Ratio>$(AlarmlistAlarmCode)</Ratio></Alarm></Alarmlist>", "required.almx", 1) };
             var analysis = new AlarmCompiler().AnalyzeLibrarySnapshots(inputs, CompilationContext.Empty);
             Check(analysis.Success && !analysis.Alarms.Single().HasEvaluatedValues, "library missing required field defers");
+            var explanationTarget = new Alarmlist.Analysis.ValueExplanationTarget(analysis.Alarms.Single().Origin.Location, "Field", "Code");
+            var requiredExplanation = new AlarmCompiler().ExplainSnapshots(inputs, CompilationContext.Empty, explanationTarget);
+            Check(requiredExplanation.IsAvailable && requiredExplanation.Diagnostics.Any(diagnostic => diagnostic.Id == "ALM0029"), "Missing required field explanation retains its diagnostic without a value location");
+            var libraryExplanation = new AlarmCompiler().ExplainSnapshots(inputs, CompilationContext.Empty, explanationTarget, allowDeferredValues: true);
+            Check(libraryExplanation.Nodes.Single(node => node.Id == libraryExplanation.RootId).State == "Deferred", "Public library explanation retains required-field deferral");
             foreach (string name in new[] { "Code", "Ratio" })
             {
                 var field = analysis.Alarms.Single().Fields.Single(item => item.Name == name);
@@ -127,7 +132,7 @@ internal static class Program
         var librarySources = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>Library</FullyQualifiedName><Count>$(Consumer)</Count></Alarm></Alarmlist>", "library.almx", 1) };
         Check(new AlarmCompiler().AnalyzeLibrarySnapshots(librarySources, CompilationContext.Empty).Success, "library consumer values defer");
         var libraryAnalysis = new AlarmCompiler().AnalyzeLibrarySnapshots(librarySources, CompilationContext.Empty);
-        Check(libraryAnalysis.ContractVersion == 7 && libraryAnalysis.SchemaFingerprint == AlarmDefinition.SchemaFingerprint
+        Check(libraryAnalysis.ContractVersion == 8 && libraryAnalysis.SchemaFingerprint == AlarmDefinition.SchemaFingerprint
             && libraryAnalysis.FieldDefinitions.Any(field => field.Name == "Code" && field.Type == "Int64"), "analysis schema metadata");
         Check(libraryAnalysis.Alarms.Single().Fields.Single(field => field.Name == "Count").State == AlarmFieldValueState.Deferred, "analysis consumer field defers");
         var defaultCode = libraryAnalysis.Alarms.Single().Fields.Single(field => field.Name == "Code");

@@ -31,6 +31,7 @@ namespace Alarmlist.Evaluation
         internal ValueExplanationGraph GetGraph(AlarmSyntaxNode alarm) => _alarms[alarm].Freeze();
         internal IReadOnlyList<ValueExplanationGraph> GetGraphs() => Array.AsReadOnly(_alarms.Values.Select(capture => capture.Freeze()).ToArray());
         internal int AlarmCount => _alarms.Count;
+        internal bool Selects(AlarmSyntaxNode alarm) => _select(alarm);
     }
 
     internal sealed partial class AlarmExplanationCapture
@@ -96,7 +97,7 @@ namespace Alarmlist.Evaluation
         }
 
         private LibraryIdentity Library(PropertyDeclaration declaration) => declaration?.Alarm?.SourceFile?.Library?.Identity
-            ?? (declaration?.Scope == "File" || declaration?.Scope == "LibraryProject" ? _alarm.SourceFile?.Library?.Identity : null);
+            ?? (declaration?.Scope == "File" || declaration?.Scope == "LibraryProject" ? _alarm?.SourceFile?.Library?.Identity : null);
 
         internal void Cycle(string name, string trace)
             => Leaf("Cycle", name, null, trace, "Invalid", null, null, _alarm.FullyQualifiedName, "Dependency");
@@ -124,7 +125,7 @@ namespace Alarmlist.Evaluation
         {
             string key = "WellKnown:" + name;
             if (_roots.TryGetValue(key, out int id)) { Link(id); return; }
-            var node = Add("WellKnown", name, null, location, null, _alarm.FullyQualifiedName, "Context");
+            var node = Add("WellKnown", name, null, location, null, _alarm?.FullyQualifiedName, "Context");
             node.Value = node.CanonicalValue = value; node.State = value == null ? "Unavailable" : "Valid";
             _roots.Add(key, node.Id);
         }

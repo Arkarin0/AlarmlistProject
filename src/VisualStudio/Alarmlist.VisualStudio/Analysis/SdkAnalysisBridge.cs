@@ -59,6 +59,16 @@ namespace Alarmlist.VisualStudio.Analysis
         { Availability = availability; Message = message; Bridge = bridge; }
     }
 
+    [Serializable]
+    internal sealed class ExplanationResponse
+    {
+        public ExplanationResponse(AnalysisAvailability availability, string message, AnalysisExplanation explanation = null)
+        { Availability = availability; Message = message; Explanation = explanation; }
+        public AnalysisAvailability Availability { get; }
+        public string Message { get; }
+        public AnalysisExplanation Explanation { get; }
+    }
+
     internal interface ISdkAnalysisBridgeFactory
     {
         BridgeOpenResult Open(string evaluatedCompilerPath);
@@ -85,6 +95,12 @@ namespace Alarmlist.VisualStudio.Analysis
             string[] packageIds, string[] packageVersions, CancellationToken cancellationToken, string[] analyzerPaths = null);
     }
 
+    internal interface ISdkExplanationBridge
+    {
+        ExplanationResponse Explain(IEnumerable<AnalysisInput> inputs, AnalysisExplanationTarget target,
+            CancellationToken cancellationToken = default, AnalysisContext context = null);
+    }
+
     [Export(typeof(ISdkAnalysisBridgeFactory))]
     internal sealed class SdkAnalysisBridgeFactory : ISdkAnalysisBridgeFactory
     {
@@ -92,7 +108,7 @@ namespace Alarmlist.VisualStudio.Analysis
     }
 
     /// <summary>Owned by one project/configuration. Call off the UI thread and dispose on SDK change or project unload.</summary>
-    internal sealed class SdkAnalysisBridge : ISdkLibraryBridge, ISdkPackageGraphBridge
+    internal sealed class SdkAnalysisBridge : ISdkLibraryBridge, ISdkPackageGraphBridge, ISdkExplanationBridge
     {
         private readonly object _gate = new object();
         private AppDomain _domain;
@@ -107,7 +123,7 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             if (string.IsNullOrWhiteSpace(evaluatedCompilerPath))
                 return new BridgeOpenResult(AnalysisAvailability.SdkUnavailable,
-                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 7.");
+                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 8.");
 
             AppDomain domain = null;
             try
@@ -166,6 +182,27 @@ namespace Alarmlist.VisualStudio.Analysis
                     response = new AnalysisResponse(AnalysisAvailability.AnalysisFailed, "SDK analysis failed: " + exception.Message);
                 }
                 // Cooperative cancellation crosses through a host-owned probe; never abort analyzer threads.
+                cancellationToken.ThrowIfCancellationRequested();
+                return response;
+            }
+        }
+
+        public ExplanationResponse Explain(IEnumerable<AnalysisInput> inputs, AnalysisExplanationTarget target,
+            CancellationToken cancellationToken = default, AnalysisContext context = null)
+        {
+            if (inputs == null) throw new ArgumentNullException(nameof(inputs));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            cancellationToken.ThrowIfCancellationRequested();
+            var captured = inputs.ToArray();
+            if (captured.Any(input => input == null)) throw new ArgumentException("An input must not be null.", nameof(inputs));
+            lock (_gate)
+            {
+                if (_domain == null) throw new ObjectDisposedException(nameof(SdkAnalysisBridge));
+                cancellationToken.ThrowIfCancellationRequested();
+                ExplanationResponse response;
+                try { response = WithHostAssemblyResolution(() => _worker.Explain(captured, target, context, new AnalysisCancellationProbe(cancellationToken))); }
+                catch (Exception exception) when (IsRecoverable(exception))
+                { response = new ExplanationResponse(AnalysisAvailability.AnalysisFailed, "SDK explanation failed: " + exception.Message); }
                 cancellationToken.ThrowIfCancellationRequested();
                 return response;
             }

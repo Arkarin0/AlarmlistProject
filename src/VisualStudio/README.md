@@ -326,7 +326,7 @@ Copying revalidates saved resources/lookups and source snapshots first. Errors
 mark unavailable row values and disable compiled XML. See the scope-specific draft
 behavior above.
 
-The bridge accepts analysis contract 7 and loads the resolved SDK's net472 compiler
+The bridge accepts analysis contract 8 and loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off
 the UI thread, recreating the bridge after SDK/configuration changes. The project
@@ -338,7 +338,7 @@ keeps linked projects separate; each view can choose its owning project context.
 The bridge compares the generated definition's full tooling fingerprint before
 semantic actions. Incompatible toolsets disable designer changes while retaining
 XML editing and existing drafts. Rebuild the compiler/SDK and extension together.
-Contract 7 copies field descriptors, scalar states, canonical values and primitive
+Contract 8 copies field descriptors, scalar states, canonical values and primitive
 typed values; generated compiler or enum types never enter the host AppDomain.
 It also copies collection descriptors, procedure availability, local/effective/
 excluded entries, item/field origins and Clear exclusions. The compiler owns
@@ -367,7 +367,7 @@ built-in summary column while preserving ordinary fields named TestMethod.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
-Contract 7 retains captured-context analysis and compiled preview support. It
+Contract 8 retains captured-context analysis and compiled preview support. It
 also requires library snapshot analysis. CPS captures `OutputType=Library` and
 uses that mode for the project's own editor: missing consumer values are unavailable
 in previews, without treating those missing values as invalid library definitions.

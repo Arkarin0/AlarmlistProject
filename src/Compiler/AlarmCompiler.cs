@@ -129,6 +129,25 @@ namespace Alarmlist.Compiler
             return SnapshotAnalyzer.Analyze(inputs, context, false, cancellationToken, allowDeferredValues: true);
         }
 
+        /// <summary>Explains one value using captured inputs only. Ordinary compilation/analysis retain no explanation graph.</summary>
+        public ValueExplanationResult ExplainSnapshots(IEnumerable<AlmxTextSnapshot> snapshots, CompilationContext context,
+            ValueExplanationTarget target, CancellationToken cancellationToken = default, bool allowDeferredValues = false)
+        {
+            if (snapshots == null) throw new ArgumentNullException(nameof(snapshots));
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            cancellationToken.ThrowIfCancellationRequested();
+            var inputs = snapshots.ToArray();
+            if (inputs.Any(input => input == null)) throw new ArgumentException("A source snapshot must not be null.", nameof(snapshots));
+            try { return SnapshotAnalyzer.Explain(inputs, context, target, cancellationToken, allowDeferredValues); }
+            catch (System.Xml.XmlException exception)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return new ValueExplanationResult(target, context, context.Culture, null, Array.Empty<ValueExplanationNode>(),
+                    Array.Empty<AnalysisDiagnostic>(), "Parsing prevents a reliable explanation: " + exception.Message);
+            }
+        }
+
         public CompilationResult Compile(Alarmlist.Syntax.AlarmSyntaxTree syntaxTree)
             => Compile(syntaxTree, CompilationContext.Empty);
 

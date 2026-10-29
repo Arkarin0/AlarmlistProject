@@ -17,6 +17,41 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
     public partial class SdkAnalysisBridgeTests
     {
         [Fact]
+        public void OnDemandExplanationSurvivesDomainUnloadWithoutLoadingCompilerInHost()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                var inputs = new[] { Input("<Name>$(loc:Name)</Name><Code>unrelated</Code>", version: 12) };
+                var context = new AnalysisContext(culture: "en-GB", properties: new[] { new AnalysisPropertyDefinition("P", "001") },
+                    resources: new[] { new AnalysisResourceInput("<root><data name='Name'><value>Inspect $(P)</value></data></root>", "Labels.en.resx", 19) });
+                ExplanationResponse response;
+                using (var bridge = Open(sdk.CompilerPath))
+                {
+                    var alarm = bridge.Analyze(inputs, context: context).Snapshot.Alarms[0];
+                    var target = new AnalysisExplanationTarget(alarm.Origin.Location, "Field", "Name");
+                    response = bridge.Explain(inputs, target, context: context);
+                    using (var cancellation = new CancellationTokenSource())
+                    {
+                        cancellation.Cancel();
+                        Assert.Throws<OperationCanceledException>(() => bridge.Explain(inputs, target, cancellation.Token, context));
+                    }
+                    var stale = bridge.Explain(new[] { Input("<Name>changed</Name>", version: 13) }, target, context: context);
+                    Assert.False(stale.Explanation.IsAvailable);
+                }
+                Assert.Equal(AnalysisAvailability.Available, response.Availability);
+                var explanation = response.Explanation;
+                Assert.True(explanation?.IsAvailable == true, response.Message);
+                Assert.Equal(8, explanation.ContractVersion);
+                Assert.Equal("Inspect 001", explanation.Nodes.Single(node => node.Id == explanation.RootId).Value);
+                Assert.Contains(explanation.Nodes, node => node.Kind == "Resource" && node.SupplyingCulture == "en" && node.Location.SourceVersion == 19);
+                Assert.DoesNotContain(explanation.Nodes, node => node.Value == "unrelated");
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+                Assert.Throws<NotSupportedException>(() => ((IList<AnalysisExplanationNode>)explanation.Nodes).Clear());
+                Assert.Throws<NotSupportedException>(() => ((IList<int>)explanation.Nodes[0].Inputs).Clear());
+            }
+        }
+
+        [Fact]
         public void LookupCatalogueNamedTemplatesAndProvenanceSurviveDomainUnload()
         {
             using (var sdk = new SdkAsset())
@@ -94,7 +129,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Contains("$(loc:Inspection)", keyword.CompiledXml);
                 }
                 AnalysisSnapshot snapshot = response.Snapshot;
-                Assert.Equal(7, snapshot.ContractVersion);
+                Assert.Equal(8, snapshot.ContractVersion);
                 Assert.Equal("de-DE", snapshot.Culture);
                 Assert.Equal("de", Assert.Single(snapshot.Resources).Culture);
                 Assert.Equal(31, snapshot.Resources[0].Version);
@@ -299,7 +334,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.DoesNotContain("<ReferenceName>", xml);
                     Assert.DoesNotContain("<Clear", xml);
                     Assert.True(snapshot.Success);
-                    Assert.Equal(7, snapshot.ContractVersion);
+                    Assert.Equal(8, snapshot.ContractVersion);
                     Assert.Equal(new[] { 4, 9 }, snapshot.Sources.Select(source => source.Version));
                     AnalysisAlarm child = snapshot.Alarms[1];
                     Assert.Equal("Base", Assert.Single(child.ReferenceChain).FullyQualifiedName);
@@ -453,6 +488,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         [InlineData(4)]
         [InlineData(5)]
         [InlineData(6)]
+        [InlineData(7)]
         public void IncompatibleSdkVersionsDoNotInterfereWithACompatibleProject(int contract)
         {
             using (var sdk = new SdkAsset())
@@ -462,7 +498,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 incompatible.ReplaceWithIncompatibleCompiler(contract);
                 BridgeOpenResult result = new SdkAnalysisBridgeFactory().Open(incompatible.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, result.Availability);
-                Assert.Contains("contract 7", result.Message);
+                Assert.Contains("contract 8", result.Message);
                 Assert.Contains(incompatible.CompilerPath, result.Message);
                 Assert.Null(result.Bridge);
                 Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
@@ -483,7 +519,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         {
             using (var sdk = new SdkAsset())
             {
-                sdk.ReplaceWithIncompatibleCompiler(7);
+                sdk.ReplaceWithIncompatibleCompiler(8);
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
@@ -532,7 +568,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
-                Assert.Contains("contract 7", response.Message);
+                Assert.Contains("contract 8", response.Message);
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
             }
         }

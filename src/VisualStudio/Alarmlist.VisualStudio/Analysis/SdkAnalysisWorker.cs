@@ -32,6 +32,9 @@ namespace Alarmlist.VisualStudio.Analysis
         private object _compiler;
         private MethodInfo _analyze;
         private MethodInfo _analyzeLibrary;
+        private MethodInfo _explain;
+        private Type _explanationTargetType;
+        private Type _locationType;
         private PropertyInfo _compiledXml;
         private AnalysisContractReader _reader;
         public string CompilerIdentity { get; private set; }
@@ -93,6 +96,13 @@ namespace Alarmlist.VisualStudio.Analysis
                 _analyzeLibrary = compilerType.GetMethod("AnalyzeLibrarySnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType), _contextType, typeof(CancellationToken) });
                 if (_analyzeLibrary == null || _analyzeLibrary.IsStatic || _analyzeLibrary.ReturnType != _analyze.ReturnType)
                     throw new NotSupportedException("The SDK has no compatible library analysis method.");
+                _explanationTargetType = assembly.GetType("Alarmlist.Analysis.ValueExplanationTarget", true);
+                _locationType = assembly.GetType("Alarmlist.Text.SourceLocation", true);
+                _explain = compilerType.GetMethod("ExplainSnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType),
+                    _contextType, _explanationTargetType, typeof(CancellationToken), typeof(bool) });
+                if (_explain == null || _explain.IsStatic || _explain.ReturnType != assembly.GetType("Alarmlist.Analysis.ValueExplanationResult")
+                    || _explanationTargetType.GetConstructor(new[] { _locationType, typeof(string), typeof(string), typeof(string), _locationType }) == null)
+                    throw new NotSupportedException("The SDK has no compatible on-demand explanation API.");
                 PropertyInfo xml = _analyze.ReturnType.GetProperty("CompiledXml", BindingFlags.Public | BindingFlags.Instance);
                 if (xml?.PropertyType != typeof(string) || xml.GetGetMethod() == null || xml.GetIndexParameters().Length != 0)
                     throw new NotSupportedException("The SDK has no compatible compiled XML.");
@@ -108,7 +118,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 AnalysisAvailability state = failure is NotSupportedException || failure is TypeLoadException || failure is MissingMemberException
                     ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.LoadFailed;
                 return new AnalysisResponse(state, "Cannot use analysis compiler " + compilerPath
-                    + ". Restore an SDK supporting analysis contract 7 with captured diagnostic configuration and external analyzers. " + failure.Message);
+                    + ". Restore an SDK supporting analysis contract 8 with captured diagnostic configuration and external analyzers. " + failure.Message);
             }
         }
 
@@ -116,6 +126,32 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             using (var cancellationScope = new WorkerCancellation(cancellation))
                 return AnalyzeCore(inputs, context, cancellationScope.Token);
+        }
+
+        public ExplanationResponse Explain(AnalysisInput[] inputs, AnalysisExplanationTarget target,
+            AnalysisContext context, AnalysisCancellationProbe cancellation)
+        {
+            using (var scope = new WorkerCancellation(cancellation))
+            {
+                try
+                {
+                    object Location(AnalysisLocation location) => location == null ? null : Activator.CreateInstance(_locationType,
+                        location.FilePath, location.LineNumber, location.ColumnNumber, location.EndColumnNumber - location.ColumnNumber, location.SourceVersion);
+                    var selected = Activator.CreateInstance(_explanationTargetType, Location(target.AlarmLocation), target.Kind,
+                        target.Name, target.FieldName, Location(target.EntryLocation));
+                    return WithCapturedInputs(inputs, context, (snapshots, capturedContext) =>
+                    {
+                        var result = _explain.Invoke(_compiler, new object[] { snapshots, capturedContext, selected, scope.Token, context?.IsLibrary == true });
+                        return new ExplanationResponse(AnalysisAvailability.Available, null, _reader.ReadExplanation(result));
+                    });
+                }
+                catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(Unwrap(exception)))
+                {
+                    var failure = Unwrap(exception);
+                    return new ExplanationResponse(failure is NotSupportedException ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.AnalysisFailed,
+                        "SDK explanation is unavailable: " + failure.Message);
+                }
+            }
         }
 
         private AnalysisResponse AnalyzeCore(AnalysisInput[] inputs, AnalysisContext context, CancellationToken token)

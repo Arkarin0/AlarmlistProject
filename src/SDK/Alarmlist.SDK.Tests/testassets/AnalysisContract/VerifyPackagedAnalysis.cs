@@ -40,7 +40,7 @@ public sealed class VerifyPackagedAnalysis : Task
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 7, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 8, "Unexpected analysis contract version.");
         Require(((string)Value(result, "SchemaFingerprint")).Length == 64 && ((string)Value(result, "ToolingFingerprint")).Length == 64,
             "Packaged definition fingerprints are missing.");
         Require(Items(result, "FieldDefinitions").Select(field => (string)Value(field, "Name")).SequenceEqual(new[] { "Name", "Code", "Category", "Description" }),
@@ -181,7 +181,34 @@ public sealed class VerifyPackagedAnalysis : Task
             "Library ownership was not detached into analysis.");
         Require((string)Value(Value(Value(Items(imported, "Alarms").Single(), "Origin"), "Library"), "Id") == "PackagedLibrary",
             "Imported alarm ownership was lost.");
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 7 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, and compiled XML preview.");
+        Type targetType = assembly.GetType("Alarmlist.Analysis.ValueExplanationTarget", true);
+        MethodInfo explain = compilerType.GetMethod("ExplainSnapshots");
+        Require(explain != null, "The packaged compiler has no explanation API.");
+        object target = Activator.CreateInstance(targetType, Value(Value(child, "Origin"), "Location"), "Field", "Name", null, null);
+        object staleExplanation = explain.Invoke(compiler, new object[] { snapshots, emptyContext, target, System.Threading.CancellationToken.None, false });
+        Require(!(bool)Value(staleExplanation, "IsAvailable"), "A stale source target was retargeted.");
+        snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
+        object explanation = explain.Invoke(compiler, new object[] { snapshots, emptyContext, target, System.Threading.CancellationToken.None, false });
+        Require((bool)Value(explanation, "IsAvailable") && (int)Value(explanation, "ContractVersion") == 8,
+            "Packaged explanation unavailable: " + Value(explanation, "Message"));
+        object root = Items(explanation, "Nodes").Single(node => (int)Value(node, "Id") == (int)Value(explanation, "RootId"));
+        Require((string)Value(root, "Value") == "Inherited" && Items(explanation, "Nodes").Any(node => (string)Value(node, "Kind") == "Inheritance"),
+            "Packaged explanation lost inherited contributors.");
+        object importedTarget = Activator.CreateInstance(targetType, Value(Value(Items(imported, "Alarms").Single(), "Origin"), "Location"), "Field", "Name", null, null);
+        object importedExplanation = explain.Invoke(compiler, new object[] { Array.CreateInstance(snapshotType, 0), libraryContext,
+            importedTarget, System.Threading.CancellationToken.None, false });
+        Require((bool)Value(importedExplanation, "IsAvailable") && Items(importedExplanation, "Nodes").Any(node =>
+            (string)Value(node, "Kind") == "Field" && (string)Value(node, "Value") == "001" && Value(node, "Library") != null),
+            "Packaged explanation lost library ownership or consumer parameters.");
+        using (var cancellation = new System.Threading.CancellationTokenSource())
+        {
+            cancellation.Cancel();
+            bool cancelled = false;
+            try { explain.Invoke(compiler, new object[] { snapshots, emptyContext, target, cancellation.Token, false }); }
+            catch (TargetInvocationException exception) { cancelled = exception.InnerException is OperationCanceledException; }
+            Require(cancelled, "Packaged explanation ignored cancellation.");
+        }
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 8 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, compiled XML preview and on-demand explanations.");
         return true;
     }
 

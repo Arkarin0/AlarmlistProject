@@ -47,7 +47,8 @@ and [TestApp](https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Ar
 - `AnalysisContract` loads the compiler from the restored SDK's selected task
   runtime and calls its public snapshot analysis API through reflection. It checks
   contract version, field/procedure origins, Clear, result isolation, opt-in XML
-  preview and error gating, and absence of disk writes without a compiler project
+  preview and error gating, on-demand explanations (inherited/library contributors,
+  detached values and cancellation), and absence of disk writes without a compiler project
   reference. The ordinary test run
   exercises the net8.0 payload; the desktop-MSBuild run below exercises net472.
 - Evaluation tests check that `AlarmlistAnalysisCompilerAssembly` points to the

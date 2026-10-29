@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace Alarmlist.VisualStudio.Analysis
 {
-    /// <summary>Contract 7 adapter. Copies compiler answers without reimplementing resolution.</summary>
+    /// <summary>Contract 8 adapter. Copies compiler answers without reimplementing resolution.</summary>
     internal sealed class AnalysisContractReader
     {
         private readonly Dictionary<Type, Type> _types = new Dictionary<Type, Type>();
@@ -17,11 +17,14 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             Add<AnalysisSnapshot>(assembly, "Alarmlist.Analysis.AnalysisResult");
             FieldInfo version = _types[typeof(AnalysisSnapshot)].GetField("CurrentContractVersion", BindingFlags.Public | BindingFlags.Static);
-            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 7))
-                throw new NotSupportedException("Only analysis contract 7 is supported by this extension. Rebuild matching tools.");
+            if (version == null || !version.IsLiteral || !Equals(version.GetRawConstantValue(), 8))
+                throw new NotSupportedException("Only analysis contract 8 is supported by this extension. Rebuild matching tools.");
             Type definition = assembly.GetType("Alarmlist.Definition.AlarmDefinition");
             if (!Equals(definition?.GetField("ToolingFingerprint")?.GetRawConstantValue(), Definition.AlarmDefinition.ToolingFingerprint))
                 throw new NotSupportedException("The SDK and extension alarm definitions do not match. Rebuild matching tools; XML editing remains available.");
+            Add<AnalysisExplanation>(assembly, "Alarmlist.Analysis.ValueExplanationResult");
+            Add<AnalysisExplanationTarget>(assembly, "Alarmlist.Analysis.ValueExplanationTarget");
+            Add<AnalysisExplanationNode>(assembly, "Alarmlist.Analysis.ValueExplanationNode");
             Add<Definition.AlarmFieldDescriptor>(assembly, "Alarmlist.Definition.AlarmFieldDescriptor");
             Add<Definition.AlarmCollectionDescriptor>(assembly, "Alarmlist.Definition.AlarmCollectionDescriptor");
             Add<AnalysisCollection>(assembly, "Alarmlist.Analysis.AnalyzedCollection");
@@ -79,6 +82,27 @@ namespace Alarmlist.VisualStudio.Analysis
             }
         }
 
+        public AnalysisExplanation ReadExplanation(object result)
+        {
+            if (result == null || Value<int>(result, "ContractVersion") != 8
+                || Value<string>(result, "ToolingFingerprint") != Definition.AlarmDefinition.ToolingFingerprint)
+                throw new NotSupportedException("The SDK returned an incompatible explanation. Rebuild matching tools.");
+            var target = Value<object>(result, "Target");
+            return new AnalysisExplanation(8, Value<string>(result, "ToolingFingerprint"),
+                new AnalysisExplanationTarget(Location(Value<object>(target, "AlarmLocation")), Value<string>(target, "Kind"),
+                    Value<string>(target, "Name"), Value<string>(target, "FieldName"), Location(Value<object>(target, "EntryLocation"))),
+                Value<string>(result, "ProjectPath"), Value<string>(result, "Configuration"), Value<string>(result, "Platform"),
+                Value<string>(result, "Culture"), Value<int?>(result, "RootId"), List(result, "Nodes", node =>
+                    new AnalysisExplanationNode(Value<int>(node, "Id"), Value<string>(node, "Kind"), Value<string>(node, "Name"),
+                        Value<string>(node, "RawValue"), Value<string>(node, "Value"), Value<string>(node, "CanonicalValue"),
+                        Value<string>(node, "State"), Value<string>(node, "Type"), Value<string>(node, "Scope"), Value<string>(node, "DefiningAlarm"),
+                        Location(Value<object>(node, "Location")), LibraryIdentity(Value<object>(node, "Library")), List(node, "Inputs", id => (int)id),
+                        Value<string>(node, "RequestedCulture"), Value<string>(node, "SupplyingCulture"))),
+                List(result, "Diagnostics", diagnostic => new AnalysisDiagnostic(Value<string>(diagnostic, "Id"),
+                    EnumValue<AnalysisSeverity>(diagnostic, "Severity"), Value<string>(diagnostic, "Message"), Location(Value<object>(diagnostic, "Location")),
+                    List(diagnostic, "RelatedLocations", Location))), Value<string>(result, "Message"), Value<bool>(result, "IsAvailable"));
+        }
+
         private void Add<T>(Assembly assembly, string name)
         {
             _types.Add(typeof(T), assembly.GetType(name) ?? throw new NotSupportedException("The SDK has no analysis type " + name + "."));
@@ -94,11 +118,11 @@ namespace Alarmlist.VisualStudio.Analysis
 
         public AnalysisSnapshot Read(object result)
         {
-            if (result == null || Value<int>(result, "ContractVersion") != 7)
+            if (result == null || Value<int>(result, "ContractVersion") != 8)
                 throw new NotSupportedException("The SDK returned an unsupported analysis contract.");
             if (Value<string>(result, "ToolingFingerprint") != Definition.AlarmDefinition.ToolingFingerprint)
                 throw new NotSupportedException("The SDK returned mismatched alarm metadata. Rebuild matching tools; XML editing remains available.");
-            return new AnalysisSnapshot(7, Value<bool>(result, "Success"), List(result, "Sources", source =>
+            return new AnalysisSnapshot(8, Value<bool>(result, "Success"), List(result, "Sources", source =>
                 new AnalysisSource(Value<string>(source, "FilePath"), Value<int>(source, "Version"), List(source, "Properties", Property),
                     ProcedureCreation(Value<object>(source, "ProcedureCreation")))),
                 List(result, "Alarms", Alarm), List(result, "Diagnostics", diagnostic => new AnalysisDiagnostic(

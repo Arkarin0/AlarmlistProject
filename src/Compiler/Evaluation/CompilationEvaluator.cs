@@ -101,7 +101,7 @@ namespace Alarmlist.Evaluation
                 .GroupBy(alarm => alarm.FullyQualifiedName, StringComparer.Ordinal).Where(group => group.Count() > 1).Select(group => group.Key));
             foreach (AlarmSyntaxNode alarm in tree.Alarms)
             {
-                if (alarm.IsAbstract || !HasValidReferenceChain(alarm, ambiguous)) continue;
+                if ((alarm.IsAbstract && _explanations?.Selects(alarm) != true) || !HasValidReferenceChain(alarm, ambiguous)) continue;
                 var evaluation = new AlarmEvaluation(this, alarm);
                 Alarms.Add(alarm, evaluation);
                 evaluation.Evaluate();
@@ -265,7 +265,12 @@ namespace Alarmlist.Evaluation
                     var text = origin == null ? PropertyExpression.LiteralText(descriptor.Default) : EvaluateExpressionText(_owner._fields[origin][field], origin.GetFieldLocation(field));
                     value = text?.ResolvedText;
                     _visiting.RemoveAt(_visiting.Count - 1);
-                    if (value == null && origin != null) { _failed.Add(field); return false; }
+                    if (value == null && origin != null)
+                    {
+                        _failed.Add(field);
+                        explanation?.Complete(GetFieldValue(field));
+                        return false;
+                    }
                     var resolved = Definition.AlarmFieldValue.Resolve(descriptor, raw, value,
                         _deferred.Contains(field) || (_owner._allowDeferredValues && origin == null && descriptor.Required && value == null),
                         origin == null && descriptor.Default != null);

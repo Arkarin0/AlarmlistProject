@@ -8,8 +8,8 @@ using Alarmlist.Text;
 
 namespace Alarmlist.Analysis
 {
-    // Internal until all supported target kinds and the SDK transport are ready.
-    internal sealed class ValueExplanationNode
+    /// <summary>A detached step supplied by compiler evaluation; Inputs reference shared node IDs.</summary>
+    public sealed class ValueExplanationNode
     {
         internal ValueExplanationNode(int id, string kind, string name, string rawValue,
             string value, string canonicalValue, string state, string type, string scope,

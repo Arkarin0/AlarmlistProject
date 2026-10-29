@@ -58,6 +58,20 @@ internal static class Program
         Check(excluded.All(node => node.Value == null && graph.Nodes[node.Inputs.Single()].Kind == "Clear" && graph.Nodes[node.Inputs.Single()].DefiningAlarm == "Child"), "Excluded values point to actual Clear only");
         Check(!graph.Nodes.Any(node => node.Kind == "Parameter" && (node.Name == "Discarded" || node.Name == "Literal")), "Excluded text and defaults are not evaluated");
         Check(graph.Nodes.Any(node => node.Kind == "ProcedureEntry" && node.State != "Excluded") == AlarmDefinition.HasTestProcedure, "Explanation respects procedure capability");
+        var child = analyzed.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child");
+        var records = child.Collections.Single(collection => collection.Name == "Checks");
+        var compiler = new AlarmCompiler();
+        var publicCopy = compiler.ExplainSnapshots(sources, CompilationContext.Empty,
+            new Alarmlist.Analysis.ValueExplanationTarget(child.Origin.Location, "CollectionField", "Checks", "Copy", records.EffectiveEntries[0].Origin.Location));
+        Check(publicCopy.IsAvailable && publicCopy.Nodes.Single(node => node.Id == publicCopy.RootId).CanonicalValue == "4"
+            && publicCopy.Nodes.Any(node => node.Kind == "CollectionField" && node.Name.EndsWith(".Count")), "Public record target and sibling provenance");
+        var publicDefault = compiler.ExplainSnapshots(sources, CompilationContext.Empty,
+            new Alarmlist.Analysis.ValueExplanationTarget(child.Origin.Location, "CollectionField", "Checks", "Count", records.EffectiveEntries[1].Origin.Location));
+        Check(publicDefault.IsAvailable && publicDefault.Nodes.Single(node => node.Id == publicDefault.RootId).CanonicalValue == "7", "Public collection default target");
+        var tags = child.Collections.Single(collection => collection.Name == "Tags");
+        var publicExcluded = compiler.ExplainSnapshots(sources, CompilationContext.Empty,
+            new Alarmlist.Analysis.ValueExplanationTarget(child.Origin.Location, "ExcludedCollectionField", "Tags", "Item", tags.ExcludedEntries.Single().Origin.Location));
+        Check(publicExcluded.IsAvailable && publicExcluded.Nodes.Count == 2 && publicExcluded.Nodes.Any(node => node.Kind == "Clear"), "Public excluded collection target");
 
         var deferredCapture = new Alarmlist.Evaluation.ValueExplanationCapture(_ => true);
         Alarmlist.Analysis.SnapshotAnalyzer.Analyze(new[] { Snapshot(Alarm(Record("<Count>$(loc:Number)</Count><Copy>$(item:Count)</Copy>"))) }, CompilationContext.Empty, false, explanations: deferredCapture);
@@ -226,7 +240,7 @@ internal static class Program
     {
         var compiler = new AlarmCompiler();
         var analysis = compiler.AnalyzeSnapshots(new[] { baseSource, childSource }, includeCompiledXml: true);
-        Check(analysis.ContractVersion == 7 && analysis.CollectionDefinitions.Count == 3 && analysis.HasTestProcedure == AlarmDefinition.HasTestProcedure, "Analysis metadata and capability");
+        Check(analysis.ContractVersion == 8 && analysis.CollectionDefinitions.Count == 3 && analysis.HasTestProcedure == AlarmDefinition.HasTestProcedure, "Analysis metadata and capability");
         Check(analysis.Sources.All(source => (source.ProcedureCreation.Groups.Count != 0) == AlarmDefinition.HasTestProcedure), "Creation defaults honor optional procedures");
         var child = analysis.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child");
         var checks = child.Collections.Single(collection => collection.Name == "Checks");

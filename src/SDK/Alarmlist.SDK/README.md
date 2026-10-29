@@ -18,7 +18,7 @@ assemblies, and their runtime dependencies.
 
 ### Generated definitions and compatibility
 
-Milestone eleven uses analysis contract 7, analyzer contract 5 and library format 3.
+Current toolsets use analysis contract 8, analyzer contract 5 and library format 3.
 Rebuild old analyzers and `.almlib` artifacts with the matching toolset. Libraries
 carry a semantic definition fingerprint; a different field layout, type, default,
 required flag, bound or enum choice is incompatible. Presentation-only changes do
@@ -81,7 +81,7 @@ This is a breaking transition: replace old Instructions/Reset elements with
 `<Group Name="Instructions">` / `<Group Name="Reset">`. Legacy elements are
 rejected. Compiled XML uses Group/Name/Title and TestProcedureItem children.
 The compiler's TestProcedure exposes Groups; detached alarm analysis exposes
-ProcedureSections with title provenance. Analysis contract 7 requires the matching
+ProcedureSections with title provenance. Analysis contract 8 requires the matching
 extension; external analyzers must be rebuilt for analyzer contract 5. No migration
 tool or compatibility aliases are supplied. See the
 [milestone-eight contract](../../VisualStudio/MILESTONE-8.md).
@@ -590,7 +590,7 @@ The XSD and [complete format specification](../../VisualStudio/HMI-LOOKUPS.md)
 describe these rules. No built-in DeviceTag field, relationship validation, or
 multi-selection formatting is introduced.
 
-Analysis contract 7 adds read-only LookupLists and ArgumentBindings. Entries expose
+Detached analysis exposes read-only LookupLists and ArgumentBindings. Entries expose
 their literal Value, Expression, Location, ambiguity, optional DescriptionTranslation,
 and metadata; bindings expose TemplateKey, ArgumentName, ListKey and availability.
 Hosts use these detached compiler answers and revalidate saved inputs for completion.
@@ -741,14 +741,14 @@ autosave a committed cell; that saved value is then eligible for capture.
 The compiler in each SDK task-runtime directory exposes
 `AlarmCompiler.AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot>)` for host adapters.
 It returns a detached, read-only `Alarmlist.Analysis.AnalysisResult` with contract
-version 5, input versions, local/effective fields, defining alarms and locations,
+version 8, input versions, local/effective fields, defining alarms and locations,
 reference chains, procedure origins, Clear exclusions, and located diagnostics.
 It shares the compiler's resolution rules and never reads or writes snapshot paths.
 
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and returns contract 7.
+The original overload keeps its analysis-only behavior and returns contract 8.
 `AnalyzeLibrarySnapshots(snapshots, context, cancellationToken)` analyzes library
 definitions with the same deferred-value rules as library validation. Missing
 consumer values remain unavailable; syntax, structure and reference errors remain
@@ -761,7 +761,7 @@ Check IsValueAvailable and HasEvaluatedValues independently of IsResolved: an ab
 alarm or a field-dependency error can have a valid reference chain. IsAbstract marks
 templates. Alarm and source Properties contain visible custom and well-known values,
 local declaration/assignment presence, and separate declaration/value origins.
-Contract 7 retains selected `Culture`, captured `Resources` (path, version and input
+The contract retains selected `Culture`, captured `Resources` (path, version and input
 culture), raw `ResourceEntries` with comments/locations/validity/ambiguity, and
 compiler-resolved `Translations` for catalogue keys. Requested and supplying
 cultures are separate. Translation `IsAvailable` means lookup succeeded, not that
@@ -774,7 +774,22 @@ ALMX usage location, evaluated Value and IsValueAvailable. Abstract or excluded
 content does not invent uses. A missing or invalid expression can retain lookup
 provenance while its evaluated value is unavailable. Results are detached and
 read-only; changing resource/culture inputs cannot mutate earlier results.
-The bridge requires contract 7 and copies this data into host-owned serializable
+`ExplainSnapshots(snapshots, context, target, cancellationToken, allowDeferredValues)`
+returns an immutable `ValueExplanationResult` for one value. Construct a
+`ValueExplanationTarget` with the analyzed alarm's location, kind and name. Entry
+targets additionally require the defining entry's location and version; record
+fields require FieldName. Targets never use an effective-entry index. Source-level
+parameters use SourceParameter/SourceWellKnown and a captured owning-source location.
+The [capture contract](../../Compiler/Analysis/README.md) lists target kinds.
+Results contain raw/evaluated/canonical values, chosen contributing steps, context,
+source locations and relevant diagnostics. Repeated dependencies share node IDs;
+cycles terminate explicitly. Invalid/deferred values retain available steps.
+Stale, ambiguous, unbound or unparseable targets have an explicit unavailable reason.
+Ordinary compilation and analysis retain no explanation graph. Callers must still
+revalidate source/dependency/resource/context inputs before publication/navigation.
+Use allowDeferredValues for library contexts; abstract targets defer automatically.
+
+The bridge requires contract 8 and copies this data into host-owned serializable
 objects. Resource filename inference is delegated to the SDK's
 `LocalizationCulture.InferResourceCulture`; explicit empty culture stays distinct.
 CPS saved-resource capture and designer localization follow in iterations six/seven.
@@ -797,7 +812,7 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 7 and a CPS
+The extension now has an isolated AppDomain bridge for contract 8 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear

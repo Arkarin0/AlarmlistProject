@@ -32,7 +32,7 @@ partial contributing steps/diagnostics for invalid/deferred values, or an explic
 unavailable state when parsing/binding cannot identify a reliable explanation.
 
 Expose the full compiler API and detached transport with analysis contract 8
-(currently 7). Preserve analyzer 5, library format 3, export contract 1 and semantic
+(activated in iteration 5). Preserve analyzer 5, library format 3, export contract 1 and semantic
 definition fingerprints. Keep intermediate tracing internal until all target
 categories are supported; keep compiler/SDK/extension usable at each boundary.
 
@@ -178,3 +178,46 @@ Commands: sequential dotnet test compiler/task projects with --no-restore -v qui
 eng/test-alarm-definition-generation.ps1. Internal README, diff and links reviewed;
 git diff --check passed. No scoped blocker. Public API/SDK, UI and integrated
 acceptance remain incomplete; analysis contract remains 7 until iteration 5.
+
+### Iteration 5 — complete
+
+- Exposed ExplainSnapshots, immutable ValueExplanationTarget/Result/Node, and the
+  matching isolated SDK worker/host transport. Activated analysis contract 8
+  together; analyzer 5, library format 3, export 1 and definition fingerprints
+  remain unchanged. Older/malformed/mismatched toolsets retain existing fallback.
+- Targets identify the consuming alarm by source location/version and entry values
+  by their defining entry location/version. Effective ordinals remain internal.
+  Unknown, ambiguous, moved/stale, unbound and unparseable targets return explicit
+  unavailable results. Hosts still must validate captured dependency/context bytes.
+- The public result slices only reachable chosen contributors, shares dependency
+  IDs and includes context and relevant policy-applied diagnostics. No compiler
+  graph is added to ordinary analysis/build results. Unused parameters, source
+  scopes, well-known aliases and selected abstract/library deferral are supported.
+  Missing required fields retain diagnostics even without a value source location.
+- Added public API, generated collection/default/Clear and packaged library tests,
+  plus detached bridge survival/cancellation/stale-target/assembly-isolation checks.
+  Updated SDK/compiler authoring guidance and current repository contract guidance.
+  The packaged fixture now restores its intentionally changed snapshots before
+  requesting the original target, separately asserting stale-target rejection.
+  Generated bridge fixtures explicitly include the new detached types.
+
+| Gate | Result |
+| --- | --- |
+| Full compiler | 730 net472 / 732 net8.0 passed; Iteration5/CompilerFinal. |
+| Full extension unit | 834 passed; Iteration5/Host. |
+| Focused bridge after final transport updates | 56 passed; Iteration5/BridgeFinal. |
+| Packaged contract/contents | 5 per framework passed; Iteration5/PackageFinal. |
+| Desktop packaged contract/contents | 5 passed on each VS 2022/2026 MSBuild host; Iteration5/Desktop2022 and Desktop2026. |
+| Task unit/integration | 124 unit and 4 integration per framework passed; Iteration5/TaskUnit and TaskIntegration. |
+| Generated collections and procedure variants | Both frameworks passed; AlarmCollections/bc15de13b47f4b388bb292997c3ed62f. |
+| Generated scalars/required values and lifecycle | Both frameworks passed; AlarmDefinitionGeneration/7a018758be2d41f3827e7c923e6023c0. |
+
+Commands: sequential dotnet test compiler/task/extension unit projects with
+--no-restore -v quiet -m:1 -nr:false --logger trx; SDK PackageTests on both
+frameworks and with ALARMLIST_TEST_MSBUILD_PATH set to each installed desktop host
+(previous value restored); eng/test-alarm-collections.ps1;
+eng/test-alarm-definition-generation.ps1. Evidence is under
+artifacts/log/Debug/Milestone14/Iteration5 and the fixture directories above.
+Diff, paths and contract consistency reviewed; git diff --check passed. Existing
+TestHelper CA1416 warning remains. No scoped blocker. Designer/Summary UI, native
+acceptance, tutorial and timing/allocation reporting remain incomplete.
