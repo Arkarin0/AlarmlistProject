@@ -132,7 +132,8 @@ namespace Alarmlist.Text
             if (start > 0 && _units[start - 1].Start == first.Start || start + length < _units.Length && _units[start + length].Start == last.Start) return false;
             for (int i = start + 1; i < start + length; i++)
                 if (_units[i].CData != first.CData || _units[i].Start != _units[i - 1].Start + _units[i - 1].Length && _units[i].Start != _units[i - 1].Start) return false;
-            string replacement = first.CData ? value.Replace("]]>", "]]]]><![CDATA[>") : value.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+            string replacement = first.CData ? value.Replace("]]>", "]]]]><![CDATA[>").Replace("\r", "]]>&#xD;<![CDATA[")
+                : value.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\r", "&#xD;");
             if (_quote != '\0') replacement = replacement.Replace(_quote.ToString(), _quote == '\'' ? "&apos;" : "&quot;").Replace("\r", "&#xD;").Replace("\n", "&#xA;").Replace("\t", "&#x9;");
             edit = new MappedTextEdit(first.Start, last.Start + last.Length - first.Start, replacement); return true;
         }

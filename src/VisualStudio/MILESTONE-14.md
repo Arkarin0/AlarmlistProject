@@ -534,3 +534,49 @@ Iteration 9 — complete:
   without forced termination. This completes the iteration 9 early transaction
   gate; full rename commands, solution coordination and integrated build/output
   acceptance remain in their planned later iterations.
+
+Iteration 10 — complete:
+
+- Added internal request-only alarm/parameter identities and reference capture.
+  Observe Binder/LibraryCompilation inheritance, PropertyResolver declaration and
+  assignment choices, existing scalar origins and procedure/collection resolution.
+  Use the expression parser's tokens and XML decoded/source mapping. Literal
+  defaults/assignments, comments, escaped expressions and quoted arguments remain
+  untouched. Ordinary compilation/analysis constructs no index.
+- Actual inheritance and declaration/assignment edges connect families; unrelated
+  equal names remain separate. Preserve case-sensitive alarm and case-insensitive
+  parameter rules. Duplicate/invalid declarations and unbound references have
+  explicit findings without guessed edits. Keep consumer bindings on each token,
+  including inherited expressions; conflicting physical bindings skip that edit
+  while proven edits elsewhere remain eligible for acknowledged partial rename.
+- Detached immutable results include declarations, occurrences, exact UTF-16
+  spans, consumer names, coverage and diagnostics. Snapshot-bound target IDs cover
+  source/resource/lookup/library bytes and project/configuration/platform/culture.
+  Changing another input or consumer invalidates the target, even with unchanged
+  source version. Imported libraries and uncaptured project declarations are
+  searchable but read-only. Source lookup uses precomputed line/column maps;
+  family roots compress paths; shared conflict checks use an indexed span table.
+- Internal preview validates names/collisions/overlaps, deduplicates physical edits,
+  creates an in-memory ALMX overlay and returns versioned replacements plus proposed
+  diagnostics. Skipped/read-only findings and additional diagnostic occurrences
+  require acknowledgement; they do not silently make all proven edits ineligible.
+  No host Apply or public reference API is exposed in this iteration.
+- Added 22 reference regression cases covering inheritance, shadowing, file/project
+  scopes, package origins, two consumers of shared ALMX, unrelated identical names,
+  partial edits, collisions, exact entities/CDATA, comments, escaped/quoted literals,
+  procedure titles/entries/Clear, invalid inputs, cancellation, detached read-only
+  collections and ordinary-analysis preservation. Added two XML mapping cases for
+  carriage returns in replacement names. An initial test used XDocument's default
+  whitespace dropping; switched its verification to PreserveWhitespace and added
+  actual ALMX-parser checks for both text and CDATA. These verify the exact value,
+  including character-reference/CDATA boundaries.
+- Full compiler acceptance passes: 772 net472 / 774 net8.0, including all new cases;
+  logs: Iteration10/CompilerAcceptance. Task units pass: 124 per framework,
+  Iteration10/TaskUnit. Final rebuilt package acceptance passes five per framework,
+  Iteration10/PackageAcceptance. Changed contributor links, paths and diff reviewed.
+- Contributor API documentation updated in Compiler/Analysis/README.md. User-facing
+  References/Rename documentation remains iteration 13. Resource/lookup/group
+  identities, all-culture solution coordination, resource/project overlays,
+  toolset/graph freshness, command/UI and integrated performance/native gates stay
+  in iterations 11–14. Analysis contract 8, analyzer 5, library 3, export 1 and
+  semantic definition fingerprints are unchanged.

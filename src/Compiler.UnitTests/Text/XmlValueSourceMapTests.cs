@@ -19,14 +19,17 @@ namespace Alarmlist.Core.UnitTests.Text
         [InlineData("<r><Name a=\"Old\" b='same'/></r>", "Old", "Old", "A&B\"", "<r><Name a=\"A&amp;B&quot;\" b='same'/></r>")]
         [InlineData("<r xmlns='urn:r' xmlns:p='urn:p'><p:Name p:a='Old'/></r>", "Old", "Old", "New", "<r xmlns='urn:r' xmlns:p='urn:p'><p:Name p:a='New'/></r>")]
         [InlineData("<?xml version='1.0'?><r><Name>line\r\n$(Old)</Name></r>", "line\n$(Old)", "Old", "New", "<?xml version='1.0'?><r><Name>line\r\n$(New)</Name></r>")]
+        [InlineData("<r>Old</r>", "Old", "Old", "A\rB", "<r>A&#xD;B</r>")]
+        [InlineData("<r><![CDATA[Old]]></r>", "Old", "Old", "A\rB", "<r><![CDATA[A]]>&#xD;<![CDATA[B]]></r>")]
         public void MapsOnlyRequestedDecodedSpanAndPreservesOtherSource(string source, string decoded, string before, string after, string expected)
         {
             var map = XmlValueSourceMap.Parse(source);
             var value = map.Values.Values.Single(item => item.Value == decoded);
             Assert.True(value.TryReplace(decoded.IndexOf(before, StringComparison.Ordinal), before.Length, after, out var edit));
             Assert.Equal(expected, edit.Apply(source));
-            Assert.Contains(XDocument.Parse(expected).Descendants().SelectMany(element => element.Attributes()).Select(attribute => attribute.Value)
-                .Concat(XDocument.Parse(expected).Descendants().Where(element => !element.HasElements).Select(element => element.Value)), item => item.Contains(after));
+            var parsed = XDocument.Parse(expected, LoadOptions.PreserveWhitespace);
+            Assert.Contains(parsed.Descendants().SelectMany(element => element.Attributes()).Select(attribute => attribute.Value)
+                .Concat(parsed.Descendants().Where(element => !element.HasElements).Select(element => element.Value)), item => item.Contains(after));
         }
 
         [Theory]

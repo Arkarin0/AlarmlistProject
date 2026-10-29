@@ -1,4 +1,4 @@
-# Value explanation capture
+# Explanation and reference capture
 
 Milestone 14 adds opt-in provenance capture and the public ExplainSnapshots API.
 Follow its [iteration plan](../../VisualStudio/MILESTONE-14.md).
@@ -53,3 +53,44 @@ locations do not replace dependency or package byte validation. Analysis contrac
 8 is activated together with the isolated SDK bridge. Analyzer 5, library format
 3, export contract 1 and semantic definition fingerprints are unchanged. IDE
 actions and presentation follow in iteration 6.
+
+## Internal reference discovery and rename preview
+
+Milestone 14 follow-up iteration 10 adds request-owned ReferenceCapture for alarm
+and custom parameter symbols. This is an internal foundation; no public reference
+API or SDK transport is exposed yet, and analysis contract 8 remains active.
+Follow iterations 11–14 for resource/lookup/group coverage, contract 9, solution
+coordination, commands and integrated acceptance. Ordinary analysis does not
+construct or retain a reference index.
+
+Binding uses Binder/LibraryCompilation, PropertyResolver, the expression parser,
+effective scalar origins and existing procedure/collection resolution. Equal names
+alone do not create a family. Actual declaration/assignment and inheritance edges
+connect families; unrelated scopes remain separate. Case rules follow the compiler.
+Literal parameter assignments, defaults, quoted arguments and escaped expressions
+are not reference uses. A shared physical token retains every observed consumer
+binding; incompatible bindings prevent an edit to that token.
+
+XmlValueSourceMap maps decoded tokens to original UTF-16 source ranges after XML
+validation. It never discovers references or defines binding. Leaf spans preserve
+surrounding formatting, entities, CDATA and comments; a token fragmented across
+markup is searchable but receives no guessed replacement. Carriage returns in new
+names use character references, including a CDATA boundary when necessary, to
+preserve their exact value through XML normalization.
+
+Detached immutable search data includes identities/families, declarations,
+occurrences, binding consumer names, coverage findings and compiler diagnostics.
+Targets are bound to captured source/resource/lookup/library bytes and consumer
+project/configuration/platform/culture. Recheck the wider solution/toolset stamps
+at the host boundary in iteration 12. Imported library and uncaptured project
+declarations remain searchable and read-only; project text overlay capture is
+also part of iteration 12.
+
+Internal Preview recomputes binding, validates names/collisions, deduplicates
+physical edits and compiles a temporary ALMX overlay. It returns versioned edits
+and proposed diagnostics without mutating input snapshots. Unavailable/read-only
+findings, conflicting shared tokens and new diagnostics require acknowledgement
+before any eventual host Apply. Invalid names, declaration collisions and
+overlapping replacements cannot apply. Selection/exclusion, resource/project
+overlays, all-culture coordination and UI acknowledgement are later gates;
+do not expose this internal prototype as a completed rename feature.
