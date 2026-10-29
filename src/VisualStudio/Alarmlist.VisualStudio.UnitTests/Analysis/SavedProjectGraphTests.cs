@@ -41,10 +41,11 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 + Reference("Base", "SetConfiguration='Configuration=Debug'")
                 + Reference("Missing", "ReferenceOutputAssembly='false'"));
             var root = SavedProjectEvaluation.Capture(consumer, new Dictionary<string, string>
-                { ["Configuration"] = "Debug", ["OutputType"] = "Application" }, CancellationToken.None).Project;
+                { ["Configuration"] = "Debug", ["OutputType"] = "Exports", ["AlarmlistExportTypes"] = "Fixture" }, CancellationToken.None).Project;
             var graph = SavedProjectGraph.Capture(root, CancellationToken.None);
             Assert.Equal(new[] { "Release.almx", "Debug.almx" }, graph.Projects.Select(project => Path.GetFileName(Assert.Single(project.Project.Inputs))));
             Assert.All(graph.Projects, project => Assert.False(project.Project.EvaluationGlobalProperties.ContainsKey("OutputType")));
+            Assert.All(graph.Projects, project => Assert.False(project.Project.EvaluationGlobalProperties.ContainsKey("AlarmlistExportTypes")));
         }
 
         [Fact]

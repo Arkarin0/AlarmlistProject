@@ -4,10 +4,12 @@
   <Rule.DataSource>
     <DataSource Persistence="ProjectFile" Label="Configuration" />
   </Rule.DataSource>
-  <EnumProperty Name="OutputType" DisplayName="Output type" Description="Build a final application XML alarm list or reusable library definitions.">
-    <EnumValue Name="Application" DisplayName="Application" />
+  <EnumProperty Name="OutputType" DisplayName="Output type" Description="Build selected alarm exports or reusable library definitions.">
+    <EnumValue Name="Exports" DisplayName="Exports" />
+    <EnumValue Name="Application" DisplayName="Application (exports compatibility alias)" />
     <EnumValue Name="Library" DisplayName="Library" />
   </EnumProperty>
+  <StringProperty Name="AlarmlistExportTypes" DisplayName="Export types" Description="Semicolon-separated export provider IDs. Defaults to XML. Application exports only; not valid for libraries." />
   <StringProperty Name="PackageId" DisplayName="Package ID" Description="Library identity used by project references and NuGet packages. Defaults to the project name.">
     <StringProperty.DataSource><DataSource Persistence="ProjectFile" HasConfigurationCondition="False" /></StringProperty.DataSource>
   </StringProperty>

@@ -12,10 +12,12 @@ namespace Alarmlist.MSBuild
     internal sealed class OutputTransaction
     {
         private readonly List<Change> _changes;
+        private readonly Action<string> _validatePath;
 
-        internal OutputTransaction(IEnumerable<Change> changes)
+        internal OutputTransaction(IEnumerable<Change> changes, Action<string> validatePath = null)
         {
             _changes = changes.ToList();
+            _validatePath = validatePath;
             if (_changes.Select(change => change.Path).Distinct(BuildOutputPlan.PathComparer).Count() != _changes.Count)
                 throw new ArgumentException("Output transaction paths must be unique.");
         }
@@ -24,6 +26,12 @@ namespace Alarmlist.MSBuild
 
         internal void Commit(Action checkpoint, Action<string> cleanupWarning)
         {
+            foreach (Change change in _changes)
+            {
+                _validatePath?.Invoke(change.Path);
+                _validatePath?.Invoke(change.Stage);
+                _validatePath?.Invoke(change.Backup);
+            }
             var installed = new List<Change>();
             bool preserveBackups = false;
             try
@@ -31,22 +39,28 @@ namespace Alarmlist.MSBuild
                 foreach (Change change in _changes)
                 {
                     checkpoint();
-                    if (change.Text == null) continue;
+                    if (change.Content == null) continue;
+                    _validatePath?.Invoke(change.Path);
+                    _validatePath?.Invoke(change.Stage);
                     Directory.CreateDirectory(System.IO.Path.GetDirectoryName(change.Path));
+                    _validatePath?.Invoke(change.Stage);
                     using (var stream = new FileStream(change.Stage, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                     {
                         change.StageCreated = true;
-                        using (var writer = new StreamWriter(stream, new UTF8Encoding(false, true))) writer.Write(change.Text);
+                        stream.Write(change.Content, 0, change.Content.Length);
                     }
                 }
                 foreach (Change change in _changes)
                 {
                     checkpoint();
+                    _validatePath?.Invoke(change.Path);
+                    _validatePath?.Invoke(change.Stage);
+                    _validatePath?.Invoke(change.Backup);
                     if (change.ExpectedBytes != null && (!File.Exists(change.Path)
                         || !File.ReadAllBytes(change.Path).SequenceEqual(change.ExpectedBytes)))
                         throw new IOException("The import destination changed after capture: " + change.Path);
                     change.HadOriginal = File.Exists(change.Path);
-                    if (change.Text == null)
+                    if (change.Content == null)
                     {
                         if (change.HadOriginal)
                         {
@@ -73,15 +87,17 @@ namespace Alarmlist.MSBuild
                 {
                     try
                     {
-                        if (change.ExpectedBytes != null && change.Text != null && (!File.Exists(change.Path)
-                            || !File.ReadAllBytes(change.Path).SequenceEqual(new UTF8Encoding(false, true).GetBytes(change.Text))))
+                        _validatePath?.Invoke(change.Path);
+                        _validatePath?.Invoke(change.Backup);
+                        if (change.ExpectedBytes != null && change.Content != null && (!File.Exists(change.Path)
+                            || !File.ReadAllBytes(change.Path).SequenceEqual(change.Content)))
                             throw new IOException("The installed import was independently modified; refusing to overwrite the newer edit.");
                         if (change.HadOriginal)
                         {
                             if (File.Exists(change.Path)) File.Replace(change.Backup, change.Path, null);
                             else File.Move(change.Backup, change.Path);
                         }
-                        else if (change.Text != null) File.Delete(change.Path);
+                        else if (change.Content != null) File.Delete(change.Path);
                     }
                     catch (Exception restore)
                     {
@@ -102,9 +118,9 @@ namespace Alarmlist.MSBuild
             }
         }
 
-        private static void Cleanup(string path, Action<string> warning)
+        private void Cleanup(string path, Action<string> warning)
         {
-            try { File.Delete(path); }
+            try { _validatePath?.Invoke(path); File.Delete(path); }
             catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
             { warning("Could not remove owned temporary file '" + path + "': " + exception.Message); }
         }
@@ -115,14 +131,22 @@ namespace Alarmlist.MSBuild
             {
                 Path = System.IO.Path.GetFullPath(path);
                 Text = text;
-                ExpectedBytes = expectedBytes;
+                ExpectedBytes = expectedBytes == null ? null : (byte[])expectedBytes.Clone();
                 string prefix = Path + ".alarmlist-" + Guid.NewGuid().ToString("N");
                 Stage = prefix + ".stage";
                 Backup = prefix + ".backup";
             }
 
             internal string Path { get; }
-            internal string Text { get; set; }
+            private string _text;
+            internal string Text
+            {
+                get => _text;
+                set { _text = value; Content = value == null ? null : new UTF8Encoding(false, true).GetBytes(value); }
+            }
+            internal byte[] Content { get; private set; }
+            internal static Change FromBytes(string path, byte[] bytes) => new Change(path, null)
+            { Content = (byte[])(bytes ?? throw new ArgumentNullException(nameof(bytes))).Clone() };
             internal byte[] ExpectedBytes { get; }
             internal bool Installed { get; set; }
             internal string Stage { get; }

@@ -17,8 +17,9 @@ namespace Alarmlist.MSBuild
         internal static bool IsLibrary(string outputType)
         {
             if (string.Equals(outputType, "Library", StringComparison.OrdinalIgnoreCase)) return true;
-            if (string.IsNullOrWhiteSpace(outputType) || string.Equals(outputType, "Application", StringComparison.OrdinalIgnoreCase)) return false;
-            throw new ArgumentException("Unsupported Alarmlist OutputType '" + outputType + "'. Expected Application or Library.");
+            if (string.IsNullOrWhiteSpace(outputType) || string.Equals(outputType, "Application", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(outputType, "Exports", StringComparison.OrdinalIgnoreCase)) return false;
+            throw new ArgumentException("Unsupported Alarmlist OutputType '" + outputType + "'. Expected Exports (or Application) or Library.");
         }
 
         internal static ITaskItem[] Create(string directory, string fileName, string cultures, string outputType = null)

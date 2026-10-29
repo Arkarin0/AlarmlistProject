@@ -33,6 +33,10 @@
       <SkipGetTargetFrameworkProperties Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">true</SkipGetTargetFrameworkProperties>
       <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
     </ProjectReference>
+    <ProjectReference Include="../../Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj" ReferenceOutputAssembly="false">
+      <SkipGetTargetFrameworkProperties Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">true</SkipGetTargetFrameworkProperties>
+      <GlobalPropertiesToRemove Condition="'$(BuildingInsideVisualStudio)' != 'true' and '$(BuildProjectReferences)' != 'false'">TargetFramework</GlobalPropertiesToRemove>
+    </ProjectReference>
     <Content Include="../../MSBuild/SampleData/PartA.almx" Link="testassets/boilerplate/PartA.almx" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../MSBuild/SampleData/PartB.almx" Link="testassets/boilerplate/sources/PartB.almx" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../MSBuild/SampleData/Conditional.almx" Link="testassets/ExplicitItems/Conditional.almx" CopyToOutputDirectory="PreserveNewest" />
@@ -68,5 +72,10 @@
       <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzerPackage" />
     </MSBuild>
     <Copy SourceFiles="@(_SampleAnalyzerPackage)" DestinationFolder="$(TargetDir)testassets/boilerplate/feed" SkipUnchangedFiles="true" />
+    <MSBuild Projects="../../Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj" Targets="GetZenonExporterPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_ZenonExporterPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_ZenonExporterPackage)" DestinationFolder="$(TargetDir)testassets/boilerplate/feed" SkipUnchangedFiles="true" />
   </Target>
 </Project>

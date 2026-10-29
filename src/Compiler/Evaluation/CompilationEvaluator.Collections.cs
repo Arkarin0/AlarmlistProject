@@ -38,6 +38,7 @@ namespace Alarmlist.Evaluation
         {
             private readonly List<AlarmCollectionValue> _collections = new List<AlarmCollectionValue>();
             private Func<string, SourceLocation, string> _itemLookup;
+            private Func<string, Output.ExportText> _itemTextLookup;
             internal Dictionary<AlarmCollectionItemSyntax, AlarmCollectionItemValue> CollectionItems { get; }
                 = new Dictionary<AlarmCollectionItemSyntax, AlarmCollectionItemValue>();
 
@@ -86,15 +87,18 @@ namespace Alarmlist.Evaluation
                             string raw = item.GetFieldValue(field.Name);
                             _visiting.Add(key);
                             string evaluated;
+                            Output.ExportText text;
                             try
                             {
-                                evaluated = raw == null ? field.Default : EvaluateExpression(_owner._collectionExpressions[item][field.Name], item.GetFieldLocation(field.Name) ?? item.Location);
+                                text = raw == null ? PropertyExpression.LiteralText(field.Default) : EvaluateExpressionText(_owner._collectionExpressions[item][field.Name], item.GetFieldLocation(field.Name) ?? item.Location);
+                                evaluated = text?.ResolvedText;
                             }
                             finally { _visiting.RemoveAt(_visiting.Count - 1); }
                             bool deferred = _deferred.Contains(key) || (_owner._allowDeferredValues && raw == null && field.Required && evaluated == null);
                             var value = AlarmFieldValue.Resolve(field, raw, evaluated, deferred, raw == null && field.Default != null);
                             if (raw != null && evaluated == null && !deferred)
                                 value = new AlarmFieldValue(field.Name, raw, null, null, null, AlarmFieldValueState.Invalid, false);
+                            value = value.WithExportText(text);
                             values.Add(field.Name, value);
                             if (value.State == AlarmFieldValueState.Invalid)
                             {
@@ -110,12 +114,13 @@ namespace Alarmlist.Evaluation
                             }
                             return value.EvaluatedText ?? string.Empty;
                         }
+                        _itemTextLookup = name => values.TryGetValue(name, out var value) ? value.ExportText : null;
                         _itemLookup = descriptor.Kind == "Complex" ? (Func<string, SourceLocation, string>)Resolve : null;
                         try
                         {
                             foreach (var field in descriptor.Fields) Resolve(field.Name, item.GetFieldLocation(field.Name) ?? item.Location);
                         }
-                        finally { _itemLookup = null; }
+                        finally { _itemLookup = null; _itemTextLookup = null; }
                         var result = new AlarmCollectionItemValue(descriptor.Fields.Select(field => values[field.Name]));
                         CollectionItems.Add(item, result);
                         results.Add(result);

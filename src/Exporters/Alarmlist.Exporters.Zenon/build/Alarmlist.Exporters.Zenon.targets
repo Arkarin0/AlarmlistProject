@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <AlarmlistZenonOutputFileName Condition="'$(AlarmlistZenonOutputFileName)' == ''">$(MSBuildProjectName).Zenon.xml</AlarmlistZenonOutputFileName>
+  </PropertyGroup>
+  <ItemGroup>
+    <AlarmlistExportProvider Include="Zenon">
+      <AssemblyPath Condition="'$(MSBuildRuntimeType)' == 'Core'">$(MSBuildThisFileDirectory)../tools/net8.0/Alarmlist.Exporters.Zenon.dll</AssemblyPath>
+      <AssemblyPath Condition="'$(MSBuildRuntimeType)' != 'Core'">$(MSBuildThisFileDirectory)../tools/net472/Alarmlist.Exporters.Zenon.dll</AssemblyPath>
+      <TypeName>Alarmlist.Exporters.Zenon.ZenonExportProvider</TypeName>
+      <OutputFileName>$(AlarmlistZenonOutputFileName)</OutputFileName>
+    </AlarmlistExportProvider>
+  </ItemGroup>
+</Project>

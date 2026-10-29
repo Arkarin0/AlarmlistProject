@@ -3,6 +3,14 @@
 For user-facing editor, completion and Alarm Summary guides, start with the
 [documentation index](../../documentation/README.md).
 
+Milestone 13 export integration accepts `OutputType=Exports`, the `Application`
+compatibility alias, and `AlarmlistExportTypes` without loading exporters during
+analysis. Native `Area=ExportBuild` checks selected-provider isolation, output
+failure preservation, format switching and Clean/Build. Run it together with
+`Area=XmlCatalogCompletion` through `eng/test-visualstudio.ps1` on both supported
+hosts, sequentially with other native/WPF tests. The
+[milestone plan](MILESTONE-13.md) records integrated package/fork acceptance.
+
 Milestone one supplies a CPS project type for `.almproj`, project and ALMX item
 templates, Solution Explorer file management, project properties, and
 Build/Rebuild/Clean through `Alarmlist.MSBuild.SDK`. Compiler errors are reported
@@ -824,9 +832,10 @@ For manual testing, run `scripts/start-vs2022.bat` or `scripts/start-vs2026.bat`
 Each launcher finds the matching installed Visual Studio, builds and deploys the
 extension, prepares the matching SDK for [the example playground](../../example/README.md),
 then opens `example/Example.sln` in its `AlarmlistExp` instance. The example contains
-North/South consumers and a native Shared Project owning their common ALMX,
-RESX and lookup inputs, plus local alarms, multi-file inheritance and procedure
-Clear cases. Its SDK feed/version/cache are configured automatically; exploratory
+North (XML)/South (JSON) consumers and a native Shared Project owning their common
+ALMX, RESX and lookup inputs, plus a standalone Zenon keyword-XML project, local
+alarms, multi-file inheritance and procedure Clear cases. Its SDK/exporter
+feed/version/cache are configured automatically; exploratory
 source/project/import/solution edits are preserved. `Area=DefaultSharedExample`
 validates this actual preparation and native workflow on edited isolated copies.
 Close that experimental instance before rerunning the

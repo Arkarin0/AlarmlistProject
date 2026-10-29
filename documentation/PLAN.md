@@ -79,3 +79,45 @@ record was moved here from the user index without changing its completed status.
 
 Documentation review does not rerun IDE acceptance, package/toolset builds or
 translation-vendor round trips. Vendor interoperability remains unverified.
+
+## Milestone 13 export documentation
+
+The export-provider feature guide, project-build updates and SDK/index links ship
+with Milestone 13 iterations 5b/6. The packaged consumer fixture verifies the XML
+output-name example, explicit DLL and NuGet registration, runtime asset selection,
+last-success discovery and Clean. Implementation/validation evidence and remaining
+JSON/zenon/native acceptance gates are recorded in
+[src/VisualStudio/MILESTONE-13.md](../src/VisualStudio/MILESTONE-13.md).
+
+Milestone 13 iteration 7 adds the JSON format reference and index links. Its
+packaged examples cover JSON-only and XML+JSON selection, two cultures,
+transactional failure preservation and both desktop task hosts. Generated scalar
+and collection fixtures cover wire types and identical bytes across frameworks;
+see the milestone record for commands and results.
+
+Milestone 13 iteration 8 adds the zenon keyword-XML feature reference and packaged
+README examples. The SDK fixture verifies private NuGet and direct DLL selection,
+the exact mixed-keyword example, filename overrides, both task runtimes, later-
+culture failure preservation and discovery/design-time/Clean nonexecution with an
+invalid provider image. The scalar/collection fixtures verify custom definitions.
+Iteration 9 supplies the guided export tutorial and integrated native acceptance;
+no vendor import certification is claimed.
+
+Milestone 13 iteration 9 completes the export tutorial, provider-authoring notes
+and SDK/native testing links. Executed the tutorial's actual XML code blocks in
+an isolated local-feed directory: XML+JSON, zenon, delimiter-failure hash
+preservation, JSON-only switching and Clean all pass. Separate shared consumers
+verify independent selection and cultures. Custom-definition project/package
+consumers verify all formats against the extracted SDK contract on both desktop
+hosts. Native export builds and installed XML hints pass on both supported IDEs;
+full SDK, VSIX and IDE unit regressions pass. Changed local links, paths,
+placeholders and diff were reviewed. Vendor import certification
+remains excluded from the keyword-XML feature.
+
+Milestone 13 follow-up iteration 10 updates the default playground to North XML,
+South JSON and a standalone Zenon keyword example. Its README documents outputs,
+preparation, resource fallback and keyword-only scope; existing shared localization
+exercises stay unchanged. Focused SDK tests pass on both frameworks and desktop
+hosts; native DefaultSharedExample passes on both IDEs. The checked-in playground
+is prepared and builds all three formats. Validation evidence is recorded in the
+milestone plan.

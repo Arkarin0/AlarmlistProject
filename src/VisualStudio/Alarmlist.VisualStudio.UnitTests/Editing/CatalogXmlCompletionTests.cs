@@ -94,6 +94,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             => Assert.Empty(Candidates(marked, lookup: false));
 
         [Fact]
+        public void ExportSelectionAndOutputKindComeFromEmbeddedSdkRules()
+        {
+            Assert.Contains("AlarmlistExportTypes", Candidates("<Project><PropertyGroup><\u00a6", lookup: false));
+            Assert.Contains("Exports", Candidates("<Project><PropertyGroup><OutputType>\u00a6", lookup: false));
+        }
+
+        [Fact]
         public void ProjectHintsExcludeReadonlyAndUserOnlyProperties()
         {
             string[] properties = Candidates("<Project><PropertyGroup><¦", lookup: false);

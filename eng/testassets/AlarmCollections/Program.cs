@@ -49,6 +49,22 @@ internal static class Program
             Console.WriteLine(_checks + " minimum-count checks passed");
             return;
         }
+        var exportResult = Compile("<Tags><Item>one</Item></Tags>" + Record("<Priority>High</Priority>"));
+        Check(exportResult.Success, "export collection input compiles");
+        var exportDocument = Alarmlist.Output.ExportDocument.Create(exportResult, "keyword");
+        Check(exportDocument.HasTestProcedure == AlarmDefinition.HasTestProcedure, "export procedure capability");
+        Check(exportDocument.Alarms.Single().Collections.Single(collection => collection.Name == "Tags").Items.Single().Single().CanonicalText == "one", "export simple collection");
+        Check((string)exportDocument.Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single().Single(field => field.Name == "Priority").Value == "High", "export record enum token");
+        var exportArtifact = new Alarmlist.Output.XmlAlarmlistExportProvider().Export(new Alarmlist.Output.ExportRequest(exportDocument, "alarms.xml"), System.Threading.CancellationToken.None).Single();
+        Check(System.Text.Encoding.UTF8.GetString(exportArtifact.GetContent()).TrimStart('\ufeff') == new Alarmlist.Output.XmlAlarmlistOutputWriter().WriteToString(exportResult.AlarmList), "collection XML provider parity");
+        var jsonRoot = ExportJsonChecks.Read(exportResult);
+        var jsonAlarm = ExportJsonChecks.Alarm(jsonRoot);
+        Check(jsonRoot.Element("hasTestProcedure").Value == (AlarmDefinition.HasTestProcedure ? "true" : "false"), "JSON procedure capability");
+        Check(jsonRoot.Element("collectionDefinitions").Elements("item").Select(collection => collection.Element("name").Value).SequenceEqual(new[] { "Tags", "Numbers", "Checks" }), "JSON generated collection metadata order");
+        var jsonCollections = jsonAlarm.Element("collections").Elements("item").ToDictionary(collection => collection.Element("name").Value);
+        Check(ExportJsonChecks.Field(jsonCollections["Tags"].Element("items").Element("item"), "Item").Element("value").Value == "one", "JSON simple collection shape");
+        Check(ExportJsonChecks.Field(jsonCollections["Checks"].Element("items").Element("item"), "Priority").Element("value").Value == "High", "JSON record enum token");
+        Check(!jsonCollections["Numbers"].Element("items").Elements().Any(), "JSON empty collection is an array");
         var empty = Compile("");
         Check(!empty.Diagnostics.Any(diagnostic => diagnostic.Id == "ALM0031"), "Keyword builds do not warn about enum captions");
         var captionContext = new CompilationContext(Array.Empty<ResxTextSnapshot>(), "de-DE");
@@ -117,6 +133,9 @@ internal static class Program
         var inherited = new AlarmCompiler().CompileSnapshots(new[] { baseSource, childSource });
         Check(inherited.Success && inherited.AlarmList.Single().GetCollection("Tags").Items.Select(value => value.GetField("Item").CanonicalText).SequenceEqual(new[] { "base", "same", "same" }), "Inherited-first order and duplicate values");
         Check((long)inherited.AlarmList.Single().GetCollection("Checks").Items.Single().GetField("Copy").Value == 4, "Inherited records evaluate in consuming alarm scope");
+        var inheritedJson = ExportJsonChecks.Alarm(ExportJsonChecks.Read(inherited));
+        var inheritedTags = inheritedJson.Element("collections").Elements("item").Single(collection => collection.Element("name").Value == "Tags");
+        Check(inheritedTags.Element("items").Elements("item").Select(record => ExportJsonChecks.Field(record, "Item").Element("value").Value).SequenceEqual(new[] { "base", "same", "same" }), "JSON inherited order and duplicate items");
         var cleared = new AlarmCompiler().CompileSnapshots(new[] { baseSource, Snapshot(Alarm("<ReferenceName>Base</ReferenceName><Tags><Item>discard</Item><Clear/><Item>new</Item></Tags><Checks><Clear/></Checks>")) });
         Check(cleared.Success && cleared.AlarmList.Single().GetCollection("Checks").Items.Count == 0 && cleared.AlarmList.Single().GetCollection("Tags").Items.Count == 1, "Clear removes inherited and preceding local entries and defers excluded contextual evaluation");
         var emptyContainer = new AlarmCompiler().CompileSnapshots(new[] { baseSource, Snapshot(Alarm("<ReferenceName>Base</ReferenceName><Properties><Property Name='P' Value='3'/></Properties><Tags/>")) });
@@ -138,10 +157,22 @@ internal static class Program
 
         var keyword = Compile(Record("<Count>$(loc:Number)</Count><Copy>$(item:Count)</Copy>"));
         Check(keyword.Success && keyword.AlarmList.Single().GetCollection("Checks").Items.Single().Fields.Where(value => value.Name == "Count" || value.Name == "Copy").All(value => value.State == AlarmFieldValueState.Deferred), "Keyword deferral propagates through sibling fields");
+        var keywordExport = Alarmlist.Output.ExportDocument.Create(keyword, "keyword").Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single();
+        Check(keywordExport.Single(field => field.Name == "Copy").IsDeferred && keywordExport.Single(field => field.Name == "Copy").Text.Segments.Single().Text == "Number", "Export keyword sibling boundary and deferred typed state");
+        var defaultExport = Alarmlist.Output.ExportDocument.Create(defaults, "keyword").Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single();
+        Check(defaultExport.Single(field => field.Name == "Text").Text.Segments.Single().Kind == Alarmlist.Output.ExportTextSegmentKind.Literal && defaultExport.Single(field => field.Name == "Text").Text.ResolvedText == "$(Literal)", "Export record defaults are literal");
+        var zenonArtifact = new Alarmlist.Exporters.Zenon.ZenonExportProvider().Export(new Alarmlist.Output.ExportRequest(Alarmlist.Output.ExportDocument.Create(keyword, "keyword"), "zenon.xml"), System.Threading.CancellationToken.None).Single();
+        var zenonAlarm = XDocument.Parse(System.Text.Encoding.UTF8.GetString(zenonArtifact.GetContent()).TrimStart('\ufeff')).Root.Element("Alarm");
+        Check(zenonAlarm.Element("Checks").Element("Item").Element("Count").Value == "@Number@" && zenonAlarm.Element("Checks").Element("Item").Element("Copy").Value == "@Number@", "Zenon record and sibling keyword projection");
+        Check((zenonAlarm.Element("TestProcedure") != null) == AlarmDefinition.HasTestProcedure, "Zenon optional procedure capability");
         var resources = new[] { new ResxTextSnapshot("<root><data name='Number'><value>5</value></data><data name='Record'><value>$(item:Count)</value></data><data name='Formatted'><value>{value}</value></data></root>", "values.en.resx", 1, "en") };
         var context = new CompilationContext(resources, "en");
         var localized = Compile(Record("<Count>$(loc:Number)</Count><Copy>$(loc:Record)</Copy><Text>$(loc:Formatted, value=$(item:Copy))</Text>"), context);
         Check(localized.Success && localized.AlarmList.Single().GetCollection("Checks").Items.Single().GetField("Text").CanonicalText == "5", "Concrete localization and named arguments use record context");
+        var localizedExport = Alarmlist.Output.ExportDocument.Create(localized, "en").Alarms.Single().Collections.Single(collection => collection.Name == "Checks").Items.Single();
+        var formattedSegment = localizedExport.Single(field => field.Name == "Text").Text.Segments.Single();
+        Check(formattedSegment.Text == "Formatted" && formattedSegment.RequiresSubstitution && formattedSegment.Expansion.ResolvedText == "5", "Formatted translated record export expansion");
+        Check(formattedSegment.Expansion.Segments.Single().Text == "Record" && formattedSegment.Expansion.Segments.Single().Expansion.Segments.Single().Text == "Number", "Translated sibling dependencies keep nested key boundaries");
         Check(!Compile("<Code>$(loc:Record)</Code>", context).Success, "Localized sibling reference outside record is rejected");
         var deferred = new[] { Snapshot(Alarm(Record("<Count>$(Consumer)</Count><Copy>$(item:Count)</Copy>"))) };
         Check(new AlarmCompiler().AnalyzeLibrarySnapshots(deferred, CompilationContext.Empty).Success, "Unassigned library consumer values defer through sibling dependencies");

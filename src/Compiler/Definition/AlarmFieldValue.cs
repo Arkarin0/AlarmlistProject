@@ -12,6 +12,10 @@ namespace Alarmlist.Definition
         public object Value { get; }
         public AlarmFieldValueState State { get; }
         public bool IsDefault { get; }
+        public Output.ExportText ExportText { get; private set; }
+
+        internal AlarmFieldValue WithExportText(Output.ExportText text) => new AlarmFieldValue(
+            Name, RawText, EvaluatedText, CanonicalText, Value, State, IsDefault) { ExportText = text };
 
         internal AlarmFieldValue(string name, string raw, string evaluated, string canonical, object value, AlarmFieldValueState state, bool isDefault)
         {

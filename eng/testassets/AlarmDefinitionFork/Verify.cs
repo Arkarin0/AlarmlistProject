@@ -2,8 +2,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Json;
 using System.Threading;
+using System.Xml;
 using System.Xml.Linq;
 using Alarmlist.Analyzers;
 using Alarmlist.Compiler;
@@ -78,6 +81,26 @@ namespace AlarmDefinitionFork
                 var expectedOrder = AlarmDefinition.Fields.Where(field => alarm.Element(field.Name) != null).Select(field => field.Name).ToArray();
                 var actualOrder = alarm.Elements().Select(element => element.Name.LocalName).Where(name => expectedOrder.Contains(name));
                 Check(expectedOrder.SequenceEqual(actualOrder), "Output respects definition field order.");
+            }
+            string jsonPath = Path.ChangeExtension(args[0], ".json");
+            if (args.Length > 2 && args[2] == "exports")
+            {
+                XElement json;
+                using (var reader = JsonReaderWriterFactory.CreateJsonReader(File.ReadAllBytes(jsonPath), XmlDictionaryReaderQuotas.Max))
+                    json = XDocument.Load(reader).Root;
+                Check(json.Element("definitionFingerprint").Value == AlarmDefinition.SchemaFingerprint, "JSON semantic fingerprint matches fork.");
+                Check(json.Element("hasTestProcedure").Value == (AlarmDefinition.HasTestProcedure ? "true" : "false"), "JSON procedure capability.");
+                var jsonAlarms = json.Element("alarms").Elements("item").ToArray();
+                Check(jsonAlarms.Length == 2, "JSON contains library/local alarms.");
+                var jsonLibrary = jsonAlarms.Single(alarm => alarm.Element("fullyQualifiedName").Value == "Library");
+                var fields = jsonLibrary.Element("fields").Elements("item").ToArray();
+                foreach (var pair in expected) Check(fields.Single(field => field.Element("name").Value == pair.Key).Element("value").Value == pair.Value, "JSON canonical field " + pair.Key);
+                Check((string)fields.Single(field => field.Element("name").Value == "Code").Element("value").Attribute("type") == "number", "JSON retyped Code remains numeric.");
+                Check(fields.All(field => field.Element("name").Value != "Name" && field.Element("name").Value != "Category"), "JSON removed fields absent.");
+                if (AlarmDefinition.Collections.Count != 0)
+                    Check(jsonLibrary.Element("collections").Elements("item").Single(collection => collection.Element("name").Value == "Checks").Element("items").Element("item").Element("fields").Elements("item").Single(field => field.Element("name").Value == "Copy").Element("value").Value == "8", "JSON collection sibling typed value.");
+                string zenonPath = Path.Combine(Path.GetDirectoryName(args[0]), "Consumer.Zenon.xml");
+                Check(XNode.DeepEquals(XDocument.Load(args[0]), XDocument.Load(zenonPath)), "Zenon preserves literal/canonical fields and custom XML shape.");
             }
             var analysis = new AlarmCompiler().AnalyzeSnapshots(new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Code>+008</Code></Alarm></Alarmlist>", "fixture.almx", 1) });
             var code = analysis.Alarms.Single().Fields.Single(field => field.Name == "Code");

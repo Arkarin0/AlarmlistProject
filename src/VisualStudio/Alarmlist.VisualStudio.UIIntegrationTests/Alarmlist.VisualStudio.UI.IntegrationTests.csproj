@@ -22,6 +22,8 @@
                       SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" />
     <ProjectReference Include="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" />
+    <ProjectReference Include="../../Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj" ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" />
     <PackageReference Include="FlaUI.UIA3" Version="5.0.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.VisualStudio.Interop" Version="17.9.37000" PrivateAssets="all" />
     <AssemblyMetadata Include="RepositoryRoot" Value="$(RepoRoot)" />
@@ -49,5 +51,10 @@
       <Output TaskParameter="TargetOutputs" ItemName="_SampleAnalyzerPackage" />
     </MSBuild>
     <Copy SourceFiles="@(_SampleAnalyzerPackage)" DestinationFolder="$(TargetDir)testassets" SkipUnchangedFiles="true" />
+    <MSBuild Projects="../../Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj" Targets="GetZenonExporterPackagePath"
+             Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">
+      <Output TaskParameter="TargetOutputs" ItemName="_ZenonExporterPackage" />
+    </MSBuild>
+    <Copy SourceFiles="@(_ZenonExporterPackage)" DestinationFolder="$(TargetDir)testassets" SkipUnchangedFiles="true" />
   </Target>
 </Project>

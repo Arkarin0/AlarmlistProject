@@ -34,7 +34,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             string repository = typeof(LocalizationResourceTests).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(item => item.Key == "RepositoryRoot").Value;
             string configuration = typeof(LocalizationResourceTests).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(item => item.Key == "BuildConfiguration").Value;
             string example = Path.Combine(repository, "example");
-            foreach (string folder in new[] { "North", "South", "Shared" })
+            foreach (string folder in new[] { "North", "South", "Zenon", "Shared" })
             foreach (string file in Directory.GetFiles(Path.Combine(example, folder), "*", SearchOption.AllDirectories))
             {
                 string relative = Path.GetRelativePath(example, file);
@@ -159,9 +159,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     var projects = ide.Automation.Solution.Projects.Cast<Project>().Where(project => project != null)
                         .Select(project => new { project.Name, project.FullName, project.Kind }).ToArray();
                     File.WriteAllLines(Path.Combine(root, "project-load.txt"), projects.Select(project => project.Name + " | " + project.Kind + " | " + project.FullName));
-                    return projects.Count(project => new[] { ".almproj", ".shproj" }.Contains(Path.GetExtension(project.FullName))) == 3
-                        && projects.Count(project => (project.Name == "North" || project.Name == "South") && !string.IsNullOrEmpty(project.Kind)
-                            && project.Kind != Constants.vsProjectKindUnmodeled) == 2
+                    return projects.Count(project => new[] { ".almproj", ".shproj" }.Contains(Path.GetExtension(project.FullName))) == 4
+                        && projects.Count(project => new[] { "North", "South", "Zenon" }.Contains(project.Name) && !string.IsNullOrEmpty(project.Kind)
+                            && project.Kind != Constants.vsProjectKindUnmodeled) == 3
                         && projects.Any(project => project.Name == "Shared" && Path.GetExtension(project.FullName) == ".shproj"
                             && string.Equals(project.Kind, "{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}", StringComparison.OrdinalIgnoreCase));
                 }
@@ -170,12 +170,30 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 catch (NullReferenceException) { return false; }
             }, "ordinary example native project load");
             ide.Automation.Solution.SolutionBuild.Build(true); Assert.Equal(0, ide.Automation.Solution.SolutionBuild.LastBuildInfo);
-            foreach (string name in new[] { "North", "South" })
+            foreach (string name in new[] { "North", "South", "Zenon" })
             foreach (string culture in new[] { "keyword", "en", "de-DE" })
             {
-                var alarms = XDocument.Load(Path.Combine(root, name, "bin", "Debug", culture, name + ".Alarmlist.xml")).Root.Elements("Alarm").ToArray();
-                Assert.Equal(name == "North" ? 12 : 8, alarms.Length);
-                Assert.Equal(alarms.Length, alarms.Select(alarm => alarm.Element("FullyQualifiedName").Value).Distinct().Count());
+                string outputRoot = Path.Combine(root, name, "bin", "Debug", culture);
+                string expected = Path.Combine(outputRoot, name == "Zenon" ? "Zenon.Zenon.xml" : name + ".Alarmlist." + (name == "South" ? "json" : "xml"));
+                Assert.Equal(expected, Assert.Single(Directory.GetFiles(outputRoot)));
+                if (name == "South")
+                {
+                    using var json = JsonDocument.Parse(File.ReadAllBytes(expected));
+                    var alarms = json.RootElement.GetProperty("alarms").EnumerateArray().ToArray();
+                    Assert.Equal(8, alarms.Length);
+                    Assert.Equal(8, alarms.Select(alarm => alarm.GetProperty("fullyQualifiedName").GetString()).Distinct().Count());
+                }
+                else
+                {
+                    var alarms = XDocument.Load(expected).Root.Elements("Alarm").ToArray();
+                    Assert.Equal(name == "North" ? 12 : 1, alarms.Length);
+                    Assert.Equal(alarms.Length, alarms.Select(alarm => alarm.Element("FullyQualifiedName").Value).Distinct().Count());
+                    if (name == "Zenon")
+                    {
+                        Assert.Equal("@YouPlacedAtPositionKeyword@ 1 @atLocationkeyword@", alarms.Single().Element("Name").Value);
+                        Assert.Equal("001", alarms.Single().Element("Code").Value);
+                    }
+                }
             }
             Assert.False(Directory.Exists(Path.Combine(root, "Shared", "bin")));
         }

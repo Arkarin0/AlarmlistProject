@@ -10,13 +10,13 @@ dependency graph. Its preparation does not change this North/South playground.
 
 Run `scripts/start-vs2022.bat` or `scripts/start-vs2026.bat` from the repository.
 The launcher builds and deploys the current extension, prepares its matching SDK
-and sample analyzer,
+sample analyzer and zenon exporter,
 and opens **example/Example.sln** in the `AlarmlistExp` instance. Close that
 experimental instance before running the launcher again. No manual NuGet feed or
 SDK version setup is needed. `--deploy-only` prepares everything without opening
 the IDE; use **File > Open > Project/Solution** to open `Example.sln` yourself.
 
-The solution contains **North**, **South**, and the native **Shared** Project.
+The solution contains **North**, **South**, **Zenon**, and the native **Shared** Project.
 Shared owns the common ALMX, translations and lookup files through
 `Shared/Shared.projitems`, imported by both consumers. Edit shared membership in
 Shared; the consumer projections open the same physical files. Use the consumer's
@@ -48,14 +48,16 @@ Loading Shared in the IDE requires installed native Shared Project tooling.
 5. Choose **en** in **Summary language** on the native **Alarmlist** toolbar
    beside the standard VS controls. The default **keyword** displays literal
    `$(loc:Key)` expressions. Try **de-DE** to see German translations.
-6. Build the solution. Each project produces **keyword**, **en**, and **de-DE**
-   folders under **bin/Debug**, containing **North.Alarmlist.xml** or
-   **South.Alarmlist.xml**. Try Clean/Rebuild and the project output properties.
+6. Build the solution. Each application produces **keyword**, **en**, and **de-DE**
+   folders under its **bin/Debug** directory. North produces **North.Alarmlist.xml**,
+   South produces **South.Alarmlist.json**, and Zenon produces **Zenon.Zenon.xml**.
+   Try Clean/Rebuild and the project output properties.
    Live previews reflect unsaved ALMX edits without writing these files.
 
 The initial solution has no compiler errors: North compiles twelve alarms and South
-compiles eight in each build culture. Each project has two intentional **SAMPLE001**
+compiles eight in each build culture. North and South each have two intentional **SAMPLE001**
 warnings per culture from the diagnostics exercise below; builds still succeed.
+Zenon compiles one alarm per culture without those intentional warnings.
 With preview language **en**, the shared
 `Plant.Pump.PressureLow` alarm shows:
 
@@ -71,6 +73,41 @@ The empty local Name inherits. Reset's **Clear** excludes both the inherited res
 and the preceding local step; inspect **Excluded by Clear**. The panel alarm in
 North adds a Hint and Step after the inherited instructions. Comments and escaped
 ampersands in the resources also provide examples for source-preserving editing.
+
+## Try per-project exports
+
+Each application sets `OutputType=Exports` and its own `AlarmlistExportTypes`.
+North selects `XML`, South selects `JSON`, and Zenon selects `Zenon`. These settings
+do not change the designer or Alarm Summary formats. North and South still consume
+the same Shared inputs in their independent parameter and language contexts.
+
+Open **Zenon > Alarms.almx** to inspect the standalone keyword example. Its
+`Position` project value is **1**; its two resource references become:
+
+```text
+@YouPlacedAtPositionKeyword@ 1 @atLocationkeyword@
+```
+
+That text appears in Name and the procedure Step in every Zenon export culture.
+The en/de resources supply plain translations for analysis; de-DE uses parent de.
+Zenon has its own sources and resources because the North/South exercises contain
+formatted translations unsupported by the plain keyword provider. The exported
+file uses the existing alarm XML shape; it is not a complete vendor import file
+or a zenon language table.
+
+Only Zenon references the exporter package. Preparation builds both runtime assets,
+generates the ignored `Example.local.props` version selection, and configures the
+local feed. Rerun the launcher or `eng/prepare-example.ps1` after rebuilding tools;
+the SDK and exporter package contents jointly select a fresh private cache.
+Preparation preserves edited source, project and solution files.
+
+Change a project's selection to try another supported format, then Build.
+Previously owned files that are no longer selected are removed; Clean affects
+only that project's recorded artifacts. Selecting Zenon for the original
+North/South sources can fail on formatted translations. See
+[export providers](../documentation/features/export-providers.md),
+[JSON format](../documentation/features/json-export-format.md), and
+[zenon keyword XML](../documentation/features/zenon-keyword-export.md).
 
 ## Try localization
 
@@ -312,6 +349,7 @@ starting Visual Studio:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File eng/prepare-example.ps1
 dotnet msbuild example/North/North.almproj /t:Build
 dotnet msbuild example/South/South.almproj /t:Build
+dotnet msbuild example/Zenon/Zenon.almproj /t:Build
 ```
 
 Run these commands from the repository root. Use `-Configuration Release` when
@@ -320,16 +358,18 @@ This selects the package build; the example still opens in Debug by default.
 `-MSBuildPath '<VS installation>/MSBuild/Current/Bin/MSBuild.exe'` optionally uses
 desktop MSBuild for preparation, as the launchers do.
 
-The helper builds both sample analyzer runtimes, reads the SDK version from the
-built VSIX template, and generates
-ignored `global.json` and `NuGet.Config` files here. Only the repository's matching
-local package feed is used. Its cache is under `.packages/<package SHA256>/`, so
-rebuilding the SDK with the same version still loads fresh contents. Local
+The helper builds both sample analyzer and zenon exporter runtimes, reads the SDK
+version from the built VSIX template, and generates ignored `global.json`,
+`NuGet.Config` and `Example.local.props` files here. Only the repository's matching
+local package feed is used. Its cache is under `.packages/<combined SHA256>/`,
+derived from both SDK and exporter package contents, so rebuilding either package
+with the same version still loads fresh contents. Local
 `Directory.Build.props/targets` keep the repository's Arcade configuration out of
 these consumer projects, following the existing SDK test/acceptance fixtures.
 Shared/Shared.projitems owns the common HMI, electrical and diagnostic samples.
 The targets file links saved EditorConfig files and the prepared analyzer only
-for the two consumers. Analyzer DLLs live under
+for application projects, including Zenon, while Shared has no analyzer pipeline.
+Analyzer DLLs live under
 ignored `.analyzers/net472/` and `.analyzers/net8.0/`; rerunning preparation updates
 them without replacing ALMX, RESX, lookup or EditorConfig inputs. Preparation
 restores the projects but does not compile their output. After analyzer replacement,
