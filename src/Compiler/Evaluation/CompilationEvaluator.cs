@@ -285,6 +285,7 @@ namespace Alarmlist.Evaluation
                     }
                 if (_wellKnown.TryGetValue(name, out string value))
                 {
+                    _explanation?.WellKnown(name, value, name.StartsWith("AlarmlistThisFile", StringComparison.OrdinalIgnoreCase) ? _alarm.Location : null);
                     if (value == null) { DeferConsumerInput(); _owner.Report(DiagnosticDescriptors.MissingPropertyContext, _alarm, location, name, _activeResources); }
                     return value;
                 }
@@ -327,16 +328,24 @@ namespace Alarmlist.Evaluation
                 }
                 if (token.Kind == "loc")
                 {
-                    string value = LocalizeCore(token, location, out ResourceEntry entry, out var expansion, out bool substitution);
-                    LocalizationUses.Add(new LocalizationEvaluation(token.Key, entry, location ?? _alarm.Location, value));
-                    return value == null ? null : new Output.ExportText(value, new[]
-                    { Output.ExportTextSegment.LocalizationKey(token.Key, expansion, substitution) });
+                    using (var explanation = _explanation?.BeginOperation("Localization", token.Key, token.Raw, location, _owner._culture))
+                    {
+                        string value = LocalizeCore(token, location, out ResourceEntry entry, out var expansion, out bool substitution);
+                        explanation?.CompleteText(value, _owner._culture == LocalizationCulture.Keyword);
+                        LocalizationUses.Add(new LocalizationEvaluation(token.Key, entry, location ?? _alarm.Location, value));
+                        return value == null ? null : new Output.ExportText(value, new[]
+                        { Output.ExportTextSegment.LocalizationKey(token.Key, expansion, substitution) });
+                    }
                 }
-                Output.ExportText lookup = ResolveLookupText(token, location, out SourceLocation definition);
-                if (lookup != null && _owner._culture == LocalizationCulture.Keyword)
-                    foreach (string active in _visiting) _deferred.Add(active);
-                LookupUses.Add(new LookupEvaluation(token.Raw, definition, location ?? _alarm.Location, lookup?.ResolvedText));
-                return lookup;
+                using (var explanation = _explanation?.BeginOperation("Lookup", token.Key, token.Raw, location, _owner._culture))
+                {
+                    Output.ExportText lookup = ResolveLookupText(token, location, out SourceLocation definition);
+                    if (lookup != null && _owner._culture == LocalizationCulture.Keyword)
+                        foreach (string active in _visiting) _deferred.Add(active);
+                    explanation?.CompleteText(lookup?.ResolvedText, lookup != null && _owner._culture == LocalizationCulture.Keyword);
+                    LookupUses.Add(new LookupEvaluation(token.Raw, definition, location ?? _alarm.Location, lookup?.ResolvedText));
+                    return lookup;
+                }
             }
 
             private string LocalizeCore(ExpressionToken token, SourceLocation location, out ResourceEntry entry, out Output.ExportText expansion, out bool substitution)
@@ -363,6 +372,16 @@ namespace Alarmlist.Evaluation
                     return null;
                 }
                 entry = translation.Entry;
+                using (var explanation = _explanation?.BeginOperation("Resource", key, entry.Value, entry.ValueLocation, _owner._culture, entry.Culture))
+                    return ExpandResource(token, location, entry, out expansion, out substitution, explanation);
+            }
+
+            private string ExpandResource(ExpressionToken token, SourceLocation location, ResourceEntry entry,
+                out Output.ExportText expansion, out bool substitution, AlarmExplanationCapture.Scope explanation)
+            {
+                string key = token.Key;
+                expansion = null;
+                substitution = token.Arguments.Count != 0;
                 bool formatted = token.Arguments.Count != 0;
                 Dictionary<ResourceEntry, PropertyExpression> cache = formatted ? _owner._formattedTranslations : _owner._translations;
                 if (!cache.TryGetValue(entry, out PropertyExpression expression))
@@ -396,8 +415,15 @@ namespace Alarmlist.Evaluation
                 try
                 {
                     foreach (KeyValuePair<string, ExpressionArgument> argument in token.Arguments)
-                        values.Add(argument.Key, argument.Value.Token == null ? PropertyExpression.LiteralText(argument.Value.Literal) : EvaluateTokenText(argument.Value.Token, location));
+                        using (var argumentExplanation = _explanation?.BeginOperation("Argument", argument.Key,
+                            argument.Value.Token?.Raw ?? argument.Value.Literal, location))
+                        {
+                            var value = argument.Value.Token == null ? PropertyExpression.LiteralText(argument.Value.Literal) : EvaluateTokenText(argument.Value.Token, location);
+                            values.Add(argument.Key, value);
+                            argumentExplanation?.CompleteText(value?.ResolvedText);
+                        }
                     expansion = expression.EvaluateText(nested => EvaluateTokenText(nested, location), name => values[name]);
+                    explanation?.CompleteText(expansion?.ResolvedText);
                     return expansion?.ResolvedText;
                 }
                 finally { _activeResources.RemoveAt(_activeResources.Count - 1); }
@@ -416,6 +442,7 @@ namespace Alarmlist.Evaluation
                     if (!_owner._lookups.TryGetEntry(keys[0], keys[1], out LookupListEntry entry))
                         return MissingLookupText(token, "missing or ambiguous list entry '" + token.Key + "'", location, null);
                     definition = entry.Location;
+                    _explanation?.Definition(token.Key, entry.Value, definition);
                     return new Output.ExportText(_owner._culture == LocalizationCulture.Keyword ? token.Raw : entry.Value,
                         PropertyExpression.LiteralText(entry.Value).Segments);
                 }
@@ -437,6 +464,7 @@ namespace Alarmlist.Evaluation
                         definition = metadata.Location;
                     }
                 }
+                _explanation?.Definition(token.Key, metadata?.Value, definition);
                 if (metadata != null) return new Output.ExportText(_owner._culture == LocalizationCulture.Keyword ? token.Raw : metadata.Value,
                     PropertyExpression.LiteralText(metadata.Value).Segments);
                 var labels = member != null ? new[] { member.Label } : path.Segments.ToArray();
@@ -462,6 +490,16 @@ namespace Alarmlist.Evaluation
 
             private Output.ExportText TranslateLabelText(LookupLabel label, SourceLocation location)
             {
+                using (var explanation = _explanation?.BeginOperation("LookupLabel", label.Key, null, label.Location, _owner._culture))
+                {
+                    var text = TranslateLabelTextCore(label, location);
+                    explanation?.CompleteText(text?.ResolvedText, _owner._culture == LocalizationCulture.Keyword);
+                    return text;
+                }
+            }
+
+            private Output.ExportText TranslateLabelTextCore(LookupLabel label, SourceLocation location)
+            {
                 if (_owner._culture == LocalizationCulture.Keyword)
                     return new Output.ExportText("$(loc:" + label.Key + ")", new[] { Output.ExportTextSegment.LocalizationKey(label.Key) });
                 if (_owner._culture == null) return null;
@@ -473,6 +511,10 @@ namespace Alarmlist.Evaluation
                         .WithLocation(location ?? _alarm.Location, new[] { label.Location }.Concat(_owner._resources.GetLookupLocations(label.Key, _owner._culture))));
                 }
                 string value = translation?.Entry.Value;
+                if (translation != null)
+                    using (var explanation = _explanation?.BeginOperation("Resource", label.Key, value,
+                        translation.Entry.ValueLocation, _owner._culture, translation.Entry.Culture))
+                        explanation?.CompleteText(value);
                 LocalizationUses.Add(new LocalizationEvaluation(label.Key, translation?.Entry, location ?? _alarm.Location, value));
                 return value == null ? null : new Output.ExportText(value, new[] { Output.ExportTextSegment.LocalizationKey(label.Key, PropertyExpression.LiteralText(value)) });
             }

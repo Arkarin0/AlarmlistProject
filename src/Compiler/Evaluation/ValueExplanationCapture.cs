@@ -100,6 +100,27 @@ namespace Alarmlist.Evaluation
         internal void Cycle(string name, string trace)
             => Leaf("Cycle", name, null, trace, "Invalid", null, null, _alarm.FullyQualifiedName, "Dependency");
 
+        internal Scope BeginOperation(string kind, string name, string raw, SourceLocation location,
+            string requestedCulture = null, string supplyingCulture = null)
+        {
+            var node = Add(kind, name, raw, location, null, null, kind);
+            node.RequestedCulture = requestedCulture; node.SupplyingCulture = supplyingCulture;
+            _active.Push(node);
+            return new Scope(this, node, null);
+        }
+
+        internal void Definition(string name, string raw, SourceLocation location)
+            => Leaf("LookupDefinition", name, raw, raw, "Valid", location, null, null, "Lookup");
+
+        internal void WellKnown(string name, string value, SourceLocation location)
+        {
+            string key = "WellKnown:" + name;
+            if (_roots.TryGetValue(key, out int id)) { Link(id); return; }
+            var node = Add("WellKnown", name, null, location, null, _alarm.FullyQualifiedName, "Context");
+            node.Value = node.CanonicalValue = value; node.State = value == null ? "Unavailable" : "Valid";
+            _roots.Add(key, node.Id);
+        }
+
         private Node Add(string kind, string name, string raw, SourceLocation location, LibraryIdentity library, string definingAlarm, string scope)
         {
             _token.ThrowIfCancellationRequested();
@@ -124,13 +145,14 @@ namespace Alarmlist.Evaluation
             if (_active.Count != 0) throw new InvalidOperationException("Explanation capture has unfinished scopes.");
             return new ValueExplanationGraph(_nodes.Select(node => new ValueExplanationNode(node.Id, node.Kind, node.Name,
                 node.RawValue, node.Value, node.CanonicalValue, node.State, node.Type, node.Scope, node.DefiningAlarm,
-                node.Location, node.Library, node.Inputs)), _roots);
+                node.Location, node.Library, node.Inputs, node.RequestedCulture, node.SupplyingCulture)), _roots);
         }
 
         internal sealed class Node
         {
             internal int Id;
             internal string Kind, Name, RawValue, Value, CanonicalValue, State, Type, Scope, DefiningAlarm;
+            internal string RequestedCulture, SupplyingCulture;
             internal SourceLocation Location;
             internal LibraryIdentity Library;
             internal readonly List<int> Inputs = new List<int>();
@@ -139,9 +161,11 @@ namespace Alarmlist.Evaluation
         {
             private AlarmExplanationCapture _owner;
             private readonly Node _node;
+            private bool _completed;
             internal Scope(AlarmExplanationCapture owner, Node node, string type) { _owner = owner; _node = node; node.Type = type; }
             internal void Complete(AlarmFieldValue value)
             {
+                _completed = true;
                 _node.Value = value.EvaluatedText; _node.CanonicalValue = value.CanonicalText; _node.State = value.State.ToString();
                 foreach (int id in _node.Inputs)
                 {
@@ -149,11 +173,19 @@ namespace Alarmlist.Evaluation
                     if (input.Kind == "Literal" || input.Kind == "Default")
                         input.Value = input.CanonicalValue = value.EvaluatedText;
                 }
+                if (_node.Type != "String" && value.State != AlarmFieldValueState.Absent)
+                {
+                    var conversion = _owner.Add("Conversion", _node.Type, value.EvaluatedText, _node.Location, _node.Library, _node.DefiningAlarm, "Typed value");
+                    conversion.Value = value.EvaluatedText; conversion.CanonicalValue = value.CanonicalText;
+                    conversion.Type = _node.Type; conversion.State = value.State.ToString();
+                }
             }
+            internal void CompleteText(string value, bool deferred = false)
+            { _completed = true; _node.Value = _node.CanonicalValue = value; _node.State = deferred ? "Deferred" : value == null ? "Unavailable" : "Valid"; }
             public void Dispose()
             {
                 if (_owner == null) return;
-                if (_node.State == "Unavailable") _node.State = "Invalid";
+                if (!_completed && _node.State == "Unavailable") _node.State = "Invalid";
                 if (!ReferenceEquals(_owner._active.Pop(), _node)) throw new InvalidOperationException("Explanation scopes are out of order.");
                 _owner = null;
             }

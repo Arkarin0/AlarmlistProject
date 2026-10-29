@@ -114,3 +114,39 @@ artifacts/log/Debug/Milestone14/Iteration2; eng/test-alarm-definition-generation
 Existing shared TestHelper CA1416 warning remains. Diff/links reviewed and
 git diff --check passed. No scoped blocker. Expression detail and later target
 categories, public ExplainSnapshots, SDK/UI and native acceptance remain incomplete.
+
+### Iteration 3 — complete
+
+- Existing localization/lookup evaluation now records expression contributors:
+  selected Resource nodes carry requested/supplying culture and actual value
+  locations; localization uses, formatted arguments, lookup definitions/labels and
+  well-known context values carry their compiler-owned results. Ordinary execution
+  still creates no recorder. Resource expansion uses the same parsed expression,
+  argument checks, fallback selection and evaluator; there is no second resolver.
+- Only supplying resources are included, including parent-culture fallback after
+  an empty entry. Keyword localization stays deferred without selecting resources.
+  Quoted arguments, lookup labels, metadata/list values, parameter assignments and
+  defaults retain their literal semantics. Shared field/parameter dependencies
+  remain graph references; cycles through resources terminate explicitly.
+- Added canonical conversion steps from AlarmFieldValue results, including invalid
+  and deferred states, rather than parsing values again. Generated scalar fixtures
+  verify default conversion and +00042/invalid Count results on both runtimes.
+- Tests cover supplying culture/location/version, child parameter use inside
+  resources, template argument values, lookup/list origins, literal tokens,
+  repeated field dependencies, well-known values, keyword deferral, missing lookup/
+  translation, malformed resources and resource-mediated field cycles. The first
+  well-known-path fixture used a relative path; corrected to the captured absolute
+  path required by the existing well-known-property contract.
+
+| Gate | Result |
+| --- | --- |
+| Full compiler | 712 net472 / 714 net8.0 passed, zero failures/skips; Milestone14/Iteration3/CompilerFinal. |
+| Task unit/integration | 124 unit and 4 integration per framework passed, zero failures/skips; Iteration3/TaskUnit and TaskIntegration. |
+| Generated scalar/runtime and generation lifecycle | Both frameworks pass; AlarmDefinitionGeneration/19945905c9e74713b755f15c519c7ed5. |
+
+Commands use dotnet test on the compiler/task projects with --no-restore -v quiet
+-m:1 -nr:false --logger trx, results under artifacts/log/Debug/Milestone14/Iteration3,
+followed sequentially by eng/test-alarm-definition-generation.ps1. Existing
+TestHelper CA1416 warning remains. Internal capture README, diff and links reviewed;
+git diff --check passed. No scoped blocker. Procedures/collections, public API/SDK,
+UI and final integrated acceptance remain incomplete.

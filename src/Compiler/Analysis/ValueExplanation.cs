@@ -13,12 +13,14 @@ namespace Alarmlist.Analysis
     {
         internal ValueExplanationNode(int id, string kind, string name, string rawValue,
             string value, string canonicalValue, string state, string type, string scope,
-            string definingAlarm, SourceLocation location, LibraryIdentity library, IEnumerable<int> inputs)
+            string definingAlarm, SourceLocation location, LibraryIdentity library, IEnumerable<int> inputs,
+            string requestedCulture, string supplyingCulture)
         {
             Id = id; Kind = kind; Name = name; RawValue = rawValue; Value = value;
             CanonicalValue = canonicalValue; State = state; Type = type; Scope = scope;
             DefiningAlarm = definingAlarm; Location = location; Library = library;
             Inputs = Array.AsReadOnly(inputs.ToArray());
+            RequestedCulture = requestedCulture; SupplyingCulture = supplyingCulture;
         }
         public int Id { get; }
         public string Kind { get; }
@@ -33,6 +35,8 @@ namespace Alarmlist.Analysis
         public SourceLocation Location { get; }
         public LibraryIdentity Library { get; }
         public IReadOnlyList<int> Inputs { get; }
+        public string RequestedCulture { get; }
+        public string SupplyingCulture { get; }
     }
 
     internal sealed class ValueExplanationGraph

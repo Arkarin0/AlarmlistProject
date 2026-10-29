@@ -21,7 +21,13 @@ Cycle leaf rather than an unbounded tree. Frozen results contain no syntax nodes
 delegates or mutable capture objects. Locations and library identities are existing
 immutable compiler records; hosts will copy these through the detached SDK bridge.
 
-The foundation currently covers field/parameter selection. Expression detail,
-localization/lookups, procedures/collections and a target-specific public API are
-subsequent iterations. Analysis contract remains 7 until the coordinated API/SDK
+Capture includes field/parameter dependencies, well-known context values,
+localization/resource nodes with requested/supplying culture, formatted arguments,
+lookup definitions/labels and compiler typed conversion results. Only the selected
+resource appears; no skipped fallback alternatives are added. Keyword nodes stay
+deferred without selecting translations. Label translations, list/metadata values
+and quoted arguments retain their existing literal semantics.
+
+Procedures/collections and a target-specific public API are subsequent iterations.
+Analysis contract remains 7 until the coordinated API/SDK
 transition to 8; analyzer, library and exporter contracts are unchanged.

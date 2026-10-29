@@ -78,8 +78,21 @@ internal static class Program
         var graph = capture.GetGraph(explanationBinding.SyntaxTree.Alarms.Single());
         var explanationDefaultCode = graph.Nodes[graph.Roots["Field:Code"]];
         Check(explanationDefaultCode.RawValue == null && explanationDefaultCode.Scope == "Definition" && explanationDefaultCode.State == "Valid" && explanationDefaultCode.CanonicalValue == "7" && explanationDefaultCode.Type == "Int64", "Explanation typed definition default");
-        Check(graph.Nodes[explanationDefaultCode.Inputs.Single()].Kind == "Default" && graph.Nodes[explanationDefaultCode.Inputs.Single()].Location == null, "Definition default has no forged source location");
+        Check(graph.Nodes[explanationDefaultCode.Inputs.Single(id => graph.Nodes[id].Kind == "Default")].Location == null, "Definition default has no forged source location");
+        Check(graph.Nodes[explanationDefaultCode.Inputs.Single(id => graph.Nodes[id].Kind == "Conversion")].CanonicalValue == "7", "Explanation typed conversion uses compiler canonical value");
         Check(graph.Nodes[graph.Roots["Field:Literal"]].Value == "$(NotAnExpression)", "Explanation defaults stay literal");
+        foreach (string countText in new[] { "+00042", "invalid" })
+        {
+            var conversionBinder = new Alarmlist.Binding.Binder();
+            conversionBinder.AddSourceTexts(new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><Count>" + countText + "</Count></Alarm></Alarmlist>", "fixture.almx", 1).CreateSourceText() });
+            var conversionBinding = conversionBinder.Bind();
+            var conversionCapture = new Alarmlist.Evaluation.ValueExplanationCapture(_ => true);
+            new Alarmlist.Evaluation.CompilationEvaluator(conversionBinding.SyntaxTree, CompilationContext.Empty, explanations: conversionCapture);
+            var conversionGraph = conversionCapture.GetGraph(conversionBinding.SyntaxTree.Alarms.Single());
+            var countNode = conversionGraph.Nodes[conversionGraph.Roots["Field:Count"]];
+            var conversionNode = conversionGraph.Nodes[countNode.Inputs.Single(id => conversionGraph.Nodes[id].Kind == "Conversion")];
+            Check(conversionNode.RawValue == countText && conversionNode.CanonicalValue == (countText == "invalid" ? null : "42") && conversionNode.State == (countText == "invalid" ? "Invalid" : "Valid"), "Explanation conversion preserves compiler state and canonical value");
+        }
         var absentJson = ExportJsonChecks.Alarm(ExportJsonChecks.Read(Compile("")));
         Check(ExportJsonChecks.Field(absentJson, "Count").Element("state").Value == "absent" && (string)ExportJsonChecks.Field(absentJson, "Count").Element("value").Attribute("type") == "null", "JSON optional absence");
         Check(ExportJsonChecks.Field(absentJson, "Code").Element("isDefault").Value == "true", "JSON default marker");
