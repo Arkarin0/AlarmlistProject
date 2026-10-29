@@ -6,6 +6,10 @@
   <Folder Name="/Analyzers/">
     <Project Path="src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" />
   </Folder>
+  <Folder Name="/Exporters/">
+    <Project Path="src/Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj" />
+    <Project Path="src/Exporters/Alarmlist.Exporters.Zenon.UnitTests/Alarmlist.Exporters.Zenon.UnitTests.csproj" />
+  </Folder>
   <Folder Name="/Compiler/">
     <Project Path="src/Compiler.UnitTests/Alarmlist.Core.UnitTests.csproj" />
     <Project Path="src/Compiler/Alarmlist.Core.csproj" />

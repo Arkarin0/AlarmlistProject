@@ -4,6 +4,7 @@ param(
     [switch]$Designer,
     [switch]$SkipConsumers,
     [switch]$XmlCompletion,
+    [switch]$Exports,
     [string]$VisualStudio2022Path,
     [string]$VisualStudio2026Path,
     [ValidatePattern('^[A-Za-z][A-Za-z0-9_]*$')]
@@ -46,8 +47,12 @@ foreach ($procedure in @($true, $false)) {
         else { Join-Path $fork 'src/SDK/Alarmlist.SDK/AlarmList.MSBuild.SDK.csproj' }
     & dotnet build $project --verbosity quiet -m:1 -nr:false "-p:RestorePackagesPath=$(Join-Path $repo '.packages')" *> (Join-Path $fork 'build.log')
     if ($LASTEXITCODE -ne 0) { throw "Collection SDK build failed: $fork/build.log" }
+    if ($Exports) {
+        & dotnet build (Join-Path $fork 'src/Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj') --verbosity quiet -m:1 -nr:false "-p:RestorePackagesPath=$(Join-Path $repo '.packages')" *> (Join-Path $fork 'exporter-build.log')
+        if ($LASTEXITCODE -ne 0) { throw "Collection exporter build failed: $fork/exporter-build.log" }
+    }
     if (!$SkipConsumers) {
-        & (Join-Path $PSScriptRoot 'test-alarm-definition-fork-consumers.ps1') -ForkRoot $fork -DesktopMSBuildPath $DesktopMSBuildPath -Collections
+        & (Join-Path $PSScriptRoot 'test-alarm-definition-fork-consumers.ps1') -ForkRoot $fork -DesktopMSBuildPath $DesktopMSBuildPath -Collections -Exports:$Exports
     }
     if ($Designer) {
         $settings = @{

@@ -1,0 +1,15 @@
+<Project Sdk="Alarmlist.MSBuild.SDK">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{34E120D0-A749-4B5F-9459-EEC3B6503852}</ProjectGuid>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exports</OutputType>
+    <AlarmlistExportTypes>Zenon</AlarmlistExportTypes>
+    <AlarmlistCulture>keyword</AlarmlistCulture>
+    <AlarmlistCultures>keyword;en;de-DE</AlarmlistCultures>
+  </PropertyGroup>
+  <ItemGroup>
+    <AlarmlistProperty Include="Position" Value="1" />
+    <PackageReference Include="Alarmlist.Exporters.Zenon" Version="$(ExampleZenonPackageVersion)" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

@@ -30,6 +30,8 @@ namespace Alarmlist.MSBuild
         public ITaskItem[] Compile { get; set; } = Array.Empty<ITaskItem>();
 
         public string OutputType { get; set; }
+        public string ExportTypes { get; set; }
+        public ITaskItem[] ExportProviders { get; set; } = Array.Empty<ITaskItem>();
         public string PackageId { get; set; }
         public string PackageVersion { get; set; }
 
@@ -70,6 +72,8 @@ namespace Alarmlist.MSBuild
                     return false;
 
                 bool library = BuildOutputPlan.IsLibrary(OutputType);
+                var exportConfiguration = new ExportConfiguration(OutputType, ExportTypes, ExportProviders, ProjectPath);
+                var providerReferences = exportConfiguration.Capture(_cancellation.Token);
                 Func<ITaskItem, string> link = library ? item => item.GetMetadata("Link") : (Func<ITaskItem, string>)null;
                 var compileItems = EvaluatedInputSet.Unique(Compile ?? Array.Empty<ITaskItem>(), "Compile", Factory.GetFullFilePath, link: link, projectPath: ProjectPath);
                 var resourceItems = EvaluatedInputSet.Unique(Resources ?? Array.Empty<ITaskItem>(), "AlarmlistResource", Factory.GetFullFilePath,
@@ -123,12 +127,14 @@ namespace Alarmlist.MSBuild
                 var inputPaths = new HashSet<string>(sourceFiles.Concat(resources.Select(resource => resource.FilePath))
                     .Concat(libraryInputs.Artifacts.Select(artifact => artifact.FilePath))
                     .Concat(lookups.Select(lookup => lookup.FilePath)).Concat(configurations.Select(input => input.FilePath))
-                    .Concat(analyzers.SelectMany(analyzer => analyzer.Images).Select(image => image.FilePath)), BuildOutputPlan.PathComparer);
+                    .Concat(analyzers.SelectMany(analyzer => analyzer.Images).Select(image => image.FilePath))
+                    .Concat(providerReferences.SelectMany(reference => reference.Images).Select(image => image.FilePath)), BuildOutputPlan.PathComparer);
                 if (!string.IsNullOrWhiteSpace(ProjectPath)) inputPaths.Add(Path.GetFullPath(ProjectPath));
+                inputPaths.UnionWith(exportConfiguration.DeclaredInputPaths());
                 inputPaths.UnionWith((ProtectedFiles ?? Array.Empty<ITaskItem>()).Select(Factory.GetFullFilePath));
                 inputPaths.UnionWith(referenceItems.Select(item => item.GetMetadata("SourceProject"))
                     .Where(path => !string.IsNullOrWhiteSpace(path)).Select(Path.GetFullPath));
-                if (outputs.Any(item => inputPaths.Contains(item.ItemSpec))
+                if ((library && outputs.Any(item => inputPaths.Contains(item.ItemSpec)))
                     || (!string.IsNullOrEmpty(ManifestFile) && inputPaths.Contains(Path.GetFullPath(ManifestFile))))
                     throw new InvalidOperationException("An output or ownership manifest must not replace a source input.");
                 PropertyDefinition[] properties = (Properties ?? Array.Empty<ITaskItem>()).Select(item => new PropertyDefinition(item.ItemSpec,
@@ -138,6 +144,8 @@ namespace Alarmlist.MSBuild
                 if (previous.Files.Concat(previous.TemporaryFiles).Any(inputPaths.Contains))
                     throw new InvalidOperationException("A previously owned output is now a source input; resolve its ownership before building.");
                 var changes = new List<OutputTransaction.Change>();
+                var compiledCultures = new List<KeyValuePair<string, CompilationResult>>();
+                var exportOutputs = new List<OutputManifest.ExportOutput>();
                 bool success = true;
                 using (var loader = new AnalyzerAssemblyLoader(analyzers.Select(analyzer => new AnalyzerAssemblyReference(analyzer.FilePath,
                     analyzer.Images.Select(image => new AnalyzerAssemblyImage(image.FilePath, image.GetImage()))))))
@@ -171,23 +179,71 @@ namespace Alarmlist.MSBuild
                         if (_compileAction != null) result = new CompilationResult(result.AlarmList, DiagnosticPolicy.Apply(result.Diagnostics, diagnosticOptions));
                         LogDiagnostics(result.Diagnostics);
                         success &= result.Success;
-                        if (result.Success) changes.Add(new OutputTransaction.Change(output.ItemSpec, new XmlAlarmlistOutputWriter().WriteToString(result.AlarmList)));
+                        if (result.Success) compiledCultures.Add(new KeyValuePair<string, CompilationResult>(culture, result));
                     }
                 }
                 if (!success) return false;
+                if (!library)
+                {
+                    using (var providerLoader = new ExportProviderLoader(providerReferences))
+                    {
+                        var providers = providerLoader.Providers.ToDictionary(provider => provider.Id, StringComparer.OrdinalIgnoreCase);
+                        providers.Add("XML", new XmlAlarmlistExportProvider());
+                        providers.Add("JSON", new JsonAlarmlistExportProvider());
+                        var actualOutputs = new List<ITaskItem>();
+                        var uniqueOutputs = new HashSet<string>(BuildOutputPlan.PathComparer);
+                        foreach (var compiled in compiledCultures)
+                        {
+                            var document = ExportDocument.Create(compiled.Value, compiled.Key);
+                            foreach (string id in exportConfiguration.SelectedIds)
+                            {
+                                CheckCancellation();
+                                if (!providers.TryGetValue(id, out IAlarmlistExportProvider provider))
+                                    throw new NotSupportedException("Export provider '" + id + "' is not available in this tooling build.");
+                                var request = exportConfiguration.Request(id, document, OutputFileName);
+                                request.ValidateCompatibility(provider);
+                                var artifacts = provider.Export(request, _cancellation.Token)?.ToArray()
+                                    ?? throw new InvalidOperationException("Export provider '" + id + "' returned no artifact collection.");
+                                if (artifacts.Length == 0) throw new InvalidOperationException("Export provider '" + id + "' must return at least one artifact per culture.");
+                                foreach (ExportArtifact artifact in artifacts)
+                                {
+                                    CheckCancellation();
+                                    if (artifact == null) throw new InvalidOperationException("Export provider '" + id + "' returned a null artifact.");
+                                    string path = ExportOutputPaths.Artifact(OutputDirectory, compiled.Key, artifact.RelativePath);
+                                    if (!uniqueOutputs.Add(path)) throw new InvalidOperationException("Export providers returned the same output path: " + path);
+                                    if (inputPaths.Contains(path) || (!string.IsNullOrEmpty(ManifestFile) && BuildOutputPlan.PathComparer.Equals(path, Path.GetFullPath(ManifestFile))))
+                                        throw new InvalidOperationException("An export artifact must not replace a source input or ownership manifest: " + path);
+                                    byte[] bytes = artifact.GetContent();
+                                    // Build historically writes XML without a BOM; the standalone writer/provider retains file-writer parity.
+                                    if (string.Equals(id, "XML", StringComparison.OrdinalIgnoreCase) && bytes.Length >= 3 && bytes[0] == 239 && bytes[1] == 187 && bytes[2] == 191)
+                                        bytes = bytes.Skip(3).ToArray();
+                                    changes.Add(OutputTransaction.Change.FromBytes(path, bytes));
+                                    var output = new Microsoft.Build.Utilities.TaskItem(path);
+                                    output.SetMetadata("Culture", compiled.Key);
+                                    output.SetMetadata("ExportProvider", provider.Id);
+                                    actualOutputs.Add(output);
+                                    exportOutputs.Add(new OutputManifest.ExportOutput(path, compiled.Key, provider.Id));
+                                }
+                            }
+                        }
+                        outputs = actualOutputs.ToArray();
+                    }
+                }
 
                 var destinations = new HashSet<string>(outputs.Select(item => item.ItemSpec), BuildOutputPlan.PathComparer);
                 changes.AddRange(previous.Files.Where(path => !destinations.Contains(path)).Select(path => new OutputTransaction.Change(path, null)));
                 OutputTransaction.Change manifestChange = null;
                 if (!string.IsNullOrEmpty(ManifestFile)) changes.Add(manifestChange = new OutputTransaction.Change(ManifestFile, string.Empty));
-                var transaction = new OutputTransaction(changes);
+                var transaction = new OutputTransaction(changes, ExportOutputPaths.EnsureNoLinks);
                 if (manifestChange != null)
-                    manifestChange.Text = OutputManifest.Write(ProjectPath, Configuration, Platform, destinations,
-                        previous.TemporaryFiles.Where(File.Exists).Concat(transaction.TemporaryPaths), OutputType);
+                    manifestChange.Text = library ? OutputManifest.Write(ProjectPath, Configuration, Platform, destinations,
+                        previous.TemporaryFiles.Where(File.Exists).Concat(transaction.TemporaryPaths), OutputType)
+                        : OutputManifest.WriteExports(ProjectPath, Configuration, Platform, OutputDirectory, exportOutputs,
+                            previous.TemporaryFiles.Where(File.Exists).Concat(transaction.TemporaryPaths), ManifestFile, previous);
                 transaction.Commit(CheckCancellation, message => Log.LogWarning("{0}", message));
                 foreach (string path in previous.TemporaryFiles)
                 {
-                    try { File.Delete(path); }
+                    try { ExportOutputPaths.EnsureNoLinks(path); File.Delete(path); }
                     catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException)
                     { Log.LogWarning("Could not remove owned temporary file '{0}': {1}", path, exception.Message); }
                 }

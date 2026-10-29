@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Alarmlist>
+  <Alarm>
+    <FullyQualifiedName>Plant.Zenon.Position</FullyQualifiedName>
+    <Name>$(loc:YouPlacedAtPositionKeyword) $(Position) $(loc:atLocationkeyword)</Name>
+    <Code>001</Code>
+    <TestProcedure>
+      <Group Name="Instructions">
+        <Title>Verify position</Title>
+        <Step>$(AlarmlistAlarmName)</Step>
+      </Group>
+    </TestProcedure>
+  </Alarm>
+</Alarmlist>

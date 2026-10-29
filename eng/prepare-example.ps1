@@ -10,6 +10,12 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+function Get-PackageContentHash([string]$Path) {
+  $stream = [IO.File]::OpenRead($Path)
+  $hasher = [Security.Cryptography.SHA256]::Create()
+  try { return [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() }
+  finally { $hasher.Dispose(); $stream.Dispose() }
+}
 $repoRoot = Split-Path $PSScriptRoot -Parent
 if (!$ExampleRoot) { $ExampleRoot = Join-Path $repoRoot 'example' }
 $exampleRoot = (Resolve-Path -LiteralPath $ExampleRoot).Path
@@ -39,7 +45,11 @@ Push-Location $repoRoot
 try {
   & dotnet build 'src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj' --configuration $Configuration --nologo --verbosity minimal
   if ($LASTEXITCODE -ne 0) { throw 'Example analyzer preparation failed.' }
+  & dotnet build 'src/Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj' --configuration $Configuration --nologo --verbosity minimal
+  if ($LASTEXITCODE -ne 0) { throw 'Example zenon exporter preparation failed.' }
 } finally { Pop-Location }
+$exporterPackagePath = Join-Path $repoRoot "artifacts/packages/$Configuration/NonShipping/Alarmlist.Exporters.Zenon.$sdkVersion.nupkg"
+if (!(Test-Path -LiteralPath $exporterPackagePath)) { throw "The matching zenon exporter package is missing: $exporterPackagePath" }
 foreach ($framework in @('net472', 'net8.0')) {
   $analyzerSource = Join-Path $repoRoot "artifacts/bin/Alarmlist.SampleAnalyzer/$Configuration/$framework/Alarmlist.SampleAnalyzer.dll"
   if (!(Test-Path -LiteralPath $analyzerSource)) { throw "Build the sample analyzer first: $analyzerSource" }
@@ -49,8 +59,15 @@ foreach ($framework in @('net472', 'net8.0')) {
 }
 # Development builds can change package contents without changing the version.
 # A content-specific cache avoids stale compiler assemblies without deleting caches.
-$packageHash = (Get-FileHash -LiteralPath $packagePath -Algorithm SHA256).Hash.ToLowerInvariant()
-$cacheRelativePath = ".packages/$packageHash"
+$packageHash = Get-PackageContentHash $packagePath
+$exporterHash = Get-PackageContentHash $exporterPackagePath
+$cacheHasher = [Security.Cryptography.SHA256]::Create()
+try {
+  $cacheHash = [BitConverter]::ToString($cacheHasher.ComputeHash([Text.Encoding]::UTF8.GetBytes("${packageHash}:${exporterHash}"))).Replace('-', '').ToLowerInvariant()
+} finally { $cacheHasher.Dispose() }
+$cacheRelativePath = ".packages/$cacheHash"
+"<Project><PropertyGroup><ExampleZenonPackageVersion>$sdkVersion</ExampleZenonPackageVersion></PropertyGroup></Project>" |
+  Set-Content (Join-Path $exampleRoot 'Example.local.props') -Encoding UTF8
 $escapedFeed = [Security.SecurityElement]::Escape((Join-Path $repoRoot "artifacts/packages/$Configuration/NonShipping"))
 @{ 'msbuild-sdks' = @{ 'Alarmlist.MSBuild.SDK' = $sdkVersion } } |
   ConvertTo-Json | Set-Content (Join-Path $exampleRoot 'global.json') -Encoding UTF8
@@ -68,7 +85,7 @@ $escapedFeed = [Security.SecurityElement]::Escape((Join-Path $repoRoot "artifact
   <disabledPackageSources><clear /></disabledPackageSources>
   <packageSourceMapping>
     <clear />
-    <packageSource key="local"><package pattern="Alarmlist.MSBuild.SDK" /></packageSource>
+    <packageSource key="local"><package pattern="Alarmlist.MSBuild.SDK" /><package pattern="Alarmlist.Exporters.Zenon" /></packageSource>
   </packageSourceMapping>
 </configuration>
 "@ | Set-Content (Join-Path $exampleRoot 'NuGet.Config') -Encoding UTF8
@@ -77,7 +94,7 @@ $previousPackages = $env:NUGET_PACKAGES
 Push-Location $exampleRoot
 try {
   $env:NUGET_PACKAGES = Join-Path $exampleRoot $cacheRelativePath
-  foreach ($name in @('North', 'South')) {
+  foreach ($name in @('North', 'South', 'Zenon')) {
     # Restore evaluates the SDK without compiling or overwriting playground output.
     $buildArguments = @("$name/$name.almproj", '/t:Restore', '/nr:false', '/v:minimal')
     if ($MSBuildPath) {
@@ -92,4 +109,4 @@ try {
   Pop-Location
 }
 Write-Output "Example solution: $(Join-Path $exampleRoot 'Example.sln')"
-Write-Output "Prepared Alarmlist.MSBuild.SDK/$sdkVersion and the sample analyzer for both runtimes from the $Configuration build. Example source files are preserved."
+Write-Output "Prepared Alarmlist.MSBuild.SDK/$sdkVersion, the zenon exporter and the sample analyzer for both runtimes from the $Configuration build. Example source files are preserved."

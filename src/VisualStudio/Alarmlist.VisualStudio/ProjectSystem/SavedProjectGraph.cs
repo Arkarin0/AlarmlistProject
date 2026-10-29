@@ -111,7 +111,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                     if (separator <= 0) throw new InvalidDataException("Invalid project reference property: " + assignment);
                     properties[assignment.Substring(0, separator).Trim()] = ProjectCollection.Unescape(assignment.Substring(separator + 1));
                 }
-            foreach (string name in ("TargetFramework;RuntimeIdentifier;OutputType;PackageId;PackageVersion;AlarmlistLibraryFileName;CompiledAlarmlistFileName;"
+            foreach (string name in ("TargetFramework;RuntimeIdentifier;OutputType;AlarmlistExportTypes;PackageId;PackageVersion;AlarmlistLibraryFileName;CompiledAlarmlistFileName;"
                 + reference.GetMetadata("GlobalPropertiesToRemove")).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
                 properties.Remove(name.Trim());
             return properties;

@@ -72,6 +72,7 @@ Existing plans and iteration records:
 | [Milestone 5](src/VisualStudio/MILESTONE-5.md) | Localization and XLIFF, including HMI lookup, named-list, and preview follow-up iterations; see its [design contract](src/VisualStudio/MILESTONE-5-DESIGN.md) and [lookup specification](src/VisualStudio/HMI-LOOKUPS.md). |
 | [Milestone 6](src/VisualStudio/MILESTONE-6.md) | EditorConfig, diagnostic policy, external analyzers, and compatibility/lifecycle validation iterations. |
 | [Milestone 7](src/VisualStudio/MILESTONE-7.md) | ALMX editor UI/UX: procedures, property fields, IntelliSense, searchable references, file/alarm scope separation and preview-table rendering/column preferences; accepted direction and open interaction details. |
+| [Milestone 13](src/VisualStudio/MILESTONE-13.md) | Export providers: Library/Exports project purpose, selectable XML/JSON/Zenon, external packages/DLLs and transactional artifacts. |
 | [Milestone 12](src/VisualStudio/MILESTONE-12.md) | Authorized XML IntelliSense for ALMX, .almlookup and .almproj files, and native Visual Studio Shared Projects; follow its accepted defaults and 15% remaining-allowance stop. |
 
 Read the selected plan's current status and remaining gates before resuming it.
@@ -246,8 +247,9 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | Location | Responsibility |
 | --- | --- |
 | `documentation/` | User-facing feature references and workflow tutorials; start with its README and use the section templates. Documentation coverage and review evidence are recorded in `documentation/PLAN.md`. |
-| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, and detached snapshot/provenance results in `Analysis/`. |
+| `src/Compiler/` | `Alarmlist.Core`: source parsing, syntax, binding, diagnostics, resolved models, output writers, culture/resource catalogues in `Localization/`, captured path/list catalogues and XSD in `Lookups/`, detached snapshot/provenance results in `Analysis/`, and captured tooling assembly binding in `Extensibility/`. |
 | `src/Compiler.UnitTests/` | Compiler tests organized by text parsing, syntax, binding, analysis, and output. |
+| `src/Exporters/` | External zenon keyword-XML provider/package and its dual-framework tests; SDK tests verify packaged NuGet and DLL consumers. |
 | `src/Analyzers/Alarmlist.SampleAnalyzer/` | Explicit opt-in, dual-framework contract-5 sample rule; also a package/UI test asset. |
 | `src/shared/Configuration/` | Saved EditorConfig discovery and analyzer/dependency byte capture shared by build and IDE hosts; no compiler file I/O. |
 | `src/MSBuild/AlarmList.MSBuild/` | MSBuild task implementation and logging. |
@@ -267,7 +269,7 @@ for `.almproj` projects. The solution is `AlarmlistProject.slnx`.
 | `eng/tools/VisualStudioHeapProbe/` | Optional net8.0/x64 ClrMD diagnostics for explicitly selected test IDE, test host or smoke-driver processes; separate from benchmarks and the VSIX. |
 | `eng/tools/AlarmDefinitionGenerator/` | net8.0 build-time XML definition validation and deterministic compiler/host metadata generation; shared targets write only intermediate outputs. Its adjacent UnitTests project and `eng/test-alarm-definition-generation.ps1` cover generation and build lifecycle. |
 | `scripts/` | Batch launchers that deploy the extension and start the Visual Studio 2022 or 2026 experimental instance. |
-| `example/` | Default North/South designer playground with a native Shared Project for common ALMX/RESX/lookups, opened by the launchers; `eng/prepare-example.ps1` prepares matching SDK/analyzers without replacing sources, membership or solution files. `-ExampleRoot` supports isolated copies. |
+| `example/` | Default North (XML)/South (JSON) designer playground with a native Shared Project for common ALMX/RESX/lookups and a standalone Zenon keyword-XML project. Launchers use `eng/prepare-example.ps1` to prepare matching SDK/analyzers/exporter without replacing sources, membership or solution files. Ignored Example.local.props selects the exporter version; both package hashes select the cache. `-ExampleRoot` supports isolated copies. |
 | `example/Libraries/` | Independent four-project library playground, including two consumers and transitive parameter/resource/lookup overrides; `eng/prepare-library-example.ps1` prepares its matching SDK without touching North/South. |
 | `example/SharedProjects/` | Native Shared Project with ALMX, saved translations/lookups and two consumers; `eng/prepare-shared-example.ps1` selects the matching SDK without replacing edited sources/projects. |
 | `template/` | Reference XML implementation/tests outside the current solution; active implementation lives in `src/`. |
@@ -503,10 +505,14 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
 ## MSBuild SDK contracts
 
 - Milestone-nine library builds use OutputType=Library and produce one
-  culture-independent `.almlib`; Application remains the default XML output.
+  culture-independent `.almlib`. Milestone 13 uses Exports as the default project
+  purpose and retains Application as a compatibility alias; XML remains the default
+  export selection.
   Preserve captured library references, portable project-relative/Link names,
   deferred consumer values and transactional output ownership. Manifest version 2
-  distinguishes output kinds and must continue reading version 1. ProjectReference
+  distinguishes library output kinds. Export manifest version 3 records actual
+  provider/culture artifacts and bounded retained temporary ownership scopes;
+  continue reading versions 1 and 2. ProjectReference
   builds use toolset configuration assignment; IDE/BuildProjectReferences=false
   consumption must not rebuild dependencies. GetTargetPath stays local and
   GetAlarmlistReferenceClosure discovers transitive identities/paths without Build.
@@ -518,6 +524,40 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   and installs packages only after successful staging. Preserve runtime asset
   subdirectories in the SDK package. Follow the milestone plan for acceptance
   evidence and remaining editor integration.
+
+- Milestone 13 uses AlarmlistExportTypes to select provider IDs and explicit
+  AlarmlistExportProvider declarations (AssemblyPath, TypeName, Dependencies,
+  OutputFileName and Option_<name>). Capture only selected provider code and
+  explicitly listed dependencies; protect all declared provider paths from
+  Build/Clean collisions. Provider packages use ordinary build assets selected
+  by MSBuildRuntimeType, not the consumer TargetFramework. Never instantiate
+  exporters during design-time builds, library builds, GetTargetPath or Clean.
+  Output discovery uses last-success manifest records; XML keeps its pre-build
+  predicted path. Providers return relative artifact bytes; only the build host
+  publishes them. Validate contract/definition compatibility, input collisions,
+  duplicate paths and links before publication. Compile/export all cultures before
+  staging any selected result. Dispose providers before publication so disposal
+  failure also preserves previous outputs. Preserve legacy BOM-free XML build
+  bytes independently of the standalone XML file writer's encoding preamble.
+  SDK verification exporters must compile against the packaged compiler contract.
+  Built-in JSON format 1 uses ordered field/collection records, compiler canonical
+  numeric values and explicit valid/absent/deferred states. Preserve Int64/Decimal
+  digits, enum tokens and temporal canonical strings; never re-evaluate expressions
+  or pass generated CLR enum objects to a serializer. Keep format version separate
+  from the provider contract and library format versions.
+  The external zenon provider renders compiler-owned localization segments as
+  @Key@ through the shared XML projection. Preserve literal/default/typed values;
+  reject literal @, adjacent keys without a nonempty literal separator, and keys
+  requiring substitution. Never infer keyword boundaries from resolved strings.
+  Its ordinary package build assets register both task runtimes without shipping
+  the host compiler or activating transitively. Full zenon import/language-table
+  generation and vendor runtime certification remain outside milestone 13.
+  Milestone 13 native export acceptance uses Area=ExportBuild alongside
+  Area=XmlCatalogCompletion on both IDE hosts. Run sequentially with native/WPF
+  suites. Collection fork acceptance adds -Exports to build the matching zenon
+  package and validate XML/JSON/zenon through project/NuGet library consumers,
+  failure preservation and output switching/Clean/Rebuild. Repeat consumer checks
+  with -Collections -Exports against each installed desktop MSBuild host.
 
 - Milestone-six analyzers are explicit `AlarmlistAnalyzer` DLL items. Preserve
   package registration through ordinary build assets selecting net472 for desktop
@@ -553,7 +593,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   `AlarmlistCultures` (default keyword). Capture inputs once per batch. Validate and
   serialize all cultures before output installation; preserve rollback and ownership
   tracking. Outputs are `<OutputPath>/<culture>/<CompiledAlarmlistFileName>`.
-  Build/GetTargetPath expose `@(CompiledAlarmlistFiles)` with Culture metadata;
+  Build/GetTargetPath expose `@(CompiledAlarmlistFiles)` with Culture metadata
+  (and ExportProvider for export artifacts);
   the task exposes OutputFiles. Preserve explicit-empty resource Culture metadata,
   linked/conditional items and output exclusions. Preview AlarmlistCulture is separate.
 - Lookup builds capture saved `AlarmlistLookup` items once with the same input batch.
@@ -932,6 +973,9 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   measurements sequentially. They share desktop focus even when their project
   files and experimental profiles are isolated; overlapping runs can close menus
   or redirect keyboard input and invalidate interaction evidence.
+  On shared/RDP desktops, concurrent user keyboard and mouse input can also
+  interfere; account for that input before attributing interaction failures to
+  the product or test stability.
 - Run SDK XLIFF apply tests separately from native IDE tests. Their resource-editor
   guard inspects running IDEs; concurrent test-IDE startup/shutdown can make that
   check fail closed and invalidate an otherwise isolated package-consumer run.

@@ -3,7 +3,13 @@
 For user-facing feature guides and step-by-step workflows, start with the
 [documentation index](../../../documentation/README.md).
 
-An MSBuild SDK that compiles `.almx` source files into one XML alarmlist per selected culture.
+An MSBuild SDK that compiles `.almx` source files into selected export artifacts
+per culture, using XML by default. See [export providers](../../../documentation/features/export-providers.md)
+for external DLL/NuGet registration, output selection and transactional publication.
+Built-in [JSON](../../../documentation/features/json-export-format.md) and the
+external [zenon keyword provider](../../../documentation/features/zenon-keyword-export.md)
+can be selected alongside XML. Follow the
+[export tutorial](../../../documentation/tutorials/export-resolved-alarms.md).
 It supports `dotnet msbuild` with .NET SDK 8 or later and Visual Studio MSBuild
 with .NET Framework 4.7.2 or later. The package includes the compiler, task
 assemblies, and their runtime dependencies.
@@ -242,7 +248,8 @@ to the project name and `PackageVersion` to `1.0.0`. Versions use NuGet normaliz
 `$(OutputPath)/$(AlarmlistLibraryFileName)` artifact; the filename defaults to
 `$(PackageId).almlib`. `GetTargetPath` discovers this path without building, and
 Clean/Rebuild use the same ownership tracking as application outputs. The default
-`OutputType=Application` retains culture-specific XML output. Library validation
+`OutputType=Exports` selects culture-specific exports and defaults to XML;
+`Application` is a compatibility alias with the same export selection. Library validation
 permits missing consumer-supplied values but rejects structural/reference errors.
 Exported input names are project-relative; linked inputs should specify portable
 `Link` metadata.

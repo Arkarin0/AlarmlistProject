@@ -2,7 +2,8 @@
 param(
   [Parameter(Mandatory = $true)][string]$ForkRoot,
   [Parameter(Mandatory = $true)][string]$DesktopMSBuildPath,
-  [switch]$Collections
+  [switch]$Collections,
+  [switch]$Exports
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -13,6 +14,11 @@ New-Item -ItemType Directory -Path $feed | Out-Null
 $packages = @(Get-ChildItem (Join-Path $ForkRoot 'artifacts/packages/Debug/NonShipping') -Filter 'Alarmlist.MSBuild.SDK.*.nupkg')
 if ($packages.Count -ne 1) { throw 'Expected one freshly built fork SDK package.' }
 Copy-Item -LiteralPath $packages[0].FullName -Destination $feed
+if ($Exports) {
+  $exporterPackages = @(Get-ChildItem (Join-Path $ForkRoot 'artifacts/packages/Debug/NonShipping') -Filter 'Alarmlist.Exporters.Zenon.*.nupkg')
+  if ($exporterPackages.Count -ne 1) { throw 'Expected one freshly built fork zenon package.' }
+  Copy-Item -LiteralPath $exporterPackages[0].FullName -Destination $feed
+}
 $sdk = Join-Path $work 'sdk'
 [IO.Compression.ZipFile]::ExtractToDirectory($packages[0].FullName, $sdk)
 [xml]$spec = Get-Content (Join-Path $sdk 'Alarmlist.MSBuild.SDK.nuspec') -Raw
@@ -24,6 +30,13 @@ Set-Content (Join-Path $work 'Directory.Build.targets') '<Project />'
 Set-Content (Join-Path $work 'Directory.Packages.props') '<Project />'
 $escapedFeed = [Security.SecurityElement]::Escape($feed)
 Set-Content (Join-Path $work 'NuGet.config') "<configuration><packageSources><clear/><add key=`"fork`" value=`"$escapedFeed`"/><add key=`"nuget`" value=`"https://api.nuget.org/v3/index.json`"/></packageSources><packageSourceMapping><clear/><packageSource key=`"fork`"><package pattern=`"Alarmlist.MSBuild.SDK`"/><package pattern=`"Fork.*`"/></packageSource><packageSource key=`"nuget`"><package pattern=`"*`"/></packageSource></packageSourceMapping></configuration>"
+if ($Exports) {
+  [xml]$configuration = Get-Content (Join-Path $work 'NuGet.config') -Raw
+  $mapping = $configuration.configuration.packageSourceMapping.packageSource | Where-Object { $_.key -eq 'fork' }
+  $pattern = $configuration.CreateElement('package'); $pattern.SetAttribute('pattern', 'Alarmlist.Exporters.Zenon')
+  [void]$mapping.AppendChild($pattern)
+  $configuration.Save((Join-Path $work 'NuGet.config'))
+}
 Copy-Item -Path (Join-Path $PSScriptRoot 'testassets/AlarmDefinitionFork/*') -Destination $work
 $previousCache = $env:NUGET_PACKAGES
 $env:NUGET_PACKAGES = Join-Path $work 'packages'
@@ -64,7 +77,11 @@ try {
   </ItemGroup>
 </Project>
 '@
-      Set-Content "$($kind)Consumer/Consumer.almproj" $project.Replace('REFERENCE', $reference)
+      $project = $project.Replace('REFERENCE', $reference)
+      if ($Exports) {
+        $project = $project.Replace('</Project>', '<PropertyGroup><OutputType>Exports</OutputType><AlarmlistExportTypes>XML;JSON;Zenon</AlarmlistExportTypes></PropertyGroup><ItemGroup><PackageReference Include="Alarmlist.Exporters.Zenon" Version="' + $version + '" PrivateAssets="all" /></ItemGroup></Project>')
+      }
+      Set-Content "$($kind)Consumer/Consumer.almproj" $project
       Set-Content "$($kind)Consumer/Local.almx" '<Alarmlist><Alarm><FullyQualifiedName>Local</FullyQualifiedName></Alarm></Alarmlist>'
     }
     Invoke-Checked 'library-pack' 'dotnet' @('msbuild', 'Library/Library.almproj', '-restore', '-t:Pack', "-p:PackageOutputPath=$feed", '-v:minimal', '-nr:false')
@@ -79,18 +96,29 @@ try {
         else { Invoke-Checked $name $DesktopMSBuildPath $arguments }
         if (!(Get-Content "$name.log" -Raw).Contains('FORK001')) { throw "Analyzer did not execute: $name" }
         $output = "$($kind)Consumer/bin/Debug/keyword/Consumer.Alarmlist.xml"
-        Invoke-Checked "$name-verify-net8" 'dotnet' @('bin/Debug/net8.0/Verify.dll', $output, 'Library/bin/Debug/Fork.Library.almlib')
-        Invoke-Checked "$name-verify-net472" (Join-Path $work 'bin/Debug/net472/Verify.exe') @($output, 'Library/bin/Debug/Fork.Library.almlib')
+        $verificationArguments = @($output, 'Library/bin/Debug/Fork.Library.almlib')
+        if ($Exports) { $verificationArguments += 'exports' }
+        Invoke-Checked "$name-verify-net8" 'dotnet' (@('bin/Debug/net8.0/Verify.dll') + $verificationArguments)
+        Invoke-Checked "$name-verify-net472" (Join-Path $work 'bin/Debug/net472/Verify.exe') $verificationArguments
       }
     }
     $output = 'PackageConsumer/bin/Debug/keyword/Consumer.Alarmlist.xml'
     $previousOutput = (Get-FileHash $output).Hash
+    $previousArtifacts = @{}
+    if ($Exports) {
+      foreach ($file in @(Get-ChildItem 'PackageConsumer/bin' -File -Recurse) + @(Get-ChildItem 'PackageConsumer/obj' -Filter '*.outputs.xml' -File -Recurse)) {
+        $previousArtifacts[$file.FullName] = (Get-FileHash -LiteralPath $file.FullName).Hash
+      }
+    }
     $consumer = Get-Content 'PackageConsumer/Consumer.almproj' -Raw
     foreach ($case in @(@{ Value = '9'; Diagnostic = 'FORK002' }, @{ Value = '11'; Diagnostic = 'ALM0029' })) {
       Set-Content 'PackageConsumer/Consumer.almproj' $consumer.Replace('+008', $case.Value)
       & dotnet msbuild 'PackageConsumer/Consumer.almproj' -t:Build -v:minimal -nr:false *> "$($case.Diagnostic).log"
       if ($LASTEXITCODE -eq 0 -or !(Get-Content "$($case.Diagnostic).log" -Raw).Contains($case.Diagnostic)) { throw "Expected failure missing: $($case.Diagnostic)" }
       if ((Get-FileHash $output).Hash -ne $previousOutput) { throw 'Failed consumer build replaced its prior output.' }
+      foreach ($path in $previousArtifacts.Keys) {
+        if ((Get-FileHash -LiteralPath $path).Hash -ne $previousArtifacts[$path]) { throw 'Failed build replaced an export/manifest.' }
+      }
     }
     Set-Content 'PackageConsumer/Consumer.almproj' $consumer
     if ($Collections) {
@@ -104,9 +132,27 @@ try {
           if ($hostKind -eq 'Core') { & dotnet msbuild @arguments *> $log } else { & $DesktopMSBuildPath @arguments *> $log }
           if ($LASTEXITCODE -eq 0 -or !(Get-Content $log -Raw).Contains($case.Diagnostic)) { throw "Expected collection failure missing: $log" }
           if ((Get-FileHash $output).Hash -ne $previousOutput) { throw 'Failed collection build replaced prior output.' }
+          foreach ($path in $previousArtifacts.Keys) {
+            if ((Get-FileHash -LiteralPath $path).Hash -ne $previousArtifacts[$path]) { throw 'Failed collection build replaced an export/manifest.' }
+          }
         }
       }
       Set-Content 'PackageConsumer/Local.almx' $local
+    }
+    if ($Exports) {
+      foreach ($hostKind in @('Core', 'Desktop')) {
+        $executable = if ($hostKind -eq 'Core') { 'dotnet' } else { $DesktopMSBuildPath }
+        [string[]]$prefix = @()
+        if ($hostKind -eq 'Core') { $prefix = @('msbuild') }
+        Set-Content 'PackageConsumer/Consumer.almproj' $consumer.Replace('XML;JSON;Zenon', 'JSON')
+        Invoke-Checked "exports-$hostKind-switch" $executable ($prefix + @('PackageConsumer/Consumer.almproj', '-t:Build', '-v:minimal', '-nr:false'))
+        if ((Test-Path $output) -or (Test-Path 'PackageConsumer/bin/Debug/keyword/Consumer.Zenon.xml')) { throw 'Switch left stale export artifacts.' }
+        Invoke-Checked "exports-$hostKind-clean" $executable ($prefix + @('PackageConsumer/Consumer.almproj', '-t:Clean', '-v:minimal', '-nr:false'))
+        if (Test-Path 'PackageConsumer/bin/Debug/keyword/Consumer.Alarmlist.json') { throw 'Clean left JSON output.' }
+        Set-Content 'PackageConsumer/Consumer.almproj' $consumer
+        Invoke-Checked "exports-$hostKind-rebuild" $executable ($prefix + @('PackageConsumer/Consumer.almproj', '-t:Rebuild', '-v:minimal', '-nr:false'))
+        Invoke-Checked "exports-$hostKind-rebuild-verify" 'dotnet' @('bin/Debug/net8.0/Verify.dll', $output, 'Library/bin/Debug/Fork.Library.almlib', 'exports')
+      }
     }
     if ((Get-Content 'Library/Library.almx' -Raw).Trim() -ne $source.Trim()) { throw 'Build rewrote library source.' }
   } finally { Pop-Location }

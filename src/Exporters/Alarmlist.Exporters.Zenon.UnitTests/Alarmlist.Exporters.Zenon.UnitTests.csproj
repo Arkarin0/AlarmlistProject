@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsUnitTestProject>true</IsUnitTestProject><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj" />
+    <ProjectReference Include="../../Compiler/Alarmlist.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -16,6 +16,9 @@ implemented behavior; custom fields and collections require a rebuilt toolset.
 | Topic | What it covers |
 | --- | --- |
 | [Project builds](features/project-builds.md) | Inputs, output paths, cultures and Build/Clean behavior |
+| [Export providers](features/export-providers.md) | Select outputs, register external providers and manage owned artifacts |
+| [JSON export format](features/json-export-format.md) | Versioned resolved JSON, typed values and collection/procedure shapes |
+| [zenon keyword XML](features/zenon-keyword-export.md) | External provider package, @Key@ projection and supported text |
 | [Inheritance and expressions](features/alarm-inheritance-and-expressions.md) | Abstract templates, references, parameters and scope |
 | [Test procedures](features/test-procedures.md) | Named groups, titles, entry ordering, Clear and creation defaults |
 | [Localization](features/localization.md) | RESX strings, culture fallback and independent summary language |
@@ -45,6 +48,7 @@ independently after preparing its tools.
 8. [Share sources between projects](tutorials/share-sources-between-projects.md).
 9. [Configure diagnostic policy](tutorials/configure-diagnostics.md).
 10. [Explore custom fields and collections](tutorials/explore-custom-definitions.md).
+11. [Export resolved alarms](tutorials/export-resolved-alarms.md).
 
 ## Create an article
 

@@ -29,7 +29,7 @@ syntax, open questions and statements about future work in that history.
 | Explain this value | Proposed; high priority; unassigned | Proposal below |
 | Find All References and safe Rename | Proposed; high priority; unassigned | Proposal below |
 | Semantic comparison and Git integration | Proposed; high priority; unassigned | Proposal below |
-| Export-provider interface | Proposed; high priority; unassigned | Proposal below |
+| Export-provider interface | Milestone 13 complete: XML/JSON/zenon, external providers and transactional artifacts | [Milestone 13](src/VisualStudio/MILESTONE-13.md) |
 | Change-impact analysis | Proposed; unassigned | Proposal below |
 | Analyzer quick fixes | Proposed; unassigned | Proposal below |
 | Localization coverage dashboard | Proposed; unassigned | Proposal below |
@@ -40,7 +40,7 @@ syntax, open questions and statements about future work in that history.
 
 Priority decision (2026-10-27): Explain this value, Find All References and safe
 Rename, semantic comparison with Git integration, and the export-provider
-interface have equal high priority. Their implementation order is undecided.
+interface have equal high priority. Export providers are selected for Milestone 13; the remaining order is undecided.
 The other new proposals below have no assigned priority or milestone.
 
 Printable alarm documentation belongs to another project and is outside this
@@ -82,13 +82,13 @@ must preserve authored source expressions and expose conflicts for review.
 
 ## Export-provider interface
 
-Proposed on 2026-10-27; high priority; no milestone assigned.
+Completed in Milestone 13 on 2026-10-28. XML/JSON/zenon and provider infrastructure
+are implemented; scoped acceptance evidence is recorded in the milestone plan.
 
-Provide an extensible interface for output generation from compiler-resolved
-data, without duplicating expression or localization evaluation. CSV, JSON and
-HMI-specific import formats are possible providers. Provider contracts,
-distribution, selection, configuration and failure handling remain open for
-milestone planning. Printable alarm documentation remains outside this project.
+The [milestone plan](src/VisualStudio/MILESTONE-13.md) defines selectable XML/JSON
+exports, an external zenon keyword-XML provider, NuGet/DLL distribution and
+transactional multi-artifact publication. Printable alarm documentation remains
+outside this project. CSV and full vendor import formats remain future work.
 
 ## Change-impact analysis
 

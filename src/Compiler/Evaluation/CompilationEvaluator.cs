@@ -175,6 +175,8 @@ namespace Alarmlist.Evaluation
             private readonly HashSet<string> _deferred = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             private readonly Dictionary<string, Definition.AlarmFieldValue> _values = new Dictionary<string, Definition.AlarmFieldValue>(StringComparer.OrdinalIgnoreCase);
             private readonly List<SourceLocation> _activeResources = new List<SourceLocation>();
+            private readonly Dictionary<TestProcedureStepSyntax, Output.ExportText> _stepTexts = new Dictionary<TestProcedureStepSyntax, Output.ExportText>();
+            private readonly Dictionary<string, Output.ExportText> _titleTexts = new Dictionary<string, Output.ExportText>(StringComparer.OrdinalIgnoreCase);
             internal Dictionary<TestProcedureStepSyntax, string> Steps { get; } = new Dictionary<TestProcedureStepSyntax, string>();
             internal List<LocalizationEvaluation> LocalizationUses { get; } = new List<LocalizationEvaluation>();
             internal List<LookupEvaluation> LookupUses { get; } = new List<LookupEvaluation>();
@@ -209,11 +211,17 @@ namespace Alarmlist.Evaluation
                 foreach (ProcedureGroupSyntax group in procedure.Groups)
                 {
                     if (!ProcedureGroupSyntax.IsValidName(group.Name)) continue;
-                    string title = group.Title == null ? group.Name : EvaluateExpression(PropertyExpression.Parse(group.Title), group.TitleLocation);
-                    Titles[group.Name] = title == string.Empty ? group.Name : title;
+                    var text = group.Title == null ? PropertyExpression.LiteralText(group.Name) : EvaluateExpressionText(PropertyExpression.Parse(group.Title), group.TitleLocation);
+                    if (text?.ResolvedText == string.Empty) text = PropertyExpression.LiteralText(group.Name);
+                    _titleTexts[group.Name] = text;
+                    Titles[group.Name] = text?.ResolvedText;
                 }
                 foreach (TestProcedureStepSyntax step in procedure.Groups.SelectMany(group => group.Entries).OfType<TestProcedureStepSyntax>())
-                    Steps[step] = EvaluateExpression(_owner._steps[step], step.Location);
+                    {
+                    var text = EvaluateExpressionText(_owner._steps[step], step.Location);
+                    _stepTexts[step] = text;
+                    Steps[step] = text?.ResolvedText;
+                }
             }
 
             internal bool TryGetField(string field, out string value)
@@ -233,12 +241,14 @@ namespace Alarmlist.Evaluation
                 var descriptor = Definition.AlarmDefinition.Fields.Single(item => item.Name == field);
                 string raw = origin?.GetLocalFieldValue(field);
                 _visiting.Add(field);
-                value = origin == null ? descriptor.Default : EvaluateExpression(_owner._fields[origin][field], origin.GetFieldLocation(field));
+                var text = origin == null ? PropertyExpression.LiteralText(descriptor.Default) : EvaluateExpressionText(_owner._fields[origin][field], origin.GetFieldLocation(field));
+                value = text?.ResolvedText;
                 _visiting.RemoveAt(_visiting.Count - 1);
                 if (value == null && origin != null) { _failed.Add(field); return false; }
                 var resolved = Definition.AlarmFieldValue.Resolve(descriptor, raw, value,
                     _deferred.Contains(field) || (_owner._allowDeferredValues && origin == null && descriptor.Required && value == null),
                     origin == null && descriptor.Default != null);
+                resolved = resolved.WithExportText(text);
                 _values[field] = resolved;
                 if (resolved.State == Definition.AlarmFieldValueState.Deferred) _deferred.Add(field);
                 if (resolved.State == Definition.AlarmFieldValueState.Invalid)
@@ -274,37 +284,54 @@ namespace Alarmlist.Evaluation
                 return null;
             }
 
-            private string EvaluateExpression(PropertyExpression expression, SourceLocation location)
-                => expression?.Evaluate(token => EvaluateToken(token, location));
+            private Output.ExportText EvaluateExpressionText(PropertyExpression expression, SourceLocation location)
+                => expression?.EvaluateText(token => EvaluateTokenText(token, location));
 
             private string EvaluateToken(ExpressionToken token, SourceLocation location)
+                => EvaluateTokenText(token, location)?.ResolvedText;
+
+            private Output.ExportText EvaluateTokenText(ExpressionToken token, SourceLocation location)
             {
                 if (token.Kind == "item")
                 {
-                    if (_itemLookup != null) return _itemLookup(token.Key, location);
+                    if (_itemLookup != null)
+                    {
+                        string item = _itemLookup(token.Key, location);
+                        return item == null ? null : _itemTextLookup?.Invoke(token.Key) ?? PropertyExpression.LiteralText(item);
+                    }
                     _owner.Report(DiagnosticDescriptors.InvalidExpression, _alarm, location, token.Raw);
                     return null;
                 }
-                if (token.Kind == "parameter") return Lookup(token.Key, location);
-                if (token.Kind == "loc") return Localize(token, location);
-                string value = ResolveLookup(token, location, out SourceLocation definition);
-                if (value != null && _owner._culture == LocalizationCulture.Keyword)
+                if (token.Kind == "parameter")
+                {
+                    string value = Lookup(token.Key, location);
+                    if (value == null) return null;
+                    foreach (string field in Fields)
+                        if (string.Equals(token.Key, "AlarmlistAlarm" + field, StringComparison.OrdinalIgnoreCase))
+                            return _values.TryGetValue(field, out var scalar) && scalar.ExportText != null
+                                ? scalar.ExportText : PropertyExpression.LiteralText(value);
+                    return PropertyExpression.LiteralText(value);
+                }
+                if (token.Kind == "loc")
+                {
+                    string value = LocalizeCore(token, location, out ResourceEntry entry, out var expansion, out bool substitution);
+                    LocalizationUses.Add(new LocalizationEvaluation(token.Key, entry, location ?? _alarm.Location, value));
+                    return value == null ? null : new Output.ExportText(value, new[]
+                    { Output.ExportTextSegment.LocalizationKey(token.Key, expansion, substitution) });
+                }
+                Output.ExportText lookup = ResolveLookupText(token, location, out SourceLocation definition);
+                if (lookup != null && _owner._culture == LocalizationCulture.Keyword)
                     foreach (string active in _visiting) _deferred.Add(active);
-                LookupUses.Add(new LookupEvaluation(token.Raw, definition, location ?? _alarm.Location, value));
-                return value;
+                LookupUses.Add(new LookupEvaluation(token.Raw, definition, location ?? _alarm.Location, lookup?.ResolvedText));
+                return lookup;
             }
 
-            private string Localize(ExpressionToken token, SourceLocation location)
-            {
-                string value = LocalizeCore(token, location, out ResourceEntry entry);
-                LocalizationUses.Add(new LocalizationEvaluation(token.Key, entry, location ?? _alarm.Location, value));
-                return value;
-            }
-
-            private string LocalizeCore(ExpressionToken token, SourceLocation location, out ResourceEntry entry)
+            private string LocalizeCore(ExpressionToken token, SourceLocation location, out ResourceEntry entry, out Output.ExportText expansion, out bool substitution)
             {
                 string key = token.Key;
                 entry = null;
+                expansion = null;
+                substitution = token.Arguments.Count != 0;
                 if (_owner._culture == LocalizationCulture.Keyword)
                 {
                     foreach (string active in _visiting) _deferred.Add(active);
@@ -339,7 +366,8 @@ namespace Alarmlist.Evaluation
                         .WithLocation(location ?? _alarm.Location, new[] { entry.ValueLocation }));
                     return null;
                 }
-                var values = new Dictionary<string, string>(StringComparer.Ordinal);
+                substitution = formatted || expression.Tokens.Any() || expression.PlaceholderNames.Any();
+                var values = new Dictionary<string, Output.ExportText>(StringComparer.Ordinal);
                 if (formatted)
                 {
                     var names = new HashSet<string>(expression.PlaceholderNames, StringComparer.Ordinal);
@@ -355,8 +383,9 @@ namespace Alarmlist.Evaluation
                 try
                 {
                     foreach (KeyValuePair<string, ExpressionArgument> argument in token.Arguments)
-                        values.Add(argument.Key, argument.Value.Token == null ? argument.Value.Literal : EvaluateToken(argument.Value.Token, location));
-                    return expression.Evaluate(nested => EvaluateToken(nested, location), name => values[name]);
+                        values.Add(argument.Key, argument.Value.Token == null ? PropertyExpression.LiteralText(argument.Value.Literal) : EvaluateTokenText(argument.Value.Token, location));
+                    expansion = expression.EvaluateText(nested => EvaluateTokenText(nested, location), name => values[name]);
+                    return expansion?.ResolvedText;
                 }
                 finally { _activeResources.RemoveAt(_activeResources.Count - 1); }
             }
@@ -365,19 +394,20 @@ namespace Alarmlist.Evaluation
                 => _owner.Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidLocalizationArguments, key, reason)
                     .WithLocation(location ?? _alarm.Location, new[] { entry.ValueLocation }));
 
-            private string ResolveLookup(ExpressionToken token, SourceLocation location, out SourceLocation definition)
+            private Output.ExportText ResolveLookupText(ExpressionToken token, SourceLocation location, out SourceLocation definition)
             {
                 definition = null;
                 string[] keys = token.Key.Split('#');
                 if (token.Kind == "list")
                 {
                     if (!_owner._lookups.TryGetEntry(keys[0], keys[1], out LookupListEntry entry))
-                        return MissingLookup(token, "missing or ambiguous list entry '" + token.Key + "'", location, null);
+                        return MissingLookupText(token, "missing or ambiguous list entry '" + token.Key + "'", location, null);
                     definition = entry.Location;
-                    return _owner._culture == LocalizationCulture.Keyword ? token.Raw : entry.Value;
+                    return new Output.ExportText(_owner._culture == LocalizationCulture.Keyword ? token.Raw : entry.Value,
+                        PropertyExpression.LiteralText(entry.Value).Segments);
                 }
                 if (!_owner._lookups.TryGetPath(keys[0], out LookupPath path))
-                    return MissingLookup(token, "missing or ambiguous path '" + keys[0] + "'", location, null);
+                    return MissingLookupText(token, "missing or ambiguous path '" + keys[0] + "'", location, null);
                 definition = path.Location;
                 LookupMember member = null;
                 LookupMetadata metadata = null;
@@ -385,23 +415,31 @@ namespace Alarmlist.Evaluation
                 {
                     member = path.Members.FirstOrDefault(candidate => candidate.Key == keys[1]);
                     if (member == null || (token.Kind == "property" && member.Kind != "Property") || (token.Kind == "button" && member.Kind != "Button"))
-                        return MissingLookup(token, "missing member or incorrect member kind '" + keys[1] + "'", location, definition);
+                        return MissingLookupText(token, "missing member or incorrect member kind '" + keys[1] + "'", location, definition);
                     definition = member.Location;
                     if (token.Kind == "meta")
                     {
                         metadata = member.Metadata.FirstOrDefault(candidate => candidate.Name == keys[2]);
-                        if (metadata == null) return MissingLookup(token, "missing metadata '" + keys[2] + "'", location, definition);
+                        if (metadata == null) return MissingLookupText(token, "missing metadata '" + keys[2] + "'", location, definition);
                         definition = metadata.Location;
                     }
                 }
-                if (_owner._culture == LocalizationCulture.Keyword) return token.Raw;
-                if (metadata != null) return metadata.Value;
-                if (member != null) return TranslateLabel(member.Label, location);
-                string[] segments = path.Segments.Select(segment => TranslateLabel(segment, location)).ToArray();
-                return segments.Any(segment => segment == null) ? null : string.Join(" -> ", segments);
+                if (metadata != null) return new Output.ExportText(_owner._culture == LocalizationCulture.Keyword ? token.Raw : metadata.Value,
+                    PropertyExpression.LiteralText(metadata.Value).Segments);
+                var labels = member != null ? new[] { member.Label } : path.Segments.ToArray();
+                var texts = labels.Select(label => TranslateLabelText(label, location)).ToArray();
+                if (texts.Any(text => text == null)) return null;
+                var segments = new List<Output.ExportTextSegment>();
+                for (int index = 0; index < texts.Length; index++)
+                {
+                    if (index != 0) segments.Add(Output.ExportTextSegment.Literal(" -> "));
+                    segments.AddRange(texts[index].Segments);
+                }
+                return new Output.ExportText(_owner._culture == LocalizationCulture.Keyword ? token.Raw
+                    : string.Join(" -> ", texts.Select(text => text.ResolvedText)), segments);
             }
 
-            private string MissingLookup(ExpressionToken token, string reason, SourceLocation location, SourceLocation definition)
+            private Output.ExportText MissingLookupText(ExpressionToken token, string reason, SourceLocation location, SourceLocation definition)
             {
                 DeferConsumerInput();
                 _owner.ReportDiagnostic(new Diagnostic(DiagnosticDescriptors.MissingLookup, token.Raw, reason)
@@ -409,8 +447,10 @@ namespace Alarmlist.Evaluation
                 return null;
             }
 
-            private string TranslateLabel(LookupLabel label, SourceLocation location)
+            private Output.ExportText TranslateLabelText(LookupLabel label, SourceLocation location)
             {
+                if (_owner._culture == LocalizationCulture.Keyword)
+                    return new Output.ExportText("$(loc:" + label.Key + ")", new[] { Output.ExportTextSegment.LocalizationKey(label.Key) });
                 if (_owner._culture == null) return null;
                 _owner._resources.TryResolve(label.Key, _owner._culture, out ResourceTranslation translation);
                 if (translation == null)
@@ -421,7 +461,7 @@ namespace Alarmlist.Evaluation
                 }
                 string value = translation?.Entry.Value;
                 LocalizationUses.Add(new LocalizationEvaluation(label.Key, translation?.Entry, location ?? _alarm.Location, value));
-                return value;
+                return value == null ? null : new Output.ExportText(value, new[] { Output.ExportTextSegment.LocalizationKey(label.Key, PropertyExpression.LiteralText(value)) });
             }
 
             internal Alarm ToAlarm()
@@ -429,13 +469,13 @@ namespace Alarmlist.Evaluation
                 TestProcedureSyntax procedure = _alarm.ResolvedTestProcedures;
                 return new Alarm(_alarm.FullyQualifiedName, Array.AsReadOnly(Fields.Select(field => _values[field]).ToArray()),
                     new TestProcedure(procedure.Groups.Where(group => ProcedureGroupSyntax.IsValidName(group.Name)).Select(group =>
-                        new ProcedureGroup(group.Name, Titles[group.Name], Convert(group.Entries)))),
+                        new ProcedureGroup(group.Name, Titles[group.Name], Convert(group.Entries), _titleTexts[group.Name]))),
                     Array.AsReadOnly(_collections.ToArray()));
             }
 
             private IEnumerable<TestProcedureItem> Convert(IEnumerable<ITestProcedureItem> entries)
             {
-                return entries.OfType<TestProcedureStepSyntax>().Select(step => new TestProcedureItem((TestProcedureItemKind)step.Kind, Steps[step]));
+                return entries.OfType<TestProcedureStepSyntax>().Select(step => new TestProcedureItem((TestProcedureItemKind)step.Kind, Steps[step], _stepTexts[step]));
             }
         }
     }

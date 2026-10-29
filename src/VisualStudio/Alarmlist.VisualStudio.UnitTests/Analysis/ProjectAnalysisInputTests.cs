@@ -197,6 +197,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         [InlineData("Library", true)]
         [InlineData("library", true)]
         [InlineData("Application", false)]
+        [InlineData("Exports", false)]
         [InlineData("", false)]
         public void EvaluationCapturesLibraryAnalysisMode(string outputType, bool expected)
         {

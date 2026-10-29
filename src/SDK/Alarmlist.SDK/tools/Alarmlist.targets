@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <AssemblyName Condition="'$(AssemblyName)' == ''">$(MSBuildProjectName)</AssemblyName>
-    <OutputType Condition="'$(OutputType)' == ''">Application</OutputType>
+    <OutputType Condition="'$(OutputType)' == ''">Exports</OutputType>
     <PackageId Condition="'$(PackageId)' == ''">$(MSBuildProjectName)</PackageId>
     <PackageVersion Condition="'$(PackageVersion)' == ''">1.0.0</PackageVersion>
     <AlarmlistLibraryFileName Condition="'$(AlarmlistLibraryFileName)' == ''">$(PackageId).almlib</AlarmlistLibraryFileName>
@@ -66,7 +66,7 @@
     <Error Condition="!Exists('$(AlarmlistTasksAssembly)')" Text="Alarmlist task assembly was not found: $(AlarmlistTasksAssembly). Rebuild or restore the Alarmlist.MSBuild.SDK package." />
     <ItemGroup><CompiledAlarmlistFiles Remove="@(CompiledAlarmlistFiles)" /></ItemGroup>
     <AlarmlistBuildTask OutputDirectory="$(OutputPath)" OutputFileName="$(_AlarmlistOutputFileName)" Compile="@(Compile)"
-                       OutputType="$(OutputType)" PackageId="$(PackageId)" PackageVersion="$(PackageVersion)"
+                       OutputType="$(OutputType)" ExportTypes="$(AlarmlistExportTypes)" ExportProviders="@(AlarmlistExportProvider)" PackageId="$(PackageId)" PackageVersion="$(PackageVersion)"
                        LibraryReferences="@(_AlarmlistProjectReferenceInputs);@(_AlarmlistPackageReferenceInputs)"
                        ProtectedFiles="@(ProjectReference);$(MSBuildAllProjects);$(ProjectAssetsFile)"
                        Resources="@(AlarmlistResource)" Lookups="@(AlarmlistLookup)" Cultures="$(AlarmlistCultures)" ManifestFile="$(_AlarmlistOutputManifest)"
@@ -85,6 +85,7 @@
   <Target Name="AfterClean" />
   <Target Name="CoreClean" DependsOnTargets="_GetAlarmlistProjectReferenceInputs;_ResolveAlarmlistPackageReferences">
     <AlarmlistCleanTask OutputDirectory="$(OutputPath)" OutputFileName="$(_AlarmlistOutputFileName)" Cultures="$(AlarmlistCultures)" OutputType="$(OutputType)"
+                       ExportTypes="$(AlarmlistExportTypes)" ExportProviders="@(AlarmlistExportProvider)"
                        ProtectedFiles="@(Compile);@(AlarmlistResource);@(AlarmlistLookup);@(AlarmlistAnalyzer);@(ProjectReference);@(_AlarmlistProjectReferenceInputs);@(_AlarmlistPackageReferenceInputs);@(_AlarmlistProjectReferenceInputs->'%(SourceProject)');$(MSBuildProjectFullPath);$(MSBuildAllProjects);$(ProjectAssetsFile)"
                        ManifestFile="$(_AlarmlistOutputManifest)" ProjectPath="$(MSBuildProjectFullPath)"
                        Configuration="$(Configuration)" Platform="$(Platform)" />
@@ -93,7 +94,10 @@
   <Target Name="GetTargetPath" Returns="@(CompiledAlarmlistFiles)">
     <ItemGroup><CompiledAlarmlistFiles Remove="@(CompiledAlarmlistFiles)" /></ItemGroup>
     <AlarmlistGetOutputsTask OutputDirectory="$(OutputPath)" OutputFileName="$(_AlarmlistOutputFileName)" Cultures="$(AlarmlistCultures)" OutputType="$(OutputType)"
-                            PackageId="$(PackageId)" PackageVersion="$(PackageVersion)">
+                       ExportTypes="$(AlarmlistExportTypes)" ExportProviders="@(AlarmlistExportProvider)"
+                            PackageId="$(PackageId)" PackageVersion="$(PackageVersion)"
+                            ManifestFile="$(_AlarmlistOutputManifest)" ProjectPath="$(MSBuildProjectFullPath)"
+                            Configuration="$(Configuration)" Platform="$(Platform)">
       <Output TaskParameter="OutputFiles" ItemName="CompiledAlarmlistFiles" />
     </AlarmlistGetOutputsTask>
   </Target>
