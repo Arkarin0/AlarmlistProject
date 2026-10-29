@@ -121,16 +121,20 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => LocalValue(ide, workspace) == null && code.Text == "001", "unassign resumes file fallback");
 
             Type(ide, code, "$(par");
-            VisualStudioSession.Wait(() => automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+            bool HasParameterCompletion() => automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
                 .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)))
                 .Any(item => item.Name.StartsWith("par1 (value pending; declaration: ", StringComparison.Ordinal)
-                    && item.Name.Contains("; assignment: ") && item.Name.EndsWith(")", StringComparison.Ordinal)), "parenthesized completion metadata");
+                    && item.Name.Contains("; assignment: ") && item.Name.EndsWith(")", StringComparison.Ordinal));
+            VisualStudioSession.Wait(HasParameterCompletion, "parenthesized completion metadata");
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "parameter-completion.png"));
             Assert.DoesNotContain("<Code>$(par</Code>", ide.ReadText(workspace.AlarmPath));
             PressFocused(ide, code, VirtualKeyShort.ESCAPE);
             Assert.Equal("$(par", code.Text);
+            VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.Text))
+                .Any(item => item.Name.StartsWith("Values from Plant.almproj (", StringComparison.Ordinal)), "current analysis before explicit completion");
             RequireFocus(ide, code);
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.SPACE);
+            VisualStudioSession.Wait(HasParameterCompletion, "explicit parameter completion ready before Enter");
             PressFocused(ide, code, VirtualKeyShort.RETURN);
             VisualStudioSession.Wait(() => code.Text == "$(par1)", "completion inserts raw token");
             PressFocused(ide, code, VirtualKeyShort.RETURN);

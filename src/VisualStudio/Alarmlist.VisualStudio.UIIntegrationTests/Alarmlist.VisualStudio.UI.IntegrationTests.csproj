@@ -17,6 +17,7 @@
              Exclude="../../../example/Libraries/**/bin/**;../../../example/Libraries/**/obj/**;../../../example/Libraries/**/.*/**"
              Link="testassets/LibraryResources/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioAutomation.cs" Link="VisualStudioAutomation.cs" />
+    <Compile Include="../Alarmlist.VisualStudio/Editing/SourceEdit.cs;../Alarmlist.VisualStudio/Editing/LinkedDocumentEdit.cs;../Alarmlist.VisualStudio/Editor/DteLinkedEditWorkspace.cs" Link="RenameTransaction/%(Filename)%(Extension)" />
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioTestDeployment.cs" Link="VisualStudioTestDeployment.cs" />
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" />

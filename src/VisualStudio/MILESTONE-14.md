@@ -451,3 +451,86 @@ source-preserving editing, native buffer/Undo and current project bridge structu
 Reviewed the architectural references above. Appended this approved plan without
 changing completed evidence; updated backlog and repository guidance. Documentation
 links, paths and diff reviewed. Tests not run (planning/documentation only).
+
+Iteration 9 — complete:
+
+- Added request-local XML decoded-value to original UTF-16 span mapping after
+  authoritative XML parsing. Handles attributes/text, XML entities, CRLF
+  normalization, CDATA and namespace-qualified attributes. Rejects ranges crossing
+  comments/markup or splitting surrogate/entity units; never discards authored
+  markup. Expression parser tokens and formatted argument names now carry exact
+  offsets, including nested tokens, with escaped/literal expressions excluded.
+- Added the internal coordinated edit engine, preflight text/version and read-only
+  checks, Query Edit revalidation, cancellation, accepted-text verification and
+  rollback. SourceEdit moved to its own file to share the same production engine
+  and automation adapter with the external native fixture. The adapter verifies
+  thread access and uses the native automation UndoContext front door to linked
+  Undo; no test command or test dependencies are installed in the VSIX. The
+  caller must supply real Query Edit and version capture when wired in iteration 13.
+- Both native hosts passed the strengthened Area=RenameTransaction fixture:
+  ALMX/RESX/lookup/standalone project XML buffers remain unsaved; one Undo/Redo
+  covers all four; failure after four edits and cancellation after two roll back;
+  the preceding successful Undo remains usable. VS 2022 final report:
+  VisualStudioUI/TestResults/188140601ba347388b638976c4b6d682; VS 2026:
+  VisualStudioUI/TestResults/3a97883d33ee42ebae34f86c76fdcc0d. An initial native
+  failure exposed that SetAborted already closes UndoContext; removed the redundant
+  Close and verified the original exception and rollback remain observable.
+- Full compiler: 748 net472 / 750 net8.0 passed; Iteration9/Compiler. Focused
+  transaction units: nine passed; Iteration9/TransactionUnit. Final host: 856 passed
+  in Iteration9/HostVerified; task unit/integration: 124 and four per framework
+  passed in Iteration9/TaskUnit and TaskIntegration. Packaged compiler checks:
+  three per framework; packaged extension integration: 14 per framework, in
+  Iteration9/Package and VSIntegration. Contract 8 remains active and no public reference API
+  or ordinary retained index has been introduced.
+- Existing popup/accessibility host tests initially timed out (six in the full
+  run and six in the isolated repeat). Captured owned test-host stacks show WPF
+  blocked in PenThreadWorker.WorkerGetTabletsInfo during mouse capture, with an
+  active RDP session. Evidence: Iteration9/Diagnostics/bd05d66fcc6a457ea376968da2de70f5/host.json.
+  A temporary diagnostic confirmed runtime config overrides were not read in
+  the secondary test AppDomain. The unit STA harness now initializes WPF's
+  [documented source switch](https://github.com/dotnet/wpf/blob/main/src/Microsoft.DotNet.Wpf/src/PresentationCore/MS/internal/CoreAppContextSwitches.cs)
+  directly, disabling only isolated-test pen/touch discovery. Keyboard/mouse and
+  accessibility assertions remain intact; native IDE input settings are unchanged.
+  Eight diagnostic/reproduced cases passed in Iteration9/DesktopInitialized; the
+  temporary diagnostic test was removed before final regression. No unrelated
+  production input settings were changed.
+- Subsequent full host checks exposed three deterministic parameter-menu failures:
+  Select all committed a private draft, and Assign left its menu open. A temporary
+  stack capture traced the commit to OnFieldLostFocus during MenuItem.FocusOrSelect.
+  Marked the parameter menu PreserveDraft and explicitly closed Assign's menu
+  before deferred editor focus. All five existing parameter menu/selection/focus
+  regressions passed in Iteration9/ParameterMenusFinal with original assertions;
+  temporary diagnostic code was removed. The full host repeat passed (856).
+- Final review moved captured-input/private-draft validation before opening any
+  document as well as retaining post-open/Query Edit checks: opening a document
+  changes focus and must not precede the caller's draft guards. The transaction
+  regression asserts a stale context opens no documents. Final focused checks are
+  recorded separately in Iteration9/FinalFocused.
+- Final focused host checks passed (14, Iteration9/FinalFocused), including the
+  pre-open stale-context guard and the existing parameter-menu regressions.
+- After the user reconnected/unlocked the desktop, native Properties acceptance
+  exposed a fixture readiness gap: explicit completion sent Enter before its
+  candidates were ready during CPS refresh. Wait for current analysis and the
+  actual completion items before Enter; preserve the original insertion and draft
+  assertions. Removed all temporary tracing. VS 2022 passed all three native
+  Properties/RenameTransaction cases in TestResults/7c5769d74bf64aa8abe0a10006767c3a.
+- One VS 2026 diagnostic attempt finished transaction assertions but stalled in
+  DTE Solution.Close during cleanup. Captured runner stacks in
+  Iteration9/Diagnostics/541d80ace23e4e3a827ff85cb830b7ef/runner.json, then stopped
+  only the verified owned test IDE. That interrupted attempt is not final
+  acceptance evidence. The exact cause of the earlier close stall was not
+  established. A diagnostic variant adding a synchronous initial Build passed
+  on VS 2026, but stalled before edits on VS 2022 (diagnostic stacks:
+  Iteration9/Diagnostics/45501c9d78fc48b5b40e652c2f359d34/ide.json). Interrupted
+  only that verified owned IDE; reverted the optional initial-build variant.
+  Keep this focused transaction gate independent of native project-build
+  acceptance. Its final assertions compare saved bytes for all four file types.
+- The final VS 2026 repeat passed all three cases in
+  TestResults/36077400e1ed43aebdaa1f9096ef3e4b (54 seconds), including normal owned
+  IDE exit without forced termination. Final focused transaction repeats passed
+  with the final fixture on both hosts: VS 2022 (19 seconds),
+  TestResults/93338f3511da4e79be422e69bd4bbb8e; VS 2026 (15 seconds),
+  TestResults/8fcaa5e49b0447b7a27bbf823ebc1781. Both report normal owned-IDE exit
+  without forced termination. This completes the iteration 9 early transaction
+  gate; full rename commands, solution coordination and integrated build/output
+  acceptance remain in their planned later iterations.

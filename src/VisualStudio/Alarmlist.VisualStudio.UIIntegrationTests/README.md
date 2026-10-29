@@ -17,6 +17,7 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Templates and file lifecycle | Installed project/item templates, build, folder/item creation, rename, solution reload, delete and updated output | `ProjectItems` |
 | Template and folder symbols | Actual Add New Item artwork, native known-folder icons, ordinary/renamed folders and reload | `ProjectItems` |
 | Shared editor | Custom factory/native XML view, New Window/New Tab, shared document data, edit/undo/redo/Save All, XML-first opening and XML survival after designer closure | `SharedEditor` |
+| Coordinated rename transaction | Shared production coordinator/adapter edits ALMX, RESX, lookup and standalone project XML buffers, preserves disk bytes, performs one-step Undo/Redo, rolls back failure after all four edits and cancellation after two, and preserves prior Undo | `RenameTransaction` |
 | Designer Save As | Local and linked destinations and back, two views sharing RDT/buffer identity, subsequent saves and preservation of previous files | `SaveAs` |
 | XML Save As | The same Save As contract starting with the XML editor | `SaveAs` |
 | Live diagnostics | Publication before Build, exact navigation position, unload/reload, XML-only unsaved correction, disk/output preservation, discard and deletion | `LiveDiagnostics` |

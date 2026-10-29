@@ -93,7 +93,11 @@ namespace Alarmlist.VisualStudio.UI
         // These WPF event handlers only await the dispatcher after bound commands.
 #pragma warning disable VSTHRD100
         private async void OnAdd(object sender, RoutedEventArgs args) => await FocusAfterCommandAsync(true);
-        private async void OnAssign(object sender, RoutedEventArgs args) => await FocusAfterCommandAsync(false);
+        private async void OnAssign(object sender, RoutedEventArgs args)
+        {
+            ((ContextMenu)Resources["ParameterRowMenu"]).IsOpen = false;
+            await FocusAfterCommandAsync(false);
+        }
 #pragma warning restore VSTHRD100
         private async Task FocusAfterCommandAsync(bool name)
         {

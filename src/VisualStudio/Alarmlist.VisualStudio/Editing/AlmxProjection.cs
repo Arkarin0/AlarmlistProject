@@ -125,12 +125,4 @@ namespace Alarmlist.VisualStudio.Editing
         public List<XmlSourceElement> Children { get; } = new List<XmlSourceElement>();
     }
 
-    internal sealed class SourceEdit
-    {
-        public int Start { get; }
-        public int Length { get; }
-        public string Text { get; }
-        public SourceEdit(int start, int length, string text) { Start = start; Length = length; Text = text; }
-        public string Apply(string source) => source.Remove(Start, Length).Insert(Start, Text);
-    }
 }

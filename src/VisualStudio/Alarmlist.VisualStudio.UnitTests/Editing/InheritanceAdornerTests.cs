@@ -19,6 +19,15 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
 {
     public class InheritanceAdornerTests
     {
+        static InheritanceAdornerTests()
+        {
+            // Isolated WPF tests cover keyboard/mouse, not tablet devices. RDP
+            // tablet discovery can block popup capture in PenThreadWorker.
+            // Set this in the actual test AppDomain before input initializes;
+            // runtime App.config overrides are not read by this secondary domain.
+            AppContext.SetSwitch("Switch.System.Windows.Input.Stylus.DisableStylusAndTouchSupport", true);
+        }
+
         [Fact]
         public void ClosingDesignerDrainsQueuedNotificationsWithoutJoiningItsOwnTask()
         {

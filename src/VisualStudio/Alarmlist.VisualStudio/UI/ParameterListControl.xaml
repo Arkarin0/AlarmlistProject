@@ -8,7 +8,7 @@
   Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="Visibility" />
-    <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}" x:Key="ParameterRowMenu" Opened="OnRowMenuOpened" Closed="OnRowMenuClosed"
+    <ContextMenu Style="{DynamicResource {x:Static shell:VsResourceKeys.ContextMenuStyleKey}}" x:Key="ParameterRowMenu" Tag="PreserveDraft" Opened="OnRowMenuOpened" Closed="OnRowMenuClosed"
                  Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
                  Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
       <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Cut}}" Header="Cut" Tag="TextEditing" Command="ApplicationCommands.Cut" CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />

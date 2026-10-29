@@ -113,12 +113,12 @@ namespace Alarmlist.Evaluation
                     if (cursor < raw.Length && raw[cursor] == '"')
                     {
                         if (!TryReadString(raw, ref cursor, out string value)) return false;
-                        argument = new ExpressionArgument(value, null);
+                        argument = new ExpressionArgument(value, null, argumentStart, argumentName.Length);
                     }
                     else
                     {
                         if (!TryReadToken(raw, ref cursor, out ExpressionToken nested, allowLocalization: false, allowItemReferences: allowItemReferences)) return false;
-                        argument = new ExpressionArgument(null, nested);
+                        argument = new ExpressionArgument(null, nested, argumentStart, argumentName.Length);
                     }
                     arguments.Add(argumentName, argument);
                     SkipWhitespace(raw, ref cursor);
@@ -127,7 +127,7 @@ namespace Alarmlist.Evaluation
             else if (whitespace) return false; // Preserve the grammar of simple tokens.
             if (cursor == raw.Length || raw[cursor] != ')') return false;
             position = cursor + 1;
-            token = new ExpressionToken(kind, key, raw.Substring(start, position - start), arguments);
+            token = new ExpressionToken(kind, key, raw.Substring(start, position - start), arguments, start, head + (colon < 0 ? 0 : colon + 1));
             return true;
         }
 
@@ -250,19 +250,24 @@ namespace Alarmlist.Evaluation
 
     internal sealed class ExpressionToken
     {
-        internal ExpressionToken(string kind, string key, string raw, IDictionary<string, ExpressionArgument> arguments)
-        { Kind = kind; Key = key; Raw = raw; Arguments = new System.Collections.ObjectModel.ReadOnlyDictionary<string, ExpressionArgument>(arguments); }
+        internal ExpressionToken(string kind, string key, string raw, IDictionary<string, ExpressionArgument> arguments, int start = 0, int keyStart = 0)
+        { Kind = kind; Key = key; Raw = raw; Arguments = new System.Collections.ObjectModel.ReadOnlyDictionary<string, ExpressionArgument>(arguments); Start = start; KeyStart = keyStart; }
         internal string Kind { get; }
         internal string Key { get; }
         internal string Raw { get; }
         internal IReadOnlyDictionary<string, ExpressionArgument> Arguments { get; }
+        internal int Start { get; }
+        internal int KeyStart { get; }
+        internal int KeyLength => Key.Length;
     }
 
     internal sealed class ExpressionArgument
     {
-        internal ExpressionArgument(string literal, ExpressionToken token) { Literal = literal; Token = token; }
+        internal ExpressionArgument(string literal, ExpressionToken token, int nameStart = 0, int nameLength = 0) { Literal = literal; Token = token; NameStart = nameStart; NameLength = nameLength; }
         internal string Literal { get; }
         internal ExpressionToken Token { get; }
+        internal int NameStart { get; }
+        internal int NameLength { get; }
     }
 
     internal readonly struct ExpressionSpan

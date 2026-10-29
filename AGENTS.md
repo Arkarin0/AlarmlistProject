@@ -104,6 +104,12 @@ acknowledgement and revalidated proven edits; never guess ambiguous replacements
 Apply the approved set to unsaved buffers with linked Undo and rollback, preserving
 private drafts and ordinary saved resource/dependency rules. Iteration 9 native
 multi-file transaction acceptance on both IDEs is an essential early gate.
+Use Area=RenameTransaction for that gate. It links the production coordinator and
+automation adapter into the external runner, with no test command in the VSIX.
+Native UndoContext supplies linked Undo; SetAborted both rolls back and closes it.
+Keep version/text and Query Edit checks before mutation, and verify accepted text
+before completing the group. XML token edits use compiler-owned decoded-to-source
+spans; reject spans crossing comments/markup rather than discarding authored XML.
 [Milestone 12](src/VisualStudio/MILESTONE-12.md) uses the native XML completion
 presenter with host lexical context and generated descriptors; compiler-owned
 expression/reference semantics remain in detached analysis. Native XML completion
@@ -1006,6 +1012,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   On shared/RDP desktops, concurrent user keyboard and mouse input can also
   interfere; account for that input before attributing interaction failures to
   the product or test stability.
+  The isolated unit-test STA harness disables pen/touch discovery before WPF
+  input initializes, avoiding the diagnosed RDP PenThreadWorker tablet-enumeration
+  stall. Those tests exercise keyboard/mouse; do not propagate that switch to
+  the extension or native IDE fixtures. Runtime App.config overrides alone do
+  not initialize this switch in the secondary test AppDomain.
 - Run SDK XLIFF apply tests separately from native IDE tests. Their resource-editor
   guard inspects running IDEs; concurrent test-IDE startup/shutdown can make that
   check fail closed and invalidate an otherwise isolated package-consumer run.
