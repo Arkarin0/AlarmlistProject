@@ -42,7 +42,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     InheritanceAdornerTests.Pump();
                     var field = collection.Items[0].Fields[0];
                     var editor = VisualChildren(control).OfType<ExpressionTextBox>().Single(item => ReferenceEquals(item.DataContext, field));
-                    var button = VisualChildren(control).OfType<Button>().Single(item => ReferenceEquals(item.DataContext, field));
+                    var button = VisualChildren(control).OfType<Button>().Single(item => ReferenceEquals(item.DataContext, field)
+                        && AutomationProperties.GetName(item) == "Choose literal for " + name);
                     Assert.True(button.IsVisible);
                     Assert.True(button.IsTabStop);
                     Assert.Equal("Choose literal for " + name, AutomationProperties.GetName(button));

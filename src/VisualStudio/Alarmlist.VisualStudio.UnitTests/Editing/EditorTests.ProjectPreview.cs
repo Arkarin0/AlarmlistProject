@@ -228,7 +228,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     view.SelectedPreviewRow = view.AlarmTableRows.Single(row => row.Identity == "Child");
                     Assert.Equal("Inherited", view.ResolvedFields.Single(field => field.Name == "Name").Value);
                     view.SelectedPreviewRow = view.AlarmTableRows.Single(row => row.Identity == "Invalid");
-                    Assert.Empty(view.ResolvedFields); Assert.Contains("could not be evaluated", view.ResolvedPreviewMessage);
+                    Assert.NotEmpty(view.ResolvedFields); Assert.Contains("could not be evaluated", view.ResolvedPreviewMessage);
+                    Assert.True(view.CanExplainValue(view.ResolvedFields.Single(field => field.Name == "Name")));
                 }
             }
         }

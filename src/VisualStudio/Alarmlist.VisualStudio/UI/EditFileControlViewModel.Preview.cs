@@ -37,7 +37,7 @@ namespace Alarmlist.VisualStudio.UI
         public ResolvedSectionViewModel(AnalysisSection section, Func<AnalysisEntry, DelegateCommand> navigation)
         {
             Name = section.Title.IsValueAvailable ? section.Title.EffectiveValue : "(unavailable)";
-            Items = BindingCollection.Create(section.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry))));
+            Items = BindingCollection.Create(section.EffectiveEntries.Select((entry, index) => new ProcedureAnalysisRow(entry, index + 1, navigation(entry), showUnavailable: true)));
         }
     }
 
@@ -48,6 +48,7 @@ namespace Alarmlist.VisualStudio.UI
         private int _previewActionVersion;
         public void InvalidatePreviewActions() => _previewActionVersion++;
         public IReadOnlyList<ResolvedFieldViewModel> ResolvedFields { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
+        public IReadOnlyList<ResolvedFieldViewModel> ResolvedParameters { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
         public IReadOnlyList<ResolvedSectionViewModel> ResolvedSections { get; private set; } = Array.Empty<ResolvedSectionViewModel>();
         public IReadOnlyList<ResolvedCollectionViewModel> ResolvedCollections { get; private set; } = Array.Empty<ResolvedCollectionViewModel>();
         public string ResolvedPreviewMessage { get; private set; }
@@ -75,8 +76,10 @@ namespace Alarmlist.VisualStudio.UI
                 return;
             }
             _previewState = unavailable == null ? state : null;
+            Explanation?.Invalidate();
             _previewAlarm = unavailable == null ? alarm : null;
             ResolvedFields = Array.Empty<ResolvedFieldViewModel>();
+            ResolvedParameters = Array.Empty<ResolvedFieldViewModel>();
             ResolvedSections = Array.Empty<ResolvedSectionViewModel>();
             ResolvedCollections = Array.Empty<ResolvedCollectionViewModel>();
             CompiledXml = null;
@@ -93,11 +96,12 @@ namespace Alarmlist.VisualStudio.UI
                     : !alarm.HasEvaluatedValues ? "Evaluated values are unavailable. See live project diagnostics."
                     : snapshot.Success ? "Resolved values from current project sources, including unsaved XML edits."
                     : "This alarm is resolved. Other project errors prevent compiled XML.";
-                if (alarm?.HasEvaluatedValues == true && !alarm.IsAbstract)
+                if (alarm != null)
                 {
                     ResolvedFields = PreviewContent.Fields(alarm, location => PreviewNavigation(state, alarm, location), EnumCaptions.From(state));
                     ResolvedSections = PreviewContent.Sections(alarm, location => PreviewNavigation(state, alarm, location));
                     ResolvedCollections = PreviewContent.Collections(alarm, location => PreviewNavigation(state, alarm, location), EnumCaptions.From(state));
+                    ResolvedParameters = PreviewContent.Parameters(alarm, location => PreviewNavigation(state, alarm, location));
                 }
                 CompiledXml = snapshot.Success ? state.Response.CompiledXml : null;
                 XmlPreviewMessage = !snapshot.Success ? "Compiled XML is unavailable until all project errors are resolved."
@@ -106,9 +110,11 @@ namespace Alarmlist.VisualStudio.UI
             }
             Notify(nameof(ResolvedFields)); Notify(nameof(ResolvedSections)); Notify(nameof(ResolvedPreviewMessage));
             Notify(nameof(ResolvedCollections));
+            Notify(nameof(ResolvedParameters));
             Notify(nameof(CompiledXml)); Notify(nameof(XmlPreviewMessage)); Notify(nameof(PreviewContext));
             Notify(nameof(CanUseProjectPreview));
             SelectedPreviewRow?.GoToSourceCommand.Refresh();
+            RefreshExplanationTargets(state, CurrentAlarm());
         }
 
         private DelegateCommand PreviewNavigation(ProjectAnalysisState state, AnalysisAlarm alarm, AnalysisLocation location)

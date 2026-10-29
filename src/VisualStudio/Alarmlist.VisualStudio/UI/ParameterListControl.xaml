@@ -108,9 +108,11 @@
             <GridView AllowsColumnReorder="False">
               <GridViewColumn x:Name="NameColumn" Header="Name" Width="180">
                 <GridViewColumn.CellTemplate><DataTemplate>
-                  <TextBox Style="{StaticResource CellEditor}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
+                  <StackPanel><TextBox Style="{StaticResource CellEditor}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                            IsReadOnly="{Binding IsNameReadOnly}"
                            AutomationProperties.Name="{Binding NameAutomationName}" AutomationProperties.HelpText="{Binding RowHelp}" />
+                    <ui:ExplainValueButton ActionName="{Binding Name, StringFormat=Explain this value for parameter {0}}" />
+                  </StackPanel>
                 </DataTemplate></GridViewColumn.CellTemplate>
               </GridViewColumn>
               <GridViewColumn x:Name="ValueColumn" Header="Value" Width="280">

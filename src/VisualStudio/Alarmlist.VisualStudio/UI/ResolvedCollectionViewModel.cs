@@ -29,7 +29,7 @@ namespace Alarmlist.VisualStudio.UI
             Label = "Entry " + (index + 1);
             Fields = BindingCollection.Create(entry.Fields.Select(field => new ResolvedFieldViewModel(
                 definition?.Fields.FirstOrDefault(item => item.Name == field.Name)?.Label ?? field.Name,
-                (captions ?? EnumCaptions.Fallback).Display(definition?.Fields.FirstOrDefault(item => item.Name == field.Name), field), entry.IsInherited, field.DefiningAlarm,
+                !field.IsValueAvailable ? "(unavailable)" : (captions ?? EnumCaptions.Fallback).Display(definition?.Fields.FirstOrDefault(item => item.Name == field.Name), field), entry.IsInherited, field.DefiningAlarm,
                 field.ValueLocation, navigate(field.ValueLocation), field)));
         }
     }

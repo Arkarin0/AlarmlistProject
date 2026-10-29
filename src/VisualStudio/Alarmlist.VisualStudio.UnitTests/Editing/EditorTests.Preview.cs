@@ -142,7 +142,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 Assert.Equal("Unsaved", session.View.ResolvedFields[2].Value);
                 session.Buffer.SetText(ChildAlarm.Replace(">Base<", ">Missing<"));
                 session.Analyze();
-                Assert.Empty(session.View.ResolvedFields);
+                Assert.All(session.View.ResolvedFields.Skip(1), field => Assert.Equal("(unavailable)", field.Value));
+                Assert.True(session.View.CanExplainValue(session.View.ResolvedFields.Single(field => field.Name == "Name")));
                 Assert.Null(session.View.CompiledXml);
                 Assert.Contains("could not be resolved", session.View.ResolvedPreviewMessage);
             }

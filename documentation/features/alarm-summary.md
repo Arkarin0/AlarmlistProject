@@ -26,6 +26,12 @@ Filter/sort rows, double-click to navigate to source, and use Ctrl+C or
 in `.almproj.user`, without changing source or compiled output. Summary language
 is independent of build culture selection.
 
+Choose **Explain this value** beside a selected alarm's fields, parameters,
+procedure titles/entries or collection values. The expandable read-only Explanation
+section shows chosen contributors and source links. Invalid and abstract values
+remain marked unavailable in the details; their explanation can show partial or
+deferred steps. See [Explain this value](value-explanations.md).
+
 Custom scalar columns use their declared labels and visibility. Collections have
 separate columns with List/Concatenated presentation or rebuilt complex-record
 templates. Cells initially show up to ten entries with expansion; copy includes

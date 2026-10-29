@@ -121,3 +121,12 @@ exercises stay unchanged. Focused SDK tests pass on both frameworks and desktop
 hosts; native DefaultSharedExample passes on both IDEs. The checked-in playground
 is prepared and builds all three formats. Validation evidence is recorded in the
 milestone plan.
+
+Milestone 14 iteration 6 adds the Explain this value feature reference and links
+from Alarm Summary and Visual Studio editing. It covers chosen contributors,
+source navigation, invalid/deferred states, saved/unsaved input rules, private
+drafts, freshness and bounded step pages. Compiler/bridge API reference remains
+in contributor documentation. Full host unit checks (844) and native explanation
+checks on both IDE versions pass; actual evidence is in MILESTONE-14.md. A guided
+explanation tutorial and integrated shared/library/custom-definition acceptance
+remain iteration 7 work.

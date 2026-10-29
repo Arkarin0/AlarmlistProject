@@ -60,6 +60,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.InRange(Y(Header(groups[1])) - (Y(Header(procedure)) + Header(procedure).ActualHeight), 0, 2);
                     Assert.True(Y(Header(groups[0])) + Header(groups[0]).ActualHeight <= Y(groups[0]) + groups[0].ActualHeight);
                     control.Width = 600; InheritanceAdornerTests.Pump();
+                    // Wrapping and value actions can change preceding entry heights.
+                    // Reach the group using its resized layout before checking pinning.
+                    Scroll(Y(groups[1]) + scroll.VerticalOffset + 180);
                     Assert.InRange(Y(Header(groups[1])) - (Y(Header(procedure)) + Header(procedure).ActualHeight), 0, 2);
                     procedure.IsExpanded = false; InheritanceAdornerTests.Pump();
                     Assert.Equal(0, ((TranslateTransform)Header(procedure).RenderTransform).Y);

@@ -53,6 +53,14 @@ namespace Alarmlist.VisualStudio.Editor
             if (!IsPinned && _project?.IsProjectSelected != true) _control.PreviewView.DataContext = _context.Source;
         }
 
+        internal void ShowExplanation(IPreviewView source)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            _project?.SelectProject(null);
+            _control.PreviewView.DataContext = source;
+            _control.PreviewView.ShowExplanation();
+        }
+
         internal void InitializePinnedProject(ProjectSummaryIdentity identity)
         {
             ThreadHelper.ThrowIfNotOnUIThread();

@@ -377,9 +377,14 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             }
         }
 
-        private sealed class DesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings
+        private sealed class DesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings, IDesignerExplanation
         {
             public Func<ProjectUserSetting> PreviewLayout { get; set; }
+            public Func<ProjectAnalysisState, AnalysisExplanationTarget, CancellationToken, Task<ExplanationResponse>> ExplainHandler { get; set; }
+            public int ExplanationWindows { get; private set; }
+            public Task<ExplanationResponse> ExplainAsync(ProjectAnalysisState state, AnalysisExplanationTarget target, CancellationToken token)
+                => ExplainHandler?.Invoke(state, target, token) ?? Task.FromResult(new ExplanationResponse(AnalysisAvailability.UnsupportedContract, "No explanation handler."));
+            public void ShowExplanation(IPreviewView source) { ExplanationWindows++; }
             public ProjectUserSetting GetPreviewLayout() => PreviewLayout?.Invoke();
             public event EventHandler Changed;
             public int Subscribers => Changed?.GetInvocationList().Length ?? 0;

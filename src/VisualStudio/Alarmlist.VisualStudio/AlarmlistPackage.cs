@@ -47,6 +47,14 @@ namespace Alarmlist.VisualStudio
             }
         }
 
+        internal void ShowExplanation(Alarmlist.VisualStudio.UI.IPreviewView source)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var window = (AlarmlistPreviewWindow)FindToolWindow(typeof(AlarmlistPreviewWindow), 0, true);
+            ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
+            window.ShowExplanation(source);
+        }
+
         protected override async Task InitializeAsync(CancellationToken cancellationToken, System.IProgress<ServiceProgressData> progress)
         {
             IComponentModel components = (IComponentModel)await GetServiceAsync(typeof(SComponentModel));

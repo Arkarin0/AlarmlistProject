@@ -83,6 +83,13 @@ and semantic definition fingerprints unchanged. Ordinary analysis/builds retain 
 explanation graphs. Capture chosen contributors in compiler evaluation; never
 reconstruct semantics in the host. Entry targets carry defining source/version,
 not effective indices; revalidate captured inputs before publication/navigation.
+The read-only Explanation section belongs to Alarm Summary. Designer actions must
+preserve private drafts; block requests while drafts or culture changes are pending.
+Clear obsolete results/cancel requests on input/context/target changes. Present
+shared compiler steps once, in bounded pages; never rebuild dependencies in WPF.
+Native acceptance uses Area=ValueExplanation on both IDE hosts, sequentially with
+other desktop suites. New fixtures should use VisualStudioSession.MainWindowHandle
+so a floating tool window cannot be mistaken for the owned IDE's main window.
 [Milestone 12](src/VisualStudio/MILESTONE-12.md) uses the native XML completion
 presenter with host lexical context and generated descriptors; compiler-owned
 expression/reference semantics remain in detached analysis. Native XML completion

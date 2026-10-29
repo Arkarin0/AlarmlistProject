@@ -17,12 +17,17 @@ namespace Alarmlist.VisualStudio.UI
             => BindingCollection.Create(new[] { new ResolvedFieldViewModel("FullyQualifiedName", alarm.Origin.FullyQualifiedName,
                 false, alarm.Origin, alarm.Origin.Location, navigate(alarm.Origin.Location)) }
                 .Concat(alarm.Fields.Select(field => new ResolvedFieldViewModel(Definition.AlarmDefinition.Fields.FirstOrDefault(item => item.Name == field.Name)?.Label ?? field.Name,
-                    field.State == AnalysisFieldValueState.Absent ? null : (captions ?? EnumCaptions.Fallback).Display(Definition.AlarmDefinition.Fields.FirstOrDefault(item => item.Name == field.Name), field),
+                    !field.IsValueAvailable ? "(unavailable)" : field.State == AnalysisFieldValueState.Absent ? null : (captions ?? EnumCaptions.Fallback).Display(Definition.AlarmDefinition.Fields.FirstOrDefault(item => item.Name == field.Name), field),
                     field.IsInherited, field.DefiningAlarm, field.ValueLocation, navigate(field.ValueLocation), field))));
 
         public static IReadOnlyList<ResolvedSectionViewModel> Sections(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate)
             => BindingCollection.Create(alarm.ProcedureSections.Select(section => new ResolvedSectionViewModel(section,
                 entry => navigate(entry.Origin.Location))));
+
+        public static IReadOnlyList<ResolvedFieldViewModel> Parameters(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate)
+            => BindingCollection.Create(alarm.Properties.Select(property => new ResolvedFieldViewModel(property.Name,
+                property.IsValueAvailable ? property.EffectiveValue : "(unassigned or unavailable)", false, property.ValueOrigin?.Alarm,
+                property.ValueOrigin?.Location, navigate(property.ValueOrigin?.Location))));
 
         public static IReadOnlyList<ResolvedCollectionViewModel> Collections(AnalysisAlarm alarm, Func<AnalysisLocation, DelegateCommand> navigate, EnumCaptions captions = null)
             => BindingCollection.Create(alarm.Collections.Select(collection => new ResolvedCollectionViewModel(collection, navigate, captions)));

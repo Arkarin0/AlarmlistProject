@@ -12,6 +12,12 @@ namespace Alarmlist.VisualStudio.UI
     {
         ProjectUserSetting GetPreviewLayout();
     }
+
+    internal interface IDesignerExplanation
+    {
+        Task<ExplanationResponse> ExplainAsync(ProjectAnalysisState state, AnalysisExplanationTarget target, CancellationToken token);
+        void ShowExplanation(IPreviewView source);
+    }
     // Each view chooses its own project context. Host adapters own dispatch,
     // buffer identity, current-input validation and document navigation.
     internal interface IDesignerAnalysis : IDisposable

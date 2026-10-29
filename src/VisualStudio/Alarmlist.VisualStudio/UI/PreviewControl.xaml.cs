@@ -15,6 +15,7 @@ namespace Alarmlist.VisualStudio.UI
         public PreviewControl()
         {
             InitializeComponent();
+            ValueExplanationCommands.Bind(this, () => DataContext as IValueExplanationView, ShowExplanation);
             DataObject.AddCopyingHandler(this, OnCopyingText);
             DataContextChanged += (sender, args) => { UpdateSortArrows(); BindColumnLayout(); };
             Loaded += (sender, args) => { UpdateSortArrows(); BindColumnLayout(); };
@@ -24,6 +25,12 @@ namespace Alarmlist.VisualStudio.UI
         }
         private IPreviewView View => DataContext as IPreviewView;
         internal void ShowAlarmTable() => PreviewTabs.SelectedIndex = 0;
+        internal void ShowExplanation()
+        {
+            PreviewTabs.SelectedIndex = 1;
+            if (DataContext is IValueExplanationView view) view.Explanation.IsExpanded = true;
+            ExplanationSection.BringIntoView();
+        }
         internal int SelectedTabIndex { get => PreviewTabs.SelectedIndex; set => PreviewTabs.SelectedIndex = value; }
 
         private void OnPreviewToolbarSizeChanged(object sender, SizeChangedEventArgs args)

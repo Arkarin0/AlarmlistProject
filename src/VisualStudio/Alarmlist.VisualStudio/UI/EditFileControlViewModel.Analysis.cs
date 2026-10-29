@@ -89,6 +89,7 @@ namespace Alarmlist.VisualStudio.UI
         private void InitializeAnalysis(IDesignerAnalysis analysis)
         {
             _analysis = analysis;
+            Explanation = new ValueExplanationViewModel(analysis);
             AcceptReference = ApplyReferenceSelectionAsync;
             ValidateCompletion = ValidateCompletionAsync;
             ApplyReferenceCommand = new DelegateCommand(() => StartAnalysisAction(ApplyReference),
@@ -313,6 +314,7 @@ namespace Alarmlist.VisualStudio.UI
                         ? GetSection(alarm, section.Name) : null, entry => ProcedureNavigation(section.Name, entry), !HasPending);
                 RefreshProcedureSearch();
                 RefreshCollections(!identityDraft && alarm?.IsResolved == true ? alarm : null, !HasPending && alarm?.IsResolved == true, captions);
+                RefreshExplanationTargets(state, alarm);
                 if (!ReferenceEquals(_choicesState, state) || !ReferenceEquals(_choicesAlarm, alarm))
                 {
                     _choicesState = state;
@@ -425,6 +427,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             if (_disposed) return;
             _disposed = true;
+            Explanation?.Dispose();
             ClearCurrentAlarm();
             _choicesState = null; _choicesAlarm = null;
             RefreshPreview(null, null);

@@ -221,3 +221,43 @@ artifacts/log/Debug/Milestone14/Iteration5 and the fixture directories above.
 Diff, paths and contract consistency reviewed; git diff --check passed. Existing
 TestHelper CA1416 warning remains. No scoped blocker. Designer/Summary UI, native
 acceptance, tutorial and timing/allocation reporting remain incomplete.
+
+### Iteration 6 — complete
+
+- Added designer and selected-alarm summary actions for fields, custom/context
+  parameters, procedure titles/effective/excluded entries and collection fields.
+  Current presentation objects map to detached source/version targets. Summary
+  details keep failed/abstract targets visible with explicit unavailable values.
+- Added an expandable read-only Explanation section: context, raw/resolved/
+  canonical values, states, diagnostics, shared step IDs, expandable details and
+  source links. Presentation reveals 50 steps per page without recursive graph
+  duplication. No source editing or draft application is performed.
+- The host performs a cancellable SDK request off the UI thread and revalidates
+  saved/unsaved inputs before publication and navigation. Target/context/input
+  changes clear results; pending drafts and culture writes block actions. Existing
+  physical and read-only package navigation handles located contributors.
+- Added field-specific button automation peers and keyboard-capable routed actions.
+  Native fixture explicitly identifies the owned IDE window, restores the designer
+  after an XML-buffer edit, and accepts a collapsed/recreated empty explanation.
+  Feature documentation and repository/authoring guidance accompany the behavior.
+- Updated regression expectations for inspectable failed/abstract targets, selected
+  the literal chooser by its actual action identity, and measured sticky-header
+  pinning after reaching a group in its resized layout. No sticky-header production
+  behavior was changed. Native screenshots reviewed for read-only result/layout.
+
+| Gate | Result |
+| --- | --- |
+| Full extension unit | 844 passed, zero failures/skips; Iteration6/HostFinal. |
+| Focused target/draft/cancellation/navigation/paging/layout | 29 passed before the final two culture-write cases; Iteration6/Focused. Both added cases pass in the full suite. |
+| Native VS 2022 | ValueExplanation passed, keyboard activation, fallback, draft preservation/cancellation, language/unsaved-input invalidation, custom parameter, procedure title/entry and ALMX source navigation; TestResults/08f517e8802d4b9e9be2e3fb4669b430, workspace ValueExplanation/2022/328934be2dd049bda8669151a286a2d5. |
+| Native VS 2026 | Same scenario passed; TestResults/ea2f356c86354dc28dbd2c5660fc1d2e, workspace ValueExplanation/2026/79a8f7fbcadf41dd8c3a358399cd3f30. |
+| Final themed presentation | Native VS 2026 repeat passed after explicit themed step-header foregrounds; TestResults/e6f76a5f46bb4381940e1babb5d571b0, workspace ValueExplanation/2026/34933c90553d4c289021a95661080dd6. Focused Explanation unit selection: 9 passed; Iteration6/PresentationFinal. |
+
+Commands: full dotnet test extension unit project with --no-restore -v quiet
+-m:1 -nr:false --logger trx, then sequential eng/test-visualstudio.ps1
+-VisualStudioPath <host> -RootSuffix Alarmlist13Exp -Filter Area=ValueExplanation
+for each IDE. Native fixtures preserved ALMX bytes and prior compiled output.
+No existing user IDE was closed. Diff, documentation links and paths reviewed;
+git diff --check passed. No scoped blocker. Shared/library/custom-fork integrated
+acceptance, complete downstream regressions, tutorial and timing/allocation evidence
+remain iteration 7 work.

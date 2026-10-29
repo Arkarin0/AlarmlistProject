@@ -327,6 +327,14 @@ mark unavailable row values and disable compiled XML. See the scope-specific dra
 behavior above.
 
 The bridge accepts analysis contract 8 and loads the resolved SDK's net472 compiler
+in an isolated domain. Explain this value uses the same captured project inputs
+and contract through a cancellable on-demand request, with validation before
+publication and source navigation. Designer actions open Alarm Summary's read-only
+Explanation section; private drafts and pending culture changes block requests.
+The native Area=ValueExplanation fixture covers both IDE hosts. See the
+[feature reference](../../documentation/features/value-explanations.md).
+
+The analysis service loads the resolved SDK's net472 compiler
 in a dedicated AppDomain. It returns immutable host-owned data and reports missing,
 incompatible, or failed SDKs explicitly. Bridge owners must analyze and dispose off
 the UI thread, recreating the bridge after SDK/configuration changes. The project

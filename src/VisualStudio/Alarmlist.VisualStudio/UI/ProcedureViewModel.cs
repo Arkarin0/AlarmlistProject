@@ -158,10 +158,11 @@ namespace Alarmlist.VisualStudio.UI
     internal sealed class ProcedureAnalysisRow : ObservableObject
     {
         private readonly bool _valuesCurrent;
+        private readonly bool _showUnavailable;
         private bool _showCleared = true;
         public AnalysisEntry Entry { get; }
         public string Kind => Entry.Kind == AnalysisStepKind.Instruction ? "Step" : Entry.Kind.ToString();
-        public string Text => _valuesCurrent && Entry.IsValueAvailable ? Entry.Text : Entry.RawText;
+        public string Text => _valuesCurrent && Entry.IsValueAvailable ? Entry.Text : _showUnavailable ? "(unavailable)" : Entry.RawText;
         public bool IsInherited => Entry.IsInherited;
         public bool IsExcluded => Entry.ExcludedBy != null;
         public bool IsVisible => !IsExcluded || ShowCleared;
@@ -174,10 +175,11 @@ namespace Alarmlist.VisualStudio.UI
         public string ExclusionText => Entry.ExcludedBy == null ? string.Empty : "Excluded by Clear in " + OriginLabel(Entry.ExcludedBy);
         public DelegateCommand GoToSourceCommand { get; }
 
-        public ProcedureAnalysisRow(AnalysisEntry entry, int? number, DelegateCommand navigation, bool valuesCurrent = true)
+        public ProcedureAnalysisRow(AnalysisEntry entry, int? number, DelegateCommand navigation, bool valuesCurrent = true, bool showUnavailable = false)
         {
             Entry = entry;
             _valuesCurrent = valuesCurrent;
+            _showUnavailable = showUnavailable;
             Label = number.HasValue ? number.Value + ". " + Kind : Kind;
             GoToSourceCommand = navigation;
         }

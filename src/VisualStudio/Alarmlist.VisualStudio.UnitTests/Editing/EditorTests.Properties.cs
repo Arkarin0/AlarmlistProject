@@ -183,7 +183,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             {
                 session.Analyze(PropertyBase);
                 Assert.True(session.View.IsAbstract);
-                Assert.Empty(session.View.ResolvedFields);
+                Assert.All(session.View.ResolvedFields.Skip(1), field => Assert.Equal("(unavailable)", field.Value));
+                Assert.True(session.View.CanExplainValue(session.View.ResolvedFields.Single(field => field.Name == "Code")));
                 Assert.Contains("template", session.View.ResolvedPreviewMessage);
                 Assert.DoesNotContain("<Alarm>", session.View.CompiledXml);
                 Assert.Equal("$(par1)", session.Field("Code").EffectiveValue);

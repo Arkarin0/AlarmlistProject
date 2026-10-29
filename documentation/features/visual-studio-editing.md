@@ -53,5 +53,9 @@ Save. Undo restores the prior value. Compiled files change only after Build.
 
 ## Related features and tutorials
 
+Use [Explain this value](value-explanations.md) to inspect a designer value's
+compiler contributors in Alarm Summary. Commit or cancel private drafts first;
+the action never commits a draft.
+
 See [edit and inspect alarms](../tutorials/edit-and-inspect-alarms.md),
 [Alarm Summary](alarm-summary.md), and [completion](xml-completion.md).

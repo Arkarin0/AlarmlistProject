@@ -155,6 +155,7 @@ namespace Alarmlist.VisualStudio.UI
 
     internal sealed class CollectionAnalysisRow : ObservableObject
     {
+        public AnalysisCollectionEntry Entry { get; }
         private bool _expanded;
         private readonly Action<bool> _expansionChanged;
         public bool IsExpanded { get => _expanded; set { if (_expanded == value) return; _expanded = value; _expansionChanged?.Invoke(value); Notify(); } }
@@ -170,6 +171,7 @@ namespace Alarmlist.VisualStudio.UI
         public CollectionAnalysisRow(AlarmCollectionDescriptor definition, AnalysisCollectionEntry entry, DelegateCommand navigation,
             bool expanded = true, Action<bool> expansionChanged = null, EnumCaptions captions = null)
         {
+            Entry = entry;
             _expanded = expanded; _expansionChanged = expansionChanged;
             IsSimple = definition.Kind == "Simple"; IsInherited = entry.IsInherited;
             Label = "Entry " + (entry.Origin.Index + 1);

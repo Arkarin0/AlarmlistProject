@@ -73,7 +73,7 @@ namespace Alarmlist.VisualStudio.Editor
         }
     }
 
-    internal sealed class VsDesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings
+    internal sealed class VsDesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings, IDesignerExplanation
     {
         private readonly DesignerAnalysisNotifications _notifications;
         private readonly ProjectAnalysisRegistry _registry;
@@ -138,6 +138,35 @@ namespace Alarmlist.VisualStudio.Editor
         {
             if (_disposed || state == null || !ReferenceEquals(state, Current)) return false;
             return await ProjectAnalysisValidation.InputsMatchAsync(_inputs, state, token) && !_disposed && ReferenceEquals(state, Current);
+        }
+
+        public async Task<ExplanationResponse> ExplainAsync(ProjectAnalysisState state, AnalysisExplanationTarget target, CancellationToken token)
+        {
+            if (!await IsCurrentAsync(state, token)) return new ExplanationResponse(AnalysisAvailability.InvalidInput, "Inputs changed. Explain the value again.");
+            var response = await Task.Run(() =>
+            {
+                token.ThrowIfCancellationRequested();
+                var opened = SdkAnalysisBridge.Open(state.Project.CompilerPath);
+                using (var bridge = opened.Bridge)
+                {
+                    if (!(bridge is ISdkExplanationBridge explanation)) return new ExplanationResponse(opened.Availability, opened.Message);
+                    var context = state.Project.Context.WithSavedInputs(state.Resources, state.Lookups, state.Configurations, state.Analyzers);
+                    if (state.Libraries != null) context = context.WithLibraries(state.Libraries.References);
+                    return explanation.Explain(state.Inputs.Select(input => input.Input), target, token, context);
+                }
+            }, token);
+            return await IsCurrentAsync(state, token) ? response
+                : new ExplanationResponse(AnalysisAvailability.InvalidInput, "Inputs changed. Explain the value again.");
+        }
+
+        public void ShowExplanation(IPreviewView source)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (_disposed) return;
+            if (!(_services.GetService(typeof(SVsShell)) is IVsShell shell)) return;
+            var packageId = typeof(AlarmlistPackage).GUID;
+            ErrorHandler.ThrowOnFailure(shell.LoadPackage(ref packageId, out IVsPackage package));
+            (package as AlarmlistPackage)?.ShowExplanation(source);
         }
 
         public void Navigate(AnalysisLocation location, string expectedText)

@@ -19,7 +19,7 @@ namespace Alarmlist.VisualStudio.UI
 
     // Owns only detached analysis/presentation data and a host adapter. It never
     // creates an editor, source buffer or compiler, or applies designer drafts.
-    internal sealed class ProjectPreviewViewModel : ObservableObject, IPreviewView, IDisposable
+    internal sealed partial class ProjectPreviewViewModel : ObservableObject, IPreviewView, IDisposable
     {
         private readonly IDesignerAnalysis _analysis;
         private readonly string _pinnedProjectPath;
@@ -51,6 +51,7 @@ namespace Alarmlist.VisualStudio.UI
         public string Error { get; private set; }
         public bool CanUseProjectPreview => !_disposed && !_busy && _state != null && ReferenceEquals(_state, Current);
         public IReadOnlyList<ResolvedFieldViewModel> ResolvedFields { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
+        public IReadOnlyList<ResolvedFieldViewModel> ResolvedParameters { get; private set; } = Array.Empty<ResolvedFieldViewModel>();
         public IReadOnlyList<ResolvedSectionViewModel> ResolvedSections { get; private set; } = Array.Empty<ResolvedSectionViewModel>();
         public IReadOnlyList<ResolvedCollectionViewModel> ResolvedCollections { get; private set; } = Array.Empty<ResolvedCollectionViewModel>();
         public string ResolvedPreviewMessage { get; private set; }
@@ -71,6 +72,7 @@ namespace Alarmlist.VisualStudio.UI
         public ProjectPreviewViewModel(IDesignerAnalysis analysis, string pinnedProjectPath = null)
         {
             _analysis = analysis;
+            Explanation = new ValueExplanationViewModel(analysis);
             _pinnedProjectPath = pinnedProjectPath;
             _analysis.Changed += OnAnalysisChanged;
             PreviewColumns.Changed += OnColumnsChanged;
@@ -191,15 +193,17 @@ namespace Alarmlist.VisualStudio.UI
             AnalysisAlarm alarm = _selected?.Alarm;
             ProjectAnalysisState state = _state;
             ResolvedFields = Array.Empty<ResolvedFieldViewModel>(); ResolvedSections = Array.Empty<ResolvedSectionViewModel>();
+            ResolvedParameters = Array.Empty<ResolvedFieldViewModel>();
             ResolvedCollections = Array.Empty<ResolvedCollectionViewModel>();
             ResolvedPreviewMessage = state == null ? AlarmTableMessage : alarm == null ? "Select a row in Alarm table to inspect its resolved values."
                 : !alarm.HasEvaluatedValues ? "This alarm could not be evaluated. See live project diagnostics."
                 : state.Response.Snapshot.Success ? BufferGuidance : "This alarm is resolved. Other project errors prevent compiled XML.";
-            if (alarm?.HasEvaluatedValues == true)
+            if (alarm != null)
             {
                 ResolvedFields = PreviewContent.Fields(alarm, location => Navigation(state, location, alarm), EnumCaptions.From(state));
                 ResolvedSections = PreviewContent.Sections(alarm, location => Navigation(state, location, alarm));
                 ResolvedCollections = PreviewContent.Collections(alarm, location => Navigation(state, location, alarm), EnumCaptions.From(state));
+                ResolvedParameters = PreviewContent.Parameters(alarm, location => Navigation(state, location, alarm));
             }
             CompiledXml = state?.Response.Snapshot.Success == true ? state.Response.CompiledXml : null;
             XmlPreviewMessage = state == null ? AlarmTableMessage : !state.Response.Snapshot.Success
@@ -208,11 +212,14 @@ namespace Alarmlist.VisualStudio.UI
                 : "Read-only output for the whole project, including shared unsaved ALMX text. No output file is written.";
             Notify(nameof(ResolvedFields)); Notify(nameof(ResolvedSections)); Notify(nameof(ResolvedPreviewMessage));
             Notify(nameof(ResolvedCollections));
+            Notify(nameof(ResolvedParameters));
             Notify(nameof(CompiledXml)); Notify(nameof(XmlPreviewMessage));
             RefreshCommands();
+            RefreshExplanationTargets();
         }
         private void RefreshCommands()
         {
+            System.Windows.Input.CommandManager.InvalidateRequerySuggested();
             Notify(nameof(CanUseProjectPreview));
             _selected?.GoToSourceCommand.Refresh();
             foreach (ResolvedFieldViewModel field in ResolvedFields) field.GoToSourceCommand.Refresh();
@@ -269,7 +276,7 @@ namespace Alarmlist.VisualStudio.UI
         }
         private async Task ChangeCultureAsync(AnalysisProject project, string culture)
         {
-            _cultureBusy = true; Refresh();
+            _cultureBusy = true; Explanation.Invalidate(); Refresh();
             try { await _analysis.SetPreviewCultureAsync(project, culture, _lifetime.Token); if (!_disposed && SamePath(project.ProjectPath, _projectPath)) Error = null; }
             catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
             catch (Exception exception) when (SdkAnalysisBridge.IsRecoverable(exception)) { if (!_disposed && SamePath(project.ProjectPath, _projectPath)) Error = exception.Message; }
@@ -279,6 +286,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             if (_disposed) return;
             _disposed = true; InvalidatePreviewActions(); _lifetime.Cancel();
+            Explanation.Dispose();
             _analysis.Changed -= OnAnalysisChanged; _analysis.Dispose();
             PreviewColumns.Changed -= OnColumnsChanged; PreviewColumns.Dispose();
             _state = null; _allRows = AlarmTableRows = Array.Empty<AlarmPreviewRow>(); _selected = null;
