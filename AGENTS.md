@@ -110,6 +110,12 @@ Native UndoContext supplies linked Undo; SetAborted both rolls back and closes i
 Keep version/text and Query Edit checks before mutation, and verify accepted text
 before completing the group. XML token edits use compiler-owned decoded-to-source
 spans; reject spans crossing comments/markup rather than discarding authored XML.
+Reference capture observes existing catalogue provider/override selections; keep
+those callbacks opt-in and share lookup token binding with evaluation. Preserve
+literal lookup/label text and capture formatted placeholders in the parser.
+Generated fields, sibling names, built-in names and definition caption keys are
+searchable but immutable. Propagate ambiguous ownership and refuse guessed edits;
+unavailable inheritance must not make a binder's partial choice a proven use.
 [Milestone 12](src/VisualStudio/MILESTONE-12.md) uses the native XML completion
 presenter with host lexical context and generated descriptors; compiler-owned
 expression/reference semantics remain in detached analysis. Native XML completion

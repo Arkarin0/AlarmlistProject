@@ -54,7 +54,7 @@ namespace Alarmlist.Text
                 path.Elements().Where(member => member.Name != ns + "Segment").Select(member => new LookupMember(
                     (string)member.Attribute("Key"), member.Name.LocalName, Label(snapshot, member),
                     member.Elements(ns + "Metadata").Select(metadata => new LookupMetadata(
-                        (string)metadata.Attribute("Name"), (string)metadata.Attribute("Value"), Location(snapshot, metadata.Attribute("Value")))),
+                        (string)metadata.Attribute("Name"), (string)metadata.Attribute("Value"), Location(snapshot, metadata.Attribute("Value")), Location(snapshot, metadata.Attribute("Name")))),
                     Location(snapshot, member.Attribute("Key")))),
                 Location(snapshot, path.Attribute("Key")))),
                 document.Root.Elements(ns + "List").Select(list => new LookupList((string)list.Attribute("Key"),
@@ -62,11 +62,12 @@ namespace Alarmlist.Text
                         (string)entry.Attribute("Description"), entry.Attribute("DescriptionKey") == null ? null
                             : new LookupLabel((string)entry.Attribute("DescriptionKey"), Location(snapshot, entry.Attribute("DescriptionKey"))),
                         entry.Elements(ns + "Metadata").Select(metadata => new LookupMetadata((string)metadata.Attribute("Name"),
-                            (string)metadata.Attribute("Value"), Location(snapshot, metadata.Attribute("Value")))), Location(snapshot, entry.Attribute("Key")))),
+                            (string)metadata.Attribute("Value"), Location(snapshot, metadata.Attribute("Value")), Location(snapshot, metadata.Attribute("Name")))), Location(snapshot, entry.Attribute("Key")))),
                     Location(snapshot, list.Attribute("Key")))),
                 document.Root.Elements(ns + "Template").SelectMany(template => template.Elements(ns + "Argument").Select(argument =>
                     new LookupArgumentBinding((string)template.Attribute("Key"), (string)argument.Attribute("Name"),
-                        (string)argument.Attribute("List"), Location(snapshot, argument.Attribute("Name"))))));
+                        (string)argument.Attribute("List"), Location(snapshot, argument.Attribute("Name")), Location(snapshot, template.Attribute("Key")),
+                        Location(snapshot, argument.Attribute("List"))))));
         }
 
         private static LookupLabel Label(LookupTextSnapshot snapshot, XElement element)

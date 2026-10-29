@@ -50,9 +50,11 @@ namespace Alarmlist.Lookups
 
     internal sealed class LookupMetadata
     {
-        internal LookupMetadata(string name, string value, SourceLocation location) { Name = name; Value = value; Location = location; }
+        internal LookupMetadata(string name, string value, SourceLocation location, SourceLocation nameLocation = null)
+        { Name = name; Value = value; Location = location; NameLocation = nameLocation ?? location; }
         internal string Name { get; }
         internal string Value { get; }
         internal SourceLocation Location { get; }
+        internal SourceLocation NameLocation { get; }
     }
 }

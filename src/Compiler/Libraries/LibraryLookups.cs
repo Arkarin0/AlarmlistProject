@@ -11,7 +11,8 @@ namespace Alarmlist.Libraries
 {
     internal static class LibraryLookups
     {
-        internal static LookupDocument Merge(IEnumerable<LookupTextSnapshot> local, LibraryGraph graph, DiagnosticBag diagnostics)
+        internal static LookupDocument Merge(IEnumerable<LookupTextSnapshot> local, LibraryGraph graph, DiagnosticBag diagnostics,
+            Action<LookupDocument, LibraryIdentity> observeDocument = null, Action<object, object> observeOverride = null)
         {
             var documents = new List<Owned<LookupDocument>>();
             foreach (LibraryArtifact library in graph.Artifacts)
@@ -34,7 +35,11 @@ namespace Alarmlist.Libraries
             return new LookupDocument(paths, mergedLists, bindings);
 
             void Read(LookupTextSnapshot snapshot, LibraryIdentity owner)
-                => documents.Add(new Owned<LookupDocument>(LookupReader.Read(snapshot, diagnostics), owner));
+            {
+                var document = LookupReader.Read(snapshot, diagnostics);
+                documents.Add(new Owned<LookupDocument>(document, owner));
+                observeDocument?.Invoke(document, owner);
+            }
 
             IEnumerable<T> Select<T>(IEnumerable<Owned<T>> values, Func<T, string> key, Func<T, SourceLocation> location,
                 Func<T, Diagnostic> duplicate)
@@ -42,6 +47,11 @@ namespace Alarmlist.Libraries
                 foreach (var identity in values.GroupBy(item => key(item.Value), StringComparer.Ordinal))
                 {
                     var owners = identity.GroupBy(item => item.Owner).ToArray();
+                    if (observeOverride != null)
+                        foreach (var owner in owners)
+                            foreach (var overriding in owners.Where(other => Overrides(other.Key, owner.Key)))
+                                foreach (var original in owner)
+                                    foreach (var replacement in overriding) observeOverride(replacement.Value, original.Value);
                     foreach (var owner in owners)
                     {
                         // An override cannot repair duplicate definitions in its dependency.

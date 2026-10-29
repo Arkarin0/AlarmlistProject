@@ -18,15 +18,16 @@ namespace Alarmlist.Lookups
         private readonly HashSet<string> _ambiguousEntries = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _ambiguousBindings = new HashSet<string>(StringComparer.Ordinal);
 
-        internal LookupCatalogue(IEnumerable<LookupTextSnapshot> snapshots, LibraryGraph graph = null)
+        internal LookupCatalogue(IEnumerable<LookupTextSnapshot> snapshots, LibraryGraph graph = null,
+            Action<LookupDocument, LibraryIdentity> observeDocument = null, Action<object, object> observeOverride = null)
         {
             var diagnostics = new DiagnosticBag();
             var paths = new List<LookupPath>();
             var lists = new List<LookupList>();
             var bindings = new List<LookupArgumentBinding>();
             IEnumerable<LookupDocument> documents = graph == null
-                ? snapshots.Select(snapshot => LookupReader.Read(snapshot, diagnostics))
-                : new[] { LibraryLookups.Merge(snapshots, graph, diagnostics) };
+                ? snapshots.Select(snapshot => Read(snapshot))
+                : new[] { LibraryLookups.Merge(snapshots, graph, diagnostics, observeDocument, observeOverride) };
             foreach (LookupDocument document in documents)
             {
                 lists.AddRange(document.Lists);
@@ -76,6 +77,13 @@ namespace Alarmlist.Lookups
                 .Select(group => new LookupList(group.Key, group.SelectMany(list => list.Entries), group.First().Location)).ToArray());
             Bindings = bindings.AsReadOnly();
             Diagnostics = diagnostics.AsReadOnly();
+
+            LookupDocument Read(LookupTextSnapshot snapshot)
+            {
+                var document = LookupReader.Read(snapshot, diagnostics);
+                observeDocument?.Invoke(document, null);
+                return document;
+            }
         }
 
         internal IReadOnlyList<LookupPath> Paths { get; }

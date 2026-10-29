@@ -56,10 +56,11 @@ actions and presentation follow in iteration 6.
 
 ## Internal reference discovery and rename preview
 
-Milestone 14 follow-up iteration 10 adds request-owned ReferenceCapture for alarm
-and custom parameter symbols. This is an internal foundation; no public reference
+Milestone 14 follow-up iterations 10–11 add request-owned ReferenceCapture for
+alarms, custom parameters, localization keys, lookups, groups and immutable
+generated/built-in names. This is an internal foundation; no public reference
 API or SDK transport is exposed yet, and analysis contract 8 remains active.
-Follow iterations 11–14 for resource/lookup/group coverage, contract 9, solution
+Follow iterations 12–14 for contract 9, solution
 coordination, commands and integrated acceptance. Ordinary analysis does not
 construct or retain a reference index.
 
@@ -87,10 +88,34 @@ declarations remain searchable and read-only; project text overlay capture is
 also part of iteration 12.
 
 Internal Preview recomputes binding, validates names/collisions, deduplicates
-physical edits and compiles a temporary ALMX overlay. It returns versioned edits
+physical edits and compiles temporary ALMX/resource/lookup overlays. It returns versioned edits
 and proposed diagnostics without mutating input snapshots. Unavailable/read-only
 findings, conflicting shared tokens and new diagnostics require acknowledgement
 before any eventual host Apply. Invalid names, declaration collisions and
-overlapping replacements cannot apply. Selection/exclusion, resource/project
+overlapping replacements cannot apply. Selection/exclusion, project/dependency
 overlays, all-culture coordination and UI acknowledgement are later gates;
 do not expose this internal prototype as a completed rename feature.
+
+Resource and lookup constructors expose opt-in observation at their existing
+provider registration/override selections. No observer/index is retained by
+ordinary catalogue construction. Normal evaluation and capture share
+LookupTokenBinding; the host must not reproduce these rules. Resource cultures
+join within actual providers, and dependency overrides join through the existing
+catalogue choices. Lookup lists preserve their additive entry selection rules.
+Path/member/metadata, list/entry and template/argument namespaces retain their
+actual ownership; unrelated member names do not collide across different paths.
+
+Capture covers localization keys in expressions, lookup labels and template
+bindings, selected translated expressions, formatted call arguments and parser-owned
+placeholder spans across related resource cultures. Caption/metadata/list values
+stay literal. Procedure groups join through actual inheritance and expose their
+controlling Clear directives without rewriting entry text. Generated field names,
+record sibling names, well-known names and definition caption keys are searchable
+but immutable. Resource-key renames report immutable caption uses as skipped.
+
+When the compiler rejects an alarm's reference chain, capture reports unavailable
+consumer binding rather than converting a partial binder choice into a proven
+expression use. Duplicate declarations and ambiguous owners propagate to their
+members. Known physical spans remain available for navigation, with no replacement
+for ambiguous identities. Imported definitions remain read-only; partial rename
+requires explicit acknowledgement before any eventual host application.

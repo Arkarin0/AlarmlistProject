@@ -44,11 +44,15 @@ namespace Alarmlist.Lookups
 
     internal sealed class LookupArgumentBinding
     {
-        internal LookupArgumentBinding(string templateKey, string argumentName, string listKey, SourceLocation location)
-        { TemplateKey = templateKey; ArgumentName = argumentName; ListKey = listKey; Location = location; }
+        internal LookupArgumentBinding(string templateKey, string argumentName, string listKey, SourceLocation location,
+            SourceLocation templateLocation = null, SourceLocation listLocation = null)
+        { TemplateKey = templateKey; ArgumentName = argumentName; ListKey = listKey; Location = location;
+            TemplateLocation = templateLocation ?? location; ListLocation = listLocation ?? location; }
         internal string TemplateKey { get; }
         internal string ArgumentName { get; }
         internal string ListKey { get; }
         internal SourceLocation Location { get; }
+        internal SourceLocation TemplateLocation { get; }
+        internal SourceLocation ListLocation { get; }
     }
 }

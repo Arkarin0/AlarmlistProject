@@ -270,5 +270,18 @@ namespace Alarmlist.Core.UnitTests.Analysis
             Assert.Equal("north", new AlarmCompiler().CompileSnapshots(new[] { shared }, north).AlarmList.Single().Code);
             Assert.Equal("south", new AlarmCompiler().CompileSnapshots(new[] { shared }, south).AlarmList.Single().Code);
         }
+
+        [Fact]
+        public void AmbiguousInheritanceNeverCreatesAProvenParameterUseFromTheBindersFirstChoice()
+        {
+            var input = Input(Alarm("Base", "<Properties><Property Name='P' Value='one'/></Properties><Code>$(P)</Code>")
+                + Alarm("Base", "<Properties><Property Name='P' Value='two'/></Properties><Code>$(P)</Code>")
+                + Alarm("Child", "<ReferenceName>Base</ReferenceName>"));
+            var data = ReferenceCapture.Capture(new[] { input }, CompilationContext.Empty);
+            Assert.DoesNotContain(data.Occurrences, use => use.Role == "Expression");
+            Assert.Contains(data.Coverage, message => message.Contains("consumer binding unavailable"));
+            foreach (var parameter in data.Symbols.Where(symbol => symbol.Kind == "Parameter"))
+                Assert.False(ReferenceCapture.Preview(new[] { input }, CompilationContext.Empty, parameter.Id, "Next").IsApplicable);
+        }
     }
 }

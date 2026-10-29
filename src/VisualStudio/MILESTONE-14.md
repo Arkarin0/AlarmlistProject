@@ -580,3 +580,57 @@ Iteration 10 — complete:
   toolset/graph freshness, command/UI and integrated performance/native gates stay
   in iterations 11–14. Analysis contract 8, analyzer 5, library 3, export 1 and
   semantic definition fingerprints are unchanged.
+
+Iteration 11 — complete:
+
+- Added opt-in catalogue observation at existing resource and lookup provider/
+  override selections. Callbacks are supplied only by reference requests; ordinary
+  catalogue construction retains no reference index or observer. Added parser-owned
+  formatted-placeholder spans without changing expression evaluation.
+- Resource capture now records culture families within actual providers and
+  connects overrides through the catalogue's existing dependency selections.
+  Resource/lookup source maps include attribute locations. Translated parameter
+  references follow the actual selected culture/parent fallback; escaped tokens
+  and comments remain literal. Internal preview now builds temporary resource/
+  lookup snapshots alongside ALMX overlays; ordinary saved-input rules are intact.
+- Added path/member/metadata/list/entry/template/argument identities and exact
+  references. Factor LookupTokenBinding out of the evaluator and use it for both
+  evaluation and capture, preserving the original selection/diagnostic rules.
+  List identities follow actual additive merging; path/entry/binding overrides
+  follow existing provider selection. Namespace collisions use actual parent
+  families, so unrelated members in other paths remain independent. Template
+  resource declarations, translations and formatted argument/placeholder names
+  coordinate together. Metadata/list/caption payloads remain literal.
+- Procedure groups connect through actual inheritance, expose Clear controls and
+  preserve title/entry text. Generated scalar/collection fields, sibling names and
+  well-known names are searchable and immutable. Resource-key renames report
+  immutable generated caption references. Ambiguous ownership propagates to
+  members; invalid alarm chains report unavailable consumer binding using the
+  evaluator's existing HasValidReferenceChain guard, rather than exposing a
+  binder's partial choice as a proven expression use. Known physical spans remain
+  navigable without guessed replacements.
+- Added 35 compiler cases for all lookup kinds, parent/culture families, translated
+  parameters, formatted placeholders, scoped collisions, package overrides,
+  unrelated/ambiguous providers, group/Clear behavior, generated/built-in names,
+  deferred template hints and ambiguous inheritance/ownership. Full compiler
+  acceptance passes: 807 net472 / 809 net8.0, Iteration11/CompilerAcceptance.
+- Generated-definition acceptance passes via eng/test-alarm-collections.ps1:
+  AlarmCollections/74b6f20f1a424569ac73f0174202b114. Both frameworks pass 119 checks
+  with procedures disabled, 117 enabled and 13 minimum-count checks. New checks
+  cover simple/record/inherited/translated parameter edits, immutable sibling
+  definitions, literal defaults, caption-key partial findings and procedure guards.
+- Task unit/integration checks pass: 124 / four per framework, in
+  Iteration11/TaskUnit and TaskIntegration. Final rebuilt package acceptance
+  passes five per framework (Iteration11/PackageAcceptance); affected isolated
+  SDK bridge checks pass 56 (Iteration11/Bridge), retaining contract-8 consumers.
+  Initial Foundation passed 42 focused
+  localization/library cases per framework; a compiler-server build stall was
+  interrupted and retried with UseSharedCompilation=false. Final compiler tests
+  above use the ordinary build settings. No IDE or unrelated process was stopped
+  for that compiler retry.
+- Contributor API documentation and durable repository guidance updated; user
+  documentation/commands remain iteration 13. Solution/configuration/culture
+  coordination, project/dependency overlays, selection revalidation, completed
+  public APIs and contract-9 transport remain iteration 12. Changed contributor
+  links, paths, diff and required checks reviewed. Analysis 8,
+  analyzer 5, library 3, export 1 and definition fingerprints are unchanged.

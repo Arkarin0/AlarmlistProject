@@ -15,6 +15,8 @@ namespace Alarmlist.Evaluation
         internal bool HasLocalization => Tokens.Any(token => token.Kind == "loc");
         internal IEnumerable<ExpressionToken> Tokens => _parts.Where(part => part.Token != null).Select(part => part.Token);
         internal IEnumerable<string> PlaceholderNames => _parts.Where(part => part.Placeholder).Select(part => part.Text).Distinct(StringComparer.Ordinal);
+        internal IEnumerable<NamedExpressionSpan> Placeholders => _parts.Where(part => part.Placeholder)
+            .Select(part => new NamedExpressionSpan(part.Text, part.Start, part.Text.Length));
 
         internal static bool IsValidName(string name)
         {
@@ -66,7 +68,7 @@ namespace Alarmlist.Evaluation
                     if (!IsValidName(name)) return null;
                     expression._parts.Add(new Part(literal.ToString()));
                     literal.Clear();
-                    expression._parts.Add(new Part(name, placeholder: true));
+                    expression._parts.Add(new Part(name, placeholder: true, start: i + 1));
                     i = end + 1;
                     continue;
                 }
@@ -241,10 +243,11 @@ namespace Alarmlist.Evaluation
 
         private readonly struct Part
         {
-            internal Part(string text, ExpressionToken token = null, bool placeholder = false) { Text = text; Token = token; Placeholder = placeholder; }
+            internal Part(string text, ExpressionToken token = null, bool placeholder = false, int start = 0) { Text = text; Token = token; Placeholder = placeholder; Start = start; }
             internal string Text { get; }
             internal ExpressionToken Token { get; }
             internal bool Placeholder { get; }
+            internal int Start { get; }
         }
     }
 
@@ -273,6 +276,14 @@ namespace Alarmlist.Evaluation
     internal readonly struct ExpressionSpan
     {
         internal ExpressionSpan(int start, int length) { Start = start; Length = length; }
+        internal int Start { get; }
+        internal int Length { get; }
+    }
+
+    internal readonly struct NamedExpressionSpan
+    {
+        internal NamedExpressionSpan(string name, int start, int length) { Name = name; Start = start; Length = length; }
+        internal string Name { get; }
         internal int Start { get; }
         internal int Length { get; }
     }

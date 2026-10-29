@@ -16,7 +16,7 @@ namespace Alarmlist.Localization
             = new Dictionary<string, Dictionary<string, ResourceEntry>>(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<ResourceEntry> _ambiguous = new HashSet<ResourceEntry>();
 
-        internal ResourceCatalogue(IEnumerable<ResxTextSnapshot> snapshots)
+        internal ResourceCatalogue(IEnumerable<ResxTextSnapshot> snapshots, Action<ResourceEntry, LibraryIdentity> observeEntry = null)
         {
             var diagnostics = new DiagnosticBag();
             var entries = new List<ResourceEntry>();
@@ -38,6 +38,7 @@ namespace Alarmlist.Localization
                 foreach (ResourceEntry entry in ResxReader.Read(snapshot, culture, diagnostics))
                 {
                     entries.Add(entry);
+                    observeEntry?.Invoke(entry, null);
                     if (values.TryGetValue(entry.Key, out ResourceEntry previous))
                     {
                         diagnostics.Add(new Diagnostic(DiagnosticDescriptors.DuplicateResourceKey, entry.Key, culture)
@@ -52,7 +53,8 @@ namespace Alarmlist.Localization
             Diagnostics = diagnostics.AsReadOnly();
         }
 
-        internal ResourceCatalogue(IEnumerable<ResxTextSnapshot> snapshots, LibraryGraph graph)
+        internal ResourceCatalogue(IEnumerable<ResxTextSnapshot> snapshots, LibraryGraph graph,
+            Action<ResourceEntry, LibraryIdentity> observeEntry = null, Action<ResourceEntry, ResourceEntry> observeOverride = null)
         {
             var diagnostics = new DiagnosticBag();
             var entries = new List<ResourceEntry>();
@@ -69,6 +71,11 @@ namespace Alarmlist.Localization
                 _cultures.Add(culture.Key, values);
                 foreach (var key in culture.GroupBy(entry => entry.Key, StringComparer.Ordinal))
                 {
+                    if (observeOverride != null)
+                        foreach (var entry in key)
+                            foreach (var other in key.Where(other => !Equals(owners[entry], owners[other])
+                                && (owners[other] == null || (owners[entry] != null && graph.DependsOn(owners[other], owners[entry])))))
+                                observeOverride(other, entry);
                     // Choose maximal owners before culture fallback. Same-owner duplicates
                     // remain errors even when another owner overrides their identity.
                     ResourceEntry[] candidates = key.Where(entry => !key.Any(other =>
@@ -91,6 +98,7 @@ namespace Alarmlist.Localization
                 {
                     entries.Add(entry);
                     owners.Add(entry, owner);
+                    observeEntry?.Invoke(entry, owner);
                     if (catalogue.IsAmbiguous(entry)) _ambiguous.Add(entry);
                 }
             }

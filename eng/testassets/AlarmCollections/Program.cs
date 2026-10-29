@@ -84,8 +84,36 @@ internal static class Program
         Check(!cycle.Success && cycleGraph.Nodes.Any(node => node.Kind == "Cycle") && cycleGraph.Nodes[cycleGraph.Roots["CollectionField:Checks:0:Copy"]].State == "Invalid", "Collection cycle explanation terminates");
     }
 
+    private static void CheckReferences()
+    {
+        string baseProcedure = AlarmDefinition.HasTestProcedure ? "<TestProcedure><Group Name='Actions'><Step>$(P)</Step></Group></TestProcedure>" : "";
+        string childProcedure = AlarmDefinition.HasTestProcedure ? "<TestProcedure><Group Name='Actions'><Clear/><Step>$(P)</Step></Group></TestProcedure>" : "";
+        var input = Snapshot(Alarm("<Properties><Property Name='P'/></Properties><Code>$(P)</Code>"
+            + "<Tags><Item>$(P)</Item></Tags><Numbers><Item>$(P)</Item></Numbers>"
+            + Record("<Count>$(P)</Count><Copy>$(item:Count)</Copy><Text>$(loc:TextKey)</Text>") + baseProcedure, "Base", true)
+            + Alarm("<ReferenceName>Base</ReferenceName><Properties><Property Name='P' Value='4'/></Properties><Tags><Clear/><Item>$(P)</Item></Tags>"
+                + childProcedure, "Child"));
+        var context = new CompilationContext(new[] { new ResxTextSnapshot("<root><data name='TextKey'><value>$(P)</value></data>"
+            + "<data name='Priority.Low'><value>Low</value></data><data name='Priority.High'><value>High</value></data></root>", "text.en.resx", 3, "en") }, "en");
+        var data = Alarmlist.Analysis.ReferenceCapture.Capture(new[] { input }, context);
+        var parameter = data.Symbols.First(symbol => symbol.Kind == "Parameter");
+        var preview = Alarmlist.Analysis.ReferenceCapture.Preview(new[] { input }, context, parameter.Id, "Next");
+        Check(preview.IsApplicable && preview.Edits.Count == (AlarmDefinition.HasTestProcedure ? 10 : 8), "Generated simple/record/procedure/translated parameter rename spans");
+        Check(!preview.Diagnostics.Any(diagnostic => diagnostic.Severity == Alarmlist.Diagnostics.DiagnosticSeverity.Error), "Generated rename overlay compiles");
+        Check(!data.Symbols.Any(symbol => symbol.Kind == "Parameter" && symbol.Name == "Literal"), "Collection defaults remain literal during reference capture");
+        var sibling = data.Symbols.Single(symbol => symbol.Kind == "DefinitionField" && symbol.Name == "Collection:Checks.Count");
+        Check(data.Occurrences.Any(use => use.Family == sibling.Family && use.Role == "BuiltIn")
+            && !Alarmlist.Analysis.ReferenceCapture.Preview(new[] { input }, context, sibling.Id, "NewCount").IsApplicable, "Record sibling definitions are searchable and immutable");
+        var caption = data.Symbols.Single(symbol => symbol.Kind == "Resource" && symbol.Name == "Priority.Low");
+        var captionPreview = Alarmlist.Analysis.ReferenceCapture.Preview(new[] { input }, context, caption.Id, "Priority.Next");
+        Check(captionPreview.IsApplicable && captionPreview.RequiresAcknowledgement
+            && captionPreview.Skipped.Any(message => message.Contains("caption keys are immutable")), "Caption resource rename reports immutable definition use");
+        Check(data.Symbols.Any(symbol => symbol.Kind == "Group") == AlarmDefinition.HasTestProcedure, "References respect procedure capability");
+    }
+
     public static void Main()
     {
+        CheckReferences();
         if (AlarmDefinition.Collections.Single(collection => collection.Name == "Tags").MinCount == 1)
         {
             Fails("", "ALM0030");

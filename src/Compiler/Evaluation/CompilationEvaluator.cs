@@ -451,35 +451,19 @@ namespace Alarmlist.Evaluation
 
             private Output.ExportText ResolveLookupText(ExpressionToken token, SourceLocation location, out SourceLocation definition)
             {
-                definition = null;
-                string[] keys = token.Key.Split('#');
-                if (token.Kind == "list")
+                var binding = LookupTokenBinding.Resolve(token, _owner._lookups);
+                definition = binding.Definition;
+                if (binding.Failure != null) return MissingLookupText(token, binding.Failure, location, definition);
+                if (binding.Entry != null)
                 {
-                    if (!_owner._lookups.TryGetEntry(keys[0], keys[1], out LookupListEntry entry))
-                        return MissingLookupText(token, "missing or ambiguous list entry '" + token.Key + "'", location, null);
-                    definition = entry.Location;
+                    var entry = binding.Entry;
                     _explanation?.Definition(token.Key, entry.Value, definition);
                     return new Output.ExportText(_owner._culture == LocalizationCulture.Keyword ? token.Raw : entry.Value,
                         PropertyExpression.LiteralText(entry.Value).Segments);
                 }
-                if (!_owner._lookups.TryGetPath(keys[0], out LookupPath path))
-                    return MissingLookupText(token, "missing or ambiguous path '" + keys[0] + "'", location, null);
-                definition = path.Location;
-                LookupMember member = null;
-                LookupMetadata metadata = null;
-                if (token.Kind != "path")
-                {
-                    member = path.Members.FirstOrDefault(candidate => candidate.Key == keys[1]);
-                    if (member == null || (token.Kind == "property" && member.Kind != "Property") || (token.Kind == "button" && member.Kind != "Button"))
-                        return MissingLookupText(token, "missing member or incorrect member kind '" + keys[1] + "'", location, definition);
-                    definition = member.Location;
-                    if (token.Kind == "meta")
-                    {
-                        metadata = member.Metadata.FirstOrDefault(candidate => candidate.Name == keys[2]);
-                        if (metadata == null) return MissingLookupText(token, "missing metadata '" + keys[2] + "'", location, definition);
-                        definition = metadata.Location;
-                    }
-                }
+                LookupPath path = binding.Path;
+                LookupMember member = binding.Member;
+                LookupMetadata metadata = binding.Metadata;
                 _explanation?.Definition(token.Key, metadata?.Value, definition);
                 if (metadata != null) return new Output.ExportText(_owner._culture == LocalizationCulture.Keyword ? token.Raw : metadata.Value,
                     PropertyExpression.LiteralText(metadata.Value).Segments);

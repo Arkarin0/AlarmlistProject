@@ -29,6 +29,7 @@ namespace Alarmlist.Analysis
         private readonly Dictionary<PropertyDefinition, Symbol> _parameters = new Dictionary<PropertyDefinition, Symbol>();
         private readonly List<Symbol> _symbols = new List<Symbol>();
         private readonly List<Use> _uses = new List<Use>();
+        private readonly HashSet<AlarmSyntaxNode> _unboundAlarms = new HashSet<AlarmSyntaxNode>();
         private readonly List<string> _coverage = new List<string>();
         private readonly string _replacement;
         private string _requestStamp;
@@ -62,6 +63,7 @@ namespace Alarmlist.Analysis
                 }
                 binder.AddSourceText(input.CreateSourceText());
             }
+            capture.AddAuxiliarySources(context);
             var binding = LibraryCompilation.Include(binder.Bind(), context);
             capture.Observe(binding.SyntaxTree);
             token.ThrowIfCancellationRequested();
@@ -72,6 +74,9 @@ namespace Alarmlist.Analysis
 
         private void Observe(AlarmSyntaxTree tree)
         {
+            ObserveResources(tree.LibraryGraph);
+            ObserveLookups(tree.LibraryGraph);
+            ObserveGeneratedCaptions();
             AddParameters(_context.Properties, "Project:" + _context.ProjectPath);
             foreach (var file in tree.Files)
             {
@@ -90,7 +95,13 @@ namespace Alarmlist.Analysis
                 .Where(group => group.Count() > 1).Select(group => group.Key), StringComparer.Ordinal);
             foreach (var alarm in tree.Alarms)
                 if (duplicateAlarms.Contains(alarm.FullyQualifiedName) || string.IsNullOrWhiteSpace(alarm.FullyQualifiedName))
+                {
                     _alarms[alarm].Ambiguous = true;
+                    foreach (var property in alarm.Properties) _parameters[property].Ambiguous = true;
+                }
+            foreach (var alarm in tree.Alarms)
+                if (!CompilationEvaluator.HasValidReferenceChain(alarm, duplicateAlarms)) _unboundAlarms.Add(alarm);
+            ObserveGroups(tree);
             foreach (var alarm in tree.Alarms)
             {
                 _token.ThrowIfCancellationRequested();
@@ -99,7 +110,6 @@ namespace Alarmlist.Analysis
                         null, 0, alarm.ReferenceName.Length);
                 else if (!string.IsNullOrWhiteSpace(alarm.ReferenceName))
                     _coverage.Add("Unbound or ambiguous alarm reference: " + alarm.ReferenceName);
-                var bindings = BindParameters(alarm, alarm.SourceFile);
                 // An inherited declaration and a child's explicit declaration are
                 // connected through this actual inheritance chain, not equal names
                 // in unrelated files/alarms.
@@ -107,12 +117,19 @@ namespace Alarmlist.Analysis
                 {
                     for (var ancestor = alarm.Reference; ancestor != null; ancestor = ancestor.Reference)
                     {
+                        if (_alarms[ancestor].Ambiguous) break;
                         var inherited = ancestor.Properties.Where(item => string.Equals(item.Name, property.Name, StringComparison.OrdinalIgnoreCase)).ToArray();
                         if (inherited.Length == 0) continue;
                         if (inherited.Length == 1) Join(_parameters[property], _parameters[inherited[0]]);
                         break;
                     }
                 }
+                if (_unboundAlarms.Contains(alarm))
+                {
+                    _coverage.Add("Alarm consumer binding unavailable: " + alarm.FullyQualifiedName);
+                    continue;
+                }
+                var bindings = BindParameters(alarm, alarm.SourceFile);
                 ObserveExpressions(alarm, bindings);
             }
             foreach (var file in tree.Files) BindParameters(null, file);
@@ -136,6 +153,7 @@ namespace Alarmlist.Analysis
         {
             foreach (var field in Definition.AlarmDefinition.Fields)
             {
+                ObserveDefinitionUse(field.Name, alarm.GetFieldLocation(field.Name), alarm);
                 AlarmSyntaxNode origin = alarm.GetFieldSource(field.Name);
                 if (origin != null) ObserveExpression(origin.GetLocalFieldValue(field.Name), origin.GetFieldLocation(field.Name), alarm, bindings);
                 // Include authored values even if this alarm's inherited selection
@@ -153,20 +171,33 @@ namespace Alarmlist.Analysis
                 foreach (var entry in group.Entries.OfType<TestProcedureStepSyntax>()) ObserveExpression(entry.Text, entry.Location, alarm, bindings);
             }
             foreach (var descriptor in Definition.AlarmDefinition.Collections)
+            {
+                ObserveDefinitionUse("Collection:" + descriptor.Name, alarm.GetLocalCollection(descriptor.Name)?.Location, alarm);
                 foreach (var item in alarm.GetEffectiveCollection(descriptor.Name)
                     .Concat(alarm.GetLocalCollection(descriptor.Name)?.Entries ?? Enumerable.Empty<IAlarmCollectionItem>())
                     .OfType<AlarmCollectionItemSyntax>().Distinct())
                     foreach (var field in descriptor.Fields)
-                        ObserveExpression(item.GetFieldValue(field.Name), item.GetFieldLocation(field.Name), alarm, bindings, descriptor.Kind == "Complex");
+                    {
+                        if (ReferenceEquals(item.Origin, alarm)) ObserveDefinitionUse("Collection:" + descriptor.Name + "." + field.Name, item.GetFieldLocation(field.Name), alarm);
+                        ObserveExpression(item.GetFieldValue(field.Name), item.GetFieldLocation(field.Name), alarm, bindings,
+                            descriptor.Kind == "Complex", collectionName: descriptor.Name);
+                    }
+            }
         }
 
-        private void ObserveExpression(string raw, SourceLocation location, AlarmSyntaxNode alarm, Dictionary<string, Symbol> bindings, bool record = false)
+        private void ObserveExpression(string raw, SourceLocation location, AlarmSyntaxNode alarm, Dictionary<string, Symbol> bindings,
+            bool record = false, bool formatted = false, bool translation = false, string collectionName = null)
         {
             if (raw == null) return;
-            var expression = PropertyExpression.Parse(raw, allowItemReferences: record);
+            var expression = PropertyExpression.Parse(raw, placeholders: formatted, allowItemReferences: record);
             if (expression == null)
             {
                 _coverage.Add("Invalid expression at " + Address(location));
+                return;
+            }
+            if (translation && expression.HasLocalization)
+            {
+                _coverage.Add("Invalid nested localization expression at " + Address(location));
                 return;
             }
             foreach (var token in expression.Tokens) ObserveToken(token);
@@ -179,7 +210,11 @@ namespace Alarmlist.Analysis
                         AddUse(parameter, "Expression", location, alarm.FullyQualifiedName, null, token.KeyStart, token.KeyLength);
                     else if (!token.Key.StartsWith("Alarmlist", StringComparison.OrdinalIgnoreCase))
                         _coverage.Add("Unbound parameter: " + token.Key + " at " + Address(location));
+                    else ObserveWellKnown(token, location, alarm);
                 }
+                else if (token.Kind == "loc") ObserveLocalization(token, location, alarm, bindings, collectionName);
+                else if (token.Kind == "item") ObserveSibling(token, location, alarm, collectionName);
+                else ObserveLookupToken(token, location, alarm);
                 foreach (var argument in token.Arguments.Values)
                     if (argument.Token != null) ObserveToken(argument.Token);
             }
@@ -204,14 +239,13 @@ namespace Alarmlist.Analysis
 
         private static string FileScope(AlarmSyntaxTree file) => "File:" + (file?.Properties.FirstOrDefault()?.Location?.FilePath ?? "unavailable");
 
-        private Symbol AddSymbol(string kind, string name, SourceLocation location)
+        private Symbol AddSymbol(string kind, string name, SourceLocation location, bool readOnly = false)
         {
             bool mapped = location != null && _sources.TryGetValue(location.FilePath, out var source)
                 && location.SourceVersion == source.Input.Version;
             string stamp = mapped ? _sources[location.FilePath].Stamp : "external";
-            var symbol = new Symbol(kind + ":" + _requestStamp + ":" + stamp + ":" + Address(location) + ":" + _symbols.Count, kind, name, location, !mapped);
+            var symbol = new Symbol(kind + ":" + _requestStamp + ":" + stamp + ":" + Address(location) + ":" + _symbols.Count, kind, name, location, !mapped || readOnly);
             _symbols.Add(symbol);
-            if (!mapped) _coverage.Add("Read-only or uncaptured declaration: " + kind + " " + name + " at " + Address(location));
             return symbol;
         }
 
@@ -219,12 +253,12 @@ namespace Alarmlist.Analysis
         {
             MappedTextEdit edit = null;
             string unavailable = null;
-            if (location == null || !_sources.TryGetValue(location.FilePath, out var source) || location.SourceVersion != source.Input.Version)
+            if ((role == "Declaration" && symbol.ReadOnly) || location == null || !_sources.TryGetValue(location.FilePath, out var source) || location.SourceVersion != source.Input.Version)
                 unavailable = "The defining source is read-only or was not captured.";
             else
             {
-                var element = source.Find(location);
-                XObject value = attribute == null ? element : element?.Attribute(attribute);
+                var node = source.Find(location);
+                XObject value = attribute == null ? node : (node as XElement ?? (node as XAttribute)?.Parent)?.Attribute(attribute);
                 if (value == null || !source.Map.Values.TryGetValue(value, out var mapped)
                     || !mapped.TryReplace(start, length, _replacement ?? symbol.Name ?? string.Empty, out edit))
                     unavailable = "The token has no contiguous editable source span.";
@@ -235,14 +269,16 @@ namespace Alarmlist.Analysis
         private ReferenceData Freeze()
         {
             _token.ThrowIfCancellationRequested();
+            foreach (var symbol in _symbols)
+                if (symbol.Owner != null && Root(symbol.Owner).Ambiguous) { symbol.Ambiguous = true; Root(symbol).Ambiguous = true; }
             var ambiguous = new HashSet<Symbol>(_symbols.Where(symbol => symbol.Ambiguous).Select(Root));
             foreach (var symbol in ambiguous) _coverage.Add("Ambiguous or invalid declaration: " + symbol.Kind + " " + symbol.Name);
             return new ReferenceData(_symbols.Select(symbol => new ReferenceSymbol(symbol.Id, Root(symbol).Id, symbol.Kind,
-                symbol.Name, symbol.Location, symbol.ReadOnly)), _uses.GroupBy(use => (Root(use.Symbol).Id, use.Role,
+                symbol.Name, symbol.Location, symbol.ReadOnly, symbol.Owner == null ? null : Root(symbol.Owner).Id)), _uses.GroupBy(use => (Root(use.Symbol).Id, use.Role,
                     Address(use.Location), use.Consumer, use.Edit?.Start, use.Edit?.Length, use.Unavailable)).Select(group => group.First())
                 .Select(use => new ReferenceOccurrence(Root(use.Symbol).Id,
-                use.Role, use.Location, use.Consumer, ambiguous.Contains(Root(use.Symbol)) ? null : use.Edit?.Start,
-                ambiguous.Contains(Root(use.Symbol)) ? null : use.Edit?.Length, ambiguous.Contains(Root(use.Symbol)) ? null : use.Edit?.Text,
+                use.Role, use.Location, use.Consumer, use.Edit?.Start,
+                use.Edit?.Length, ambiguous.Contains(Root(use.Symbol)) ? null : use.Edit?.Text,
                 ambiguous.Contains(Root(use.Symbol)) ? "Ambiguous or invalid binding; no replacement was guessed." : use.Unavailable)), _coverage, _diagnostics);
         }
 
@@ -281,7 +317,7 @@ namespace Alarmlist.Analysis
         private static void Join(Symbol left, Symbol right)
         {
             left = Root(left); right = Root(right);
-            if (!ReferenceEquals(left, right)) right.Parent = left;
+            if (!ReferenceEquals(left, right)) { left.Ambiguous |= right.Ambiguous; right.Parent = left; }
         }
 
         private sealed class Symbol
@@ -293,6 +329,7 @@ namespace Alarmlist.Analysis
             internal readonly bool ReadOnly;
             internal bool Ambiguous;
             internal Symbol Parent;
+            internal Symbol Owner;
         }
         private sealed class Use
         {
@@ -308,14 +345,31 @@ namespace Alarmlist.Analysis
             internal readonly AlmxTextSnapshot Input;
             internal readonly XmlValueSourceMap Map;
             internal readonly string Stamp;
-            private readonly Dictionary<(int Line, int Column), XElement> _elements;
+            private readonly Dictionary<(int Line, int Column), XObject> _elements;
+            private readonly int[] _lineOffsets;
             internal Source(AlmxTextSnapshot input, CancellationToken token)
             {
                 Input = input; Map = XmlValueSourceMap.Parse(input.Text, token);
-                _elements = Map.Document.Root.DescendantsAndSelf().ToDictionary(element => (((IXmlLineInfo)element).LineNumber, ((IXmlLineInfo)element).LinePosition));
+                _elements = Map.Document.Root.DescendantsAndSelf().SelectMany(element => new XObject[] { element }.Concat(element.Attributes()))
+                    .ToDictionary(node => (((IXmlLineInfo)node).LineNumber, ((IXmlLineInfo)node).LinePosition));
+                var lines = new List<int> { 0 };
+                for (int index = 0; index < input.Text.Length; index++)
+                {
+                    if (input.Text[index] == '\r') { if (index + 1 < input.Text.Length && input.Text[index + 1] == '\n') index++; lines.Add(index + 1); }
+                    else if (input.Text[index] == '\n') lines.Add(index + 1);
+                }
+                _lineOffsets = lines.ToArray();
                 using (var hash = SHA256.Create()) Stamp = BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(input.Text)));
             }
-            internal XElement Find(SourceLocation location) => _elements.TryGetValue((location.LineNumber, location.ColumnNumber), out var element) ? element : null;
+            internal XObject Find(SourceLocation location) => _elements.TryGetValue((location.LineNumber, location.ColumnNumber), out var element) ? element : null;
+            internal int Offset(SourceLocation location)
+            {
+                if (location.LineNumber < 1 || location.LineNumber > _lineOffsets.Length) throw new InvalidOperationException("A source line is outside its captured source.");
+                int offset = _lineOffsets[location.LineNumber - 1] + location.ColumnNumber - 1;
+                if (offset < 0 || offset > Input.Text.Length - (location.EndColumnNumber - location.ColumnNumber))
+                    throw new InvalidOperationException("A compiler source location is outside its captured source.");
+                return offset;
+            }
         }
     }
 }

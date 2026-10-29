@@ -11,9 +11,9 @@ namespace Alarmlist.Analysis
     // These records retain no syntax, binders, XML objects or deferred delegates.
     internal sealed class ReferenceSymbol
     {
-        internal ReferenceSymbol(string id, string family, string kind, string name, SourceLocation location, bool readOnly)
+        internal ReferenceSymbol(string id, string family, string kind, string name, SourceLocation location, bool readOnly, string scope = null)
         {
-            Id = id; Family = family; Kind = kind; Name = name; Location = location; IsReadOnly = readOnly;
+            Id = id; Family = family; Kind = kind; Name = name; Location = location; IsReadOnly = readOnly; Scope = scope;
         }
         internal string Id { get; }
         internal string Family { get; }
@@ -21,6 +21,7 @@ namespace Alarmlist.Analysis
         internal string Name { get; }
         internal SourceLocation Location { get; }
         internal bool IsReadOnly { get; }
+        internal string Scope { get; }
     }
 
     internal sealed class ReferenceOccurrence

@@ -49,16 +49,26 @@ namespace Alarmlist.Analysis
             var data = Capture(inputs, context, token, newName);
             var target = data.Symbols.SingleOrDefault(symbol => symbol.Id == symbolId);
             if (target == null) return Failed("The symbol or captured inputs changed. Find references again.");
+            if (target.Kind == "DefinitionField" || target.Kind == "WellKnown") return Failed("Built-in and generated definition names are immutable.");
             if (string.IsNullOrWhiteSpace(newName)) return Failed("A nonempty name is required.");
             if (target.Kind == "Parameter" && (!Evaluation.PropertyExpression.IsValidName(newName)
                 || newName.StartsWith("Alarmlist", StringComparison.OrdinalIgnoreCase))) return Failed("This parameter name is invalid or reserved.");
+            if ((target.Kind == "Resource" || target.Kind == "Template") && !Localization.ResourceCatalogue.IsValidKey(newName)) return Failed("This localization/template key is invalid.");
+            if (target.Kind == "Group" && !Syntax.ProcedureGroupSyntax.IsValidName(newName)) return Failed("This procedure group name is invalid.");
+            if (target.Kind.StartsWith("Lookup", StringComparison.Ordinal) && !Lookups.LookupCatalogue.IsValidKey(newName)) return Failed("This lookup identity is invalid.");
+            if (target.Kind == "Argument" && !Evaluation.PropertyExpression.IsValidName(newName)) return Failed("This argument name is invalid.");
             try { XmlConvert.VerifyXmlChars(newName); }
             catch (XmlException) { return Failed("The name contains invalid XML characters."); }
-            var comparer = target.Kind == "Alarm" ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
+            var comparer = target.Kind == "Parameter" || target.Kind == "Group" ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
             var consumers = new HashSet<string>(data.Occurrences.Where(use => use.Family == target.Family).Select(use => use.Consumer), StringComparer.Ordinal);
-            foreach (var other in data.Symbols.Where(symbol => symbol.Kind == target.Kind && symbol.Family != target.Family && comparer.Equals(symbol.Name, newName)))
+            var kinds = new HashSet<string>(data.Symbols.Where(symbol => symbol.Family == target.Family).Select(symbol => symbol.Kind), StringComparer.Ordinal);
+            if (kinds.Contains("Resource") || kinds.Contains("Template")) { kinds.Add("Resource"); kinds.Add("Template"); }
+            var scopes = new HashSet<string>(data.Symbols.Where(symbol => symbol.Family == target.Family).Select(symbol => symbol.Scope), StringComparer.Ordinal);
+            foreach (var other in data.Symbols.Where(symbol => kinds.Contains(symbol.Kind) && symbol.Family != target.Family && comparer.Equals(symbol.Name, newName)))
             {
-                if (target.Kind == "Alarm" || data.Occurrences.Any(use => use.Family == other.Family && consumers.Contains(use.Consumer)))
+                bool scoped = target.Kind == "LookupMember" || target.Kind == "LookupMetadata" || target.Kind == "LookupEntry" || target.Kind == "Argument";
+                if (scoped ? scopes.Contains(other.Scope) : target.Kind == "Alarm" || target.Kind == "Resource" || target.Kind == "Template"
+                    || target.Kind == "LookupPath" || target.Kind == "LookupList" || data.Occurrences.Any(use => use.Family == other.Family && consumers.Contains(use.Consumer)))
                     return Failed("The new name collides with another declaration in a consuming context.");
             }
             var uses = data.Occurrences.Where(use => use.Family == target.Family && use.Role != "Binding").ToArray();
@@ -68,7 +78,7 @@ namespace Alarmlist.Analysis
             var physicalFamilies = data.Occurrences.Where(use => use.Start != null)
                 .GroupBy(use => (use.Location.FilePath, use.Start, use.Length))
                 .ToDictionary(group => group.Key, group => group.Select(use => use.Family).Distinct(StringComparer.Ordinal).Count());
-            foreach (var group in uses.Where(use => use.Start != null).GroupBy(use => new { use.Location.FilePath, use.Location.SourceVersion, use.Start, use.Length }))
+            foreach (var group in uses.Where(use => use.Start != null && use.Unavailable == null).GroupBy(use => new { use.Location.FilePath, use.Location.SourceVersion, use.Start, use.Length }))
             {
                 token.ThrowIfCancellationRequested();
                 if (physicalFamilies[(group.Key.FilePath, group.Key.Start, group.Key.Length)] > 1)
@@ -95,8 +105,18 @@ namespace Alarmlist.Analysis
                     text = edit.Apply(text);
                 return new AlmxTextSnapshot(text, input.FilePath, input.Version);
             }).ToArray();
+            string OverlayText(string original, string path)
+            {
+                foreach (var edit in edits.Where(edit => string.Equals(edit.Path, path, StringComparison.OrdinalIgnoreCase)).OrderByDescending(edit => edit.Start)) original = edit.Apply(original);
+                return original;
+            }
+            var overlayContext = new CompilationContext(
+                context.Resources.Select(resource => new ResxTextSnapshot(OverlayText(resource.Text, resource.FilePath), resource.FilePath, resource.Version, resource.Culture)),
+                context.Lookups.Select(lookup => new LookupTextSnapshot(OverlayText(lookup.Text, lookup.FilePath), lookup.FilePath, lookup.Version)),
+                context.Culture, context.ProjectPath, context.Configuration, context.Platform, context.Properties,
+                context.DiagnosticOptions, context.Analyzers).WithLibraries(context.Libraries);
             var compiler = new AlarmCompiler();
-            var after = compiler.AnalyzeSnapshots(overlay, context, false, token);
+            var after = compiler.AnalyzeSnapshots(overlay, overlayContext, false, token);
             // New diagnostics are allowed by the approved partial-rename contract;
             // the final UI must show and explicitly acknowledge their differences.
             var remainingDiagnostics = data.Diagnostics.GroupBy(diagnostic => (diagnostic.Id, diagnostic.Message))
