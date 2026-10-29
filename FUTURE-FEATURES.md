@@ -27,7 +27,7 @@ syntax, open questions and statements about future work in that history.
 | IntelliSense | Designer and scoped ALMX/lookup/project XML completion implemented and validated | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
 | External alarm-definition generation | Implemented for supported scalars and collections | [Milestone 11](src/VisualStudio/MILESTONE-11.md) |
 | Explain this value | Implemented; both-framework and both-host acceptance passed | [Milestone 14](src/VisualStudio/MILESTONE-14.md) |
-| Find All References and safe Rename | Proposed; high priority; unassigned | Proposal below |
+| Find All References and safe Rename | Authorized Milestone 14 follow-up, iterations 8–14; in progress | [Milestone 14](src/VisualStudio/MILESTONE-14.md) |
 | Semantic comparison and Git integration | Proposed; high priority; unassigned | Proposal below |
 | Export-provider interface | Milestone 13 complete: XML/JSON/zenon, external providers and transactional artifacts | [Milestone 13](src/VisualStudio/MILESTONE-13.md) |
 | Change-impact analysis | Proposed; unassigned | Proposal below |
@@ -63,7 +63,10 @@ unavailable or invalid values remain to be defined during milestone planning.
 
 ## Find All References and safe Rename
 
-Proposed on 2026-10-27; high priority; no milestone assigned.
+Authorized on 2026-10-29 as [Milestone 14 follow-up iterations 8–14](src/VisualStudio/MILESTONE-14.md).
+The confirmed plan includes all listed symbol kinds, solution/dependency discovery,
+designer/Summary/XML actions and acknowledged partial renames in unsaved buffers
+with coordinated Undo. Its scope and acceptance supersede the original proposal.
 
 Discover usages of alarms, parameters, localization keys, lookup entries and
 procedure groups. Preview coordinated rename changes across editable project

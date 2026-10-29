@@ -1,7 +1,8 @@
 # Milestone 14 — Explain this value
 
-Status: complete; all seven authorized iterations and required acceptance gates
-passed on 2026-10-29. Timing/allocation limits and evidence are recorded below.
+Status: original iterations 1–7 complete with required acceptance gates passed on
+2026-10-29. Follow-up iterations 8–14 (Find All References and Rename) authorized;
+implementation in progress. Original evidence and performance limits remain below.
 
 ## Outcome and confirmed scope
 
@@ -371,3 +372,82 @@ No essential check is deferred and no scoped implementation blocker remains.
 Package publication and release deployment were not requested. Explanations
 still bind captured input on demand; the allocation/timing figures above describe
 this implementation, with no arbitrary latency or retained-memory guarantee.
+
+## Authorized follow-up — Find All References and Rename
+
+Iterations 8–14 extend this milestone on dev/milestone-14. No branch creation,
+merge or push is authorized by this follow-up. Preserve iterations 1–7 above.
+
+### Confirmed behavior and compatibility
+
+- Provide compiler-owned Find All References and previewed Rename for alarms,
+  custom parameters, localization keys, lookup identities and procedure groups,
+  from designer, Alarm Summary and semantic XML tokens. References results are
+  grouped by definition, physical source and consumer context, with navigation.
+- Use opt-in FindReferencesSnapshots and PreviewRenameSnapshots APIs accepting
+  captured inputs/context, snapshot-bound targets and cancellation. Return detached,
+  immutable identities, declarations, exact source spans, occurrences, diagnostics
+  and coverage; rename also returns versioned replacements and overlay diagnostics.
+  Extend parser/binder capture; never implement semantic matching in the host.
+- Preserve existing binding/case rules. Families follow actual inheritance,
+  overrides, resource providers and consumer bindings; equal text alone is not
+  identity. Coordinate related declarations, translations and overrides. Include
+  group membership/Clear, resource labels, translated/formatted expressions and
+  lookup path/member/metadata/list/entry/template argument bindings. Literal text,
+  comments and escaped expression-like text are not references. Built-ins,
+  generated definitions and packages are searchable but immutable. Report dynamic
+  or ambiguous identities without guessed edits. Preserve XML/entity/CDATA text.
+- Discover known solution projects and reachable dependencies, including unloaded
+  projects where saved capture is possible without targets. Validate active
+  configuration/platform and every configured culture. Explicitly report unavailable
+  projects and excluded configurations; never claim unknown external consumers.
+- Use committed unsaved ALMX and current saved resource/dependency rules. Private
+  drafts block affected actions and are never committed implicitly. Temporary rename
+  validation overlays may include resource/project edits without changing ordinary
+  analysis. Deduplicate physical edits while retaining consumer contexts. Cancel and
+  invalidate stale targets, context, graphs, toolsets or inputs, including navigation.
+- Preview before/after text, skipped findings and diagnostic differences. Allow
+  excluded edit groups and partial rename only after revalidation and explicit
+  acknowledgement of incomplete coverage, remaining references and expected new
+  diagnostics. Invalid names, collisions, overlapping edits and incompatible shared
+  bindings remain non-applicable; partial rename can apply proven edits elsewhere.
+- Open editable documents, perform Query Edit, then recheck every version/input.
+  Apply the approved set atomically as one linked Undo/Redo operation in unsaved
+  buffers. Failure/cancellation rolls back every touched buffer. An editability
+  failure never silently shrinks the set. Explain resource/dependency save needs.
+- Activate analysis contract 9 only with complete public API/transport in iteration
+  12. Preserve analyzer 5, library 3, export 1 and semantic definition fingerprints.
+  Ordinary compilation retains no reference index. No Git integration, file/project
+  renaming or schema-definition renaming is included.
+
+Architectural references reviewed: Roslyn's [symbol search](https://github.com/dotnet/roslyn/blob/main/src/Workspaces/Core/Portable/FindSymbols/SymbolFinder.cs)
+and [rename separation](https://github.com/dotnet/roslyn/blob/main/src/Workspaces/Core/Portable/Rename/Renamer.cs)
+guide compiler-owned binding, solution coordination and proposed immutable edits.
+Keep the existing SDK-domain isolation rather than adding Roslyn dependencies.
+Use Visual Studio's [linked undo manager](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.textmanager.interop.ivslinkedundotransactionmanager?view=visualstudiosdk-2022)
+for native transaction grouping. Existing Arcade build/package layout is retained.
+
+### Numbered iterations and required gates
+
+Each iteration depends on its predecessor, carries tests/documentation/evidence,
+and receives a focused commit before the next starts. Never call a blocked gate
+successful. Desktop/WPF/resource-apply suites run sequentially with RDP focus checks.
+
+| Iteration | Deliverable and completion criteria |
+| --- | --- |
+| 8 | Record approved scope/contracts here, update backlog and repository guidance; review diff/links and commit the planning iteration. No build needed. |
+| 9 | Compiler-owned token/source mapping and coordinated host buffer transaction. Test exact spans, entity/CDATA/escaping/format preservation; prove multi-file Apply, failure rollback and one-step Undo/Redo for ALMX/RESX/lookup/project files in both IDEs before further application work. Keep tracing internal. |
+| 10 | Alarm/parameter identities, families, discovery and rename preview. Both-framework tests cover inheritance/shadowing, project/library origins, shared consumers and unrelated identical names. |
+| 11 | Complete resources/lookups/groups, cultures, translated/formatted arguments, group/Clear families. Both-framework tests and generated scalar/collection/procedure-enabled/disabled validation. |
+| 12 | Complete opt-in public APIs, contract-9 detached bridge and solution/dependency coordination, overlays, coverage, cancellation/shared conflicts. Packaged compatibility/isolation checks on both runtimes and both desktop hosts. |
+| 13 | References tool window, rename preview, explicit partial acknowledgement, designer/Summary/XML command routing and fallback, navigation/accessibility. Feature documentation and both-host native functional checks. |
+| 14 | Guided tutorial and integrated solution/shared/project-library/NuGet/custom-definition acceptance. Full affected compiler/downstream suites on both frameworks, both desktop bridge hosts and both IDEs. Large-project ordinary/search/rename timing and allocation reports, cancellation/bounded presentation; no arbitrary latency threshold. Commit only after all required gates pass. |
+
+### Follow-up actual evidence
+
+Iteration 8 — complete: working tree initially clean on dev/milestone-14 at
+9520de3. Read compiler analysis/property expression/binding/source locations,
+source-preserving editing, native buffer/Undo and current project bridge structure.
+Reviewed the architectural references above. Appended this approved plan without
+changing completed evidence; updated backlog and repository guidance. Documentation
+links, paths and diff reviewed. Tests not run (planning/documentation only).

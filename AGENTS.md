@@ -95,6 +95,15 @@ cancel on obsolete project state and revalidate inputs before and after evaluati
 Do not retain explanation graphs in ordinary project analysis. Performance evidence
 uses Area=Explanations and Area=ExplanationAllocations; outer-domain allocation
 counters cannot account for compiler allocations in the SDK domain.
+Milestone 14 follow-up iterations 8–14 authorize compiler-owned Find All References
+and Rename. Continue its existing plan and dev branch. Keep the new index opt-in
+and internal until complete contract-9 activation in iteration 12. Reference families
+follow binding, never equal text. Validate solution active configurations and all
+configured cultures, reporting coverage gaps. Partial rename requires explicit
+acknowledgement and revalidated proven edits; never guess ambiguous replacements.
+Apply the approved set to unsaved buffers with linked Undo and rollback, preserving
+private drafts and ordinary saved resource/dependency rules. Iteration 9 native
+multi-file transaction acceptance on both IDEs is an essential early gate.
 [Milestone 12](src/VisualStudio/MILESTONE-12.md) uses the native XML completion
 presenter with host lexical context and generated descriptors; compiler-owned
 expression/reference semantics remain in detached analysis. Native XML completion
