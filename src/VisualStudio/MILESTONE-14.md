@@ -80,3 +80,37 @@ and dev/milestone-14, checked out dev. Read current compiler evaluator, analysis
 origins/resource resolution and SDK reflection adapter. Existing origins identify
 selected definitions but do not yet form dependency graphs. Plan/backlog/instruction
 links and diff reviewed; tests not run (documentation-only planning iteration).
+
+### Iteration 2 — complete
+
+- Added internal immutable ValueExplanationNode/Graph and an explicit request-local
+  recorder selecting consuming alarms. Existing field/property resolution supplies
+  chosen sources, inheritance chain, declaration/assignment ownership, raw/evaluated/
+  canonical values, type and state. No host/public API or contract activation.
+- Ordinary evaluator construction creates no recorder/graph. Frozen results retain
+  no syntax, delegate or mutable recorder objects; input/root/node collections are
+  defensive read-only copies. Repeated field/parameter dependencies share nodes;
+  repeated failed self-references terminate in Cycle leaves rather than graph loops.
+- Tests cover child overrides, alarm/file/project scope, explicit empty vs absent,
+  literal escapes, parameter text that looks like expressions, library definitions
+  vs consumer assignments, selected-alarm isolation, failures, cancellation,
+  immutable snapshots and unchanged ordinary XML. Generated scalar fixture checks
+  typed definition defaults and literal defaults without forged source locations.
+- Internal authoring README and shared-build sequencing guidance added. Initial
+  parallel downstream builds collided in shared intermediate outputs; sequential
+  unit/integration runs passed. An initial generated fixture variable-name collision
+  was corrected. No production behavior was changed to bypass a validation gate.
+
+| Gate | Result |
+| --- | --- |
+| Full compiler | 702 net472 / 704 net8.0 passed, zero failures/skips; Milestone14/Iteration2/CompilerFinal. |
+| Task unit | 124 per framework passed, zero failures/skips; Iteration2/TaskUnit. |
+| Task integration | 4 per framework passed, zero failures/skips; Iteration2/TaskIntegration. |
+| Generated scalar/default and generation lifecycle | Both frameworks pass; AlarmDefinitionGeneration/5585d2282cd746cb826ad31e3dc8a314. |
+
+Commands: dotnet test on compiler and both task test projects with --no-restore
+-v quiet -m:1 -nr:false --logger trx and results under
+artifacts/log/Debug/Milestone14/Iteration2; eng/test-alarm-definition-generation.ps1.
+Existing shared TestHelper CA1416 warning remains. Diff/links reviewed and
+git diff --check passed. No scoped blocker. Expression detail and later target
+categories, public ExplainSnapshots, SDK/UI and native acceptance remain incomplete.

@@ -70,6 +70,16 @@ internal static class Program
         Check(absent.Count == null && absent.GetField("Count").State == AlarmFieldValueState.Absent, "optional absence");
         Check(absent.Code == 7 && absent.GetField("Code").IsDefault && absent.GetField("Code").RawText == null, "typed literal default");
         Check(absent.Literal == "$(NotAnExpression)", "defaults are literal");
+        var explanationBinder = new Alarmlist.Binding.Binder();
+        explanationBinder.AddSourceTexts(new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName></Alarm></Alarmlist>", "fixture.almx", 1).CreateSourceText() });
+        var explanationBinding = explanationBinder.Bind();
+        var capture = new Alarmlist.Evaluation.ValueExplanationCapture(_ => true);
+        new Alarmlist.Evaluation.CompilationEvaluator(explanationBinding.SyntaxTree, CompilationContext.Empty, explanations: capture);
+        var graph = capture.GetGraph(explanationBinding.SyntaxTree.Alarms.Single());
+        var explanationDefaultCode = graph.Nodes[graph.Roots["Field:Code"]];
+        Check(explanationDefaultCode.RawValue == null && explanationDefaultCode.Scope == "Definition" && explanationDefaultCode.State == "Valid" && explanationDefaultCode.CanonicalValue == "7" && explanationDefaultCode.Type == "Int64", "Explanation typed definition default");
+        Check(graph.Nodes[explanationDefaultCode.Inputs.Single()].Kind == "Default" && graph.Nodes[explanationDefaultCode.Inputs.Single()].Location == null, "Definition default has no forged source location");
+        Check(graph.Nodes[graph.Roots["Field:Literal"]].Value == "$(NotAnExpression)", "Explanation defaults stay literal");
         var absentJson = ExportJsonChecks.Alarm(ExportJsonChecks.Read(Compile("")));
         Check(ExportJsonChecks.Field(absentJson, "Count").Element("state").Value == "absent" && (string)ExportJsonChecks.Field(absentJson, "Count").Element("value").Attribute("type") == "null", "JSON optional absence");
         Check(ExportJsonChecks.Field(absentJson, "Code").Element("isDefault").Value == "true", "JSON default marker");

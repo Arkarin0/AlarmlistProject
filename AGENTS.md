@@ -378,6 +378,8 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   or packaging changes, also validate the affected downstream suites and both
   target frameworks when the environment supports them. Omitting `--framework`
   runs both; a `net8.0`-only pass does not verify `net472` compatibility.
+  Build/test invocations sharing compiler or task intermediate outputs must run
+  sequentially; separate test projects do not imply independent build outputs.
 - Documentation-only changes normally need a diff and path/command review, not
   a full build. Do not claim tests passed unless they were actually run.
 - The SDK package is generated during Build under

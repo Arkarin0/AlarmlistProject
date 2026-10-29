@@ -17,6 +17,8 @@ namespace Alarmlist.Evaluation
         internal static readonly string[] Fields = Definition.AlarmDefinition.Fields.Select(field => field.Name).ToArray();
         private readonly CompilationContext _context;
         private readonly bool _allowDeferredValues;
+        private readonly ValueExplanationCapture _explanations;
+        internal bool HasExplanationCapture => _explanations != null;
         private readonly ResourceCatalogue _resources;
         private readonly LookupCatalogue _lookups;
         private readonly string _culture;
@@ -32,10 +34,12 @@ namespace Alarmlist.Evaluation
         internal LookupCatalogue Lookups => _lookups;
         internal string Culture => _culture;
 
-        internal CompilationEvaluator(AlarmSyntaxTree tree, CompilationContext context, bool allowDeferredValues = false)
+        internal CompilationEvaluator(AlarmSyntaxTree tree, CompilationContext context, bool allowDeferredValues = false,
+            ValueExplanationCapture explanations = null)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _allowDeferredValues = allowDeferredValues;
+            _explanations = explanations;
             _resources = tree.LibraryGraph == null ? new ResourceCatalogue(context.Resources)
                 : new ResourceCatalogue(context.Resources, tree.LibraryGraph);
             Diagnostics.AddRange(_resources.Diagnostics);
@@ -167,6 +171,7 @@ namespace Alarmlist.Evaluation
         {
             private readonly CompilationEvaluator _owner;
             private readonly AlarmSyntaxNode _alarm;
+            private readonly AlarmExplanationCapture _explanation;
             private readonly Dictionary<string, string> _wellKnown;
             private readonly Dictionary<string, PropertyBinding> _properties;
             private readonly Dictionary<string, string> _fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -198,6 +203,7 @@ namespace Alarmlist.Evaluation
             {
                 _owner = owner;
                 _alarm = alarm;
+                _explanation = owner._explanations?.ForAlarm(alarm);
                 _wellKnown = WellKnownProperties.Capture(owner._context, alarm);
                 _properties = PropertyResolver.Resolve(alarm, alarm.SourceFile, owner._context)
                     .ToDictionary(property => property.Declaration.Definition.Name, StringComparer.OrdinalIgnoreCase);
@@ -227,11 +233,12 @@ namespace Alarmlist.Evaluation
             internal bool TryGetField(string field, out string value)
             {
                 value = null;
-                if (_failed.Contains(field)) return false;
-                if (_fields.TryGetValue(field, out value)) return true;
+                if (_failed.Contains(field)) { _explanation?.UseField(field); return false; }
+                if (_fields.TryGetValue(field, out value)) { _explanation?.UseField(field); return true; }
                 if (_visiting.Contains(field))
                 {
                     string trace = string.Join(" -> ", _visiting.SkipWhile(item => item != field).Concat(new[] { field }));
+                    _explanation?.Cycle(field, trace);
                     AlarmSyntaxNode source = _alarm.GetFieldSource(_visiting.Last());
                     _owner.Report(DiagnosticDescriptors.CircularFieldDependency, _alarm, source?.GetFieldLocation(_visiting.Last()), trace, _activeResources);
                     _failed.Add(field);
@@ -240,25 +247,30 @@ namespace Alarmlist.Evaluation
                 AlarmSyntaxNode origin = _alarm.GetFieldSource(field);
                 var descriptor = Definition.AlarmDefinition.Fields.Single(item => item.Name == field);
                 string raw = origin?.GetLocalFieldValue(field);
-                _visiting.Add(field);
-                var text = origin == null ? PropertyExpression.LiteralText(descriptor.Default) : EvaluateExpressionText(_owner._fields[origin][field], origin.GetFieldLocation(field));
-                value = text?.ResolvedText;
-                _visiting.RemoveAt(_visiting.Count - 1);
-                if (value == null && origin != null) { _failed.Add(field); return false; }
-                var resolved = Definition.AlarmFieldValue.Resolve(descriptor, raw, value,
-                    _deferred.Contains(field) || (_owner._allowDeferredValues && origin == null && descriptor.Required && value == null),
-                    origin == null && descriptor.Default != null);
-                resolved = resolved.WithExportText(text);
-                _values[field] = resolved;
-                if (resolved.State == Definition.AlarmFieldValueState.Deferred) _deferred.Add(field);
-                if (resolved.State == Definition.AlarmFieldValueState.Invalid)
+                using (var explanation = _explanation?.BeginField(field, origin, raw, descriptor,
+                    origin == null || _owner._fields[origin][field]?.Tokens.Any() != true))
                 {
-                    _owner.Report(DiagnosticDescriptors.InvalidFieldValue, _alarm, origin?.GetFieldLocation(field), field);
-                    _failed.Add(field);
-                    return false;
+                    _visiting.Add(field);
+                    var text = origin == null ? PropertyExpression.LiteralText(descriptor.Default) : EvaluateExpressionText(_owner._fields[origin][field], origin.GetFieldLocation(field));
+                    value = text?.ResolvedText;
+                    _visiting.RemoveAt(_visiting.Count - 1);
+                    if (value == null && origin != null) { _failed.Add(field); return false; }
+                    var resolved = Definition.AlarmFieldValue.Resolve(descriptor, raw, value,
+                        _deferred.Contains(field) || (_owner._allowDeferredValues && origin == null && descriptor.Required && value == null),
+                        origin == null && descriptor.Default != null);
+                    resolved = resolved.WithExportText(text);
+                    explanation?.Complete(resolved);
+                    _values[field] = resolved;
+                    if (resolved.State == Definition.AlarmFieldValueState.Deferred) _deferred.Add(field);
+                    if (resolved.State == Definition.AlarmFieldValueState.Invalid)
+                    {
+                        _owner.Report(DiagnosticDescriptors.InvalidFieldValue, _alarm, origin?.GetFieldLocation(field), field);
+                        _failed.Add(field);
+                        return false;
+                    }
+                    _fields[field] = value;
+                    return true;
                 }
-                _fields[field] = value;
-                return true;
             }
 
             private string Lookup(string name, SourceLocation location)
@@ -278,6 +290,7 @@ namespace Alarmlist.Evaluation
                 }
                 _properties.TryGetValue(name, out PropertyBinding property);
                 value = property?.Assignment?.Definition.Value;
+                _explanation?.Property(name, property, value, _owner._allowDeferredValues);
                 if (value != null) return value;
                 DeferConsumerInput();
                 _owner.Report(property == null ? DiagnosticDescriptors.UnknownProperty : DiagnosticDescriptors.UnassignedProperty, _alarm, location, name, _activeResources);

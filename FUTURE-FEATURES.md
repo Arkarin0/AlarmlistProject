@@ -40,7 +40,8 @@ syntax, open questions and statements about future work in that history.
 
 Priority decision (2026-10-27): Explain this value, Find All References and safe
 Rename, semantic comparison with Git integration, and the export-provider
-interface have equal high priority. Export providers are selected for Milestone 13; the remaining order is undecided.
+interface have equal high priority. Export providers were selected for Milestone 13
+and Explain this value for Milestone 14; the remaining order is undecided.
 The other new proposals below have no assigned priority or milestone.
 
 Printable alarm documentation belongs to another project and is outside this
