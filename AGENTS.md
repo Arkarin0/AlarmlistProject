@@ -66,6 +66,7 @@ Existing plans and iteration records:
 
 | Plan | Scope |
 | --- | --- |
+| [Milestone 14](src/VisualStudio/MILESTONE-14.md) | Explain this value: compiler-owned chosen contributors, read-only designer/Summary explanations, opt-in capture and analysis-8 SDK transition. |
 | [Milestone 2](src/VisualStudio/MILESTONE-2.md) | Shared ALMX document, designer/XML editing, and editor lifecycle. |
 | [Milestone 3](src/VisualStudio/MILESTONE-3.md) | Reference-aware editing, analysis, diagnostics, previews, and lifecycle/performance follow-ups. |
 | [Milestone 4](src/VisualStudio/MILESTONE-4.md) | Property expressions, parameters, abstract alarms, and designer support; see its [design contract](src/VisualStudio/MILESTONE-4-DESIGN.md). |
