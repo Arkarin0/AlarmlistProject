@@ -122,11 +122,13 @@ hosts; native DefaultSharedExample passes on both IDEs. The checked-in playgroun
 is prepared and builds all three formats. Validation evidence is recorded in the
 milestone plan.
 
-Milestone 14 iteration 6 adds the Explain this value feature reference and links
+Milestone 14 adds the Explain this value feature reference and links
 from Alarm Summary and Visual Studio editing. It covers chosen contributors,
 source navigation, invalid/deferred states, saved/unsaved input rules, private
 drafts, freshness and bounded step pages. Compiler/bridge API reference remains
-in contributor documentation. Full host unit checks (844) and native explanation
-checks on both IDE versions pass; actual evidence is in MILESTONE-14.md. A guided
-explanation tutorial and integrated shared/library/custom-definition acceptance
-remain iteration 7 work.
+in contributor documentation. Iteration 7 adds the guided inheritance/parameter/
+field-dependency tutorial, verified against the public compiler API. Full host
+unit checks (847), compiler and downstream suites on both frameworks, packaged
+bridge checks on both desktop hosts, and native shared/library/custom-definition
+acceptance on both IDE versions pass. Timing and allocation measurements and
+actual validation evidence are recorded in MILESTONE-14.md.

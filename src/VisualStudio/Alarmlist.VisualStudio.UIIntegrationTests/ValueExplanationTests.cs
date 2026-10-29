@@ -41,6 +41,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             using var automation = new UIA3Automation();
             var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             ide.OpenDesigner(workspace.AlarmPath); window.SetForeground(); SelectDesigner(window); SelectCulture(ide, window, "en-GB");
+            VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Inspect 001", "English designer value before explanation");
             Button Action(string name) => window.FindAllDescendants(cf => cf.ByName(name).And(cf.ByControlType(ControlType.Button)))
                 .FirstOrDefault(item => item.IsEnabled)?.AsButton();
             Button explain = null;

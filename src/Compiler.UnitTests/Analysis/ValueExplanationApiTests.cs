@@ -66,6 +66,16 @@ namespace Alarmlist.Core.UnitTests.Analysis
             Assert.Contains(result.Nodes, node => node.Kind == "Declaration" && node.Location.SourceVersion == 7);
         }
 
+        [Theory]
+        [InlineData("AlarmlistAlarmFullyQualifiedName")]
+        [InlineData("AlarmlistAlarmReferenceName")]
+        public void SourceScopeDoesNotInventAnAlarmForWellKnownTargets(string name)
+        {
+            var result = _compiler.ExplainSnapshots(new[] { Input("<Alarmlist/>") }, CompilationContext.Empty,
+                new ValueExplanationTarget(new SourceLocation("explain.almx", 1, 1, 1, 7), "SourceWellKnown", name));
+            Assert.False(result.IsAvailable); Assert.Empty(result.Nodes); Assert.NotEmpty(result.Message);
+        }
+
         [Fact]
         public void EntryTargetsRejectStaleVersionsAndNeverRetargetByIndex()
         {
@@ -140,6 +150,27 @@ namespace Alarmlist.Core.UnitTests.Analysis
             Assert.False(result.IsAvailable);
             Assert.Contains("Parsing", result.Message);
             Assert.Empty(result.Nodes);
+        }
+
+        [Fact]
+        public void TutorialExplainsInheritedParameterAndFieldValuesWithoutMaterializingSource()
+        {
+            // Matches the standard-definition workflow in documentation/tutorials/explain-a-value.md.
+            const string source = "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Explain.Base</FullyQualifiedName>"
+                + "<Name>Position $(Position), code $(AlarmlistAlarmCode)</Name><Properties><Property Name='Position'/></Properties></Alarm>"
+                + "<Alarm><FullyQualifiedName>Explain.Child</FullyQualifiedName><ReferenceName>Explain.Base</ReferenceName><Code>001</Code>"
+                + "<Properties><Property Name='Position' Value='1'/></Properties></Alarm></Alarmlist>";
+            foreach (var code in new[] { "001", "002" })
+            {
+                var input = new[] { Input(source.Replace("001", code), code == "001" ? 7 : 8) };
+                var alarm = _compiler.AnalyzeSnapshots(input).Alarms.Single(item => item.Origin.FullyQualifiedName == "Explain.Child");
+                var result = _compiler.ExplainSnapshots(input, CompilationContext.Empty, new ValueExplanationTarget(alarm.Origin.Location, "Field", "Name"));
+                Assert.Equal("Position 1, code " + code, Root(result).Value);
+                Assert.Contains(result.Nodes, node => node.Kind == "Declaration" && node.Name == "Position" && node.DefiningAlarm == "Explain.Child");
+                Assert.Contains(result.Nodes, node => node.Kind == "Assignment" && node.Name == "Position" && node.Value == "1" && node.DefiningAlarm == "Explain.Child");
+                Assert.Contains(result.Nodes, node => node.Kind == "Field" && node.Name == "Code" && node.CanonicalValue == code);
+                Assert.DoesNotContain("<Name>", input[0].Text.Substring(input[0].Text.IndexOf("<Alarm><FullyQualifiedName>Explain.Child", StringComparison.Ordinal)));
+            }
         }
     }
 }

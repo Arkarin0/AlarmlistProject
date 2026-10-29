@@ -50,6 +50,7 @@ independently after preparing its tools.
 9. [Configure diagnostic policy](tutorials/configure-diagnostics.md).
 10. [Explore custom fields and collections](tutorials/explore-custom-definitions.md).
 11. [Export resolved alarms](tutorials/export-resolved-alarms.md).
+12. [Trace an inherited value to its sources](tutorials/explain-a-value.md).
 
 ## Create an article
 

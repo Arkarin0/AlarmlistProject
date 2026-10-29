@@ -328,7 +328,7 @@ behavior above.
 
 The bridge accepts analysis contract 8 and loads the resolved SDK's net472 compiler
 in an isolated domain. Explain this value uses the same captured project inputs
-and contract through a cancellable on-demand request, with validation before
+and the project-owned SDK worker through a cancellable on-demand request, with validation before
 publication and source navigation. Designer actions open Alarm Summary's read-only
 Explanation section; private drafts and pending culture changes block requests.
 The native Area=ValueExplanation fixture covers both IDE hosts. See the

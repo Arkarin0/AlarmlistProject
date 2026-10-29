@@ -70,8 +70,8 @@ In an application project's `Alarms.almx`:
 ### Expected result
 
 Select Child and choose Explain this value for Name. Explanation shows
-`Position 1`, the inherited Name expression, the Base declaration and the chosen
-Child assignment of P. Go to source opens the contributing ALMX location.
+`Position 1`, the inherited Name expression, and the chosen Child declaration and
+assignment of P. Go to source opens the contributing ALMX location.
 
 ## Troubleshooting
 
@@ -85,6 +85,7 @@ Child assignment of P. Go to source opens the contributing ALMX location.
 
 ## Related features and tutorials
 
+- [Trace an inherited value to its sources](../tutorials/explain-a-value.md)
 - [Alarm Summary](alarm-summary.md)
 - [Inheritance and expressions](alarm-inheritance-and-expressions.md)
 - [Localization](localization.md)

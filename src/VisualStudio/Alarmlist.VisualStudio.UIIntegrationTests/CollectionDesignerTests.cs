@@ -68,6 +68,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             AutomationElement Collection(string name) => window.FindFirstDescendant(cf => cf.ByName("Collection " + name));
             TextBox[] Tags() => Collection("Tags").FindAllDescendants(cf => cf.ByName("Item").And(cf.ByControlType(ControlType.Edit))).Select(item => item.AsTextBox()).ToArray();
             XElement Source() => XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").First();
+            void HideExplanation()
+            {
+                ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").Visible = false;
+                ide.ActivateDocument(workspace.AlarmPath);
+                designer.Patterns.SelectionItem.Pattern.Select();
+            }
             void Input(TextBox field, string text, bool commit = true)
             {
                 field.Focus(); ide.RequireForeground(); Assert.True(field.Properties.HasKeyboardFocus.Value);
@@ -77,6 +83,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => Collection("Tags") != null && Tags().Length == 2 && Tags()[0].IsEnabled, "local scalar collection rows");
             VisualStudioSession.Wait(() => Collection("Tags").FindAllDescendants().Any(item => item.Name.Contains("Inherited from UI.Base")), "read-only inherited collection entry");
             Assert.Equal(procedures, window.FindAllDescendants().Any(item => item.Name == "Add procedure group"));
+            ValueExplanationUi.Explain(window, "Explain this value for Count", "Canonical: 7", "Default: Count");
+            HideExplanation();
+            ValueExplanationUi.Explain(window, "Explain this value for Copy", "Canonical: 7", "CollectionField: Checks[1].Count");
+            HideExplanation();
+            ValueExplanationUi.Explain(window, "Explain this value for inherited Tags", "inherited", "Membership:");
+            HideExplanation();
+            Assert.Equal(original, ide.ReadText(workspace.AlarmPath));
             var count = Collection("Checks").FindFirstDescendant(cf => cf.ByName("Count").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
             count.Focus();
             VisualStudioSession.Wait(() => count.Properties.HasKeyboardFocus.Value && count.Text == "", "absent default stays absent on focus");
@@ -111,6 +124,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => Source().Element("Tags").Elements("Item").Count() == 1, "local collection deletion");
             Collection("Tags").FindFirstDescendant(cf => cf.ByName("Clear Tags entries")).AsButton().Invoke();
             VisualStudioSession.Wait(() => Source().Element("Tags").Element("Clear") != null, "collection Clear directive");
+            var cleared = Collection("Tags").FindFirstDescendant(cf => cf.ByName("Cleared entries").And(cf.ByControlType(ControlType.Group)));
+            cleared.Patterns.ExpandCollapse.Pattern.Expand();
+            ValueExplanationUi.Explain(window, "Explain this value for cleared Tags", "Excluded", "Clear:");
+            HideExplanation();
             Collection("Tags").FindFirstDescendant(cf => cf.ByName("Add Tags entry")).AsButton().Invoke();
             VisualStudioSession.Wait(() => Tags().Length == 2, "new scalar row");
             VisualStudioSession.Wait(() => Tags().Last().Properties.HasKeyboardFocus.Value, "new collection entry receives editing focus");

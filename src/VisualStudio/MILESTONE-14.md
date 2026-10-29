@@ -1,6 +1,7 @@
 # Milestone 14 — Explain this value
 
-Status: authorized on 2026-10-29; implementation in progress.
+Status: complete; all seven authorized iterations and required acceptance gates
+passed on 2026-10-29. Timing/allocation limits and evidence are recorded below.
 
 ## Outcome and confirmed scope
 
@@ -261,3 +262,112 @@ No existing user IDE was closed. Diff, documentation links and paths reviewed;
 git diff --check passed. No scoped blocker. Shared/library/custom-fork integrated
 acceptance, complete downstream regressions, tutorial and timing/allocation evidence
 remain iteration 7 work.
+
+### Iteration 7 — complete
+
+- Added a guided inheritance/parameter/field-dependency tutorial, with its exact
+  example verified through the public API. Source-scope requests now omit
+  alarm-only well-known values, matching ordinary analysis instead of inventing
+  an empty alarm context. Added cancellation coverage during evaluation/freezing.
+- Reused the project-owned SDK worker under its analysis gate. Requests cancel
+  when project state changes, validate inputs before/after evaluation and never
+  replace ordinary analysis. Focused explanation/service checks: 61 passed in
+  Iteration7/Service, including stop/cancellation and input changes without events.
+- Extended native shared/library/custom-definition acceptance with explanation
+  assertions and source navigation. Standard integrated acceptance passed on both
+  IDEs. Custom-definition acceptance passed with procedures enabled and disabled:
+  isolated forks col13/e41d2a6a and col13/443e4cc0. Each passed project/package,
+  analyzer and packaged API consumers on both task runtimes (desktop VS 2022),
+  then Area=MetadataCollections on both IDEs, including defaults, sibling
+  references, inherited values and Clear explanations. Final regressions passed.
+- Corrected the tutorial's expected parameter declaration: an assigned child
+  Property also redeclares it, so the chosen child declaration/assignment appear.
+  The shadowed base declaration is excluded. The initial new assertion failed
+  on both frameworks; compiler behavior was correct. The corrected full compiler
+  run passed 734 net472 / 736 net8.0 tests in Iteration7/CompilerFinal.
+- Default example preparation now disables build-node reuse and limits build
+  parallelism: two orphan child workers inherited the captured output pipes,
+  preventing the native fixture from completing after preparation exited. Only
+  those verified test workers were stopped; no user IDE was closed. The corrected
+  preparation ran twice without intervention in the final VS 2026 check.
+- Native fixtures now wait for the English resolved value before invoking Explain,
+  reactivate the designer after hiding Explanation, and focus the shared consumer
+  selector. Initial failures captured a different selected language or pending
+  project evaluation, rather than the expected English result. Required cases
+  passed after these focus/readiness corrections:
+  VS 2022 shared/project-library/NuGet-library in TestResults/50ea140a449d4996aa461d4caeea602e
+  (three passed, initial language case failed), language/keyboard/draft/freshness
+  repeat in TestResults/464a874efef848e4849495b2c03cf3b8 (one passed).
+  VS 2026 language/project-library/NuGet-library in
+  TestResults/d1c871091d6747fca508fe928379e340 (three passed, initial shared case
+  failed), shared repeat in TestResults/93d32e1ac72b4efcae2b5dcb0bbde990 (one passed).
+
+Performance evidence: Release/x64 .NET Framework 4.8.1, existing large-project
+fixtures, two warmups and five measured samples. BenchmarkDotNet ShortRun reports
+are under AnalysisPerformance/779e863869e64fb7a141b1840cde8cb6 (four tests,
+twelve benchmarks passed). Times below are means in milliseconds, without a
+latency threshold:
+
+| Fixture | Ordinary analysis | Explanation, reused worker | Explanation, new bridge |
+| --- | ---: | ---: | ---: |
+| 1,000 alarms | 345.58 | 79.58 | 275.70 |
+| 10,000 alarms | 3845.1 | 899.7 | 1093.0 |
+| 1,000, parameters | 569.4 | 142.8 | 351.4 |
+| 1,000, localization | 578.3 | 153.4 | 374.6 |
+
+The BDN host allocation counter excludes SDK-domain allocations; empty allocation
+cells do not mean zero allocations. A separate test-only domain-local probe
+measured cumulative allocated bytes around compiler/SDK reader work, excluding
+outer remoting/UI. Its four cases passed; raw paired samples are under
+AnalysisPerformance/ccdde155caef464fbfe21727c283276f/explanation-worker-*.csv.
+The probe enables monitoring only in its test process. Means:
+
+| Fixture | Ordinary ms / MiB | Explanation ms / MiB | Returned nodes |
+| --- | ---: | ---: | ---: |
+| 1,000 alarms | 242.3 / 79.47 | 95.2 / 54.49 | 2 |
+| 10,000 alarms | 2392.3 / 793.34 | 949.6 / 544.15 | 2 |
+| 1,000, parameters | 405.1 / 123.21 | 166.9 / 88.75 | 5 |
+| 1,000, localization | 388.8 / 149.13 | 156.6 / 94.22 | 3 |
+
+Ordinary analysis includes full analysis/XML output; explanation evaluates the
+selected target over freshly bound captured inputs. Explanation still allocates
+compiler data proportional to input size. These are allocation totals, not
+retained-memory or collectibility evidence. Native painting, CPS/input capture,
+watchers and debounce are outside these intervals. Separate runs have different
+instrumentation and must not be compared as identical timing samples. Dependency
+sharing, cycle termination and 50-step paging are correctness gates, not speed
+thresholds.
+
+Final regression evidence (zero failures/skips in the final selected runs):
+
+| Gate | Result |
+| --- | --- |
+| Compiler | 734 net472 / 736 net8.0 passed; Iteration7/CompilerFinal, final reports at 18:13. |
+| Extension unit | 847 passed; Iteration7/HostFinal. |
+| Task unit/integration | 124 unit and 4 integration per framework passed; Iteration7/TaskUnitFinal and TaskIntegrationFinal. |
+| Full SDK | 97 net472 / 94 net8.0 passed; Iteration7/SDK. |
+| Packaged extension integration | 14 per framework passed; Iteration7/VSIntegration. |
+| Desktop packaged compiler/contract/contents/evaluation | 3 passed on each VS 2022/2026 MSBuild host; Iteration7/Desktop2022 and Desktop2026. |
+| Native standard/shared/project-library/NuGet-library | All four required cases passed on each host, including repeats detailed above. |
+| Generated collection/procedure variants | Both task runtimes and native IDE hosts passed in each isolated fork detailed above. Scalar/collection generation gates also passed in iteration 5. |
+| Timing/allocation | Four benchmark cases (12 methods) and four domain-local allocation cases passed; tables above. |
+
+Commands: sequential dotnet test compiler, extension unit, task unit/integration,
+full SDK and extension integration projects with --no-restore -v quiet -m:1
+-nr:false --logger trx; final desktop runs selected the PackageTests class with
+ALARMLIST_TEST_MSBUILD_PATH set to each desktop host, then restored its previous
+value. Sequential eng/test-visualstudio.ps1 used Alarmlist13Exp and the four
+Area filters above. eng/test-alarm-collection-fork.ps1 -Designer used both IDE
+paths, VS 2022 DesktopMSBuildPath and the idle AlarmlistDefinitionExp profile.
+Performance commands: eng/measure-visualstudio-analysis.ps1 -Job Short with
+Area=Explanations and Area=ExplanationAllocations separately. Standard evidence
+paths are under artifacts/log/Debug/Milestone14/Iteration7, VisualStudioUI and
+artifacts/log/Release/AnalysisPerformance; isolated fork logs remain in artifacts/col13.
+
+Reviewed diff, source/contract compatibility, tutorial examples and local links;
+git diff --check passed. Existing TestHelper CA1416 warning remains. Desktop tests
+ran sequentially with explicit focus/readiness checks for concurrent RDP input.
+No essential check is deferred and no scoped implementation blocker remains.
+Package publication and release deployment were not requested. Explanations
+still bind captured input on demand; the allocation/timing figures above describe
+this implementation, with no arbitrary latency or retained-memory guarantee.

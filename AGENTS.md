@@ -90,6 +90,11 @@ shared compiler steps once, in bounded pages; never rebuild dependencies in WPF.
 Native acceptance uses Area=ValueExplanation on both IDE hosts, sequentially with
 other desktop suites. New fixtures should use VisualStudioSession.MainWindowHandle
 so a floating tool window cannot be mistaken for the owned IDE's main window.
+Reuse the project-owned SDK worker for explanations under its analysis gate;
+cancel on obsolete project state and revalidate inputs before and after evaluation.
+Do not retain explanation graphs in ordinary project analysis. Performance evidence
+uses Area=Explanations and Area=ExplanationAllocations; outer-domain allocation
+counters cannot account for compiler allocations in the SDK domain.
 [Milestone 12](src/VisualStudio/MILESTONE-12.md) uses the native XML completion
 presenter with host lexical context and generated descriptors; compiler-owned
 expression/reference semantics remain in detached analysis. Native XML completion

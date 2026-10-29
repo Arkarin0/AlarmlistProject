@@ -43,9 +43,9 @@ if (!(Test-Path -LiteralPath $packagePath)) { throw "Build the matching SDK pack
 # isolated NuGet environment. Keep generated DLLs out of persistent source files.
 Push-Location $repoRoot
 try {
-  & dotnet build 'src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj' --configuration $Configuration --nologo --verbosity minimal
+  & dotnet build 'src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj' --configuration $Configuration --nologo --verbosity minimal -m:1 -nr:false
   if ($LASTEXITCODE -ne 0) { throw 'Example analyzer preparation failed.' }
-  & dotnet build 'src/Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj' --configuration $Configuration --nologo --verbosity minimal
+  & dotnet build 'src/Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj' --configuration $Configuration --nologo --verbosity minimal -m:1 -nr:false
   if ($LASTEXITCODE -ne 0) { throw 'Example zenon exporter preparation failed.' }
 } finally { Pop-Location }
 $exporterPackagePath = Join-Path $repoRoot "artifacts/packages/$Configuration/NonShipping/Alarmlist.Exporters.Zenon.$sdkVersion.nupkg"

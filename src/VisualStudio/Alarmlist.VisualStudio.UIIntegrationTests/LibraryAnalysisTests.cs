@@ -40,9 +40,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             File.WriteAllText(workspace.AlarmPath, source);
             VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
             using var automation = new UIA3Automation();
-            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
             ide.OpenDesigner(workspace.AlarmPath);
-            var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             window.SetForeground();
             SelectDesigner(window);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
@@ -90,9 +89,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
             Assert.Equal(1, ide.Automation.Solution.Projects.Count);
             using var automation = new UIA3Automation();
-            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
             ide.OpenDesigner(workspace.AlarmPath);
-            var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             window.SetForeground();
             SelectDesigner(window);
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
@@ -101,7 +99,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 "saved out-of-solution library analysis without Build");
             SelectPreviewTab(window, "Selected alarm summary");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Saved library", "inherited library preview");
-            window.FindFirstDescendant(cf => cf.ByName("Go to source for resolved Name").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
+            ValueExplanationUi.Explain(window, "Explain this value for resolved Name", "Saved library", "Inheritance:");
+            ValueExplanationUi.Navigate(window, "Field: Name");
             VisualStudioSession.Wait(() => string.Equals(ide.Automation.ActiveDocument?.FullName, sourcePath, StringComparison.OrdinalIgnoreCase),
                 "library origin opens physical out-of-solution source");
             Assert.Equal(source, File.ReadAllText(sourcePath));

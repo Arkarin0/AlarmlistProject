@@ -53,9 +53,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             byte[] original = File.ReadAllBytes(artifact);
             VisualStudioAutomation.OpenSolution(ide.Automation, workspace.SolutionPath);
             using var automation = new UIA3Automation();
-            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
             ide.OpenDesigner(workspace.AlarmPath);
-            var window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             window.SetForeground();
             AutomationElement editor = OpenDefinition();
             string generated = editor.Patterns.Text.Pattern.DocumentRange.GetText(-1);
@@ -93,7 +92,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 ide.Automation.ExecuteCommand("View.AlarmlistPreview");
                 SelectPreviewTab(window, "Selected alarm summary");
                 VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Packaged definition", "restored package analysis");
-                window.FindFirstDescendant(cf => cf.ByName("Go to source for resolved Name").And(cf.ByControlType(ControlType.Button))).AsButton().Invoke();
+                ValueExplanationUi.Explain(window, "Explain this value for resolved Name", "Packaged definition", "Inheritance:");
+                ValueExplanationUi.Navigate(window, "Field: Name");
                 AutomationElement definition = null;
                 VisualStudioSession.Wait(() =>
                 {

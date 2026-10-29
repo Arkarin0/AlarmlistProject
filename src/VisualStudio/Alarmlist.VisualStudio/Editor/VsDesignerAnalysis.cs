@@ -142,20 +142,11 @@ namespace Alarmlist.VisualStudio.Editor
 
         public async Task<ExplanationResponse> ExplainAsync(ProjectAnalysisState state, AnalysisExplanationTarget target, CancellationToken token)
         {
-            if (!await IsCurrentAsync(state, token)) return new ExplanationResponse(AnalysisAvailability.InvalidInput, "Inputs changed. Explain the value again.");
-            var response = await Task.Run(() =>
-            {
-                token.ThrowIfCancellationRequested();
-                var opened = SdkAnalysisBridge.Open(state.Project.CompilerPath);
-                using (var bridge = opened.Bridge)
-                {
-                    if (!(bridge is ISdkExplanationBridge explanation)) return new ExplanationResponse(opened.Availability, opened.Message);
-                    var context = state.Project.Context.WithSavedInputs(state.Resources, state.Lookups, state.Configurations, state.Analyzers);
-                    if (state.Libraries != null) context = context.WithLibraries(state.Libraries.References);
-                    return explanation.Explain(state.Inputs.Select(input => input.Input), target, token, context);
-                }
-            }, token);
-            return await IsCurrentAsync(state, token) ? response
+            if (_disposed || !ReferenceEquals(state, Current)) return new ExplanationResponse(AnalysisAvailability.InvalidInput, "Inputs changed. Explain the value again.");
+            var service = Contexts.FirstOrDefault(item => ReferenceEquals(item.Current, state));
+            if (service == null) return new ExplanationResponse(AnalysisAvailability.InvalidInput, "The selected project is unavailable.");
+            var response = await service.ExplainAsync(state, target, token);
+            return !_disposed && ReferenceEquals(state, Current) ? response
                 : new ExplanationResponse(AnalysisAvailability.InvalidInput, "Inputs changed. Explain the value again.");
         }
 

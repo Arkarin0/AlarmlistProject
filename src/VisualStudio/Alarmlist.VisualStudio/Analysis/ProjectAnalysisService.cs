@@ -39,6 +39,52 @@ namespace Alarmlist.VisualStudio.Analysis
         public event EventHandler EvaluationInvalidated;
         public ProjectAnalysisState Current { get { lock (_gate) return _current; } }
 
+        public Task<ExplanationResponse> ExplainAsync(ProjectAnalysisState state, AnalysisExplanationTarget target, CancellationToken token)
+        {
+            if (state == null) throw new ArgumentNullException(nameof(state));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            token.ThrowIfCancellationRequested();
+            return Task.Run(async () =>
+            {
+                ExplanationResponse ChangedInputs() => new ExplanationResponse(AnalysisAvailability.InvalidInput, "Inputs changed. Explain the value again.");
+                using (var obsolete = CancellationTokenSource.CreateLinkedTokenSource(token))
+                {
+                    var cancellationGate = new object();
+                    bool finished = false;
+                    EventHandler changed = (sender, args) =>
+                    {
+                        lock (cancellationGate) if (!finished && !ReferenceEquals(Current, state)) obsolete.Cancel();
+                    };
+                    Changed += changed;
+                    try
+                    {
+                        if (!ReferenceEquals(Current, state) || state.Status != ProjectAnalysisStatus.Available) return ChangedInputs();
+                        var response = ChangedInputs();
+                        await _analysisGate.ExecuteAsync(async () =>
+                        {
+                            var currentToken = obsolete.Token;
+                            currentToken.ThrowIfCancellationRequested();
+                            if (!ReferenceEquals(Current, state) || !await ProjectAnalysisValidation.InputsMatchAsync(_inputs, state, currentToken).ConfigureAwait(false)) return;
+                            if (!(_bridge is ISdkExplanationBridge explanation))
+                            { response = new ExplanationResponse(AnalysisAvailability.UnsupportedContract, "Restore matching SDK tools with value explanations."); return; }
+                            var context = state.Project.Context.WithSavedInputs(state.Resources, state.Lookups, state.Configurations, state.Analyzers);
+                            if (state.Libraries != null) context = context.WithLibraries(state.Libraries.References);
+                            response = explanation.Explain(state.Inputs.Select(input => input.Input), target, currentToken, context);
+                            if (!ReferenceEquals(Current, state) || !await ProjectAnalysisValidation.InputsMatchAsync(_inputs, state, currentToken).ConfigureAwait(false))
+                                response = ChangedInputs();
+                        }, obsolete.Token).ConfigureAwait(false);
+                        return response;
+                    }
+                    catch (OperationCanceledException) when (!token.IsCancellationRequested) { return ChangedInputs(); }
+                    finally
+                    {
+                        Changed -= changed;
+                        lock (cancellationGate) finished = true;
+                    }
+                }
+            }, token);
+        }
+
         public ProjectAnalysisService(IProjectAnalysisInputSource inputs, ISdkAnalysisBridgeFactory factory, JoinableTaskContext threading,
             Func<CancellationToken, Task> delay = null)
         {

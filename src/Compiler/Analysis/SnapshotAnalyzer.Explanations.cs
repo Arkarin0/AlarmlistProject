@@ -91,8 +91,11 @@ namespace Alarmlist.Analysis
             foreach (var binding in PropertyResolver.Resolve(alarm, file, context, resolved))
                 recorder.Property(binding.Declaration.Definition.Name, binding, binding.Assignment?.Definition.Value, allowDeferred);
             foreach (var property in WellKnownProperties.Capture(context, alarm, filePath, file))
+            {
+                if (alarm == null && property.Key.StartsWith("AlarmlistAlarm", StringComparison.Ordinal)) continue;
                 recorder.WellKnown(property.Key, property.Value,
                     property.Key.StartsWith("AlarmlistThisFile", StringComparison.OrdinalIgnoreCase) ? alarm?.Location : null);
+            }
         }
 
         private static string ExplanationKey(ValueExplanationTarget target, AnalyzedAlarm alarm)

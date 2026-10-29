@@ -17,7 +17,7 @@ using Xunit.Abstractions;
 
 namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
 {
-    public sealed class BenchmarkTests
+    public sealed partial class BenchmarkTests
     {
         private readonly ITestOutputHelper _output;
         public BenchmarkTests(ITestOutputHelper output) { _output = output; }
@@ -25,6 +25,10 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Bridge")]
         [InlineData("1000-1000"), InlineData("1000-100"), InlineData("10000-100")]
         public void Bridge(string scenario) => Run(typeof(BridgeBenchmarks), scenario, 2);
+
+        [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Explanations")]
+        [InlineData("1000-100"), InlineData("10000-100"), InlineData("1000-100-properties"), InlineData("1000-100-localization")]
+        public void Explanations(string scenario) => Run(typeof(ExplanationBenchmarks), scenario, 3);
 
         [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Designer")]
         [InlineData("1000-1000"), InlineData("1000-100"), InlineData("10000-100")]

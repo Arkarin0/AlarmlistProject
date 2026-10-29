@@ -1,6 +1,6 @@
 # Future feature notes
 
-Status reviewed on 2026-10-27 against milestone records and current source.
+Status reviewed on 2026-10-29 against milestone records and current source.
 This file tracks implemented features and future ideas; it does not authorize
 implementation or define a delivery schedule.
 
@@ -26,7 +26,7 @@ syntax, open questions and statements about future work in that history.
 | Custom procedure groups and creation defaults | Implemented | [Milestone 8](src/VisualStudio/MILESTONE-8.md) |
 | IntelliSense | Designer and scoped ALMX/lookup/project XML completion implemented and validated | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
 | External alarm-definition generation | Implemented for supported scalars and collections | [Milestone 11](src/VisualStudio/MILESTONE-11.md) |
-| Explain this value | Milestone 14 authorized; implementation in progress | [Milestone 14](src/VisualStudio/MILESTONE-14.md) |
+| Explain this value | Implemented; both-framework and both-host acceptance passed | [Milestone 14](src/VisualStudio/MILESTONE-14.md) |
 | Find All References and safe Rename | Proposed; high priority; unassigned | Proposal below |
 | Semantic comparison and Git integration | Proposed; high priority; unassigned | Proposal below |
 | Export-provider interface | Milestone 13 complete: XML/JSON/zenon, external providers and transactional artifacts | [Milestone 13](src/VisualStudio/MILESTONE-13.md) |
@@ -49,10 +49,11 @@ backlog. The export-provider proposal does not include printable documentation.
 
 ## Explain this value
 
-Authorized for [Milestone 14](src/VisualStudio/MILESTONE-14.md) on 2026-10-29.
+Completed in [Milestone 14](src/VisualStudio/MILESTONE-14.md) on 2026-10-29.
 The confirmed scope covers chosen contributors for all supported value kinds,
 invoked from the designer and Alarm Summary, with read-only source navigation.
-The milestone plan supersedes the presentation/open-scope questions below.
+The milestone plan supersedes the original proposal below, including its open
+presentation and unavailable-result questions.
 
 Provide a navigable explanation of how a field obtains its resolved value:
 inherited source, local overrides, parameter assignments, translation fallback

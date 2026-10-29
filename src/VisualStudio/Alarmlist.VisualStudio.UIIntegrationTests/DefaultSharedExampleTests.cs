@@ -83,10 +83,12 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             owner.ProjectItems.Item("PressureLow.almx").Open(Constants.vsViewKindPrimary).Visible = true;
             using var automation = new UIA3Automation(); var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             SelectDesigner(window); Choose("North.almproj"); Expect("North pump pressure low");
+            Explain("North pump pressure low");
             Choose("South.almproj"); Expect("$(loc:Pump.Name)"); SelectCulture(ide, window, "en"); Expect("South pump pressure low");
+            Explain("South pump pressure low");
             string source = Path.Combine(workspace.DirectoryPath, "Shared", "PressureLow.almx"), saved = File.ReadAllText(source);
             Mode("XML"); Assert.True(VisualStudioAutomation.ReplaceOpenBuffer(ide.Automation, source, saved.Replace("<Name />", "<Name>Shared $(par1)</Name>")));
-            Mode("Designer"); Expect("Shared 002"); Choose("North.almproj"); Expect("Shared 001");
+            Mode("Designer"); Expect("Shared 002"); Explain("Shared 002"); Choose("North.almproj"); Expect("Shared 001"); Explain("Shared 001");
             Mode("XML"); XmlCompletionTests.FocusXmlInput(ide, window, source); ide.Automation.ExecuteCommand("Edit.Undo");
             VisualStudioSession.Wait(() => ide.ReadText(source) == saved, "ordinary shared buffer Undo");
             Mode("Designer"); Expect("North pump pressure low");
@@ -97,6 +99,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             BuildDefaultSharedExample(ide, workspace.DirectoryPath);
             void Mode(string mode) => window.FindFirstDescendant(cf => cf.ByName(mode).And(cf.ByControlType(ControlType.RadioButton))).Patterns.SelectionItem.Pattern.Select();
             void Choose(string name) => ChooseDefaultContext(window, name);
+            void Explain(string expected)
+            {
+                ValueExplanationUi.Explain(window, "Explain this value for Name", expected);
+                ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").Visible = false;
+                ide.ActivateDocument(Path.Combine(workspace.DirectoryPath, "Shared", "PressureLow.almx"));
+                SelectDesigner(window);
+            }
             void Expect(string name) => VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)).Any(item => item.Name == name), "ordinary example consumer value " + name);
         }
 
@@ -147,7 +156,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 if (selector == null) return false;
                 selector.Expand(); return selector.Items.Any(item => item.Text.Contains(name));
             }, "ordinary shared consumer selector " + name);
-            selector.Expand(); selector.Items.Single(item => item.Text.Contains(name)).Select(); selector.Collapse();
+            selector.Focus(); selector.Expand(); selector.Items.Single(item => item.Text.Contains(name)).Select(); selector.Collapse();
         }
 
         private static void BuildDefaultSharedExample(VisualStudioSession ide, string root)

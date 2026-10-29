@@ -503,6 +503,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         {
             public readonly ConcurrentQueue<Bridge> Bridges = new ConcurrentQueue<Bridge>();
             public Action<int> OnAnalyze;
+            public Func<CancellationToken, ExplanationResponse> OnExplain;
             public AnalysisResponse Response;
             public bool MissingSdk;
             public BridgeOpenResult Open(string path)
@@ -514,11 +515,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             }
         }
 
-        private sealed class Bridge : ISdkAnalysisBridge
+        private sealed class Bridge : ISdkAnalysisBridge, ISdkExplanationBridge
         {
             private readonly Factory _factory;
             public int Calls;
             public int Disposals;
+            public int ExplanationCalls;
             public AnalysisContext Context;
             public string CompilerPath { get; }
             public string CompilerIdentity => "test";
@@ -535,6 +537,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                         Array.Empty<AnalysisAlarm>(), Array.Empty<AnalysisDiagnostic>()));
             }
             public void Dispose() { Disposals++; }
+            public ExplanationResponse Explain(IEnumerable<AnalysisInput> inputs, AnalysisExplanationTarget target, CancellationToken token = default, AnalysisContext context = null)
+            { Interlocked.Increment(ref ExplanationCalls); Context = context; return _factory.OnExplain?.Invoke(token) ?? new ExplanationResponse(AnalysisAvailability.Available, "explained"); }
         }
     }
 }

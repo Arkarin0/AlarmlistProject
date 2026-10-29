@@ -171,5 +171,15 @@ namespace Alarmlist.Core.UnitTests.Analysis
             var capture = new ValueExplanationCapture(_ => true, new CancellationToken(true));
             Assert.Throws<OperationCanceledException>(() => new CompilationEvaluator(binding.SyntaxTree, CompilationContext.Empty, explanations: capture));
         }
+
+        [Fact]
+        public void CancellationDuringTargetSelectionStopsBeforeRecordingOrPublication()
+        {
+            var binding = Bind(Source("<Alarm><FullyQualifiedName>Child</FullyQualifiedName><Name>literal</Name></Alarm>"));
+            using var cancellation = new CancellationTokenSource();
+            var capture = new ValueExplanationCapture(_ => { cancellation.Cancel(); return true; }, cancellation.Token);
+            Assert.Throws<OperationCanceledException>(() => new CompilationEvaluator(binding.SyntaxTree, CompilationContext.Empty, explanations: capture));
+            Assert.Throws<OperationCanceledException>(() => capture.GetGraphs());
+        }
     }
 }

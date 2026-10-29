@@ -8,6 +8,28 @@ contents. Ordinary solution tests skip all measurements and live IDE launches.
 
 ## Isolated benchmarks
 
+`Area=Explanations` compares ordinary analysis with an on-demand explanation in
+the existing SDK worker, and separately measures creating/unloading a fresh bridge.
+The IDE reuses its project-owned worker, serializes explanation requests with
+ordinary analysis and cancels them when the captured project state changes.
+The scenarios use 1,000 or 10,000 alarms, plus the existing parameter and
+localization workloads. Correctness checks verify the selected value and detached
+dependency IDs. These timings exclude native UI, input capture and debounce.
+
+```powershell
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Area=Explanations'
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Area=ExplanationAllocations'
+```
+
+BenchmarkDotNet's host allocation counter cannot attribute allocations in the SDK
+AppDomain: an empty Allocated cell does not mean allocation-free compilation.
+The second command enables AppDomain monitoring only in a test process and records
+two warmups followed by five paired samples inside the SDK worker's domain.
+`explanation-worker-*.csv` includes compiler and detached-reader cumulative
+allocated bytes, elapsed milliseconds and explanation node count. It excludes
+outer remoting and UI work. These are allocation totals, not retained memory or
+evidence of collectibility. Report both sets of results without latency thresholds.
+
 `Area=Libraries` uses a saved three-library diamond with 1,000 concrete alarms and
 one shared abstract template. It measures full saved graph/artifact capture,
 recapture plus consumer analysis after a saved template change, analysis of already
