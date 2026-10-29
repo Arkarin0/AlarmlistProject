@@ -150,3 +150,31 @@ followed sequentially by eng/test-alarm-definition-generation.ps1. Existing
 TestHelper CA1416 warning remains. Internal capture README, diff and links reviewed;
 git diff --check passed. No scoped blocker. Procedures/collections, public API/SDK,
 UI and final integrated acceptance remain incomplete.
+
+### Iteration 4 — complete
+
+- Captured chosen procedure titles and effective entries, simple collection items,
+  record fields, sibling dependencies, definition defaults and typed conversion
+  inside their existing evaluation paths. Membership records consuming versus
+  defining alarms and library origins. Keyword results retain deferred states.
+- Existing analysis Clear resolution supplies excluded-entry explanations: the
+  selected raw value and controlling Clear only; discarded expressions are never
+  evaluated. Effective-entry indices are snapshot-local and must not be used as
+  persistent identities by the future public API or host.
+- Added procedure tests for inheritance, child parameter context, empty-title
+  fallback, keyword deferral, invalid entries and library origins. Generated
+  collection checks cover defaults, sibling sharing/cycles, canonical values,
+  Clear, library records and enabled/disabled procedures on both frameworks.
+
+| Gate | Result |
+| --- | --- |
+| Full compiler | 718 net472 / 720 net8.0 passed; Milestone14/Iteration4/Compiler. |
+| Task unit/integration | 124 unit and 4 integration per framework passed; Iteration4/TaskUnit and TaskIntegration. |
+| Generated collections, procedures enabled/disabled | Both frameworks passed; AlarmCollections/8e8fa78d5bd549d2aa361c07c517088b. |
+| Generated scalars and generation lifecycle | Both frameworks passed; AlarmDefinitionGeneration/6f33596806664142b451140b5c9f1bfe. |
+
+Commands: sequential dotnet test compiler/task projects with --no-restore -v quiet
+-m:1 -nr:false --logger trx, then eng/test-alarm-collections.ps1 and
+eng/test-alarm-definition-generation.ps1. Internal README, diff and links reviewed;
+git diff --check passed. No scoped blocker. Public API/SDK, UI and integrated
+acceptance remain incomplete; analysis contract remains 7 until iteration 5.

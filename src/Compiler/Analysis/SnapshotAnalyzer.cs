@@ -26,12 +26,15 @@ namespace Alarmlist.Analysis
         private readonly HashSet<string> _ambiguousNames;
         private readonly CompilationContext _context;
         private readonly CompilationEvaluator _evaluation;
+        private readonly ValueExplanationCapture _explanations;
         private AnalyzedAlarm[] _analyzedAlarms;
 
-        private SnapshotAnalyzer(BindingResult binding, CompilationContext context, bool allowDeferredValues = false)
+        private SnapshotAnalyzer(BindingResult binding, CompilationContext context, bool allowDeferredValues = false,
+            ValueExplanationCapture explanations = null)
         {
             _context = context;
-            _evaluation = new CompilationEvaluator(binding.SyntaxTree, context, allowDeferredValues);
+            _explanations = explanations;
+            _evaluation = new CompilationEvaluator(binding.SyntaxTree, context, allowDeferredValues, explanations);
             _ambiguousNames = new HashSet<string>(binding.SyntaxTree.Alarms
                 .Where(alarm => !string.IsNullOrWhiteSpace(alarm.FullyQualifiedName))
                 .GroupBy(alarm => alarm.FullyQualifiedName, StringComparer.Ordinal)
@@ -47,12 +50,13 @@ namespace Alarmlist.Analysis
             }
         }
 
-        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots, CompilationContext context, bool includeCompiledXml, CancellationToken token = default, bool allowDeferredValues = false)
+        public static AnalysisResult Analyze(AlmxTextSnapshot[] snapshots, CompilationContext context, bool includeCompiledXml, CancellationToken token = default, bool allowDeferredValues = false,
+            ValueExplanationCapture explanations = null)
         {
             var binder = new Binder();
             binder.AddSourceTexts(snapshots.Select(snapshot => snapshot.CreateSourceText()));
             BindingResult binding = LibraryCompilation.Include(binder.Bind(), context);
-            var analyzer = new SnapshotAnalyzer(binding, context, allowDeferredValues);
+            var analyzer = new SnapshotAnalyzer(binding, context, allowDeferredValues, explanations);
             CompilationResult compilation = analyzer.CompleteCompilation(binding, token);
             IReadOnlyList<Diagnostic> diagnostics = compilation.Diagnostics;
             string xml = null;
@@ -274,6 +278,13 @@ namespace Alarmlist.Analysis
         {
             TestProcedureStepSyntax step = item as TestProcedureStepSyntax;
             ProcedureEntryOrigin origin = _entries[item];
+            if (clear != null && step != null && _explanations != null)
+            {
+                var excludedBy = _entries[clear];
+                _explanations.ForAlarm(alarm)?.Excluded(AlarmExplanationCapture.ExcludedKey("Procedure", origin.Section, origin.Alarm.Index, origin.Index),
+                    "ProcedureEntry", origin.Section, step.Text, origin.Location, origin.Alarm.Library, origin.Alarm.FullyQualifiedName,
+                    excludedBy.Location, excludedBy.Alarm.Library, excludedBy.Alarm.FullyQualifiedName);
+            }
             string text = effective ? null : step?.Text;
             bool available = effective && step != null && _evaluation.Alarms.TryGetValue(alarm, out CompilationEvaluator.AlarmEvaluation evaluation)
                 && evaluation.Steps.TryGetValue(step, out text) && text != null;

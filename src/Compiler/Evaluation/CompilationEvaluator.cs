@@ -217,16 +217,27 @@ namespace Alarmlist.Evaluation
                 foreach (ProcedureGroupSyntax group in procedure.Groups)
                 {
                     if (!ProcedureGroupSyntax.IsValidName(group.Name)) continue;
-                    var text = group.Title == null ? PropertyExpression.LiteralText(group.Name) : EvaluateExpressionText(PropertyExpression.Parse(group.Title), group.TitleLocation);
-                    if (text?.ResolvedText == string.Empty) text = PropertyExpression.LiteralText(group.Name);
-                    _titleTexts[group.Name] = text;
-                    Titles[group.Name] = text?.ResolvedText;
-                }
-                foreach (TestProcedureStepSyntax step in procedure.Groups.SelectMany(group => group.Entries).OfType<TestProcedureStepSyntax>())
+                    using (var explanation = _explanation?.BeginProcedureTitle(group))
                     {
-                    var text = EvaluateExpressionText(_owner._steps[step], step.Location);
-                    _stepTexts[step] = text;
-                    Steps[step] = text?.ResolvedText;
+                        var text = group.Title == null ? PropertyExpression.LiteralText(group.Name) : EvaluateExpressionText(PropertyExpression.Parse(group.Title), group.TitleLocation);
+                        if (group.Title == null || text?.ResolvedText == string.Empty) _explanation?.GroupNameFallback(group.Name);
+                        if (text?.ResolvedText == string.Empty) text = PropertyExpression.LiteralText(group.Name);
+                        _titleTexts[group.Name] = text;
+                        Titles[group.Name] = text?.ResolvedText;
+                        explanation?.CompleteText(text?.ResolvedText);
+                    }
+                }
+                foreach (var group in procedure.Groups)
+                {
+                    int index = 0;
+                    foreach (TestProcedureStepSyntax step in group.Entries.OfType<TestProcedureStepSyntax>())
+                    using (var explanation = _explanation?.BeginProcedureEntry(group.Name, index++, step))
+                    {
+                        var text = EvaluateExpressionText(_owner._steps[step], step.Location);
+                        _stepTexts[step] = text;
+                        Steps[step] = text?.ResolvedText;
+                        explanation?.CompleteText(text?.ResolvedText);
+                    }
                 }
             }
 

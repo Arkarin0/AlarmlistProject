@@ -63,6 +63,13 @@ namespace Alarmlist.Analysis
             var fields = descriptor.Fields.Select(field =>
             {
                 string raw = record.GetFieldValue(field.Name);
+                if (clear != null && _explanations != null)
+                {
+                    var excludedBy = _collectionOrigins[clear];
+                    _explanations.ForAlarm(alarm)?.Excluded(AlarmExplanationCapture.ExcludedKey("Collection", descriptor.Name, origin.Alarm.Index, origin.Index, field.Name),
+                        "CollectionField", descriptor.Name + "." + field.Name, raw, record.GetFieldLocation(field.Name) ?? record.Location,
+                        origin.Alarm.Library, origin.Alarm.FullyQualifiedName, excludedBy.Location, excludedBy.Alarm.Library, excludedBy.Alarm.FullyQualifiedName, field.Type);
+                }
                 var value = evaluated?.GetField(field.Name);
                 bool available = value != null && value.State != AlarmFieldValueState.Invalid
                     && (value.State != AlarmFieldValueState.Deferred || value.EvaluatedText != null);

@@ -29,10 +29,11 @@ namespace Alarmlist.Evaluation
             return capture;
         }
         internal ValueExplanationGraph GetGraph(AlarmSyntaxNode alarm) => _alarms[alarm].Freeze();
+        internal IReadOnlyList<ValueExplanationGraph> GetGraphs() => Array.AsReadOnly(_alarms.Values.Select(capture => capture.Freeze()).ToArray());
         internal int AlarmCount => _alarms.Count;
     }
 
-    internal sealed class AlarmExplanationCapture
+    internal sealed partial class AlarmExplanationCapture
     {
         private readonly AlarmSyntaxNode _alarm;
         private readonly CancellationToken _token;
@@ -109,6 +110,13 @@ namespace Alarmlist.Evaluation
             return new Scope(this, node, null);
         }
 
+        internal void UseRoot(string key)
+        {
+            if (!_roots.TryGetValue(key, out int id)) return;
+            if (_active.Any(node => node.Id == id)) Cycle(_nodes[id].Name, "Circular dependency: " + _nodes[id].Name);
+            else Link(id);
+        }
+
         internal void Definition(string name, string raw, SourceLocation location)
             => Leaf("LookupDefinition", name, raw, raw, "Valid", location, null, null, "Lookup");
 
@@ -181,7 +189,10 @@ namespace Alarmlist.Evaluation
                 }
             }
             internal void CompleteText(string value, bool deferred = false)
-            { _completed = true; _node.Value = _node.CanonicalValue = value; _node.State = deferred ? "Deferred" : value == null ? "Unavailable" : "Valid"; }
+            {
+                _completed = true; _node.Value = _node.CanonicalValue = value;
+                _node.State = deferred || _node.Inputs.Any(id => _owner._nodes[id].State == "Deferred") ? "Deferred" : value == null ? "Unavailable" : "Valid";
+            }
             public void Dispose()
             {
                 if (_owner == null) return;

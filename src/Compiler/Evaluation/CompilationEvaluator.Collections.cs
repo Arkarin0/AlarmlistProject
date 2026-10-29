@@ -73,46 +73,53 @@ namespace Alarmlist.Evaluation
                             string key = prefix + field.Name;
                             if (values.TryGetValue(field.Name, out var previous))
                             {
+                                _explanation?.UseRoot(AlarmExplanationCapture.CollectionKey(descriptor.Name, index, field.Name));
                                 if (previous.State == AlarmFieldValueState.Deferred) foreach (string active in _visiting) _deferred.Add(active);
                                 return previous.State == AlarmFieldValueState.Invalid || (previous.State == AlarmFieldValueState.Deferred && previous.EvaluatedText == null)
                                     ? null : previous.EvaluatedText ?? string.Empty;
                             }
                             if (_visiting.Contains(key))
                             {
+                                _explanation?.Cycle(key, "Circular dependency: " + key);
                                 _owner.Report(DiagnosticDescriptors.CircularFieldDependency, _alarm, useLocation,
                                     string.Join(" -> ", _visiting.SkipWhile(active => active != key).Concat(new[] { key })), _activeResources);
                                 _failed.Add(key);
                                 return null;
                             }
                             string raw = item.GetFieldValue(field.Name);
-                            _visiting.Add(key);
-                            string evaluated;
-                            Output.ExportText text;
-                            try
+                            using (var explanation = _explanation?.BeginCollectionField(descriptor.Name, index, field, item,
+                                raw == null || _owner._collectionExpressions[item][field.Name]?.Tokens.Any() != true))
                             {
-                                text = raw == null ? PropertyExpression.LiteralText(field.Default) : EvaluateExpressionText(_owner._collectionExpressions[item][field.Name], item.GetFieldLocation(field.Name) ?? item.Location);
-                                evaluated = text?.ResolvedText;
+                                _visiting.Add(key);
+                                string evaluated;
+                                Output.ExportText text;
+                                try
+                                {
+                                    text = raw == null ? PropertyExpression.LiteralText(field.Default) : EvaluateExpressionText(_owner._collectionExpressions[item][field.Name], item.GetFieldLocation(field.Name) ?? item.Location);
+                                    evaluated = text?.ResolvedText;
+                                }
+                                finally { _visiting.RemoveAt(_visiting.Count - 1); }
+                                bool deferred = _deferred.Contains(key) || (_owner._allowDeferredValues && raw == null && field.Required && evaluated == null);
+                                var value = AlarmFieldValue.Resolve(field, raw, evaluated, deferred, raw == null && field.Default != null);
+                                if (raw != null && evaluated == null && !deferred)
+                                    value = new AlarmFieldValue(field.Name, raw, null, null, null, AlarmFieldValueState.Invalid, false);
+                                value = value.WithExportText(text);
+                                explanation?.Complete(value);
+                                values.Add(field.Name, value);
+                                if (value.State == AlarmFieldValueState.Invalid)
+                                {
+                                    if (evaluated != null || raw == null)
+                                        _owner.Report(DiagnosticDescriptors.InvalidFieldValue, _alarm, item.GetFieldLocation(field.Name) ?? item.Location, key);
+                                    _failed.Add(key);
+                                    return null;
+                                }
+                                if (value.State == AlarmFieldValueState.Deferred)
+                                {
+                                    foreach (string active in _visiting) _deferred.Add(active);
+                                    if (value.EvaluatedText == null) _failed.Add(key);
+                                }
+                                return value.EvaluatedText ?? string.Empty;
                             }
-                            finally { _visiting.RemoveAt(_visiting.Count - 1); }
-                            bool deferred = _deferred.Contains(key) || (_owner._allowDeferredValues && raw == null && field.Required && evaluated == null);
-                            var value = AlarmFieldValue.Resolve(field, raw, evaluated, deferred, raw == null && field.Default != null);
-                            if (raw != null && evaluated == null && !deferred)
-                                value = new AlarmFieldValue(field.Name, raw, null, null, null, AlarmFieldValueState.Invalid, false);
-                            value = value.WithExportText(text);
-                            values.Add(field.Name, value);
-                            if (value.State == AlarmFieldValueState.Invalid)
-                            {
-                                if (evaluated != null || raw == null)
-                                    _owner.Report(DiagnosticDescriptors.InvalidFieldValue, _alarm, item.GetFieldLocation(field.Name) ?? item.Location, key);
-                                _failed.Add(key);
-                                return null;
-                            }
-                            if (value.State == AlarmFieldValueState.Deferred)
-                            {
-                                foreach (string active in _visiting) _deferred.Add(active);
-                                if (value.EvaluatedText == null) _failed.Add(key);
-                            }
-                            return value.EvaluatedText ?? string.Empty;
                         }
                         _itemTextLookup = name => values.TryGetValue(name, out var value) ? value.ExportText : null;
                         _itemLookup = descriptor.Kind == "Complex" ? (Func<string, SourceLocation, string>)Resolve : null;

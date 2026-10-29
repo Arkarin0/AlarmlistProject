@@ -33,6 +33,43 @@ internal static class Program
         catch (XmlException) { return true; }
     }
 
+    private static void CheckValueExplanations()
+    {
+        string baseProcedure = AlarmDefinition.HasTestProcedure ? "<TestProcedure><Group Name='G'><Step>$(Discarded)</Step></Group></TestProcedure>" : "";
+        string childProcedure = AlarmDefinition.HasTestProcedure ? "<TestProcedure><Group Name='G'><Clear/><Step>$(P)</Step></Group></TestProcedure>" : "";
+        var sources = new[] { Snapshot(Alarm("<Properties><Property Name='P'/></Properties><Tags><Item>$(Discarded)</Item></Tags><Numbers><Item>+004</Item></Numbers>"
+            + Record("<Count>$(P)</Count><Copy>$(item:Count)</Copy>") + baseProcedure, "Base", true)
+            + Alarm("<ReferenceName>Base</ReferenceName><Properties><Property Name='P' Value='4'/></Properties><Tags><Clear/><Item>kept</Item></Tags><Checks><Item/></Checks>" + childProcedure, "Child")) };
+        var capture = new Alarmlist.Evaluation.ValueExplanationCapture(alarm => alarm.FullyQualifiedName == "Child");
+        var analyzed = Alarmlist.Analysis.SnapshotAnalyzer.Analyze(sources, CompilationContext.Empty, true, explanations: capture);
+        Check(analyzed.Success, "Collection explanation compilation succeeds");
+        var graph = capture.GetGraphs().Single();
+        var count = graph.Nodes[graph.Roots["CollectionField:Checks:0:Count"]];
+        var copy = graph.Nodes[graph.Roots["CollectionField:Checks:0:Copy"]];
+        Check(count.CanonicalValue == "4" && count.Scope == "Inherited" && count.DefiningAlarm == "Base" && count.Location.SourceVersion == 42, "Record explanation keeps child values and inherited origin");
+        Check(copy.Inputs.Contains(count.Id) && copy.CanonicalValue == "4", "Record sibling explanation shares dependency");
+        Check(graph.Nodes[graph.Roots["CollectionField:Checks:1:Count"]].CanonicalValue == "7", "Record default explanation");
+        Check(graph.Nodes[graph.Roots["CollectionField:Checks:1:Text"]].Value == "$(Literal)", "Record explanation default is literal");
+        var number = graph.Nodes[graph.Roots["CollectionField:Numbers:0:Item"]];
+        Check(number.Value == "+004" && number.CanonicalValue == "4" && number.Inputs.Any(id => graph.Nodes[id].Kind == "Conversion"), "Simple collection typed conversion explanation");
+        Check(graph.Nodes[graph.Roots["CollectionField:Tags:0:Item"]].Value == "kept", "Simple collection selected entry explanation");
+        var excluded = graph.Nodes.Where(node => node.State == "Excluded").ToArray();
+        Check(excluded.Length == (AlarmDefinition.HasTestProcedure ? 2 : 1), "Excluded collection/procedure explanation count");
+        Check(excluded.All(node => node.Value == null && graph.Nodes[node.Inputs.Single()].Kind == "Clear" && graph.Nodes[node.Inputs.Single()].DefiningAlarm == "Child"), "Excluded values point to actual Clear only");
+        Check(!graph.Nodes.Any(node => node.Kind == "Parameter" && (node.Name == "Discarded" || node.Name == "Literal")), "Excluded text and defaults are not evaluated");
+        Check(graph.Nodes.Any(node => node.Kind == "ProcedureEntry" && node.State != "Excluded") == AlarmDefinition.HasTestProcedure, "Explanation respects procedure capability");
+
+        var deferredCapture = new Alarmlist.Evaluation.ValueExplanationCapture(_ => true);
+        Alarmlist.Analysis.SnapshotAnalyzer.Analyze(new[] { Snapshot(Alarm(Record("<Count>$(loc:Number)</Count><Copy>$(item:Count)</Copy>"))) }, CompilationContext.Empty, false, explanations: deferredCapture);
+        var deferredGraph = deferredCapture.GetGraphs().Single();
+        Check(deferredGraph.Nodes[deferredGraph.Roots["CollectionField:Checks:0:Count"]].State == "Deferred" && deferredGraph.Nodes[deferredGraph.Roots["CollectionField:Checks:0:Copy"]].State == "Deferred", "Explanation retains keyword sibling deferral");
+
+        var cycleCapture = new Alarmlist.Evaluation.ValueExplanationCapture(_ => true);
+        var cycle = Alarmlist.Analysis.SnapshotAnalyzer.Analyze(new[] { Snapshot(Alarm(Record("<Copy>$(item:Copy) $(item:Copy)</Copy>"))) }, CompilationContext.Empty, false, explanations: cycleCapture);
+        var cycleGraph = cycleCapture.GetGraphs().Single();
+        Check(!cycle.Success && cycleGraph.Nodes.Any(node => node.Kind == "Cycle") && cycleGraph.Nodes[cycleGraph.Roots["CollectionField:Checks:0:Copy"]].State == "Invalid", "Collection cycle explanation terminates");
+    }
+
     public static void Main()
     {
         if (AlarmDefinition.Collections.Single(collection => collection.Name == "Tags").MinCount == 1)
@@ -49,6 +86,7 @@ internal static class Program
             Console.WriteLine(_checks + " minimum-count checks passed");
             return;
         }
+        CheckValueExplanations();
         var exportResult = Compile("<Tags><Item>one</Item></Tags>" + Record("<Priority>High</Priority>"));
         Check(exportResult.Success, "export collection input compiles");
         var exportDocument = Alarmlist.Output.ExportDocument.Create(exportResult, "keyword");
@@ -224,6 +262,11 @@ internal static class Program
         Check(consumer.Success && libraryEntry.Origin.Alarm.Library.Id == "Records" && libraryEntry.Origin.Location.FilePath.StartsWith("library://Records/1.0.0/"), "Library record ownership restored");
         Check((long)libraryEntry.Fields.Single(field => field.Name == "Copy").TypedValue == 4 && libraryEntry.Origin.Location.LineNumber == entry.Origin.Location.LineNumber, "Library expressions and original locations round trip");
         Check(consumer.Libraries.Single().Sources.Single().Origins.Any(origin => origin.Key.Contains("/collections/Checks/entries/0/fields/Count")), "Library navigation maps record fields");
+        var explanationCapture = new Alarmlist.Evaluation.ValueExplanationCapture(alarm => alarm.FullyQualifiedName == "Child");
+        var explanationAnalysis = Alarmlist.Analysis.SnapshotAnalyzer.Analyze(new[] { childSource }, context, false, explanations: explanationCapture);
+        var explanationGraph = explanationCapture.GetGraphs().Single();
+        var copyExplanation = explanationGraph.Nodes[explanationGraph.Roots["CollectionField:Checks:0:Copy"]];
+        Check(explanationAnalysis.Success && copyExplanation.Library.Id == "Records" && copyExplanation.Location.FilePath.StartsWith("library://Records/1.0.0/") && copyExplanation.CanonicalValue == "4", "Library collection explanation retains origin and consumer values");
         var libraryXml = XDocument.Parse(built.ArtifactText);
         var originNode = libraryXml.Descendants().First(element => element.Name.LocalName == "Origin" && ((string)element.Attribute("Key"))?.Contains("/collections/Checks") == true);
         originNode.SetAttributeValue("Key", "alarms/0/collections/Unknown");

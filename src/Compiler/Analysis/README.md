@@ -28,6 +28,14 @@ resource appears; no skipped fallback alternatives are added. Keyword nodes stay
 deferred without selecting translations. Label translations, list/metadata values
 and quoted arguments retain their existing literal semantics.
 
-Procedures/collections and a target-specific public API are subsequent iterations.
+Procedure titles/entries and simple/record fields now capture their existing
+effective values and source ownership. Siblings share record-field nodes; defaults
+remain literal. SnapshotAnalyzer observes its existing ordered Clear-resolution
+results to record excluded entries and controlling directives without evaluating
+discarded text. Collection and procedure ordinals in internal root keys are
+snapshot-local addresses, never persistent entry identities. Public targeting and
+host refresh must additionally validate source/context stamps.
+
+A target-specific public API and IDE actions are subsequent iterations.
 Analysis contract remains 7 until the coordinated API/SDK
 transition to 8; analyzer, library and exporter contracts are unchanged.
