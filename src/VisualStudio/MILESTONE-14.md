@@ -2,7 +2,7 @@
 
 Status: original iterations 1–7 complete with required acceptance gates passed on
 2026-10-29. Follow-up iterations 8–14 (Find All References and Rename) authorized;
-iterations 8–12 complete, with UI/integrated acceptance iterations 13–14 pending.
+iterations 8–14 complete with required acceptance gates passed on 2026-10-30.
 Original evidence and performance limits remain below.
 
 ## Outcome and confirmed scope
@@ -1258,3 +1258,321 @@ Further iteration 13 work (still not completion):
   remains. Iteration 14 still owns the guided tutorial, broader integrated
   library/NuGet/fork/unloaded scenarios, performance/allocation/cancellation
   measurements and final milestone regressions; no final acceptance is claimed.
+
+Iteration 13 committed as be0e2e9. Working tree clean before iteration 14.
+
+Iteration 14 — completed 2026-10-30:
+
+- Add ordinary analysis/reference-search/rename-preview measurements over the
+  existing 1,000/10,000-alarm, parameter and localization fixtures. Use the existing
+  Release/x64 BenchmarkDotNet launcher and separate SDK-domain allocation counters;
+  report actual timing/allocation samples without latency limits. Verify correct
+  results, cancellation/recovery and bounded presentation with those workloads.
+- Complete a guided native reference/rename tutorial and verify its concrete
+  source and expected result. Add integrated saved/project/package/shared/unloaded
+  and generated-definition coverage using existing fixtures and private feeds.
+- Run native checks sequentially on both IDEs and affected full compiler/downstream
+  suites on both frameworks. Preserve scoped iteration-13 evidence, document actual
+  results/limits, and commit final acceptance only after these gates pass.
+
+Actual work and checks:
+
+- Added ReferenceBenchmarks over the existing four analysis fixtures, SDK-domain
+  allocation sampling, and large-result/cancellation/recovery correctness checks.
+  The Dry 1,000-alarm pipeline passes all three reports in
+  AnalysisPerformance/7f2dfe1a04ca41a68f950a8081f822b7. This is execution/reporting
+  validation only, not timing acceptance. Completed timing, allocation and
+  correctness results follow.
+- Short timing runs pass all four scenarios and twelve reports in
+  AnalysisPerformance/e867e9d63ba44039a6736261ae8dbd18. SDK-domain allocation runs
+  pass all four scenarios in 8b1f13a6d7f54e74822d0316302900a4. Release/x64,
+  BenchmarkDotNet 0.15.8, .NET Framework 4.8.1 running net472-targeted tools on
+  the i7-11700K host; two warmups/five iterations with standard outlier handling.
+  These are warm captured-input operations, excluding native UI, live solution
+  capture, debounce and cold SDK startup. Small-sample percentiles are descriptive.
+
+| Existing fixture | Analysis mean / p95 ms | References mean / p95 ms | Rename preview mean / p95 ms |
+| --- | ---: | ---: | ---: |
+| 1,000 alarms / 10 files | 334.6 / 336.0 | 129.3 / 131.1 | 364.0 / 375.7 |
+| 10,000 alarms / 100 files | 3875.1 / 3886.3 | 1372.5 / 1378.6 | 3945.5 / 3953.1 |
+| 1,000 alarms with parameters | 573.8 / 577.2 | 345.3 / 348.2 | 924.1 / 926.7 |
+| 1,000 alarms / 10,002 translations | 589.3 / 605.4 | 1227.2 / 1247.3 | 2718.8 / 2750.3 |
+
+| Existing fixture | Analysis allocated MiB | References allocated MiB | Rename preview allocated MiB |
+| --- | ---: | ---: | ---: |
+| 1,000 alarms / 10 files | 79.40 | 102.08 | 261.14 |
+| 10,000 alarms / 100 files | 793.12 | 1030.07 | 2626.18 |
+| 1,000 alarms with parameters | 123.19 | 223.92 | 542.45 |
+| 1,000 alarms / 10,002 translations | 149.03 | 409.56 | 939.14 |
+
+  Allocation values average five paired SDK-domain samples after two warmups;
+  they include compiler and detached-reader allocation totals, excluding outer
+  remoting/UI work. They are not retained-memory measurements. Outer benchmark
+  empty allocation cells cannot describe compiler allocation. Reference capture
+  scans available related resource declarations, so the localization catalogue
+  adds on-demand work even for the selected alarm identity; ordinary compilation
+  still retains no reference index. No latency or allocation threshold is imposed.
+- ReferenceCorrectness passes both large workloads in
+  AnalysisPerformance/bc6a101789614a74b35f38929b944106. Both retain large immutable
+  built-in findings while presenting 100, then 200 rows; invalidation clears them.
+  All four scheduled requests actually cancel: localization reference/rename
+  elapsed 51.9/64.8 ms; 10,000-alarm reference/rename 52.7/55.7 ms. The 25 ms trigger
+  is a cancellation request, not an acceptance deadline. Pre-cancelled calls and
+  subsequent successful search/analysis on the same SDK worker pass.
+- Added the guided two-file tutorial and a native fixture reading its actual XML
+  code blocks. It covers source navigation, fresh search, preview, unsaved Apply,
+  literal preservation, linked Undo/Redo, Save and Build. Preparing that fixture
+  exposed tree-item accessibility names using an internal type name. Reference
+  tree items now bind their visible labels; a WPF peer assertion and the tutorial
+  native checks must validate this improvement before final acceptance.
+- ReferenceTreeAccessibility passes both actual WPF rendering checks, including
+  the leaf automation peer's visible label. The first native tutorial attempt
+  (workspace ReferenceTutorial/2022/7a776ff07dfe4b23b55f15b848ae01c3;
+  TestResults/01abd47a392d429d884583e4bc49e8c1) times out acquiring automation in
+  the fresh Alarmlist14Exp profile before any tutorial action. The fixture cleans
+  up its owned IDE. Resumed in the established Alarmlist13Exp profile; this startup
+  failure is not tutorial acceptance evidence.
+- The established-profile tutorial run reaches its final saved-text assertion
+  (ReferenceTutorial/2022/260ecad662d74fba8855170776fe0c15), where the editor adds
+  the configured final newline. Starting files now include the code block's final
+  newline, preserving exact assertions instead of ignoring text differences.
+  The complete tutorial passes on VS2022 in
+  TestResults/51cab894666b4552a7d4715f2bd259e8 (28 seconds), including real source
+  navigation, fresh discovery, preview, unsaved Apply, literal preservation,
+  linked Undo/Redo, Save and Build. The owned IDE exits normally.
+- Extended existing project-library, package-definition, shared-example and
+  generated-collection native fixtures with compiler-owned reference discovery.
+  Project-library coverage adds unsaved coordinated producer/consumer Rename and
+  linked Undo; packages/generated siblings must remain explicitly read-only.
+  These integrated runs still need acceptance. Affected collection/library
+  fixtures use the authoritative owned main-window handle for their UI checks.
+- The first VS2026 tutorial attempt cancels during initial solution discovery
+  (TestResults/f8655f2fe89f43b7942ca64c5c12b5f6). The designer exposed the raw
+  cancellation message even though the originating selection remained current.
+  It now reports changed captured inputs with explicit fresh-search guidance;
+  actual caller cancellation remains silent and no request is automatically
+  retried or retargeted. The focused DiscoveryCancellation regression passes.
+  The complete VS2026 tutorial rerun passes in
+  TestResults/521d72db571144eaa473365f41bacdf1 (30 seconds).
+- VS2022's first integrated library run passes package-definition discovery but
+  fails project-library fixture restoration because it selects a hidden Summary
+  tab (TestResults/52373a39e74e4aef8e394da57c139059). The fixture explicitly
+  reopens Summary. Its rerun passes all library assertions but stalls during IDE
+  shutdown; diagnostic captures are in Iteration14/LibraryStall and
+  LibraryRunnerStall. The runner is blocked in native COM, while the IDE's
+  managed capture supplies no actionable frames. Stopping its verified owned
+  build worker does not release it; stopping only the verified isolated IDE
+  releases shutdown and the runner reports success in
+  TestResults/5313715613da4d7ea7b31e6f8e3fe7f9. This intervened run is recorded
+  separately from clean acceptance. The fixture closes the temporary library
+  source after Undo and logs restoration/load transitions for the clean repeat.
+- The clean VS2022 project-library repeat passes with normal owned-IDE cleanup
+  in TestResults/3b039bb13edd434a88a519377c3a7558 (53 seconds): out-of-solution
+  search, coordinated unsaved producer/consumer Apply and Undo, saved dependency
+  refresh, unloaded source discovery and reloaded project refresh all pass.
+  PackageDefinition2022 passed in the earlier two-case run; package artifact bytes
+  remain unchanged and the compiler-owned alarm identity is explicitly read-only.
+- VS2026 project-library and package-definition cases both pass with normal cleanup
+  in TestResults/b1363c91765d4ea19d59e5441108b25c (two cases, 1 minute 32 seconds).
+  The library case includes out-of-solution/unloaded discovery and linked unsaved
+  Apply/Undo; package discovery reports the immutable definition without changing
+  the packaged artifact. The real default shared example and final native rename
+  regression groups are next, followed by generated-definition acceptance.
+- The final VS2022 regression group's AuxiliaryReferencesRename case stalls in
+  initial fixture setup with an idle desktop MSBuild node, before rename actions
+  (workspace 0ecbb3c56fc14014b7fff497658c4c97). Stopping only the worker whose
+  parent/path/node-mode identity matches that owned IDE releases the run; its
+  assertions and normal IDE cleanup then pass. This intervened result is not a
+  clean repeat. Owned native IDE fixtures now set MSBUILDDISABLENODEREUSE=1 in
+  their private process environment, consistently with isolated preparation;
+  no machine or extension policy changes. Fresh native acceptance must validate it.
+- The VS2022 final native group passes all five cases in
+  TestResults/320b7e751e2f428495d27befd736dccc (8 minutes 2 seconds):
+  ReferencesRename, SharedReferencesRename, AuxiliaryReferencesRename,
+  DefaultSharedExample and RenameTransaction. Only AuxiliaryReferencesRename
+  needed the intervention above; its fresh repeat remains required. The current
+  DefaultSharedExample workspace 10df030468b242a7b4a7f6db2bdb8c38 validates
+  preparation twice, both shared consumer contexts, unsaved shared analysis,
+  reopening and North XML/South JSON/Zenon keyword XML with unchanged alarm counts.
+- AuxiliaryReferencesRename2022's fresh repeat with private worker reuse disabled
+  passes in TestResults/5ac9e458660e4141a8327d0718798bbd (34 seconds), without
+  intervention and with normal IDE cleanup. This supplies its clean final native
+  evidence alongside the other four successful regression cases above.
+- VS2026's final group passes ReferencesRename, AuxiliaryReferencesRename,
+  SharedReferencesRename and RenameTransaction without intervention in
+  TestResults/4918aad010ec4e76ae88d0948b8e920e. DefaultSharedExample completes
+  preparation, shared/reference actions, outputs and first-session cleanup, but
+  its restarted reference manager times out on a coordinate checkbox click.
+  Restart/failure.png in workspace 8e1e096ff7c04f7a9674b8a599a5ec0b shows child
+  console windows obscuring the reference dialog. The fixture now uses the native
+  checkbox Toggle pattern, preserving initial-state, resulting-state, saved
+  membership and source-byte assertions. Its repeat must pass before acceptance.
+- The existing packaged custom-definition verifier now checks the completed
+  public reference/rename APIs against its packaged fork compiler: alarm
+  inheritance edits preserve a literal; retyped scalar and record-sibling
+  definition names remain searchable/immutable; pre-cancellation and recovery
+  work. These checks run on both frameworks as part of each consumer verification.
+- The next VS2026 example repeat passes Toggle and closes the reference manager,
+  but times out on the saved membership assertion in
+  TestResults/8669eb2deaa643bd9522c390eb4496a8 (workspace
+  e92b9f2a06554e048e0cca417af87b89). Its original shared/reference/output checks
+  and first-session cleanup pass. The fixture now waits for CPS to acknowledge
+  the project change (dirty state or already-persisted membership) before Save,
+  instead of assuming dialog closure means the asynchronous edit is published.
+  Exact saved membership and source-byte assertions remain required.
+- The acknowledgement check exposes the native Toggle-provider limitation:
+  visible checkbox state changes, but no project edit appears
+  (TestResults/87e0c78e527847188ed336f5fcb78ac2, workspace
+  5537f071a8fa4c1c8c1ea45fbb19397f). The fixture now foregrounds the owned native
+  reference dialog, focuses its actual reference checkbox, checks focus and
+  process ownership, and sends Space. The earlier Toggle-only approach is
+  superseded; project acknowledgement and exact saved membership still gate success.
+- The focused-input repeat passes DefaultSharedExample and ReferenceTutorial on
+  VS2026 in TestResults/b33d812bc7854204a2ca2f97c5e3b5c0 (two cases,
+  3 minutes 38 seconds), with normal cleanup and no intervention. Shared reference
+  removal/restoration persists, Shared unload/reload and all three projects'
+  selected-format outputs pass. The tutorial now asserts the concrete child's
+  exact inherited Name/Code and preserved Description after Save/Build.
+  VS2022 is repeating the same updated fixtures before generated-fork acceptance.
+- The identical updated DefaultSharedExample and ReferenceTutorial fixtures pass
+  on VS2022 in TestResults/27a88b8d0b434dd082fb1f5b269b62b3 (two cases,
+  3 minutes 53 seconds), with normal cleanup and no intervention. Both native
+  hosts now pass the exact tutorial values and the full real-example lifecycle.
+  Generated collection forks are running with -Designer -Exports, both IDE paths,
+  the established AlarmlistDefinitionExp profile and the VS2022 desktop build host;
+  consumer acceptance will also repeat on the VS2026 desktop build host.
+- The first procedure-enabled generated fork, col13/ec71a219, passes project/
+  package consumers, analyzers, exports and packaged reference/rename APIs on both
+  frameworks (consumer-checks/e7c9756a). Its native VS2022 run passes the new
+  generated-sibling reference action but exposes disabled Explain actions after
+  Clear (results-2022). Isolated diagnostic repeats reproduce this with available
+  analysis, no drafts and populated targets. The loaded-action trace in workspace
+  e713c09a7dac429fb8ca8a0a65921bdb records enabled=False, can=True: the routed
+  command cached its disabled state before attachment. A requery on load releases
+  the action and passes the excluded-value/Clear explanation. That diagnostic run
+  later refuses culture input when WindowsTerminal owns the foreground; it is not
+  final acceptance. Culture selection now foregrounds the owned IDE before its
+  existing process/focus guard and native input.
+- Added a WPF lifecycle regression that inserts the action group into an already
+  loaded host. Before the fix all three actions remain disabled despite current
+  targets (LateAttachedActionsLoadedHostBeforeFix); after ValueActionsControl
+  requests command requery on Loaded, all three become enabled and private drafts
+  disable them without source edits. ValueActionLifecycle passes all three checks,
+  including both cancellation cases. Diagnostic logging exists only in the ignored
+  isolated fork; fresh acceptance uses uninstrumented production sources.
+- The fresh procedure-enabled fork col13/750267e3 passes packaged project/package
+  consumers, analyzers, exports and the new public reference/rename checks on both
+  frameworks (consumer-checks/c6174e83). Its uninstrumented VS2022 native collection
+  case passes in results-2022 (1 minute 57 seconds), including generated sibling
+  references, excluded-value explanation after Clear, all collection editing and
+  caption/culture behavior. VS2026 and the procedure-disabled variant remain pending.
+- That fork's first VS2026 run times out on its initial Count explanation before
+  reference discovery (results-2026; workspace 24dedb76ff5a4ec1afe263d044b8ba63).
+  Its capture exposes only the fixed accessibility label "Explanation status",
+  hiding the actual message. Explanation status now has stable AutomationId
+  ExplanationStatus and the TextBlock's current message as its accessible name.
+  A WPF peer check verifies initial, unavailable and invalidated messages; the
+  corrected expanded-control fixture passes in ExplanationStatusAccessibilityExpanded.
+  Native explanation helpers report unavailable/obsolete status immediately rather
+  than losing that reason in an eventual value timeout. Fresh generated acceptance
+  is repeating with those diagnostics. ProcedureMode selects Enabled/Disabled for
+  focused repeats; its existing default still checks Both.
+- Procedure-enabled fork col13/6b4f5e18 passes packaged consumers/APIs on both
+  frameworks and native VS2022. Its improved VS2026 capture identifies the initial
+  Count request's actual outcome: "Inputs or the selected value changed. Explain
+  this value again." (results-2026, 34 seconds). Obsolete work is correctly
+  discarded. The startup fixture now explicitly verifies unchanged ALMX text and
+  reactivates the same designer before issuing one fresh Count request. Only this
+  initial, unchanged-source case opts in; other obsolete actions still fail the
+  helper, and the fresh request must return the exact value and steps. No host
+  automatic retry, guessed retargeting or weakened value/source assertion is added.
+- Procedure-enabled fork col13/46937f6b completes all requested acceptance:
+  packaged project/package consumers, analyzers, canonical XML/JSON/Zenon exports
+  and public reference/rename APIs on both frameworks (consumer-checks/838d546f),
+  plus native collection workflows on VS2022 (results-2022, 1 minute 56 seconds)
+  and VS2026 (results-2026, 1 minute 47 seconds), with normal cleanup.
+  Procedure-disabled acceptance is running separately through ProcedureMode Disabled.
+- Procedure-disabled fork col13/2135ab08 passes packaged consumers, analyzers,
+  all export formats and reference/rename APIs on both frameworks
+  (consumer-checks/0aee6369), and native VS2022 (results-2022, 1 minute 56 seconds).
+  Its first VS2026 run refuses culture input when WindowsTerminal owns the
+  foreground (results-2026, 1 minute 13 seconds); no input is sent. Culture
+  selection now waits up to ten seconds for owned-IDE foreground, then retains
+  its final ownership guard. The focused VS2026 repeat passes the full workflow
+  in results-2026-focus (1 minute 45 seconds), with normal cleanup and source
+  preview templates temporarily unavailable as in the main fork driver. Only
+  native runner helpers are refreshed; the accepted SDK/VSIX definition remains
+  unchanged. No additional shells are launched during that interactive repeat.
+  Both procedure variants now pass native acceptance on both hosts.
+- Both accepted forks also pass the packaged project/package/analyzer/export/API
+  consumer workflow using the VS2026 desktop MSBuild host: enabled
+  46937f6b/consumer-checks/c2399660 and disabled
+  2135ab08/consumer-checks/add8fb6d. Together with their VS2022-host runs, both
+  task runtimes/frameworks and desktop build hosts are covered for each capability.
+- Final standard-definition native regressions pass ReferencesRename and
+  ValueExplanation on VS2022 in TestResults/b25398a2b8b34de5a72398ccf2973be3
+  (two cases, 1 minute 39 seconds), after the command-lifecycle and accessibility
+  fixes. VS2026 is running the same pair sequentially.
+- VS2026 passes ReferencesRename in TestResults/e432d20b14dd46049bd00cd27e25a8d9,
+  but ValueExplanation times out opening its initial en-GB language selector.
+  failure.png in workspace ValueExplanation/2026/f3af98dc2e84495d8a65b0e3ef458d80
+  shows the previous test's restored floating References window covering the
+  toolbar. The explanation fixture now explicitly hides unrelated References/
+  Summary panes before its mouse-based toolbar step. The focused repeat retains
+  every original explanation, freshness, source/output and culture assertion.
+- The focused ValueExplanation2026 repeat passes in
+  TestResults/8b2b40a776234c4ca9053d80b158e3e1 (57 seconds), with normal cleanup.
+  Final standard reference/rename and explanation regressions now pass on both
+  IDE hosts. Full compiler, task, exporter, SDK, VSIX and host-unit regressions
+  are running sequentially, followed by packaged bridge checks on both desktop
+  build hosts. No native check remains pending.
+- FinalRegressions/a13782fe98984871a1f7a267717d17e2 currently passes full compiler
+  suites (850 net472 / 852 net8.0), task units (124 per framework), task integration
+  (4 per framework) and zenon exporter units (9 net472 / 10 net8.0), with no skips.
+  SDK, VSIX, host units and desktop packaged bridge gates remain in progress.
+- The full net472 SDK suite also passes all 97 tests with no skips in that
+  FinalRegressions run; the net8.0 SDK suite and remaining host/bridge gates follow.
+
+Final iteration-14 acceptance:
+
+All final regressions pass in
+`artifacts/log/Debug/Iteration14/FinalRegressions/a13782fe98984871a1f7a267717d17e2`.
+The sequential runner invokes `dotnet test <project> --framework <framework>
+--logger trx --results-directory <suite-directory>` for the corresponding projects
+in the repository build guide; host units use net472 only. Desktop repeats set
+ALARMLIST_TEST_MSBUILD_PATH to each installed host and invoke the SDK test project
+with `--framework net472 --no-build --no-restore --filter
+FullyQualifiedName~PackageTests`. Per-suite commands, output and TRX are retained.
+
+| Suite | net472 passed | net8.0 passed |
+| --- | ---: | ---: |
+| Compiler | 850 | 852 |
+| MSBuild task units | 124 | 124 |
+| MSBuild task integration | 4 | 4 |
+| Zenon exporter | 9 | 10 |
+| Full packaged SDK | 97 | 94 |
+| VSIX integration | 14 | 14 |
+| Extension host units | 933 | — |
+| Packaged bridge, VS2022 desktop MSBuild | 5 | — |
+| Packaged bridge, VS2026 desktop MSBuild | 5 | — |
+
+Total: **3,139 tests passed, zero failures and zero skips**. Native acceptance
+above separately covers both IDEs, the guided tutorial, shared/solution/project/
+package/unloaded inputs, exact unsaved edits and linked Undo/Redo/rollback, active
+consumer/culture selection and both generated procedure capabilities. Runs are
+sequential; setup/focus/obsolete-request failures and their successful repeats
+remain recorded above. No essential gate is deferred or blocked.
+
+The [guided reference/rename tutorial](../../documentation/tutorials/find-and-rename-an-alarm.md)
+uses the XML consumed by the native tests. Documentation review checks its UI
+labels, exact final values, English templates and local links. Warm performance,
+SDK-domain allocation and cancellation/bounded-presentation evidence are reported
+above with their exclusions; they establish no latency limit or retained-memory
+guarantee. Unknown external consumers, Git integration, file/project renaming and
+schema-definition renaming remain outside the confirmed scope. Analysis contract
+9, analyzer 5, library format 3, export contract 1 and semantic fingerprints remain
+as accepted in iteration 12.
+
+Final diff/whitespace review passes; 167 local links across the affected guidance,
+feature/tutorial, backlog, contributor and milestone documents resolve. No
+diagnostic probes, generated binaries, machine paths or unrelated edits are staged.

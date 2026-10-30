@@ -30,6 +30,10 @@ namespace Alarmlist.VisualStudio.PerformanceTests.Infrastructure
         [InlineData("1000-100"), InlineData("10000-100"), InlineData("1000-100-properties"), InlineData("1000-100-localization")]
         public void Explanations(string scenario) => Run(typeof(ExplanationBenchmarks), scenario, 3);
 
+        [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "References")]
+        [InlineData("1000-100"), InlineData("10000-100"), InlineData("1000-100-properties"), InlineData("1000-100-localization")]
+        public void References(string scenario) => Run(typeof(ReferenceBenchmarks), scenario, 3);
+
         [PerformanceTheory, Trait("Category", "Performance"), Trait("Host", "Isolated"), Trait("Area", "Designer")]
         [InlineData("1000-1000"), InlineData("1000-100"), InlineData("10000-100")]
         public void Designer(string scenario) => Run(typeof(DesignerBenchmarks), scenario, 6);

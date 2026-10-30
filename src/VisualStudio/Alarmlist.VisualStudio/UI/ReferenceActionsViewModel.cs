@@ -75,7 +75,14 @@ namespace Alarmlist.VisualStudio.UI
                     && state.Project.HasSameCompilerContext(_analysis.Current?.Project);
                 await ((IDesignerReferences)_analysis).FindReferencesAsync(state, target, new ReferenceInvocation(Current, IntentCurrent, token, intentToken, rename));
             }
-            catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+            catch (OperationCanceledException)
+            {
+                // The solution session also cancels when another captured input
+                // changes. Keep caller cancellation silent, but explain why a
+                // still-current user request produced no results.
+                if (Current() && !intentToken.IsCancellationRequested)
+                    _report?.Invoke("Captured solution inputs changed during discovery. Wait for current analysis, then find references again.");
+            }
             catch (Exception error) when (SdkAnalysisBridge.IsRecoverable(error))
             { if (Current()) _report?.Invoke(error.Message); }
         }

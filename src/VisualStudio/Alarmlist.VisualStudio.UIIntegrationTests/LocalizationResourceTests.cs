@@ -166,7 +166,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => (selector = toolbar.FindFirstDescendant(cf => cf.ByControlType(ControlType.ComboBox))?.AsComboBox())?.IsEnabled == true, "summary language selector");
             // Use native mouse opening; ExpandCollapse produced empty shell
             // popups in these VS2022 scenarios.
-            selector.Collapse(); ide.RequireForeground(); selector.Click();
+            selector.Collapse();
+            VisualStudioSession.Wait(() =>
+            {
+                window.SetForeground();
+                try { ide.RequireForeground(); return true; }
+                catch (InvalidOperationException) { return false; }
+            }, "owned IDE foreground before summary language input", 10);
+            ide.RequireForeground(); selector.Click();
             AutomationElement choice = null;
             var refresh = Stopwatch.StartNew();
             VisualStudioSession.Wait(() =>

@@ -35,6 +35,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             if (!Regex.IsMatch(suffix, "^[A-Za-z][A-Za-z0-9_]*$")) throw new InvalidOperationException("Invalid experimental root suffix.");
             var start = new ProcessStartInfo(executable) { UseShellExecute = false };
             start.Environment["NUGET_PACKAGES"] = Path.Combine(directory, ".packages");
+            // Each fixture owns its IDE and private SDK/feed. Do not reuse
+            // desktop build workers across those isolated project lifetimes.
+            start.Environment["MSBUILDDISABLENODEREUSE"] = "1";
             string timeoutSetting = Environment.GetEnvironmentVariable("ALARMLIST_VS_TIMEOUT_SECONDS") ?? "1800";
             if (!int.TryParse(timeoutSetting, out int timeoutSeconds) || timeoutSeconds < 30 || timeoutSeconds > 7200)
                 throw new InvalidOperationException("ALARMLIST_VS_TIMEOUT_SECONDS must be between 30 and 7200.");

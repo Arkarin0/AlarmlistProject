@@ -16,6 +16,55 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         [Fact]
+        public void ValueActionsRequeryAfterTheirCommandRouteIsAttached()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession())
+                using (var host = ExpressionHost())
+                {
+                    var root = new System.Windows.Controls.StackPanel();
+                    ValueExplanationCommands.Bind(root, () => session.View);
+                    ReferenceValueCommands.Bind(root, () => session.View);
+                    host.RootVisual = root;
+                    InheritanceAdornerTests.Pump();
+                    var actions = new ValueActionsControl { DataContext = session.Field("Name") };
+                    InheritanceAdornerTests.Pump();
+                    var buttons = actions.Children.OfType<System.Windows.Controls.Button>().ToArray();
+                    Assert.Equal(3, buttons.Length);
+                    Assert.All(buttons, button => Assert.False(button.IsEnabled));
+                    root.Children.Add(actions);
+                    InheritanceAdornerTests.Pump();
+                    Assert.All(buttons, button => Assert.True(button.IsEnabled));
+                    session.Field("Name").EditValue = "private draft";
+                    InheritanceAdornerTests.Pump();
+                    Assert.All(buttons, button => Assert.False(button.IsEnabled));
+                    Assert.Equal(0, session.Buffer.Edits);
+                }
+            });
+        }
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ReferenceDiscoveryCancellationReportsChangedInputsWithoutRetryingAsync(bool cancelCaller)
+        {
+            using (var session = new SemanticSession())
+            {
+                int calls = 0;
+                session.Analysis.ReferencesHandler = (state, target, current, token) =>
+                {
+                    calls++;
+                    if (cancelCaller) session.View.ReferenceActions.Invalidate();
+                    throw new OperationCanceledException();
+                };
+                session.View.ReferenceActions.Find(session.Field("Name"));
+                await session.View.ReferenceActions.Pending;
+                Assert.Equal(1, calls);
+                Assert.Equal(cancelCaller ? null : "Captured solution inputs changed during discovery. Wait for current analysis, then find references again.", session.View.Error);
+                Assert.Equal(0, session.Buffer.Edits);
+            }
+        }
+        [Fact]
         public async Task ReferenceIntentSurvivesEquivalentAnalysisRefreshButInitialSnapshotInvalidatesAsync()
         {
             using (var session = new SemanticSession())

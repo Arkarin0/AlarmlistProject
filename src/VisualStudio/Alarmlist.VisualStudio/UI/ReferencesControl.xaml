@@ -58,7 +58,10 @@
               AutomationProperties.Name="References grouped by declaration, physical source and consumer context"
               AutomationProperties.AutomationId="ReferenceResults" KeyDown="OnResultKeyDown">
       <TreeView.ItemContainerStyle>
-        <Style TargetType="TreeViewItem"><Setter Property="IsExpanded" Value="True" /></Style>
+        <Style TargetType="TreeViewItem">
+          <Setter Property="IsExpanded" Value="True" />
+          <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
+        </Style>
       </TreeView.ItemContainerStyle>
     </TreeView>
     <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,6,0,0">

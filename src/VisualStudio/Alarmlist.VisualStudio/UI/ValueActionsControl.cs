@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 
 namespace Alarmlist.VisualStudio.UI
 {
@@ -24,6 +25,11 @@ namespace Alarmlist.VisualStudio.UI
             var rename = new RenameValueButton();
             rename.SetBinding(AutomationProperties.NameProperty, new Binding(nameof(ValueName)) { Source = this, StringFormat = "Rename symbol for {0}" });
             Children.Add(explain); Children.Add(references); Children.Add(rename);
+            // A newly displayed row can cache CanExecute before its routed
+            // command handlers are attached. Requery after the group loads,
+            // including expansion through accessibility automation.
+            Loaded += OnLoaded;
         }
+        private static void OnLoaded(object sender, RoutedEventArgs args) => CommandManager.InvalidateRequerySuggested();
     }
 }

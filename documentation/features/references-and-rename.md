@@ -91,3 +91,4 @@ inheritance reference. Previewing `RenamedBase` changes those two tokens and kee
 - [Shared projects](shared-projects.md)
 - [Visual Studio editing](visual-studio-editing.md)
 - [Explain this value](value-explanations.md)
+- [Find and rename an inherited alarm](../tutorials/find-and-rename-an-alarm.md)

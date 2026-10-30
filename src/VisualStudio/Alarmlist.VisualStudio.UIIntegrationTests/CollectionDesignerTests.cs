@@ -54,13 +54,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             using var automation = new UIA3Automation();
             ide.OpenDesigner(workspace.AlarmPath);
             foreach (EnvDTE.Window tool in ide.Automation.Windows) if (tool.Caption == "Alarm Summary") tool.Visible = false;
-            Window window = null;
+            var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             VisualStudioSession.Wait(() =>
             {
                 ide.ActivateDocument(workspace.AlarmPath);
-                window = automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByControlType(ControlType.Window)))
-                    .Select(item => item.AsWindow()).SingleOrDefault(candidate => candidate.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))) != null);
-                return window != null;
+                return window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))) != null;
             }, "collection designer loaded");
             window.SetForeground();
             var designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)));
@@ -83,10 +81,16 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => Collection("Tags") != null && Tags().Length == 2 && Tags()[0].IsEnabled, "local scalar collection rows");
             VisualStudioSession.Wait(() => Collection("Tags").FindAllDescendants().Any(item => item.Name.Contains("Inherited from UI.Base")), "read-only inherited collection entry");
             Assert.Equal(procedures, window.FindAllDescendants().Any(item => item.Name == "Add procedure group"));
-            ValueExplanationUi.Explain(window, "Explain this value for Count", "Canonical: 7", "Default: Count");
+            ValueExplanationUi.Explain(window, "Explain this value for Count", "Canonical: 7", "Default: Count", beforeFreshRequest: () =>
+            {
+                Assert.Equal(original, ide.ReadText(workspace.AlarmPath));
+                HideExplanation();
+            });
             HideExplanation();
             ValueExplanationUi.Explain(window, "Explain this value for Copy", "Canonical: 7", "CollectionField: Checks[1].Count");
             HideExplanation();
+            ReferenceAcceptanceUi.FindValue(ide, window, "Find references to Copy", "DefinitionField: Collection:Checks.Count (read-only)");
+            ReferenceAcceptanceUi.Hide(ide); ide.ActivateDocument(workspace.AlarmPath); designer.Patterns.SelectionItem.Pattern.Select();
             ValueExplanationUi.Explain(window, "Explain this value for inherited Tags", "inherited", "Membership:");
             HideExplanation();
             Assert.Equal(original, ide.ReadText(workspace.AlarmPath));

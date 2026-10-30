@@ -27,7 +27,7 @@ syntax, open questions and statements about future work in that history.
 | IntelliSense | Designer and scoped ALMX/lookup/project XML completion implemented and validated | [Milestone 4](src/VisualStudio/MILESTONE-4.md), [5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [12](src/VisualStudio/MILESTONE-12.md) |
 | External alarm-definition generation | Implemented for supported scalars and collections | [Milestone 11](src/VisualStudio/MILESTONE-11.md) |
 | Explain this value | Implemented; both-framework and both-host acceptance passed | [Milestone 14](src/VisualStudio/MILESTONE-14.md) |
-| Find All References and safe Rename | Milestone 14 iterations 8–13 complete: contract-9 APIs, solution coordination, designer/Summary/XML actions and previewed unsaved edits; integrated acceptance and tutorial remain iteration 14 | [Milestone 14](src/VisualStudio/MILESTONE-14.md) |
+| Find All References and safe Rename | Milestone 14 iterations 8–14 complete: contract-9 APIs, solution coordination, designer/Summary/XML actions, previewed unsaved edits, guided tutorial and integrated/performance acceptance | [Milestone 14](src/VisualStudio/MILESTONE-14.md) |
 | Semantic comparison and Git integration | Proposed; high priority; unassigned | Proposal below |
 | Export-provider interface | Milestone 13 complete: XML/JSON/zenon, external providers and transactional artifacts | [Milestone 13](src/VisualStudio/MILESTONE-13.md) |
 | Change-impact analysis | Proposed; unassigned | Proposal below |

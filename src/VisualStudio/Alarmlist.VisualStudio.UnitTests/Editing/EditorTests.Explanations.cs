@@ -15,6 +15,31 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
 {
     public partial class EditorTests
     {
+        [Fact]
+        public void ExplanationLiveStatusExposesItsCurrentMessageToAccessibility()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession())
+                using (var host = ExpressionHost())
+                {
+                    session.View.Explanation.IsExpanded = true;
+                    var control = new ExplanationControl { DataContext = session.View.Explanation };
+                    host.RootVisual = control; InheritanceAdornerTests.Pump();
+                    var status = VisualChildren(control).OfType<LiveStatusTextBlock>().Single();
+                    Assert.Equal("ExplanationStatus", AutomationProperties.GetAutomationId(status));
+                    var peer = System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(status);
+                    Assert.Equal(session.View.Explanation.Message, peer.GetName());
+                    session.View.ExplainValue(session.Field("Name"));
+                    Assert.True(session.View.Explanation.Pending.IsCompleted);
+                    InheritanceAdornerTests.Pump();
+                    Assert.Equal("No explanation handler.", peer.GetName());
+                    session.View.Explanation.Invalidate(); InheritanceAdornerTests.Pump();
+                    Assert.Equal("Inputs or the selected value changed. Explain this value again.", peer.GetName());
+                    Assert.Equal(0, session.Buffer.Edits);
+                }
+            });
+        }
         private static void UseExplanationBridge(SemanticSession session, DesignerAnalysis analysis = null)
         {
             (analysis ?? session.Analysis).ExplainHandler = (state, target, token) => Task.Run(() =>

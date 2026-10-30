@@ -81,6 +81,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Single(DefinitionTabs());
             ide.Automation.ActiveWindow.Close(EnvDTE.vsSaveChanges.vsSaveChangesNo);
             VisualStudioSession.Wait(() => DefinitionTabs().Length == 0, "reopened generated definition closes");
+            ReferenceAcceptanceUi.FindXml(ide, window, workspace.AlarmPath, "Library.Template", "Alarm: Library.Template (read-only)");
+            Assert.Equal(original, File.ReadAllBytes(artifact));
+            ReferenceAcceptanceUi.Hide(ide);
 
             AutomationElement[] DefinitionTabs() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.TabItem))
                 .Where(item => item.Name.Contains("Native.Definition 1.0.0")).ToArray();

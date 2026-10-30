@@ -186,6 +186,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         private static void SetExampleSharedReference(VisualStudioSession ide, UIA3Automation automation, Window window, string consumer, bool add)
         {
+            var project = ide.Automation.Solution.Projects.Cast<Project>().Single(item => item.Name == consumer);
+            project.Save("");
             ide.Automation.ExecuteCommand("View.SolutionExplorer"); AutomationElement node = null;
             VisualStudioSession.Wait(() => (node = window.FindFirstDescendant(cf => cf.ByName(consumer).And(cf.ByControlType(ControlType.TreeItem)))) != null, "example consumer node");
             node.AsTreeItem().Select(); node.Focus(); node.AsTreeItem().Expand();
@@ -207,10 +209,24 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             AutomationElement choice = null;
             VisualStudioSession.Wait(() => (choice = dialog.FindFirstDescendant(cf => cf.ByName("Shared").And(cf.ByControlType(ControlType.CheckBox)))) != null, "example shared choice");
             var toggle = (choice.FindFirstDescendant(cf => cf.ByControlType(ControlType.CheckBox)) ?? choice).AsCheckBox();
-            Assert.Equal((bool?)!add, toggle.IsChecked); toggle.Click();
+            Assert.Equal((bool?)!add, toggle.IsChecked);
+            Assert.True(toggle.IsEnabled);
+            // Native reference management commits through its input handler;
+            // changing only the Toggle provider's state does not publish an edit.
+            // Focused Space avoids obscured mouse coordinates on RDP desktops.
+            automation.GetDesktop().FindFirstDescendant(cf => cf.ByProcessId(ide.ProcessId)
+                .And(cf.ByAutomationId("ReferenceManagerDialogWindow"))).AsWindow().SetForeground();
+            toggle.Focus();
+            VisualStudioSession.Wait(() => toggle.Properties.HasKeyboardFocus.Value, "example reference checkbox focus");
+            ide.RequireForeground();
+            Keyboard.Type(VirtualKeyShort.SPACE);
             VisualStudioSession.Wait(() => toggle.IsChecked == add, "example reference toggle");
             automation.GetDesktop().FindFirstDescendant(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByAutomationId("OkButton"))).AsButton().Invoke();
             VisualStudioSession.Wait(() => automation.GetDesktop().FindFirstDescendant(cf => cf.ByProcessId(ide.ProcessId).And(cf.ByAutomationId("ReferenceManagerControl"))) == null, "example reference accepted");
+            // Closing the native dialog precedes CPS publishing the project edit
+            // on some hosts. Do not Save a still-clean project before that edit.
+            VisualStudioSession.Wait(() => !project.Saved || XDocument.Load(project.FullName).Root.Elements("Import")
+                .Any(import => (string)import.Attribute("Label") == "Shared") == add, "example project acknowledges reference change");
         }
     }
 }

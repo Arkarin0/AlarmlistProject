@@ -142,3 +142,17 @@ generated-definition and both-IDE native validation pass; actual results and
 resolved failures are recorded in the milestone plan. Reviewed the article's
 examples, placeholder removal and local links. The guided tutorial and broader
 integrated/performance acceptance remain iteration 14.
+
+Milestone 14 iteration 14 adds the guided Find and rename an inherited alarm
+tutorial. Its native fixture reads the article's two XML blocks directly and
+checks reference navigation, a fresh preview, literal preservation, unsaved linked
+Undo/Redo, Save and Build on both supported IDEs. Project-library, unloaded-library
+and immutable package-definition scenarios also pass on both hosts. Shared-example
+and procedure-enabled/disabled generated-definition acceptance pass on both IDEs
+and desktop build hosts. Final compiler/downstream regressions pass 3,139 tests
+with no failures or skips; actual commands, results and resolved setup failures
+are recorded in the milestone plan. Reviewed UI labels, exact final values,
+English templates and local links.
+Release timing/allocation and large-result/cancellation checks have
+actual evidence in the milestone plan; no speed threshold or retained-memory
+claim is attached to those measurements.

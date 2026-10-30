@@ -8,7 +8,8 @@
            Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" Margin="0,6,0,0">
   <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
    <StackPanel Margin="6">
-    <ui:LiveStatusTextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.Name="Explanation status" />
+    <ui:LiveStatusTextBlock Text="{Binding Message}" TextWrapping="Wrap"
+                           AutomationProperties.AutomationId="ExplanationStatus" />
     <TextBlock Text="{Binding Context}" TextWrapping="Wrap" Margin="0,4" AutomationProperties.Name="Explanation context" />
     <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="130" VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Explained value" />
     <TextBlock Text="{Binding Diagnostics}" TextWrapping="Wrap" Margin="0,4" AutomationProperties.Name="Explanation diagnostics" />

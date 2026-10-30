@@ -52,6 +52,7 @@ independently after preparing its tools.
 10. [Explore custom fields and collections](tutorials/explore-custom-definitions.md).
 11. [Export resolved alarms](tutorials/export-resolved-alarms.md).
 12. [Trace an inherited value to its sources](tutorials/explain-a-value.md).
+13. [Find and rename an inherited alarm](tutorials/find-and-rename-an-alarm.md).
 
 ## Create an article
 

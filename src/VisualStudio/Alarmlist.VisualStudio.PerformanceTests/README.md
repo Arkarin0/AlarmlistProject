@@ -8,6 +8,28 @@ contents. Ordinary solution tests skip all measurements and live IDE launches.
 
 ## Isolated benchmarks
 
+`Area=References` compares ordinary analysis, compiler-owned reference discovery
+and coordinated rename preview over the existing 1,000/10,000-alarm, parameter
+and localization fixtures. The declaration and inheritance use must remain in the
+results; preview must return the corresponding edits. `Area=ReferenceAllocations`
+records two warmups and five samples per operation inside the SDK domain, including
+compiler allocations. These warm operations exclude native UI and live solution
+capture; the allocation totals are not retained memory or collectibility evidence.
+
+```powershell
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Area=References'
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Area=ReferenceAllocations'
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Area=ReferenceCorrectness'
+```
+
+The correctness scenarios retain large immutable built-in reference sets while
+presenting only 100 findings, then 200 after Show more; invalidation clears them.
+They schedule cancellation after a request begins, report cancellation or earlier
+valid completion and elapsed time, verify pre-cancelled calls and worker recovery.
+The 25 ms cancellation trigger is a controlled request, not a speed assertion.
+Report actual outcomes and timings without latency thresholds. Existing native
+and WPF fixtures separately cover commands, layout and transaction behavior.
+
 `Area=Explanations` compares ordinary analysis with an on-demand explanation in
 the existing SDK worker, and separately measures creating/unloading a fresh bridge.
 The IDE reuses its project-owned worker, serializes explanation requests with

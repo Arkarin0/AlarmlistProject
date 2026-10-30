@@ -336,8 +336,17 @@ actions and standard XML Find All References/Rename commands use compiler-resolv
 targets. Apply prepares editable buffers, performs complete-set Query Edit and
 freshness checks, and uses native linked Undo with rollback. Files remain unsaved.
 See the [feature reference](../../documentation/features/references-and-rename.md).
-Iteration 13's remaining native gates and iteration 14's integrated acceptance
-are recorded separately in the milestone plan. Run Area=ReferencesRename,
+The [guided tutorial](../../documentation/tutorials/find-and-rename-an-alarm.md)
+is exercised by Area=ReferenceTutorial on both IDE hosts. Warm timing, SDK-domain
+allocation and cancellation/bounded-result checks use Area=References,
+Area=ReferenceAllocations and Area=ReferenceCorrectness through
+eng/measure-visualstudio-analysis.ps1.
+Generated collection acceptance uses eng/test-alarm-collection-fork.ps1 with
+both IDE paths. Its ProcedureMode defaults to Both; Enabled or Disabled selects
+one capability variant when repeating a gate. Keep consumer and native runs
+sequential and preserve the other variant's evidence.
+Native and integrated acceptance results, measurements and limitations are
+recorded in the milestone plan. Run Area=ReferencesRename,
 Area=SharedReferencesRename and Area=AuxiliaryReferencesRename sequentially on
 both IDE hosts; do not overlap desktop MSBuild checks with those runs.
 

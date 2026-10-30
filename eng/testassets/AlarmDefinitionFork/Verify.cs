@@ -8,6 +8,7 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
+using Alarmlist.Analysis;
 using Alarmlist.Analyzers;
 using Alarmlist.Compiler;
 using Alarmlist.Definition;
@@ -105,7 +106,39 @@ namespace AlarmDefinitionFork
             var analysis = new AlarmCompiler().AnalyzeSnapshots(new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Code>+008</Code></Alarm></Alarmlist>", "fixture.almx", 1) });
             var code = analysis.Alarms.Single().Fields.Single(field => field.Name == "Code");
             Check(analysis.Success && code.TypedValue is long number && number == 8 && code.CanonicalValue == "8", "Packaged analysis typed value.");
+            VerifyReferences();
             Console.WriteLine("Packaged fork values verified: " + args[0]);
+        }
+
+        private static void VerifyReferences()
+        {
+            string text = "<Alarmlist><Alarm abstract='true'><FullyQualifiedName>A</FullyQualifiedName><Code>+008</Code>"
+                + (AlarmDefinition.Collections.Count == 0 ? "" : "<Checks><Item><Count>8</Count><Copy>$(item:Count)</Copy></Item></Checks>")
+                + "</Alarm><Alarm><FullyQualifiedName>B</FullyQualifiedName><ReferenceName>A</ReferenceName><Description>Keep literal A</Description></Alarm></Alarmlist>";
+            var source = new AlmxTextSnapshot(text, "references.almx", 3);
+            var request = new ReferenceCompilationSnapshot(new[] { source }, CompilationContext.Empty);
+            var compiler = new AlarmCompiler();
+            var alarm = request.TargetAtToken(source.FilePath, source.Version, text.IndexOf(">A<", StringComparison.Ordinal) + 1);
+            var found = compiler.FindReferencesSnapshots(request, alarm);
+            Check(found.IsAvailable && found.Symbol.Name == "A" && found.Occurrences.Count == 2, "Packaged fork alarm declaration/inheritance references.");
+            var rename = compiler.PreviewRenameSnapshots(request, alarm, "RenamedA");
+            Check(rename.IsApplicable && rename.Edits.Count == 2 && rename.Edits.All(edit => edit.Text == "RenamedA"), "Packaged fork rename preserves literal text.");
+            var generated = request.TargetBuiltIn("AlarmlistAlarmCode");
+            var field = compiler.FindReferencesSnapshots(request, generated);
+            Check(field.IsAvailable && field.Symbol.Kind == "DefinitionField" && field.Symbol.Name == "Code" && field.Symbol.IsReadOnly,
+                "Retyped generated field remains searchable and immutable.");
+            Check(!compiler.PreviewRenameSnapshots(request, generated, "NextCode").IsApplicable, "Generated field rename is blocked.");
+            if (AlarmDefinition.Collections.Count != 0)
+            {
+                var sibling = request.TargetAtToken(source.FilePath, source.Version, text.IndexOf("item:Count", StringComparison.Ordinal) + 6);
+                var references = compiler.FindReferencesSnapshots(request, sibling);
+                Check(references.IsAvailable && references.Symbol.Name == "Collection:Checks.Count" && references.Symbol.IsReadOnly,
+                    "Packaged record sibling binds to the generated collection field.");
+                Check(!compiler.PreviewRenameSnapshots(request, sibling, "NextCount").IsApplicable, "Generated sibling rename is blocked.");
+            }
+            try { compiler.FindReferencesSnapshots(request, alarm, new CancellationToken(true)); throw new Exception("Pre-cancelled search ran."); }
+            catch (OperationCanceledException) { }
+            Check(compiler.FindReferencesSnapshots(request, alarm).IsAvailable, "Packaged compiler recovers after cancellation.");
         }
     }
 }

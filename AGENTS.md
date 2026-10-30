@@ -126,6 +126,17 @@ literal lookup/label text and capture formatted placeholders in the parser.
 Generated fields, sibling names, built-in names and definition caption keys are
 searchable but immutable. Propagate ambiguous ownership and refuse guessed edits;
 unavailable inheritance must not make a binder's partial choice a proven use.
+Value action groups requery routed commands after loading into the editor;
+accessibility expansion must not leave fresh controls with a cached disabled state.
+Requery only checks current targets and preserves the existing private-draft guards.
+Reference acceptance uses Area=ReferenceTutorial for the documented two-file
+navigation/rename/Undo/Save/Build workflow. Integrated library, package, shared
+example and generated-collection checks extend their existing native fixtures.
+Use Area=References, ReferenceAllocations and ReferenceCorrectness with
+eng/measure-visualstudio-analysis.ps1 for warm SDK-domain measurements and bounded
+presentation/cancellation checks. Allocation counters belong inside the SDK
+domain; report totals separately from retained memory and outer remoting/UI work.
+Do not overlap desktop MSBuild package checks with native IDE suites.
 XML reference commands defer unsupported positions using the compiler's typed
 IsUnsupportedTarget result. Known unbound or invalid targets remain explicit
 unavailable results. Caret/selection stamps cancel discovery; published results
@@ -286,6 +297,8 @@ Its -Designer option checks both IDE hosts in AlarmlistDefinitionExp; -SkipConsu
 selects designer-only acceptance. Supply both VisualStudio2022Path and
 VisualStudio2026Path. Run native fixtures sequentially and keep their private
 workspace paths short enough for desktop SDK extraction.
+ProcedureMode defaults to Both; Enabled or Disabled selects one procedure
+capability variant for a focused repeat without replacing the other variant's evidence.
 The collection-fork fixture accepts -RootSuffix to use a different idle experimental
 profile when the usual playground is open. Never close an existing user IDE to
 deploy tests. If using AlarmlistExp, restore its standard extension afterward via
@@ -1044,6 +1057,9 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   the shared live-test mutex, target-field/foreground checks before keyboard input,
   retained failure artifacts and cleanup of only the owned process. Each case owns
   a fresh IDE and isolated fixture/feed/cache. These tests
+  disable desktop MSBuild node reuse in their owned IDE environment so build
+  workers are not reused across isolated SDK/feed lifetimes. This is a fixture
+  setting, not a machine-wide or extension build policy. These tests
   require an unlocked desktop and cover project/editor lifecycle as separate xUnit
   cases; package-consumer coverage remains in IntegrationTests. The PowerShell
   smoke entry point only launches xUnit; keep functional assertions in C#.
@@ -1052,6 +1068,11 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   failures can reject DTE calls. Capture UI evidence before requesting build logs.
   Native NuGet tests must await the UI's installed-state acknowledgement as well
   as saved project/assets changes before building the updated consumer.
+  Shared-reference fixtures use focus-checked Space on the native checkbox and await
+  the project's dirty state or persisted membership before saving the CPS edit;
+  reference-dialog closure alone does not establish project-change readiness.
+  Its Toggle provider alone can change the visible state without publishing the
+  reference edit. Keep the saved-membership assertion after native input.
   Native editor scenarios must select their intended alarm explicitly when source
   replacement or navigation can change selection. Hide or dock a persisted floating
   preview before mouse input it could obstruct, except when the scenario explicitly
@@ -1067,6 +1088,9 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   On shared/RDP desktops, concurrent user keyboard and mouse input can also
   interfere; account for that input before attributing interaction failures to
   the product or test stability.
+  Avoid launching extra shell windows during native input checks; poll the
+  existing runner instead. A bounded foreground-readiness wait may restore the
+  owned IDE, but retain the final process/focus check before sending input.
   The isolated unit-test STA harness disables pen/touch discovery before WPF
   input initializes, avoiding the diagnosed RDP PenThreadWorker tablet-enumeration
   stall. Those tests exercise keyboard/mouse; do not propagate that switch to

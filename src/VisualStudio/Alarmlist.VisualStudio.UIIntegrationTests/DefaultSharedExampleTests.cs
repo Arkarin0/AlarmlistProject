@@ -105,6 +105,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").Visible = false;
                 ide.ActivateDocument(Path.Combine(workspace.DirectoryPath, "Shared", "PressureLow.almx"));
                 SelectDesigner(window);
+                ReferenceAcceptanceUi.FindValue(ide, window, "Find references to this alarm", "Alarm: Plant.Pump.PressureLow");
+                ReferenceAcceptanceUi.Hide(ide);
+                ide.ActivateDocument(Path.Combine(workspace.DirectoryPath, "Shared", "PressureLow.almx")); SelectDesigner(window);
             }
             void Expect(string name) => VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)).Any(item => item.Name == name), "ordinary example consumer value " + name);
         }

@@ -105,9 +105,16 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 "library origin opens physical out-of-solution source");
             Assert.Equal(source, File.ReadAllText(sourcePath));
             ide.Automation.Documents.Item(sourcePath).Close(EnvDTE.vsSaveChanges.vsSaveChangesNo);
-            ide.OpenDesigner(workspace.AlarmPath);
+            ReferenceAcceptanceUi.FindXml(ide, window, workspace.AlarmPath, "Library.Template", "Alarm: Library.Template");
+            ReferenceAcceptanceUi.PreviewAndApplyLibraryRename(ide, window, sourcePath, workspace.AlarmPath, "Library.Template", "Library.RenamedTemplate");
+            ReferenceAcceptanceUi.Hide(ide);
+            VisualStudioAutomation.Log("Project-library reference rename and linked Undo completed; restoring the analysis fixture.");
+            ide.Automation.Documents.Item(sourcePath).Close(EnvDTE.vsSaveChanges.vsSaveChangesNo);
+            ide.ActivateDocument(workspace.AlarmPath);
             SelectDesigner(window);
+            ide.Automation.ExecuteCommand("View.AlarmlistPreview");
             SelectPreviewTab(window, "Alarm table summary");
+            VisualStudioAutomation.Log("Restored Alarm Summary; loading the previously out-of-solution library.");
             var loadedLibrary = ide.Automation.Solution.AddFromFile(libraryPath);
             Assert.Equal(libraryPath, loadedLibrary.FullName, ignoreCase: true);
             VisualStudioSession.Wait(() => VisualStudioAutomation.ReplaceXmlBuffer(ide.Automation, sourcePath,
@@ -141,6 +148,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => PreviewRows(window).Length == 0, "deleted library source clears stale preview");
             File.WriteAllText(sourcePath, source.Replace("Saved library", "Restored library"));
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Consumer — Restored library"), "restored library source refresh");
+            ReferenceAcceptanceUi.FindXml(ide, window, workspace.AlarmPath, "Library.Template", "Alarm: Library.Template");
+            VisualStudioAutomation.Log("Unloaded library reference discovery completed.");
+            ReferenceAcceptanceUi.Hide(ide);
+            ide.OpenDesigner(workspace.AlarmPath); SelectDesigner(window); ide.Automation.ExecuteCommand("View.AlarmlistPreview"); SelectPreviewTab(window, "Alarm table summary");
             SetLoaded(true);
             ide.OpenDesigner(workspace.AlarmPath);
             SelectDesigner(window);
@@ -153,7 +164,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             void SetLoaded(bool loaded)
             {
                 ide.Automation.ExecuteCommand("View.SolutionExplorer");
-                var main = automation.FromHandle(new IntPtr(ide.Automation.MainWindow.HWnd)).AsWindow();
+                var main = automation.FromHandle(ide.MainWindowHandle).AsWindow();
                 AutomationElement node = null;
                 VisualStudioSession.Wait(() => (node = main.FindAllDescendants(cf => cf.ByControlType(ControlType.TreeItem))
                     .FirstOrDefault(item => item.Name == "Library" || item.Name.StartsWith("Library (", StringComparison.Ordinal))) != null, "library project node");

@@ -51,6 +51,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                         leaf.IsExpanded = true; parent = leaf;
                     }
                     leaf.IsSelected = true; tree.Focus();
+                    Assert.Equal(((ReferenceResultNode)parent.Items[0]).Label,
+                        System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(leaf).GetName());
                     var enter = new KeyEventArgs(Keyboard.PrimaryDevice, host, Environment.TickCount, Key.Enter) { RoutedEvent = Keyboard.KeyDownEvent };
                     tree.RaiseEvent(enter);
                     Assert.True(enter.Handled); Assert.Equal(1, navigations);

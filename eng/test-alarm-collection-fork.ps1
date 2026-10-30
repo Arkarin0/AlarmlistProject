@@ -5,6 +5,8 @@ param(
     [switch]$SkipConsumers,
     [switch]$XmlCompletion,
     [switch]$Exports,
+    [ValidateSet('Both', 'Enabled', 'Disabled')]
+    [string]$ProcedureMode = 'Both',
     [string]$VisualStudio2022Path,
     [string]$VisualStudio2026Path,
     [ValidatePattern('^[A-Za-z][A-Za-z0-9_]*$')]
@@ -18,7 +20,7 @@ if ($Designer -and (!$VisualStudio2022Path -or !$VisualStudio2026Path)) { throw 
 $repo = Split-Path $PSScriptRoot -Parent
 $files = @(& git -C $repo ls-files --cached --others --exclude-standard)
 if ($LASTEXITCODE -ne 0) { throw 'Cannot enumerate repository sources.' }
-foreach ($procedure in @($true, $false)) {
+foreach ($procedure in @($true, $false) | Where-Object { $ProcedureMode -eq 'Both' -or $_ -eq ($ProcedureMode -eq 'Enabled') }) {
     $fork = Join-Path $repo ('artifacts/col13/' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
     New-Item -ItemType Directory -Path $fork | Out-Null
     foreach ($file in $files) {
