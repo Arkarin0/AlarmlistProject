@@ -22,9 +22,35 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             Assert.Equal("Longer then N", workspace.A.Text); Assert.Equal("New", workspace.B.Text);
             Assert.Equal(1, workspace.Queries); Assert.Equal(1, workspace.Begins); Assert.Equal(1, workspace.Completions); Assert.Equal(0, workspace.Aborts);
         }
+        [Fact]
+        public void CheckoutReceiptRequiresTheSameCompleteSetAndDoesNotCheckoutAgainAfterRecapture()
+        {
+            var workspace = new Workspace();
+            var changes = new[] { Change("a.almx", workspace.A), Change("b.resx", workspace.B) };
+            var receipt = QueriedRenameWorkspace.Prepare(workspace, changes.Select(change => change.Path));
+            Assert.Equal(1, workspace.Queries); Assert.Equal(0, workspace.Begins);
+            Assert.Throws<InvalidOperationException>(() => receipt.Open("another.almx"));
+            Assert.Throws<InvalidOperationException>(() => receipt.QueryEdit(new[] { changes[0].Path }));
+            int revalidations = 0;
+            new LinkedDocumentEdit().Apply(receipt, changes, () => revalidations++);
+            Assert.Equal(1, workspace.Queries); Assert.Equal(1, workspace.Completions);
+            Assert.True(revalidations >= 3); Assert.Equal("New", workspace.A.Text); Assert.Equal("New", workspace.B.Text);
+            Assert.Throws<InvalidOperationException>(() => receipt.QueryEdit(changes.Select(change => change.Path).ToArray()));
+        }
+        [Fact]
+        public void CheckoutReloadCannotBeAdoptedByTheReceiptAfterApproval()
+        {
+            var workspace = new Workspace();
+            var changes = new[] { Change("a.almx", workspace.A), Change("b.resx", workspace.B) };
+            workspace.OnQuery = () => workspace.B.Identity = new object();
+            var receipt = QueriedRenameWorkspace.Prepare(workspace, changes.Select(change => change.Path));
+            Assert.Throws<InvalidOperationException>(() => new LinkedDocumentEdit().Apply(receipt, changes, () => { }));
+            Assert.Equal(0, workspace.Begins); Assert.Equal("Old", workspace.A.Text); Assert.Equal("Old", workspace.B.Text);
+        }
         [Theory]
         [InlineData("text")]
         [InlineData("version")]
+        [InlineData("identity")]
         [InlineData("readonly")]
         [InlineData("refused")]
         public void QueryEditCannotSilentlyShrinkOrRetargetApprovedChanges(string kind)
@@ -34,6 +60,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             {
                 if (kind == "text") workspace.B.Text = "external";
                 if (kind == "version") workspace.B.Version++;
+                if (kind == "identity") workspace.B.Identity = new object();
                 if (kind == "readonly") workspace.B.IsReadOnly = true;
                 if (kind == "refused") throw new InvalidOperationException("Checkout refused");
             };
@@ -73,8 +100,9 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         private sealed class FakeDocument : IRenameDocument
         {
             internal string Text = "Old"; internal int Version, Applies; internal Action OnApply;
+            internal object Identity = new object();
             public bool IsReadOnly { get; set; }
-            public RenameBufferSnapshot Capture() => new RenameBufferSnapshot(Text, Version);
+            public RenameBufferSnapshot Capture() => new RenameBufferSnapshot(Text, Version, Identity);
             public void Apply(IReadOnlyList<SourceEdit> edits) { Applies++; foreach (var edit in edits.OrderByDescending(edit => edit.Start)) Text = edit.Apply(Text); Version++; OnApply?.Invoke(); }
         }
         private sealed class Workspace : IRenameEditWorkspace

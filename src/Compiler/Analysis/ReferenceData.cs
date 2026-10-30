@@ -55,19 +55,46 @@ namespace Alarmlist.Analysis
         public string SourceTokenId { get; }
     }
 
+    internal sealed class ReferenceContextBinding
+    {
+        internal ReferenceContextBinding(string kind, SourceLocation location, string name, string family)
+        { Kind = kind; Location = location; Name = name; Family = family; }
+        internal string Kind { get; }
+        internal SourceLocation Location { get; }
+        internal string Name { get; }
+        internal string Family { get; }
+    }
+
+    internal sealed class ReferenceTokenProbe
+    {
+        internal ReferenceTokenProbe(string family, SourceLocation location, int start, int length)
+        { Family = family; Location = location; Start = start; Length = length; }
+        internal string Family { get; }
+        internal SourceLocation Location { get; }
+        internal int Start { get; }
+        internal int Length { get; }
+    }
+
     internal sealed class ReferenceData
     {
         internal ReferenceData(IEnumerable<ReferenceSymbol> symbols, IEnumerable<ReferenceOccurrence> occurrences,
-            IEnumerable<string> coverage, IEnumerable<AnalysisDiagnostic> diagnostics)
+            IEnumerable<string> coverage, IEnumerable<AnalysisDiagnostic> diagnostics, IEnumerable<ReferenceContextBinding> contextBindings = null,
+            IEnumerable<ReferenceTokenProbe> tokenProbes = null, IEnumerable<string> unavailableSources = null)
         {
             Symbols = Array.AsReadOnly(symbols.ToArray());
+            TokenProbes = Array.AsReadOnly((tokenProbes ?? Array.Empty<ReferenceTokenProbe>()).ToArray());
+            UnavailableSources = Array.AsReadOnly((unavailableSources ?? Array.Empty<string>()).ToArray());
             Occurrences = Array.AsReadOnly(occurrences.ToArray());
             Coverage = Array.AsReadOnly(coverage.Distinct(StringComparer.Ordinal).ToArray());
             Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+            ContextBindings = Array.AsReadOnly((contextBindings ?? Array.Empty<ReferenceContextBinding>()).ToArray());
         }
         internal IReadOnlyList<ReferenceSymbol> Symbols { get; }
+        internal IReadOnlyList<ReferenceTokenProbe> TokenProbes { get; }
+        internal IReadOnlyList<string> UnavailableSources { get; }
         internal IReadOnlyList<ReferenceOccurrence> Occurrences { get; }
         internal IReadOnlyList<string> Coverage { get; }
         internal IReadOnlyList<AnalysisDiagnostic> Diagnostics { get; }
+        internal IReadOnlyList<ReferenceContextBinding> ContextBindings { get; }
     }
 }

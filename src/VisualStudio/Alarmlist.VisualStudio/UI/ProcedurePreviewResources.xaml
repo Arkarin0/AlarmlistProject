@@ -16,7 +16,7 @@
                        AutomationProperties.HelpText="{Binding OriginText}" />
               <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
               <TextBlock Text="{Binding ExclusionText}" TextWrapping="Wrap" />
-              <ui:ExplainValueButton ActionName="{Binding Label, StringFormat=Explain this value for {0}}" />
+              <ui:ValueActionsControl ValueName="{Binding Label}" ActionName="{Binding Label, StringFormat=Explain this value for {0}}" />
               <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
                       AutomationProperties.Name="{Binding Label, StringFormat=Go to source for {0}}" />
             </StackPanel>

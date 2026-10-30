@@ -35,6 +35,91 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         private CapturedReferenceEvaluation Evaluation(ReferenceInputOverlay overlay = null)
             => Assert.Single(SavedReferenceCultures.Capture(ProjectPath, null, CancellationToken.None, overlay).Captured);
 
+        [Theory]
+        [InlineData("Any CPU", "AnyCPU", true)]
+        [InlineData("AnyCPU", "AnyCPU", true)]
+        [InlineData("Custom CPU", "Custom CPU", false)]
+        public async Task NativePlatformAliasSelectsTheActualMsbuildInputsWithoutChangingCustomPlatformsAsync(string display, string canonical, bool includesSource)
+        {
+            File.WriteAllText(ProjectPath, File.ReadAllText(ProjectPath).Replace("<Compile Include='Source.almx'/>",
+                "<Compile Include='Source.almx' Condition=\"'$(Platform)' == 'AnyCPU'\"/>"));
+            var selection = new ReferenceProjectSelection(ProjectPath, new Dictionary<string, string> { ["Configuration"] = "Debug", ["Platform"] = display });
+            Assert.Equal(canonical, selection.Globals["Platform"]);
+            var captured = await CapturedReferenceSolution.CaptureAsync(new[] { selection }, null, new NoDependencies(), CancellationToken.None);
+            Assert.Empty(captured.Coverage);
+            var project = Assert.Single(captured.Projects);
+            Assert.Equal(canonical, project.Request.Context.Platform);
+            Assert.Equal(includesSource ? 1 : 0, project.Request.Sources.Count);
+        }
+
+        [Fact]
+        public async Task RebaseReadinessWaitsForKnownRefreshingContextsAndDetachesOnCancellationAsync()
+        {
+            var globals = new Dictionary<string, string> { ["Configuration"] = "Debug", ["Platform"] = "AnyCPU" };
+            var selection = new ReferenceProjectSelection(ProjectPath, globals);
+            var original = await CapturedReferenceSolution.CaptureAsync(new[] { selection }, null, new NoDependencies(), CancellationToken.None);
+            var pendingGlobals = new Dictionary<string, string>(globals) { ["CurrentSolutionConfigurationContents"] = "<SolutionConfiguration><!--pending CPS mapping--></SolutionConfiguration>" };
+            var catalogue = new ReadinessCatalogue(new ReferenceProjectSelection(ProjectPath, pendingGlobals, unavailable: "refreshing", isRefreshing: true));
+            using (var cancellation = new CancellationTokenSource())
+            {
+                var wait = ReferenceCatalogueReadiness.WaitAsync(catalogue, original, cancellation.Token);
+                Assert.False(wait.IsCompleted); Assert.Equal(1, catalogue.Subscribers);
+                cancellation.Cancel();
+#pragma warning disable VSTHRD003 // This test started the readiness task immediately above, before cancelling it.
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => wait);
+#pragma warning restore VSTHRD003
+                Assert.Equal(0, catalogue.Subscribers);
+            }
+            var ready = ReferenceCatalogueReadiness.WaitAsync(catalogue, original, CancellationToken.None);
+            Assert.False(ready.IsCompleted);
+            catalogue.Select(selection); await ready; Assert.Equal(0, catalogue.Subscribers);
+            // A different configuration is not a readiness wait. Rebase's whole
+            // capture comparison must reject it instead of waiting indefinitely.
+            catalogue.Select(new ReferenceProjectSelection(ProjectPath, new Dictionary<string, string> { ["Configuration"] = "Release", ["Platform"] = "AnyCPU" },
+                unavailable: "refreshing", isRefreshing: true));
+            await ReferenceCatalogueReadiness.WaitAsync(catalogue, original, CancellationToken.None);
+            Assert.Equal(0, catalogue.Subscribers);
+        }
+        private sealed class ReadinessCatalogue : IReferenceSolutionCatalogue
+        {
+            private ReferenceProjectSelection _selection;
+            internal ReadinessCatalogue(ReferenceProjectSelection selection) { _selection = selection; }
+            public event EventHandler Changed;
+            internal int Subscribers => Changed?.GetInvocationList().Length ?? 0;
+            internal void Select(ReferenceProjectSelection selection) { _selection = selection; Changed?.Invoke(this, EventArgs.Empty); }
+            public Task<ReferenceCatalogueSnapshot> CaptureAsync(CancellationToken token)
+            { token.ThrowIfCancellationRequested(); return Task.FromResult(new ReferenceCatalogueSnapshot("Example.sln", "Debug|AnyCPU", new[] { _selection }, Array.Empty<string>())); }
+        }
+
+        [Fact]
+        public async Task CapturedPackageRawSourcesAndImportsCarryExplicitReadOnlyOwnershipAsync()
+        {
+            string cache = Path.Combine(_root, "cache"); Directory.CreateDirectory(cache);
+            string source = Path.Combine(cache, "Source.almx"), import = Path.Combine(cache, "Parameters.props");
+            File.WriteAllText(source, SourceText); File.WriteAllText(import, File.ReadAllText(ImportPath));
+            File.WriteAllText(ProjectPath, File.ReadAllText(ProjectPath).Replace("<OutputType>", "<NuGetPackageFolders>" + System.Security.SecurityElement.Escape(cache) + "</NuGetPackageFolders><OutputType>")
+                .Replace("Project='Parameters.props'", "Project='cache/Parameters.props'").Replace("Include='Source.almx'", "Include='cache/Source.almx'"));
+            var captured = await CapturedReferenceProject.CaptureAsync(Evaluation(), null, new NoDependencies(), true, CancellationToken.None);
+            Assert.Contains(source, captured.Request.ReadOnlyPaths); Assert.Contains(import, captured.Request.ReadOnlyPaths);
+            Assert.DoesNotContain(ProjectPath, captured.Request.ReadOnlyPaths); Assert.DoesNotContain(ResourcePath, captured.Request.ReadOnlyPaths);
+        }
+
+        [Fact]
+        public async Task OpeningIdenticalBuffersPermitsANewReviewButNeverReusesAnApprovedSnapshotAsync()
+        {
+            var open = new OpenDocuments(SourcePath, SourceText) { Input = null }; var factory = new NoDependencies();
+            Task<CapturedReferenceProject> CaptureAsync() => CapturedReferenceProject.CaptureAsync(Evaluation(), open, factory, true, CancellationToken.None);
+            var disk = await CaptureAsync();
+            open.Input = new CapturedAnalysisInput(new AnalysisInput(SourceText, SourcePath, 12), new object());
+            var opened = await CaptureAsync();
+            Assert.False(disk.Matches(opened)); Assert.True(disk.MatchesAfterOpening(opened));
+            open.Input = new CapturedAnalysisInput(new AnalysisInput(SourceText + "<!--different-->", SourcePath, 13), new object());
+            Assert.False(disk.MatchesAfterOpening(await CaptureAsync()));
+            open.Input = new CapturedAnalysisInput(new AnalysisInput(SourceText, SourcePath, 14), new object());
+            File.WriteAllText(ResourcePath, "<root><!--changed saved resource--></root>");
+            Assert.False(disk.MatchesAfterOpening(await CaptureAsync()));
+        }
+
         [Fact]
         public async Task ConsumerBuffersSavedAuxiliaryInputsAndToolingHaveIndependentFreshnessAsync()
         {

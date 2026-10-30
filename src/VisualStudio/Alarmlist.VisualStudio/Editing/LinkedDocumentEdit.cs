@@ -9,10 +9,13 @@ namespace Alarmlist.VisualStudio.Editing
 {
     internal sealed class RenameBufferSnapshot
     {
-        internal RenameBufferSnapshot(string text, int? version) { Text = text ?? throw new ArgumentNullException(nameof(text)); Version = version; }
+        internal RenameBufferSnapshot(string text, int? version, object identity = null)
+        { Text = text ?? throw new ArgumentNullException(nameof(text)); Version = version; Identity = identity; }
         internal string Text { get; }
         internal int? Version { get; }
-        internal bool Matches(RenameBufferSnapshot other) => other != null && Text == other.Text && Version == other.Version;
+        internal object Identity { get; }
+        internal bool Matches(RenameBufferSnapshot other) => other != null && Text == other.Text && Version == other.Version && SameBuffer(other);
+        internal bool SameBuffer(RenameBufferSnapshot other) => other != null && ReferenceEquals(Identity, other.Identity);
     }
     internal sealed class RenameDocumentChange
     {
@@ -87,7 +90,9 @@ namespace Alarmlist.VisualStudio.Editing
                         {
                             string expected = selected[i].Expected.Text;
                             foreach (var edit in selected[i].Edits.OrderByDescending(edit => edit.Start)) expected = edit.Apply(expected);
-                            if (documents[i].Capture().Text != expected) throw new InvalidOperationException("An IDE buffer did not accept the complete rename edit.");
+                            var accepted = documents[i].Capture();
+                            if (accepted.Text != expected || !selected[i].Expected.SameBuffer(accepted))
+                                throw new InvalidOperationException("An IDE buffer did not accept the complete rename edit.");
                         }
                         token.ThrowIfCancellationRequested(); undo.Complete();
                     }

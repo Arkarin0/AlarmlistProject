@@ -16,6 +16,148 @@ namespace Alarmlist.Core.UnitTests.Analysis
 {
     public class ReferenceTargetTests
     {
+        [Theory]
+        [InlineData("<Code>$(Missing)</Code>", "Missing")]
+        [InlineData("<Code>$(Missing</Code>", "Missing")]
+        [InlineData("<Name>$(loc:Missing)</Name>", "Missing")]
+        [InlineData("<Code>$(AlarmlistMissing)</Code>", "AlarmlistMissing")]
+        [InlineData("<Code>$(property:Missing#Value)</Code>", "Missing")]
+        [InlineData("<ReferenceName>UnavailableBase</ReferenceName><Properties><Property Name='P' Value='1'/></Properties><Code>$(P)</Code>", "$(P)")]
+        public void SemanticTokensWithoutReliableBindingAreUnavailableInsteadOfUnsupported(string body, string marker)
+        {
+            var source = Input(body + "<!-- literal marker -->"); var compiler = new AlarmCompiler();
+            var request = new ReferenceCompilationSnapshot(new[] { source }, CompilationContext.Empty);
+            int offset = source.Text.IndexOf(marker, StringComparison.Ordinal) + (marker[0] == '$' ? 2 : 1);
+            var target = request.TargetAtToken(source.FilePath, source.Version, offset);
+            var batch = compiler.FindReferencesSnapshots(request, new[] { target });
+            var single = compiler.FindReferencesSnapshots(request, target);
+            Assert.False(single.IsAvailable); Assert.False(single.IsUnsupportedTarget); Assert.False(single.IsAmbiguous);
+            Assert.False(batch[0].IsAvailable); Assert.False(batch[0].IsUnsupportedTarget); Assert.NotEmpty(single.Coverage);
+            int comment = source.Text.IndexOf("literal marker", StringComparison.Ordinal) + 2;
+            var unsupported = request.TargetAtToken(source.FilePath, source.Version, comment);
+            Assert.True(compiler.FindReferencesSnapshots(request, unsupported).IsUnsupportedTarget);
+            Assert.True(compiler.FindReferencesSnapshots(request, new[] { unsupported })[0].IsUnsupportedTarget);
+        }
+
+        [Fact]
+        public void FragmentedSemanticTokensAreSearchableWithoutReplacingInterveningComments()
+        {
+            var source = Input("<Properties><Property Name='LongName' Value='1'/></Properties><Code>$(Lo<!--must stay-->ngName)</Code>");
+            var request = new ReferenceCompilationSnapshot(new[] { source }, CompilationContext.Empty); var compiler = new AlarmCompiler();
+            var targets = new[] { "Lo<!--", "ngName" }.Select(marker => request.TargetAtToken(source.FilePath, source.Version,
+                source.Text.IndexOf(marker, StringComparison.Ordinal) + 1)).ToArray();
+            var found = compiler.FindReferencesSnapshots(request, targets);
+            Assert.All(found, result => { Assert.True(result.IsAvailable, result.Message); Assert.Equal("LongName", result.Symbol.Name); });
+            Assert.All(targets, target => Assert.True(compiler.FindReferencesSnapshots(request, target).IsAvailable));
+            var use = Assert.Single(found[0].Occurrences.Where(item => item.Role == "Expression"));
+            Assert.Null(use.Start); Assert.Contains("contiguous", use.Unavailable);
+            var preview = compiler.PreviewRenameSnapshots(request, targets[1], "Next");
+            Assert.Single(preview.Edits); Assert.True(preview.RequiresAcknowledgement);
+            Assert.True(compiler.FindReferencesSnapshots(request, request.TargetAtToken(source.FilePath, source.Version,
+                source.Text.IndexOf("must stay", StringComparison.Ordinal) + 2)).IsUnsupportedTarget);
+        }
+
+        [Fact]
+        public void ClearTokenTargetsItsControllingGroupWithoutProposingAnElementRename()
+        {
+            var source = Input("<TestProcedure><Group Name='G'><Clear/><Step>literal</Step></Group></TestProcedure>");
+            var request = new ReferenceCompilationSnapshot(new[] { source }, CompilationContext.Empty); var compiler = new AlarmCompiler();
+            var target = request.TargetAtToken(source.FilePath, source.Version, source.Text.IndexOf("<Clear/>", StringComparison.Ordinal) + 3);
+            var found = compiler.FindReferencesSnapshots(request, target);
+            Assert.True(found.IsAvailable, found.Message); Assert.Equal("Group", found.Symbol.Kind); Assert.Equal("G", found.Symbol.Name);
+            Assert.Equal("G", compiler.FindReferencesSnapshots(request, new[] { target })[0].Symbol.Name);
+            var preview = compiler.PreviewRenameSnapshots(request, target, "Other");
+            var edit = Assert.Single(preview.Edits); Assert.Equal("G", source.Text.Substring(edit.Start, edit.Length));
+        }
+        [Fact]
+        public void CaretsAtBoundNameEndsUseCompilerSpansWithoutMatchingLiteralsOrComments()
+        {
+            var source = Input("<Properties><Property Name='A&#66;' Value='1'/></Properties><Code>$(AB)</Code><Name>AB</Name><!-- AB -->");
+            var request = new ReferenceCompilationSnapshot(new[] { source }, CompilationContext.Empty);
+            var compiler = new AlarmCompiler();
+            int declarationEnd = source.Text.IndexOf("A&#66;", StringComparison.Ordinal) + "A&#66;".Length;
+            int expressionEnd = source.Text.IndexOf("$(AB)", StringComparison.Ordinal) + "$(AB".Length;
+            int literalEnd = source.Text.IndexOf(">AB</Name>", StringComparison.Ordinal) + ">AB".Length;
+            int commentEnd = source.Text.IndexOf("<!-- AB", StringComparison.Ordinal) + "<!-- AB".Length;
+            var targets = new[] { declarationEnd, expressionEnd, literalEnd, commentEnd }.Select(offset => request.TargetAtToken(source.FilePath, source.Version, offset)).ToArray();
+            var batch = compiler.FindReferencesSnapshots(request, targets);
+            Assert.Equal("AB", batch[0].Symbol.Name); Assert.Equal(batch[0].Symbol.Family, batch[1].Symbol.Family);
+            Assert.False(batch[2].IsAvailable); Assert.False(batch[3].IsAvailable);
+            for (int index = 0; index < targets.Length; index++)
+            {
+                var single = compiler.FindReferencesSnapshots(request, targets[index]);
+                Assert.Equal(batch[index].Symbol?.DeclarationId, single.Symbol?.DeclarationId);
+                Assert.Equal(batch[index].IsAvailable, single.IsAvailable);
+            }
+        }
+        [Fact]
+        public void ValueSelectorsOfferCompilerBoundFamiliesAndRequireAnExplicitChoice()
+        {
+            var source = Input("<Properties><Property Name='P' Value='1'/><Property Name='Q' Value='2'/></Properties><Description>$(P) $(Q)</Description><Name>literal</Name>");
+            var compiler = new AlarmCompiler(); var analysis = compiler.AnalyzeSnapshots(new[] { source }); var alarm = Assert.Single(analysis.Alarms);
+            var request = new ReferenceCompilationSnapshot(new[] { source }, CompilationContext.Empty);
+            var target = request.TargetAtValue(alarm.Fields.Single(field => field.Name == "Description").ValueLocation, alarm.Origin.FullyQualifiedName);
+            var found = compiler.FindReferencesSnapshots(request, target);
+            Assert.False(found.IsAvailable); Assert.True(found.IsAmbiguous);
+            Assert.Equal(new[] { "P", "Q" }, found.Candidates.Select(symbol => symbol.Name).OrderBy(name => name));
+            Assert.Throws<NotSupportedException>(() => ((IList<ReferenceSymbol>)found.Candidates).Clear());
+            var chosen = request.TargetIdentity(found.Candidates.Single(symbol => symbol.Name == "P").DeclarationId);
+            Assert.Equal("P", compiler.FindReferencesSnapshots(request, chosen).Symbol.Name);
+            var batch = compiler.FindReferencesSnapshots(request, new[] { target, chosen });
+            Assert.True(batch[0].IsAmbiguous); Assert.Equal(2, batch[0].Candidates.Count); Assert.True(batch[1].IsAvailable);
+            var literal = compiler.FindReferencesSnapshots(request, request.TargetAtValue(alarm.Fields.Single(field => field.Name == "Name").ValueLocation, "A"));
+            Assert.False(literal.IsAvailable); Assert.False(literal.IsAmbiguous); Assert.Empty(literal.Candidates);
+        }
+
+        [Fact]
+        public void ContextParameterSelectorsPreserveProjectShadowingAndBuiltInAliases()
+        {
+            var source = Input("<Properties><Property Name='P' Value='1'/></Properties><Code>$(P)</Code><Description>$(AlarmlistAlarmCode)</Description>");
+            var context = new CompilationContext(properties: new[] { new PropertyDefinition("P", "project") });
+            var compiler = new AlarmCompiler(); var alarm = Assert.Single(compiler.AnalyzeSnapshots(new[] { source }, context).Alarms);
+            var request = new ReferenceCompilationSnapshot(new[] { source }, context);
+            var targets = new[] { request.TargetParameter(alarm.Origin.Location, "p"),
+                request.TargetParameter(new SourceLocation(source.FilePath, 1, 1, 1, source.Version), "P", true), request.TargetBuiltIn("alarmlistalarmcode") };
+            var found = compiler.FindReferencesSnapshots(request, targets);
+            Assert.All(found, result => Assert.True(result.IsAvailable, result.Message));
+            Assert.NotEqual(found[0].Symbol.DeclarationId, found[1].Symbol.DeclarationId);
+            Assert.Equal("DefinitionField", found[2].Symbol.Kind); Assert.Equal("Code", found[2].Symbol.Name); Assert.True(found[2].Symbol.IsReadOnly);
+            Assert.False(compiler.PreviewRenameSnapshots(request, targets[2], "Next").IsApplicable);
+            Assert.Equal(found[0].Symbol.DeclarationId, compiler.FindReferencesSnapshots(request, targets[0]).Symbol.DeclarationId);
+        }
+
+        [Fact]
+        public void CapturedReadOnlyResourceDeclarationsRemainSearchableWhileProvenConsumerEditsArePartial()
+        {
+            var source = Input("<Name>$(loc:Greeting)</Name>");
+            var resource = new ResxTextSnapshot("<root><data name='Greeting'><value>Hello</value></data></root>", "package/Labels.en.resx", 0, "en");
+            var context = new CompilationContext(resources: new[] { resource }, culture: "en");
+            var editable = new ReferenceCompilationSnapshot(new[] { source }, context);
+            var request = new ReferenceCompilationSnapshot(new[] { source }, context, null, null, CancellationToken.None, new[] { resource.FilePath });
+            var target = request.TargetAtToken(source.FilePath, source.Version, source.Text.IndexOf("Greeting", StringComparison.Ordinal));
+            var compiler = new AlarmCompiler(); var found = compiler.FindReferencesSnapshots(request, target);
+            Assert.True(found.IsAvailable); Assert.True(found.Symbol.IsReadOnly);
+            Assert.Contains(found.Occurrences, use => use.Role == "Declaration" && use.Start.HasValue && use.Unavailable != null);
+            var preview = compiler.PreviewRenameSnapshots(request, target, "Next");
+            Assert.True(preview.IsApplicable, preview.Failure); Assert.True(preview.RequiresAcknowledgement);
+            Assert.Equal(source.FilePath, Assert.Single(preview.Edits).Path);
+            Assert.NotEqual(editable.SnapshotId, request.SnapshotId);
+            Assert.False(compiler.FindReferencesSnapshots(editable, target).IsAvailable);
+            Assert.Contains("Greeting", resource.Text);
+        }
+
+        [Fact]
+        public void EveryTokenInACapturedReadOnlyAlmxSourceIsExcludedFromRename()
+        {
+            var source = Input();
+            var request = new ReferenceCompilationSnapshot(new[] { source }, CompilationContext.Empty, null, null, CancellationToken.None, new[] { source.FilePath });
+            var target = request.TargetAtToken(source.FilePath, source.Version, source.Text.IndexOf("$(P)", StringComparison.Ordinal) + 2);
+            var compiler = new AlarmCompiler(); var found = compiler.FindReferencesSnapshots(request, target);
+            Assert.True(found.Symbol.IsReadOnly); Assert.All(found.Occurrences.Where(use => use.Role != "Binding"), use => Assert.NotNull(use.Unavailable));
+            var preview = compiler.PreviewRenameSnapshots(request, target, "Next");
+            Assert.Empty(preview.Edits); Assert.False(preview.IsApplicable); Assert.True(preview.RequiresAcknowledgement);
+        }
+
         [Fact]
         public void ATranslatedTokenWithDifferentConsumerBindingsReportsStructuredAmbiguity()
         {

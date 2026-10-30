@@ -18,6 +18,20 @@ namespace Alarmlist.VisualStudio.UI
         Task<ExplanationResponse> ExplainAsync(ProjectAnalysisState state, AnalysisExplanationTarget target, CancellationToken token);
         void ShowExplanation(IPreviewView source);
     }
+    internal interface IDesignerReferences
+    {
+        Task FindReferencesAsync(ProjectAnalysisState state, AnalysisReferenceTarget target, ReferenceInvocation invocation);
+    }
+    internal sealed class ReferenceInvocation
+    {
+        internal ReferenceInvocation(Func<bool> isCurrent, Func<bool> intentIsCurrent, CancellationToken token, CancellationToken intentToken, bool rename = false)
+        { IsCurrent = isCurrent; IntentIsCurrent = intentIsCurrent; Token = token; IntentToken = intentToken; IsRename = rename; }
+        internal Func<bool> IsCurrent { get; }
+        internal Func<bool> IntentIsCurrent { get; }
+        internal CancellationToken Token { get; }
+        internal CancellationToken IntentToken { get; }
+        internal bool IsRename { get; }
+    }
     // Each view chooses its own project context. Host adapters own dispatch,
     // buffer identity, current-input validation and document navigation.
     internal interface IDesignerAnalysis : IDisposable

@@ -31,6 +31,7 @@ implemented behavior; custom fields and collections require a rebuilt toolset.
 | [XML completion](features/xml-completion.md) | Structure, expressions, references and context selection |
 | [Alarm Summary](features/alarm-summary.md) | Resolved tables, details, XML and column preferences |
 | [Explain this value](features/value-explanations.md) | Chosen contributors, defaults, expression dependencies and source navigation |
+| [Find references and rename](features/references-and-rename.md) | Solution references, previewed changes, partial coverage and linked Undo |
 | [Custom fields and collections](features/custom-fields-and-collections.md) | Rebuilt definitions, typed values, collections and optional procedures |
 
 ## Tutorials

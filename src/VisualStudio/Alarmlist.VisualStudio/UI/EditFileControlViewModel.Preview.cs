@@ -30,6 +30,7 @@ namespace Alarmlist.VisualStudio.UI
 
     internal sealed class ResolvedSectionViewModel : ObservableObject
     {
+        public object ReferenceIdentity { get; } = new object();
         public string Name { get; }
         public IReadOnlyList<ProcedureAnalysisRow> Items { get; }
         public string Summary => Items.Count == 0 ? "No effective entries." : "Execution order (" + Items.Count + " entries)";

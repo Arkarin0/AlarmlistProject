@@ -63,6 +63,8 @@ namespace Alarmlist.VisualStudio.Analysis
                 token.ThrowIfCancellationRequested();
                 string key = ContextKey(consumer);
                 string label = ContextLabel(consumer.Request);
+                foreach (var change in selection.Changes.Where(change => consumer.Request.ReadOnlyPaths.Contains(change.Edit.Path, StringComparer.OrdinalIgnoreCase)))
+                    conflicts.Add(change.Id);
                 var previous = oldContexts.TryGetValue(key, out var prior) ? prior[0] : null;
                 var afterDocuments = Documents(consumer.Request).GroupBy(input => input.FilePath, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
@@ -161,7 +163,7 @@ namespace Alarmlist.VisualStudio.Analysis
             }
             token.ThrowIfCancellationRequested();
             if (validatedContexts == 0) return Finish("No proposed consumer context could be evaluated.");
-            return Finish(conflicts.Count == 0 ? null : "Selected changes introduce ambiguous bindings. Exclude the conflicting changes and validate again.");
+            return Finish(conflicts.Count == 0 ? null : "Selected changes have ambiguous bindings or target read-only sources. Exclude the conflicting changes and validate again.");
         }
 
         private static string ContextKey(ReferenceSearchConsumer consumer)

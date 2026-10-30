@@ -19,9 +19,12 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly DTE _dte;
         private readonly Action<IReadOnlyList<string>> _queryEdit;
         private readonly Func<string, int?> _version;
+        private readonly Func<string, object> _identity;
+        private readonly Func<string, bool> _readOnly;
         private readonly int _thread = Thread.CurrentThread.ManagedThreadId;
-        internal DteLinkedEditWorkspace(DTE dte, Action<IReadOnlyList<string>> queryEdit, Func<string, int?> version)
-        { VerifyAccess(); _dte = dte ?? throw new ArgumentNullException(nameof(dte)); _queryEdit = queryEdit ?? throw new ArgumentNullException(nameof(queryEdit)); _version = version ?? throw new ArgumentNullException(nameof(version)); }
+        internal DteLinkedEditWorkspace(DTE dte, Action<IReadOnlyList<string>> queryEdit, Func<string, int?> version,
+            Func<string, object> identity = null, Func<string, bool> readOnly = null)
+        { VerifyAccess(); _dte = dte ?? throw new ArgumentNullException(nameof(dte)); _queryEdit = queryEdit ?? throw new ArgumentNullException(nameof(queryEdit)); _version = version ?? throw new ArgumentNullException(nameof(version)); _identity = identity; _readOnly = readOnly; }
         private void VerifyAccess()
         {
             if (_thread != Thread.CurrentThread.ManagedThreadId) throw new InvalidOperationException("IDE buffer edits must run on the owning thread.");
@@ -36,19 +39,30 @@ namespace Alarmlist.VisualStudio.Editor
             if (document == null) document = _dte.ItemOperations.OpenFile(path, Constants.vsViewKindTextView).Document;
             var text = document.Object("TextDocument") as TextDocument;
             if (text == null) throw new InvalidOperationException("This document does not expose an editable text buffer: " + path);
-            return new Buffer(document, text, () => _version(path), VerifyAccess);
+            return new Buffer(text, () => _version(path), () => _identity?.Invoke(path),
+                () => _readOnly == null ? document.ReadOnly : _readOnly(path), VerifyAccess);
         }
         public void QueryEdit(IReadOnlyList<string> paths) { VerifyAccess(); _queryEdit(paths); }
         public IRenameUndoScope BeginUndo(string description) { VerifyAccess(); return new Undo(_dte.UndoContext, description, VerifyAccess); }
         private sealed class Buffer : IRenameDocument
         {
-            private readonly Document _document;
             private readonly TextDocument _text;
             private readonly Func<int?> _version;
+            private readonly Func<object> _identity;
+            private readonly Func<bool> _readOnly;
             private readonly Action _verify;
-            internal Buffer(Document document, TextDocument text, Func<int?> version, Action verify) { _document = document; _text = text; _version = version; _verify = verify; }
-            public bool IsReadOnly { get { _verify(); return _document.ReadOnly; } }
-            public RenameBufferSnapshot Capture() { _verify(); return new RenameBufferSnapshot(_text.StartPoint.CreateEditPoint().GetText(_text.EndPoint), _version()); }
+            internal Buffer(TextDocument text, Func<int?> version, Func<object> identity, Func<bool> readOnly, Action verify)
+            { _text = text; _version = version; _identity = identity; _readOnly = readOnly; _verify = verify; }
+            public bool IsReadOnly { get { _verify(); return _readOnly(); } }
+            public RenameBufferSnapshot Capture()
+            {
+                _verify();
+                object identity = _identity(); int? version = _version();
+                string text = _text.StartPoint.CreateEditPoint().GetText(_text.EndPoint);
+                if (!ReferenceEquals(identity, _identity()) || version != _version())
+                    throw new InvalidOperationException("The IDE buffer changed while its text was captured.");
+                return new RenameBufferSnapshot(text, version, identity);
+            }
             public void Apply(IReadOnlyList<SourceEdit> edits)
             {
                 string original = Capture().Text;

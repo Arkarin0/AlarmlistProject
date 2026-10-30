@@ -158,6 +158,44 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         public string FrameworkMoniker { get; }
         public IReadOnlyDictionary<string, string> PortableNames { get; }
         public IReadOnlyList<AnalysisDiscoveryGlob> DiscoveryGlobs { get; }
+        internal IReadOnlyList<string> ReadOnlySourceRoots { get; private set; } = Array.Empty<string>();
+        internal bool IsReadOnlySource(string path)
+        {
+            string fullPath = Path.GetFullPath(path);
+            return ReadOnlySourceRoots.Any(root => fullPath.StartsWith(root, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static IReadOnlyList<string> CaptureReadOnlySourceRoots(Project evaluated, CancellationToken token)
+        {
+            var roots = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            void Add(string path)
+            {
+                token.ThrowIfCancellationRequested();
+                if (string.IsNullOrWhiteSpace(path)) return;
+                string fullPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(evaluated.FullPath), path));
+                roots.Add(fullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar);
+            }
+            foreach (string path in evaluated.GetPropertyValue("NuGetPackageFolders").Split(';')) Add(ProjectCollection.Unescape(path));
+            foreach (string path in evaluated.GetPropertyValue("NuGetPackageRoot").Split(';')) Add(ProjectCollection.Unescape(path));
+            Add(evaluated.GetPropertyValue("MSBuildSDKsPath")); Add(evaluated.GetPropertyValue("MSBuildToolsPath"));
+            foreach (var import in evaluated.Imports)
+            {
+                var sdk = import.SdkResult;
+                if (sdk == null) continue;
+                foreach (string path in new[] { sdk.Path }.Concat(sdk.AdditionalPaths ?? Array.Empty<string>()))
+                {
+                    if (string.IsNullOrWhiteSpace(path)) continue;
+                    Add(path);
+                    // The standard SDK layout keeps tools beside its Sdk folder.
+                    // Use the resolver's selected location, never cache discovery.
+                    string directory = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(evaluated.FullPath), path)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    string parent = Path.GetDirectoryName(directory);
+                    if (string.Equals(Path.GetFileName(directory), "Sdk", StringComparison.OrdinalIgnoreCase)
+                        && parent != null && !string.Equals(parent.TrimEnd(Path.DirectorySeparatorChar), Path.GetPathRoot(parent).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)) Add(parent);
+                }
+            }
+            return Array.AsReadOnly(roots.OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray());
+        }
 
         public static SavedProjectEvaluation Capture(string projectPath, IDictionary<string, string> globalProperties,
             CancellationToken token, Action<SavedProjectEvaluation> observeFailedEvaluation = null,
@@ -240,6 +278,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                         }));
                     var captured = new SavedProjectEvaluation(snapshot, new[] { path }.Concat(evaluated.Imports
                         .Select(import => import.ImportedProject.FullPath)).Distinct(StringComparer.OrdinalIgnoreCase), evaluated, token);
+                    if (captureReferences) captured.ReadOnlySourceRoots = CaptureReadOnlySourceRoots(evaluated, token);
                     GC.KeepAlive(overlayRoots);
                     return captured;
                 }

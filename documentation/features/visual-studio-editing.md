@@ -57,5 +57,8 @@ Use [Explain this value](value-explanations.md) to inspect a designer value's
 compiler contributors in Alarm Summary. Commit or cancel private drafts first;
 the action never commits a draft.
 
+Use [Find references and rename](references-and-rename.md) beside a supported value
+or identity to inspect its consumers or preview coordinated unsaved changes.
+
 See [edit and inspect alarms](../tutorials/edit-and-inspect-alarms.md),
 [Alarm Summary](alarm-summary.md), and [completion](xml-completion.md).

@@ -37,15 +37,16 @@ namespace Alarmlist.VisualStudio.Analysis
     internal sealed class SolutionReferenceSearchResult
     {
         internal SolutionReferenceSearchResult(IEnumerable<ReferenceContextSearch> contexts, IEnumerable<string> coverage,
-            IEnumerable<ReferenceSharedConflict> conflicts, string failure)
+            IEnumerable<ReferenceSharedConflict> conflicts, string failure, AnalysisReferenceSearch origin = null)
         {
             Contexts = Array.AsReadOnly(contexts.ToArray()); Coverage = Array.AsReadOnly(coverage.Distinct(StringComparer.Ordinal).ToArray());
-            Conflicts = Array.AsReadOnly(conflicts.ToArray()); Failure = failure;
+            Conflicts = Array.AsReadOnly(conflicts.ToArray()); Failure = failure; Origin = origin;
         }
         internal IReadOnlyList<ReferenceContextSearch> Contexts { get; }
         internal IReadOnlyList<string> Coverage { get; }
         internal IReadOnlyList<ReferenceSharedConflict> Conflicts { get; }
         internal string Failure { get; }
+        internal AnalysisReferenceSearch Origin { get; }
         internal bool IsAvailable => Failure == null;
     }
 
@@ -69,8 +70,9 @@ namespace Alarmlist.VisualStudio.Analysis
             var identities = new HashSet<string>(StringComparer.Ordinal);
             var unavailable = new HashSet<int>();
             var conflicts = new List<ReferenceSharedConflict>();
+            AnalysisReferenceSearch originResult = null;
             SolutionReferenceSearchResult Finish(string failure) => new SolutionReferenceSearchResult(
-                results.Select((families, index) => new ReferenceContextSearch(index, families.Values)), findings, conflicts, failure);
+                results.Select((families, index) => new ReferenceContextSearch(index, families.Values)), findings, conflicts, failure, originResult);
             string Context(int index)
             {
                 var input = consumers[index].Request.Context;
@@ -101,6 +103,7 @@ namespace Alarmlist.VisualStudio.Analysis
             {
                 var selected = consumers[origin].Bridge.FindReferences(consumers[origin].Request, target, token);
                 if (selected.Availability != AnalysisAvailability.Available || selected.Result == null) return Finish(selected.Message ?? "Reference search is unavailable.");
+                originResult = selected.Result;
                 Observe(origin, selected.Result, true);
                 if (!selected.Result.IsAvailable) return Finish(selected.Result.Message);
                 bool pending;

@@ -16,6 +16,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             InitializeComponent();
             ValueExplanationCommands.Bind(this, () => DataContext as IValueExplanationView, ShowExplanation);
+            ReferenceValueCommands.Bind(this, () => DataContext as IReferenceValueView);
             DataObject.AddCopyingHandler(this, OnCopyingText);
             DataContextChanged += (sender, args) => { UpdateSortArrows(); BindColumnLayout(); };
             Loaded += (sender, args) => { UpdateSortArrows(); BindColumnLayout(); };

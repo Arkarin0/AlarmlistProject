@@ -331,9 +331,15 @@ Request-owned solution sessions capture active configurations, all configured
 cultures and reachable saved dependencies without executing project targets. They
 deduplicate physical selections, reevaluate private proposed overlays in the SDK,
 compare diagnostics and revalidate original captures before publication. This
-infrastructure does not itself edit buffers. References/rename UI, native command
-routing and Apply integration follow in milestone 14 iteration 13; native and
-integrated acceptance remains recorded in the milestone plan.
+infrastructure feeds the References window and rename review. Designer/Summary
+actions and standard XML Find All References/Rename commands use compiler-resolved
+targets. Apply prepares editable buffers, performs complete-set Query Edit and
+freshness checks, and uses native linked Undo with rollback. Files remain unsaved.
+See the [feature reference](../../documentation/features/references-and-rename.md).
+Iteration 13's remaining native gates and iteration 14's integrated acceptance
+are recorded separately in the milestone plan. Run Area=ReferencesRename,
+Area=SharedReferencesRename and Area=AuxiliaryReferencesRename sequentially on
+both IDE hosts; do not overlap desktop MSBuild checks with those runs.
 
 The bridge accepts analysis contract 9 and loads the resolved SDK's net472 compiler
 in an isolated domain. Explain this value uses the same captured project inputs

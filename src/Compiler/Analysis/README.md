@@ -69,7 +69,24 @@ also supplies `ReferenceLibraryScope` with its identity and authoritative portab
 source names. Creation accepts cancellation and stamps all captured inputs and
 tooling. Use `TargetAtToken(path, version, offset)`, `TargetAtLocation(kind, location,
 name)` or a compiler-issued `TargetIdentity(declarationId)` to obtain a target bound
-to that request. Literal text and unsupported/ambiguous tokens remain unavailable.
+to that request. `TargetAtValue(location, consumer)` resolves the symbols bound in
+the value at an exact compiler-reported location, optionally restricted to its
+consumer alarm. `TargetParameter(location, name, sourceScope)` uses the actual
+parameter resolver for an alarm or source context, including inherited and project
+declarations. The source context location is `(path, 1, 1, version)`.
+`TargetBuiltIn(name)` selects an immutable well-known name or generated field alias.
+Literal text and unsupported tokens remain unavailable. A target containing more
+than one bound family returns `IsAmbiguous` with immutable `Candidates`; the caller
+must obtain an explicit choice before using that candidate's declaration identity.
+
+The six-argument snapshot constructor additionally accepts `readOnlyPaths`, an
+explicit set of captured paths protected by the host's provider ownership policy.
+This set participates in snapshot identity. These inputs retain exact searchable
+spans and unavailable-edit findings, including references in a protected file to
+an otherwise editable symbol. Rename never emits replacements for protected paths,
+and a projected request cannot change their ownership to enable an edit. The
+ordinary constructor preserves the behavior of independently supplied editable
+inputs; the compiler does not inspect files or infer package-cache ownership.
 
 `AlarmCompiler.FindReferencesSnapshots(request, target, cancellationToken)` returns
 detached declarations, uses, exact UTF-16 spans, context, diagnostics and coverage.
@@ -166,3 +183,13 @@ expression use. Duplicate declarations and ambiguous owners propagate to their
 members. Known physical spans remain available for navigation, with no replacement
 for ambiguous identities. Imported definitions remain read-only; partial rename
 requires explicit acknowledgement before any eventual host application.
+
+Token targets accept UTF-16 caret offsets inside or immediately after a semantic
+token. A containing token takes precedence over a token ending at that offset.
+Opt-in parser/binder probes distinguish unsupported literal/markup positions
+(`IsUnsupportedTarget`) from recognized but unbound tokens and unavailable parsing
+or inheritance. Hosts may delegate unsupported positions to native tooling; they
+must not classify expressions by text or treat unbound references as literals.
+Probes retain the actual fragments of tokens separated by XML markup for search,
+while replacement still requires one safe mapped token. This permits navigation
+without deleting intervening comments or CDATA boundaries.

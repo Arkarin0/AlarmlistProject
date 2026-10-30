@@ -33,9 +33,12 @@ namespace Alarmlist.VisualStudio.Analysis
                 || _referenceScopeType.GetConstructor(new[] { assembly.GetType("Alarmlist.Libraries.LibraryIdentity", true), typeof(IEnumerable<KeyValuePair<string, string>>) }) == null
                 || _referenceRequestType.GetMethod("TargetAtToken", new[] { typeof(string), typeof(int), typeof(int) })?.ReturnType != target
                 || _referenceRequestType.GetMethod("TargetAtLocation", new[] { typeof(string), _locationType, typeof(string) })?.ReturnType != target
+                || _referenceRequestType.GetMethod("TargetAtValue", new[] { _locationType, typeof(string) })?.ReturnType != target
+                || _referenceRequestType.GetMethod("TargetParameter", new[] { _locationType, typeof(string), typeof(bool) })?.ReturnType != target
+                || _referenceRequestType.GetMethod("TargetBuiltIn", new[] { typeof(string) })?.ReturnType != target
                 || _referenceRequestType.GetMethod("TargetIdentity", new[] { typeof(string) })?.ReturnType != target
                 || _referenceRequestType.GetConstructor(new[] { typeof(IEnumerable<>).MakeGenericType(_snapshotType), _contextType,
-                    typeof(IEnumerable<>).MakeGenericType(_referenceTextType), _referenceScopeType, typeof(CancellationToken) }) == null)
+                    typeof(IEnumerable<>).MakeGenericType(_referenceTextType), _referenceScopeType, typeof(CancellationToken), typeof(IEnumerable<string>) }) == null)
                 throw new NotSupportedException("The SDK has no compatible reference search and rename preview API.");
         }
 
@@ -106,7 +109,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     var identityType = _contextType.Assembly.GetType("Alarmlist.Libraries.LibraryIdentity", true);
                     scope = Activator.CreateInstance(_referenceScopeType, Activator.CreateInstance(identityType, request.DeclaringLibrary.Id, request.DeclaringLibrary.Version), request.PortableNames);
                 }
-                var captured = Activator.CreateInstance(_referenceRequestType, sources, context, documents, scope, token);
+                var captured = Activator.CreateInstance(_referenceRequestType, sources, context, documents, scope, token, request.ReadOnlyPaths);
                 return operation(captured);
             });
 
@@ -116,6 +119,7 @@ namespace Alarmlist.VisualStudio.Analysis
             if (target.SnapshotId != null && target.SnapshotId != stamp)
                 throw new InvalidOperationException("Captured inputs changed. Find references again before previewing or applying a rename.");
             if (target.Kind == "Identity") return _referenceRequestType.GetMethod("TargetIdentity").Invoke(request, new object[] { target.DeclarationId });
+            if (target.Kind == "BuiltInName") return _referenceRequestType.GetMethod("TargetBuiltIn").Invoke(request, new object[] { target.Name });
             if (target.Kind == "Token")
             {
                 if (target.Location?.SourceVersion == null || target.Offset == null) throw new ArgumentException("A token target requires a captured source version and offset.");
@@ -124,7 +128,10 @@ namespace Alarmlist.VisualStudio.Analysis
             if (target.Location == null) throw new ArgumentException("A declaration target requires its defining source location.");
             object location = Activator.CreateInstance(_locationType, target.Location.FilePath, target.Location.LineNumber, target.Location.ColumnNumber,
                 target.Location.EndColumnNumber - target.Location.ColumnNumber, target.Location.SourceVersion);
-            return _referenceRequestType.GetMethod("TargetAtLocation").Invoke(request, new[] { (object)target.Kind, location, target.Name });
+            if (target.Kind == "AlarmParameter" || target.Kind == "SourceParameter") return _referenceRequestType.GetMethod("TargetParameter")
+                .Invoke(request, new[] { location, target.Name, (object)(target.Kind == "SourceParameter") });
+            return target.Kind == "Value" ? _referenceRequestType.GetMethod("TargetAtValue").Invoke(request, new[] { location, target.Name })
+                : _referenceRequestType.GetMethod("TargetAtLocation").Invoke(request, new[] { (object)target.Kind, location, target.Name });
         }
 
         public ReferenceResponse FindReferences(AnalysisReferenceRequest request, AnalysisReferenceTarget target, AnalysisCancellationProbe cancellation)

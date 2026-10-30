@@ -122,6 +122,30 @@ namespace Alarmlist.Text
         internal string Value { get; }
         internal XmlMappedValue(string value, IEnumerable<XmlMappedUnit> units, char quote)
         { Value = value; _units = units.ToArray(); _quote = quote; _matches = new string(_units.Select(unit => unit.Value).ToArray()) == value; }
+        // Search can recognize a token split by comments or CDATA boundaries
+        // even when replacing it would discard authored markup. Return only
+        // the actual decoded characters' raw ranges, never the intervening XML.
+        internal IReadOnlyList<XmlSourceRange> SourceRanges(int start, int length, CancellationToken token = default)
+        {
+            var ranges = new List<XmlSourceRange>();
+            if (!_matches || start < 0 || length <= 0 || start > _units.Length - length) return ranges.AsReadOnly();
+            for (int index = start; index < start + length; index++)
+            {
+                token.ThrowIfCancellationRequested();
+                var unit = _units[index];
+                if (ranges.Count != 0)
+                {
+                    var previous = ranges[ranges.Count - 1];
+                    if (unit.Start >= previous.Start && unit.Start <= previous.Start + previous.Length)
+                    {
+                        ranges[ranges.Count - 1] = new XmlSourceRange(previous.Start, Math.Max(previous.Length, unit.Start + unit.Length - previous.Start));
+                        continue;
+                    }
+                }
+                ranges.Add(new XmlSourceRange(unit.Start, unit.Length));
+            }
+            return ranges.AsReadOnly();
+        }
         internal bool TryReplace(int start, int length, string value, out MappedTextEdit edit)
         {
             edit = null;
@@ -137,6 +161,13 @@ namespace Alarmlist.Text
             if (_quote != '\0') replacement = replacement.Replace(_quote.ToString(), _quote == '\'' ? "&apos;" : "&quot;").Replace("\r", "&#xD;").Replace("\n", "&#xA;").Replace("\t", "&#x9;");
             edit = new MappedTextEdit(first.Start, last.Start + last.Length - first.Start, replacement); return true;
         }
+    }
+
+    internal readonly struct XmlSourceRange
+    {
+        internal XmlSourceRange(int start, int length) { Start = start; Length = length; }
+        internal int Start { get; }
+        internal int Length { get; }
     }
 
     internal sealed class MappedTextEdit

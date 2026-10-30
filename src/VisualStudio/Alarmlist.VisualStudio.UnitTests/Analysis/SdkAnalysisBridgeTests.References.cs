@@ -14,6 +14,50 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
     public partial class SdkAnalysisBridgeTests
     {
         [Fact]
+        public void ReferenceTokenAvailabilityCrossesTheBridgeWithoutHostTextClassification()
+        {
+            using (var sdk = new SdkAsset())
+            using (var bridge = Open(sdk.CompilerPath))
+            {
+                var source = Input("<FullyQualifiedName>A</FullyQualifiedName><Code>$(Missing)</Code><Name>literal</Name><!-- keep -->", "source.almx", 8);
+                var request = new AnalysisReferenceRequest(new[] { source }, AnalysisContext.Empty);
+                AnalysisReferenceTarget At(string marker) => new AnalysisReferenceTarget("Token", new AnalysisLocation(source.FilePath, 1, 1, 1, 1, 8),
+                    offset: source.Text.IndexOf(marker, StringComparison.Ordinal) + 1);
+                var targets = new[] { At("Missing"), At("literal"), At("keep") };
+                var batch = bridge.FindReferences(request, targets);
+                Assert.Equal(AnalysisAvailability.Available, batch.Availability);
+                Assert.False(batch.Results[0].IsAvailable); Assert.False(batch.Results[0].IsUnsupportedTarget);
+                Assert.True(batch.Results[1].IsUnsupportedTarget); Assert.True(batch.Results[2].IsUnsupportedTarget);
+                Assert.False(bridge.FindReferences(request, targets[0]).Result.IsUnsupportedTarget);
+                Assert.True(bridge.FindReferences(request, targets[1]).Result.IsUnsupportedTarget);
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+            }
+        }
+        [Fact]
+        public void ValueAndParameterSelectorsTransportOnlyCompilerResolvedChoices()
+        {
+            using (var sdk = new SdkAsset())
+            using (var bridge = Open(sdk.CompilerPath))
+            {
+                var source = Input("<FullyQualifiedName>A</FullyQualifiedName><Properties><Property Name='P' Value='1'/><Property Name='Q' Value='2'/></Properties><Description>$(P) $(Q)</Description>", "source.almx", 8);
+                var context = new AnalysisContext(projectPath: "App", properties: new[] { new AnalysisPropertyDefinition("P", "project") });
+                var ordinary = bridge.Analyze(new[] { source }, context: context); var alarm = Assert.Single(ordinary.Snapshot.Alarms);
+                var request = new AnalysisReferenceRequest(new[] { source }, context);
+                var value = bridge.FindReferences(request, new AnalysisReferenceTarget("Value", alarm.Fields.Single(field => field.Name == "Description").ValueLocation, "A"));
+                Assert.Equal(AnalysisAvailability.Available, value.Availability); Assert.True(value.Result.IsAmbiguous); Assert.Equal(2, value.Result.Candidates.Count);
+                Assert.Equal(new[] { "P", "Q" }, value.Result.Candidates.Select(symbol => symbol.Name).OrderBy(name => name));
+                var targets = new[] { new AnalysisReferenceTarget("AlarmParameter", alarm.Origin.Location, "p"),
+                    new AnalysisReferenceTarget("SourceParameter", new AnalysisLocation(source.FilePath, 1, 1, 1, 2, 8), "P") };
+                var parameters = bridge.FindReferences(request, targets);
+                Assert.All(parameters.Results, result => Assert.True(result.IsAvailable, result.Message));
+                Assert.NotEqual(parameters.Results[0].Symbol.DeclarationId, parameters.Results[1].Symbol.DeclarationId);
+                var chosen = bridge.FindReferences(request, new AnalysisReferenceTarget("Identity", declarationId: value.Result.Candidates[1].DeclarationId, snapshotId: value.Result.SnapshotId));
+                Assert.True(chosen.Result.IsAvailable);
+                Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
+            }
+        }
+
+        [Fact]
         public void ReferenceSearchAndRenameStayDetachedAndSnapshotBoundAcrossTheSdkDomain()
         {
             using (var sdk = new SdkAsset())

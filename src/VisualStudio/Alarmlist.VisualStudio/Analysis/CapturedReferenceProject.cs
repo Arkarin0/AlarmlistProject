@@ -61,7 +61,10 @@ namespace Alarmlist.VisualStudio.Analysis
             var libraries = CapturedProjectLibraries.Capture(project, factory, token, overlay: overlay);
             var context = project.Context.WithSavedInputs(resources, lookups, configurations, analyzers).WithLibraries(libraries.References);
             var identity = project.Context.IsLibrary ? new AnalysisLibraryIdentity(evaluation.Evaluation.PackageId, evaluation.Evaluation.PackageVersion) : null;
-            var request = new AnalysisReferenceRequest(sources.Select(source => source.Input), context, evaluation.ProjectDocuments, identity, evaluation.Evaluation.PortableNames);
+            var paths = sources.Select(source => source.Input.FilePath).Concat(resources.Select(resource => resource.FilePath))
+                .Concat(lookups.Select(lookup => lookup.FilePath)).Concat(evaluation.ProjectDocuments.Select(input => input.FilePath));
+            var request = new AnalysisReferenceRequest(sources.Select(source => source.Input), context, evaluation.ProjectDocuments, identity, evaluation.Evaluation.PortableNames,
+                paths.Where(evaluation.Evaluation.IsReadOnlySource));
             var toolsets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (string path in libraries.Projects.Select(library => library.CompilerPath).Concat(new[] { project.CompilerPath }).Distinct(StringComparer.OrdinalIgnoreCase))
             {
@@ -74,13 +77,21 @@ namespace Alarmlist.VisualStudio.Analysis
             return new CapturedReferenceProject(evaluation, sources, libraries, request, toolsets, useOpenBuffers);
         }
 
-        internal bool Matches(CapturedReferenceProject other)
+        internal bool Matches(CapturedReferenceProject other) => Matches(other, false);
+        // Opening buffers before a new review may replace a disk capture with
+        // an identical editor snapshot. This is never used to reuse an approved
+        // preview: the caller must find/preview again against the new versions.
+        internal bool MatchesAfterOpening(CapturedReferenceProject other) => Matches(other, true);
+        private bool Matches(CapturedReferenceProject other, bool allowNewBufferSnapshots)
         {
             if (other == null || UseOpenBuffers != other.UseOpenBuffers || CompilerPath != other.CompilerPath
                 || Evaluation.Evaluation.PackageId != other.Evaluation.Evaluation.PackageId || Evaluation.Evaluation.PackageVersion != other.Evaluation.Evaluation.PackageVersion
                 || !Request.Context.Matches(other.Request.Context) || Sources.Count != other.Sources.Count
-                || !Sources.Select((source, index) => source.Matches(other.Sources[index])).All(equal => equal)
+                || !Sources.Select((source, index) => allowNewBufferSnapshots
+                    ? source.Input.FilePath == other.Sources[index].Input.FilePath && source.Input.Text == other.Sources[index].Input.Text
+                    : source.Matches(other.Sources[index])).All(equal => equal)
                 || !InputsMatch(Request.ProjectDocuments, other.Request.ProjectDocuments) || !PropertiesMatch(Toolsets, other.Toolsets)
+                || !Request.ReadOnlyPaths.SequenceEqual(other.Request.ReadOnlyPaths, StringComparer.Ordinal)
                 || !PropertiesMatch(Evaluation.Evaluation.Project.EvaluationGlobalProperties, other.Evaluation.Evaluation.Project.EvaluationGlobalProperties)
                 || Evaluation.Evaluation.Project.BuildCultures != other.Evaluation.Evaluation.Project.BuildCultures
                 || !ReferencesMatch(Evaluation.Evaluation.Project.ProjectReferences, other.Evaluation.Evaluation.Project.ProjectReferences)

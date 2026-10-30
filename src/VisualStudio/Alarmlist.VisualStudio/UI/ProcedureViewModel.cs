@@ -22,6 +22,7 @@ namespace Alarmlist.VisualStudio.UI
 
     internal sealed class ProcedureSectionViewModel : ObservableObject
     {
+        public object ReferenceIdentity { get; } = new object();
         private readonly Action _changed;
         private readonly Action<string, int, ProcedureAction, string> _edit;
         private string _error;

@@ -19,9 +19,9 @@ namespace Alarmlist.VisualStudio.Analysis
     internal sealed class ReferenceProjectSelection
     {
         internal ReferenceProjectSelection(string path, IDictionary<string, string> globals, bool useOpenBuffers = true,
-            AnalysisProject liveProject = null, string unavailable = null)
+            AnalysisProject liveProject = null, string unavailable = null, bool isRefreshing = false)
         {
-            ProjectPath = Path.GetFullPath(path); UseOpenBuffers = useOpenBuffers; LiveProject = liveProject;
+            ProjectPath = Path.GetFullPath(path); UseOpenBuffers = useOpenBuffers; LiveProject = liveProject; IsRefreshing = isRefreshing;
             var captured = new Dictionary<string, string>(globals ?? new Dictionary<string, string>(), StringComparer.OrdinalIgnoreCase);
             if (liveProject != null)
             {
@@ -29,16 +29,22 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (!string.IsNullOrEmpty(liveProject.Context.Platform)) captured["Platform"] = liveProject.Context.Platform;
                 captured["AlarmlistCulture"] = liveProject.Context.Culture;
             }
+            if (captured.TryGetValue("Platform", out string displayPlatform)) captured["Platform"] = NormalizePlatform(displayPlatform);
             Globals = new ReadOnlyDictionary<string, string>(captured);
             Unavailable = unavailable ?? (!captured.TryGetValue("Configuration", out string configuration) || string.IsNullOrWhiteSpace(configuration)
                 || !captured.TryGetValue("Platform", out string platform) || string.IsNullOrWhiteSpace(platform)
                 ? "The active project configuration/platform could not be captured." : null);
         }
         internal string ProjectPath { get; }
+        // The solution/IVsCfg display name uses a space; CPS/MSBuild's
+        // architecture-neutral platform dimension uses the canonical token.
+        // Other platform names are project-defined and must remain exact.
+        internal static string NormalizePlatform(string platform) => string.Equals(platform, "Any CPU", StringComparison.OrdinalIgnoreCase) ? "AnyCPU" : platform;
         internal IReadOnlyDictionary<string, string> Globals { get; }
         internal bool UseOpenBuffers { get; }
         internal AnalysisProject LiveProject { get; }
         internal string Unavailable { get; }
+        internal bool IsRefreshing { get; }
         internal string Key => ProjectPath.ToUpperInvariant() + "\n" + UseOpenBuffers + "\n" + string.Concat(Globals.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
             .Select(pair => pair.Key.Length + ":" + pair.Key.ToUpperInvariant() + pair.Value.Length + ":" + pair.Value));
     }
@@ -112,17 +118,23 @@ namespace Alarmlist.VisualStudio.Analysis
             return new CapturedReferenceSolution(roots, projects, findings);
         }
 
-        internal bool Matches(CapturedReferenceSolution other)
+        internal bool Matches(CapturedReferenceSolution other) => Matches(other, false);
+        internal bool MatchesAfterOpening(CapturedReferenceSolution other) => Matches(other, true);
+        private bool Matches(CapturedReferenceSolution other, bool allowNewBufferSnapshots)
             => other != null && Selections.Count == other.Selections.Count
-                && Selections.Select((selection, index) => selection.Key == other.Selections[index].Key && selection.Unavailable == other.Selections[index].Unavailable).All(equal => equal)
+                && Selections.Select((selection, index) => selection.Key == other.Selections[index].Key && selection.Unavailable == other.Selections[index].Unavailable
+                    && selection.IsRefreshing == other.Selections[index].IsRefreshing).All(equal => equal)
                 && Coverage.SequenceEqual(other.Coverage, StringComparer.Ordinal) && Projects.Count == other.Projects.Count
-                && Projects.Select((project, index) => project.Matches(other.Projects[index])).All(equal => equal);
+                && Projects.Select((project, index) => allowNewBufferSnapshots ? project.MatchesAfterOpening(other.Projects[index])
+                    : project.Matches(other.Projects[index])).All(equal => equal);
 
         private static bool ActiveProjectMatches(AnalysisProject live, IEnumerable<AnalysisProject> captured)
         {
             var saved = captured.SingleOrDefault(project => string.Equals(project.Context.Culture, live.Context.Culture, StringComparison.OrdinalIgnoreCase));
             return saved != null && live.ProjectPath == saved.ProjectPath && live.CompilerPath == saved.CompilerPath
-                && live.Context.Configuration == saved.Context.Configuration && live.Context.Platform == saved.Context.Platform && live.Context.IsLibrary == saved.Context.IsLibrary
+                && live.Context.Configuration == saved.Context.Configuration
+                && ReferenceProjectSelection.NormalizePlatform(live.Context.Platform) == ReferenceProjectSelection.NormalizePlatform(saved.Context.Platform)
+                && live.Context.IsLibrary == saved.Context.IsLibrary
                 && live.BuildCultures == saved.BuildCultures && live.Inputs.SequenceEqual(saved.Inputs, StringComparer.OrdinalIgnoreCase)
                 && live.Lookups.SequenceEqual(saved.Lookups, StringComparer.OrdinalIgnoreCase) && live.Analyzers.SequenceEqual(saved.Analyzers, StringComparer.OrdinalIgnoreCase)
                 && live.Resources.Count == saved.Resources.Count && live.Resources.Select((item, index) => item.FilePath == saved.Resources[index].FilePath && item.Culture == saved.Resources[index].Culture).All(equal => equal)

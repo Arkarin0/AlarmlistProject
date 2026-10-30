@@ -27,7 +27,11 @@ namespace Alarmlist.Analysis
                     _groups.Add(group, symbol);
                     AddUse(symbol, "Declaration", group.Location, alarm.FullyQualifiedName, "Name", 0, group.Name?.Length ?? 0);
                     foreach (var clear in group.Entries.OfType<Clear>())
+                    {
                         _uses.Add(new Use(symbol, "ClearControl", clear.Location, alarm.FullyQualifiedName, null, null));
+                        if (clear.Location != null && _sources.TryGetValue(clear.Location.FilePath, out var source) && clear.Location.SourceVersion == source.Input.Version)
+                            _tokenProbes.Add((symbol, clear.Location, source.Offset(clear.Location), clear.Location.EndColumnNumber - clear.Location.ColumnNumber));
+                    }
                 }
             }
             foreach (var alarm in tree.Alarms)
@@ -55,8 +59,8 @@ namespace Alarmlist.Analysis
 
         private void ObserveWellKnown(ExpressionToken token, SourceLocation location, AlarmSyntaxNode alarm)
         {
-            string field = Definition.AlarmDefinition.Fields.FirstOrDefault(candidate =>
-                string.Equals("AlarmlistAlarm" + candidate.Name, token.Key, StringComparison.OrdinalIgnoreCase))?.Name;
+            var target = BuiltInTarget(token.Key);
+            string field = target.Kind == "DefinitionField" ? target.Name : null;
             var wellKnown = WellKnownProperties.Capture(_context, alarm);
             bool known = field != null || wellKnown.ContainsKey(token.Key);
             if (!known) { _coverage.Add("Unknown built-in name: " + token.Key); return; }

@@ -19,6 +19,15 @@
       </Group>
     </Groups>
     <Buttons>
+      <Button guid="guidPreviewCommands" id="ShowReferences" priority="0x0601" type="Button">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        <Strings>
+          <ButtonText>Alarmlist References</ButtonText>
+          <CommandName>Alarmlist.References</CommandName>
+          <CanonicalName>Alarmlist.References</CanonicalName>
+          <LocCanonicalName>Alarmlist.References</LocCanonicalName>
+        </Strings>
+      </Button>
       <Button guid="guidPreviewCommands" id="PreviewProject" priority="0x0100" type="Button">
         <Parent guid="guidPreviewCommands" id="ProjectPreviewGroup" />
         <Icon guid="ImageCatalogGuid" id="PreviewTab" />
@@ -72,6 +81,7 @@
       <IDSymbol name="PreviewLanguages" value="0x0101" />
       <IDSymbol name="ShowPreview" value="0x0200" />
       <IDSymbol name="PreviewProject" value="0x0201" />
+      <IDSymbol name="ShowReferences" value="0x0202" />
       <IDSymbol name="ProjectPreviewGroup" value="0x1051" />
     </GuidSymbol>
   </Symbols>

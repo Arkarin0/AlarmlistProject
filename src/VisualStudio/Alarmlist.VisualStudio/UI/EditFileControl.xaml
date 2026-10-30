@@ -249,7 +249,7 @@
       <ui:ParameterListControl DataContext="{Binding FileParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,0,8" />
       <ui:LiveStatusTextBlock Text="{Binding CultureGuidance}" TextWrapping="Wrap" />
       <ui:LiveStatusTextBlock Text="{Binding AnalysisMessage}" TextWrapping="Wrap" />
-      <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" />
+      <ui:LiveStatusTextBlock Text="{Binding Error}" TextWrapping="Wrap" AutomationProperties.AutomationId="DesignerError" />
       <Expander Header="{Binding DiagnosticsHeading}" Margin="0,4,0,0"
                 ToolTip="{Binding DiagnosticsHelp}" AutomationProperties.HelpText="{Binding DiagnosticsHelp}">
         <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="180">
@@ -336,6 +336,8 @@
         <ScrollViewer x:Name="AlarmAreaScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Alarm settings content">
           <StackPanel>
 
+          <ui:ReferenceValueButton CommandParameter="{Binding}" Content="Find alarm references" AutomationProperties.Name="Find references to this alarm" />
+          <ui:RenameValueButton CommandParameter="{Binding}" Content="Rename alarm…" AutomationProperties.Name="Rename this alarm" />
           <ui:ParameterListControl DataContext="{Binding AlarmParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,8,12" />
           <StackPanel IsEnabled="{Binding CanEdit}">
           <CheckBox Content="Abstract template" IsChecked="{Binding IsAbstract}" Margin="0,0,8,12" AutomationProperties.Name="Abstract template"
@@ -350,7 +352,7 @@
                     <Label.Style><Style TargetType="Label"><Setter Property="Target" Value="{Binding ElementName=LocalValueEditor}" /><Style.Triggers>
                       <DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Target" Value="{Binding ElementName=ReferenceValueEditor}" /></DataTrigger>
                     </Style.Triggers></Style></Label.Style>
-                  </Label><ui:ExplainValueButton Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}" ActionName="{Binding Label, StringFormat=Explain this value for {0}}" /></StackPanel>
+                  </Label><ui:ValueActionsControl Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}" ValueName="{Binding Label}" ActionName="{Binding Label, StringFormat=Explain this value for {0}}" /></StackPanel>
                   <AdornerDecorator Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
                     <ContentControl Width="26" Height="27" Focusable="False" IsHitTestVisible="False"
                                     ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}"
@@ -437,7 +439,7 @@
                               </Style.Triggers></Style></TextBlock.Style></TextBlock>
                               <TextBox Grid.Column="1" Text="{Binding DisplayText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="27"
                                        AutomationProperties.Name="{Binding Name, StringFormat=Inherited {0}}" />
-                              <ui:ExplainValueButton Grid.Column="1" Grid.Row="1" ActionName="{Binding Label, StringFormat=Explain this value for inherited {0}}" />
+                              <ui:ValueActionsControl Grid.Column="1" Grid.Row="1" ValueName="{Binding Label, StringFormat=inherited {0}}" ActionName="{Binding Label, StringFormat=Explain this value for inherited {0}}" />
                             </Grid>
                           </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                         </Expander></AdornerDecorator>
@@ -490,7 +492,7 @@
                                     </ContextMenu>
                                   </ui:ExpressionTextBox.ContextMenu>
                                 </ui:ExpressionTextBox>
-                                <ui:ExplainValueButton Grid.Column="1" Grid.Row="1" ActionName="{Binding Label, StringFormat=Explain this value for {0}}" />
+                                <ui:ValueActionsControl Grid.Column="1" Grid.Row="1" ValueName="{Binding Label}" ActionName="{Binding Label, StringFormat=Explain this value for {0}}" />
                                 <Button Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Width="28" Height="27" Content="▾" Tag="PreserveDraft"
                                         Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}" Click="OnInheritanceActions" Unloaded="OnActionsUnloaded"
                                         ToolTip="Choose a literal value. Opening this menu preserves the current expression."
@@ -518,7 +520,7 @@
                       <ItemsControl ItemsSource="{Binding Excluded}"><ItemsControl.ItemTemplate><DataTemplate>
                         <StackPanel Margin="0,4"><TextBlock Text="{Binding Text}" TextWrapping="Wrap" /><Button Content="{Binding Origin}" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" />
                           <ItemsControl ItemsSource="{Binding Fields}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,6,0" /><ui:ExplainValueButton ActionName="{Binding Label, StringFormat=Explain this value for cleared {0}}" />
+                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,6,0" /><ui:ValueActionsControl ValueName="{Binding Label, StringFormat=cleared {0}}" ActionName="{Binding Label, StringFormat=Explain this value for cleared {0}}" />
                           </StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                         </StackPanel>
                       </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
@@ -586,8 +588,10 @@
                             </ContextMenu>
                           </ui:ExpressionTextBox.ContextMenu>
                         </ui:ExpressionTextBox>
-                        <ui:ExplainValueButton DataContext="{Binding TitleField}" ActionName="Explain this value for procedure title" />
+                        <ui:ValueActionsControl DataContext="{Binding TitleField}" ValueName="procedure title" ActionName="Explain this value for procedure title" />
                         <TextBlock Text="{Binding Name, StringFormat=Group ID: {0}}" TextWrapping="Wrap" Margin="0,0,0,6" />
+                        <ui:ReferenceValueButton CommandParameter="{Binding ReferenceIdentity}" Content="Find group references" AutomationProperties.Name="Find references to this procedure group" />
+                        <ui:RenameValueButton CommandParameter="{Binding ReferenceIdentity}" Content="Rename group…" AutomationProperties.Name="Rename this procedure group" />
                         <ToggleButton Content="{Binding ExpansionText}" IsChecked="{Binding IsExpanded}" Tag="PreserveDraft"
                                       HorizontalAlignment="Left" Margin="0,0,0,6" Padding="6,3"
                                       AutomationProperties.Name="{Binding Name, StringFormat=Expand procedure group {0}}"
@@ -661,7 +665,7 @@
                                     <Button Content="↑" Command="{Binding MoveUpCommand}" Click="OnProcedureAction" ToolTip="Move entry up. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry up" />
                                     <Button Content="↓" Command="{Binding MoveDownCommand}" Click="OnProcedureAction" ToolTip="Move entry down. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry down" />
                                     <Button Content="×" Command="{Binding DeleteCommand}" Click="OnProcedureAction" ToolTip="Remove this local source entry. Undo restores it." AutomationProperties.Name="Remove procedure entry" />
-                                    <ui:ExplainValueButton ActionName="Explain this value for procedure entry" />
+                                    <ui:ValueActionsControl ValueName="procedure entry" ActionName="Explain this value for procedure entry" />
                                   </WrapPanel>
                                   <Separator Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
                                   <TextBlock Text="Clear preceding entries" FontWeight="SemiBold" Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />

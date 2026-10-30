@@ -18,6 +18,21 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         public SavedProjectEvaluationTests() { Directory.CreateDirectory(_directory); }
 
         [Fact]
+        public void ReferenceOwnershipUsesEvaluatedPackageRootsAndDoesNotTreatSiblingFoldersAsPackages()
+        {
+            string cache = Path.Combine(_directory, "cache"), packageSource = Path.Combine(cache, "Package", "Source.almx");
+            File.WriteAllText(ProjectPath, "<Project InitialTargets='MustNotRun'><PropertyGroup><NuGetPackageFolders>" + System.Security.SecurityElement.Escape(cache)
+                + "</NuGetPackageFolders></PropertyGroup><Target Name='MustNotRun'><Error Text='Targets must not run.'/></Target></Project>");
+            var ordinary = SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None);
+            Assert.Empty(ordinary.ReadOnlySourceRoots);
+            var references = SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None, captureReferences: true);
+            Assert.True(references.IsReadOnlySource(packageSource));
+            Assert.False(references.IsReadOnlySource(Path.Combine(_directory, "cache-other", "Source.almx")));
+            Assert.False(references.IsReadOnlySource(ProjectPath));
+            Assert.False(Directory.Exists(cache)); // Ownership capture neither restores nor enumerates a cache.
+        }
+
+        [Fact]
         public void SavedEvaluationIgnoresLoadedDraftsAndNeverExecutesTargets()
         {
             File.WriteAllText(ProjectPath, "<Project InitialTargets='MustNotRun'><PropertyGroup><Configuration>Debug</Configuration></PropertyGroup>"

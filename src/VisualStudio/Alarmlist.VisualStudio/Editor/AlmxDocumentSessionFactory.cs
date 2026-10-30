@@ -61,6 +61,7 @@ namespace Alarmlist.VisualStudio.Editor
         private int _wasDirty;
         public AlmxDocumentModel Model { get; }
         public ITextUndoHistory Undo { get; }
+        internal bool HasPending => _views.Any(view => view.HasPending);
         public AlmxDocumentSession(AlmxDocumentModel model, IDisposable buffer, ITextUndoHistory undo, IVsPersistDocData2 persistence)
         { Model = model; _buffer = buffer; Undo = undo; _persistence = persistence; }
         public void Attach(EditFileControlViewModel view) { _views.Add(view); view.PendingChanged += OnPendingChanged; }

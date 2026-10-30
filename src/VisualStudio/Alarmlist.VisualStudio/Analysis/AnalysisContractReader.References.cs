@@ -44,7 +44,7 @@ namespace Alarmlist.VisualStudio.Analysis
                         Value<string>(use, "DeclarationId"), Value<string>(use, "SourceTokenId"))),
                 shared?.Coverage ?? List(result, "Coverage", value => (string)value), shared?.Diagnostics ?? List(result, "Diagnostics", ReferenceDiagnostic),
                 Value<string>(result, "ProjectPath"), Value<string>(result, "Configuration"), Value<string>(result, "Platform"), Value<string>(result, "Culture"),
-                Value<string>(result, "Message"), Value<bool>(result, "IsAvailable"), Value<bool>(result, "TargetAbsent"), shared, Value<bool>(result, "IsAmbiguous"));
+                Value<string>(result, "Message"), Value<bool>(result, "IsAvailable"), Value<bool>(result, "TargetAbsent"), shared, Value<bool>(result, "IsAmbiguous"), List(result, "Candidates", ReferenceSymbol), Value<bool>(result, "IsUnsupportedTarget"));
             if (symbol != null && families != null) families[(snapshot, symbol.Family)] = copied;
             return copied;
         }

@@ -913,3 +913,348 @@ Iteration 12 — complete:
   both IDEs belong to iteration 13. Full integrated/native/tutorial/performance
   acceptance belongs to iteration 14. No end-to-end References/Rename UI acceptance
   is claimed by this iteration. Both later iterations remain authorized.
+
+Iteration 13 — completed:
+
+- Implement a References window over detached compiler families, grouped by
+  declaration, physical source and consumer context. Keep immutable, unavailable
+  and ambiguous findings visible; page large result sets and retain source links.
+- Route designer and Alarm Summary selections through compiler-owned declaration
+  locations or explicit compiler-resolved value targets. XML commands use the
+  captured caret/token and selected consumer. Unsupported tokens retain native
+  fallback; an ambiguous shared XML owner requires an explicit selection.
+- Present rename changes with before/after text, physical selection, coverage and
+  actual diagnostic differences. Changing the name/selection invalidates approval;
+  acknowledgement is never copied implicitly to another preview. Apply requires a
+  current validated preview and explicit acknowledgement where needed.
+- Open affected editable buffers before the final reviewable preview and capture
+  their actual transaction versions. Saved resource/dependency analysis rules stay
+  unchanged. Reject incompatible buffer text; do not make a source save implicit.
+  Query Edit and final input/version checks precede linked mutation. Cancellation
+  of obsolete search results by the rename's own buffer changes must not cancel
+  its transaction; explicit application cancellation still rolls back all edits.
+- Reuse iteration 9's production linked-edit coordinator and native adapter, with
+  complete-set preflight, rollback and one-step Undo/Redo. Native checks on both
+  hosts must cover routing, drafts, shared ownership, coverage/partial selection,
+  freshness and keyboard/accessibility before this iteration is successful.
+- Ship the feature article and documentation coverage with the UI. Full tutorial,
+  broad native/library/fork acceptance and performance measurements remain 14.
+
+Actual work and checks:
+
+- Added the Alarmlist References tool window registration/menu, grouped result
+  presentation, compiler-token-based owning-source grouping, explicit coverage,
+  100-finding presentation pages, source links, Enter navigation and live status.
+  Added a read-only rename review with before/after excerpts, editable physical
+  change selection, conflict display, diagnostic/coverage sections and explicit
+  acknowledgement. A changed name/selection clears approval; late cancelled
+  responses cannot publish an old review. These controls are not yet connected to
+  all designer/Summary/XML invocation routes.
+- ReferenceResults passes three model checks in Iteration13/ReferenceResults.
+  ReferencesAndReview passes seven model checks for grouping, paging, stale links,
+  partial-selection revalidation, acknowledgement reset and conflicts. ReviewLifetime
+  passes 18 model/session/capture checks, including independent request cancellation
+  and buffer-opening comparison: identical bytes allow a new review against actual
+  buffer versions, but never reuse an already approved snapshot.
+- ReferenceRenameApplication connects an exact validated proposal to iteration 9's
+  linked-edit coordinator. It captures actual buffer versions only after exact
+  text comparison and binds those snapshots to that proposal object. Acknowledgement
+  is checked again at Apply. ApprovedBufferApplication passes ten checks, including
+  real packaged compiler proposals, complete-set Query Edit reload rejection,
+  cancellation rollback and the distinction between the rename's own obsolete
+  search capture and explicit transaction cancellation. This is not native Apply
+  integration evidence yet.
+- ReferencesRenderingAndLifetime passes 23 checks, including actual WPF rendering,
+  grouped findings, bounded pages, Enter navigation, live-status controls and the
+  acknowledgement checkbox disabling Apply after a selection change. These tests
+  use the existing isolated STA harness, not either IDE's native command route.
+- Added shell search/navigation coordination over selected consumer contexts,
+  draft blocking across captured open ALMX buffers and revalidated SDK-owned source
+  navigation. Navigation reuses physical/project-library/read-only package helpers.
+  Disposed sessions release captured inputs and reference results after pending
+  work exits. The shell-foundation build reported threading/lifetime analyzer
+  warnings; cleanup now uses package-tracked async work in accordance with
+  [VSSDK007](https://microsoft.github.io/VSSDK-Analyzers/analyzers/VSSDK007.html),
+  and window entry points assert the UI thread. ReferenceSearchShellFoundation
+  passed 23 checks before the warning fixes; ReferenceSearchShellLifetime passes
+  all 23 after them with a clean build. It additionally verifies SDK-owned physical
+  source/project navigation and released session captures. Native MEF invocation
+  and native command behavior remain unverified until their acceptance below.
+- Remaining at the shell-foundation check: complete compiler-resolved value/symbol choice, designer/Summary/XML
+  commands with native fallback and explicit shared consumer selection; connect
+  buffer opening, Query Edit and final Apply; enforce package source immutability
+  for captured import/raw-source cases as well as existing library projections;
+  finish feature documentation and both-IDE native acceptance. Iteration 13 is not
+  successful or committed. Iteration 14 remains authorized and pending.
+
+Further iteration 13 work (still not completion):
+
+- Captured inputs now carry explicit read-only ownership for raw ALMX, RESX,
+  lookup and imported project XML under evaluated package/SDK roots. Ownership
+  participates in snapshot identity, selection/overlay validation and shared-edit
+  checks. Navigation presents those sources read-only. Provider roots come from
+  evaluated MSBuild package properties and resolved SDK imports, not cache scans.
+- Compiler-owned value, source/alarm parameter-context and built-in selectors
+  support designer/Summary invocation without parsing rendered text. Multiple
+  bound families return detached candidates for explicit selection; no candidate
+  is selected automatically. CompilerValueTargets passes 30 focused checks on
+  each framework. CompilerSelectedValuesBridge passes 33 host checks covering
+  transported candidates, parameter shadowing, ownership and package-import
+  navigation. ReadOnlyReferenceFoundation previously passed 28 per framework;
+  ReadOnlySourceOwnership passed 30 host checks before the additional bridge cases.
+- After the user reconnected/unlocked the desktop, sequential Area=RenameTransaction
+  checks passed on VS2022 (VisualStudioUI/TestResults/6f6e2f7dd90247b19fb5c3eb87a8a04c)
+  and VS2026 (VisualStudioUI/TestResults/bccae52b0b7442f1bb0864160f54f8ec), one case
+  each. These rerun the production linked-edit adapter's native transaction gate;
+  they do not establish acceptance of the new References/Rename command routes.
+- Added buffer identity to the linked-edit snapshots so identical text/version
+  cannot hide a checkout reload. The native adapter accepts a current-buffer
+  identity callback and checks capture consistency; final acceptance checks the
+  accepted buffer identity as well as text. Added the reload-identity regression.
+- Connected designer/Summary value actions to the shell search service, using
+  compiler value locations and explicit binding context selectors. Source drafts,
+  context changes and selected-value changes invalidate the request lifetime.
+  Native command routing, full rename application integration, documentation and
+  both-host acceptance of the complete UX remain pending. No iteration commit yet.
+- ValueReferenceActions initially passed 61 and failed 24 checks with the same
+  disposed cancellation-source error during editor cleanup. Invalidation is now
+  safe after disposal; ValueReferenceActionsDisposedFixed passes all 95 affected
+  host/WPF checks, including drafts, selected-consumer binding, stale entry
+  identity and the buffer identity reload regression.
+- ValueAndIdentityActions stopped at compilation because the native Query Edit
+  service takes an Int32 file count. Corrected that adapter call;
+  ValueAndIdentityActionsFixed passes all 97 affected host/WPF checks with a clean
+  build, including routed keyboard commands and distinct alarm/group/value
+  targets. The shell workspace reads live RDT buffer identities and queries the
+  complete approved file set; full native Apply integration remains pending.
+- CompleteCompiler passes all 841 net472 and 843 net8.0 compiler checks for the
+  current selectors, context bindings and protected-source capture. PackagedBridge
+  passes all five package-consumer checks on net8.0 and all five on net472,
+  including the current protected-input API shape. Desktop SDK hosts and generated
+  definition variants still need their current iteration reruns.
+- Connected the Rename review to the production native workspace: compiler preview,
+  exact-text editable-buffer preparation, safe whole-capture rebase and a new final
+  preview. Snapshot-bound selected groups are never silently carried across a
+  rebase. Apply performs complete-set Query Edit before asynchronous recapture,
+  then consumes a one-use receipt for precisely that approved file set in the
+  linked transaction. Buffer identity/version checks still bracket mutation.
+- The rename's own input changes defer search invalidation until its transaction
+  finishes; explicit cancellation retains rollback. Ending search results does not
+  cancel the independent Apply request. Source navigation is disabled during
+  preview/application so it cannot compete for the same SDK operation gate.
+  A rebase refreshes result locations while preserving the active review.
+- NativeRenameBackend passed 99 host/WPF checks but reported one UI-thread analyzer
+  warning in the buffer identity helper. Added its explicit thread assertion;
+  NativeRenameBackendClean passes 100 checks with a clean build, including receipt
+  set protection, reload refusal, independent capture cancellation and active-review
+  preservation. Rename and reference live regions expose their actual status text.
+- Added Area=ReferencesRename, using the owned shell HWND and focus checks. It
+  starts with a closed consumer, then checks compiler search, final preview,
+  acknowledged Apply, unchanged saved bytes, literal preservation and one-step
+  Undo/Redo. The first VS2022 run stopped before results
+  (ReferencesRename/2022/47043113cf274aaaa5967523896d9af0); the diagnostic repeat
+  (bcb473aeb9ac4638878b89cd2ca14c9e) proved a configuration mapping defect:
+  IVsCfg's "Any CPU" display name was rejected against CPS/MSBuild's "AnyCPU".
+  Reference capture now normalizes that standard alias and preserves custom
+  platforms. Added conditional-input regressions. One follow-up stopped at a
+  duplicate local variable in that fix; corrected it. Those attempts are not
+  native acceptance evidence.
+- Native search then passed, and closed-consumer preparation exposed ordinary
+  analysis refresh cancelling the original view snapshot (4e22aff936624c089bfd1452181a3749).
+  Added separate initial-snapshot and selected-intent lifetimes; only actual
+  selection, draft, context and source changes cancel intent. The resolved compiler
+  identity still requires full capture comparison before any rebase. Further
+  diagnostic runs (d2aa8581f9864907a5ca9adc11c72b81 and
+  b70a5db55db44d76a1237fd4dc16eafc) exposed a pending CPS context during recapture.
+  Added typed readiness over catalogue events, with explicit cancellation and
+  subscription cleanup. The first readiness attempt (dea09f8aba5549d88c8cdaf5c3f8975c)
+  keyed the transient full globals too strictly: pending snapshots carry an older
+  solution mapping. Readiness now identifies only the same selected active context;
+  full globals, coverage, bytes, graph, ownership and toolsets are still compared
+  after readiness before a new compiler search/preview. Obsolete links clear while
+  buffers are being prepared.
+- Area=ReferencesRename passed on VS2022 in
+  VisualStudioUI/TestResults/22962e638b834c3fabe195c505a5ee13 (26 seconds; workspace
+  ReferencesRename/2022/d1c7167cc7ef44e3aa6c9522ce0bd01b), and sequentially on VS2026
+  in TestResults/dfafeefd03e94f87a965e45240662877 (27 seconds; workspace
+  ReferencesRename/2026/94b3983399a1467a9ab4a5386813fcda). Both verify search from
+  the designer with keyboard focus, closed-buffer opening, a reviewable compiler
+  preview, required acknowledgement, unsaved two-file Apply, unchanged literal text
+  and saved bytes, and one-step Undo/Redo. Both owned IDEs exited normally.
+- NativeRenameRebase passes 104 affected host/WPF checks after the readiness and
+  intent changes. Its single test-thread warning is now scoped/documented at the
+  cancellation assertion, and the initial/intent refresh test is named so the
+  focused reference filter includes it. NativeRenameRebaseClean passes all 105
+  affected checks with a clean build, including explicit initial-snapshot versus
+  resolved-intent cancellation and readiness subscription cleanup. This uses the
+  extension binaries built and verified in the native runs, with
+  BuildProjectReferences=false for the final test-only changes.
+- Remaining iteration 13 gates include XML command routing/fallback and explicit
+  shared consumers, direct Rename invocation, broader native symbol/partial-edit
+  scenarios, feature documentation and final affected package/generated checks.
+  This iteration remains in progress and uncommitted. Iteration 14 remains pending.
+
+- DirectRenameActions passes 105 host checks. The enhanced native designer scenario
+  also passes on VS2022 (TestResults/ea55b36cc1b648ad926546a5d2ee7b68), including
+  direct Rename opening and focusing the new-name field without source mutation.
+  Its dispatcher thread assertions and unload cleanup were subsequently tightened.
+- Added compiler-owned XML token probes, distinguishing unsupported literal/markup
+  positions from recognized unbound or invalid semantic tokens. Caret-at-end and
+  fragmented XML token search preserve comments/markup and refuse unsafe edits.
+  XmlTokenCompilerFull passes 850 net472 and 852 net8.0 checks; the latter reports
+  the existing TestHelper.cs Windows apartment-state platform warning.
+- XmlReferenceCommandsFoundation passes 108 affected host/WPF checks, including
+  detached token availability, saved auxiliary-version mapping after whole-text
+  equality, physical membership and native command IDs. Native XML routing is
+  under validation. Its command filter preserves standard file/project Rename,
+  uses compiler token decisions for semantic fallback, and requires explicit
+  shared ownership. Published identity results survive caret navigation; source
+  and consumer changes still invalidate them. New commands do not retain COM
+  argument pointers or implicitly commit drafts.
+- Extended Area=ReferencesRename with native XML Find All References and Rename
+  at an inheritance token's end. The first attempt (workspace db0c8f07c8a5470da494952230cf02f0)
+  stopped because the fixture requested a selection from a designer view. The
+  next (ce6763b2197a4cd794d5d2067cf1cb55) timed out without XML results;
+  its screenshot showed multiple views and the visible caret at offset zero.
+  The fixture now selects and asserts the active view's caret after focus.
+  A subsequent run (4f4ca8a89f3d472992bdc52c21dff724) stalled in native
+  Solution.SaveAs during initial project creation, before the scenario. Captured
+  owned IDE/test-host stacks under XmlCommandHang/XmlCommandTestHost and stopped
+  only that verified test IDE; its RPC failure is not feature acceptance evidence.
+  Status polling now uses project membership only, without resolving RDT ownership
+  or constructing an analysis adapter. Explicit command invocation owns that work.
+  Native no-argument routing also accepts synchronous empty BSTR/EMPTY/NULL variants
+  from automation, while forwarding nonempty/by-reference arguments unchanged.
+  The current native rerun and new argument regression remain pending.
+- The next startup (9e2657a07d07493096564562bb53ebff) encountered the stopped
+  test solution's recovery prompt. Restored only that isolated test backup with
+  the computer-use skill; the run then timed out at its initial action because
+  the experimental profile retained XML mode. The fixture now explicitly selects
+  the actual Designer radio control instead of relying on an obsolete TabItem
+  selector or a previous layout. These failed startup attempts are not acceptance.
+- Area=ReferencesRename now passes on VS2022 in
+  TestResults/8d6e65221cbf46c8adb60412fa1c0753 (35 seconds), including the entire
+  designer transaction, direct Rename focus, native XML Find All References at a
+  reference token's end, and native XML Rename focus. Saved bytes and literal text
+  remain unchanged. The owned IDE exited normally. VS2026's same enhanced scenario
+  is running sequentially; the new argument regression still needs its host run.
+- The same complete Area=ReferencesRename scenario passes on VS2026 in
+  TestResults/ee430154c6214d46813889f1427c0ebc (32 seconds). Both hosts now verify
+  direct designer Rename and standard XML commands against the current source.
+- XmlTokenPackagedBridge passes all five package-consumer checks on net8.0 and
+  all five on net472, including unsupported/unbound token distinction and caret
+  boundaries. Current desktop-host repeats are in progress.
+- Added Area=SharedReferencesRename using the native Shared Project fixture.
+  VS2022 passes in TestResults/497eb3312e224db6bf3afea54dfc1ab8 (44 seconds): no
+  consumer is guessed for shared XML; explicit selection enables compiler-resolved
+  localization-key Rename; ALMX and both language resources change together in
+  unsaved buffers; one-step Undo/Redo and saved-byte preservation pass. The owned
+  IDE exits normally. The VS2026 repeat is running sequentially.
+- Both desktop MSBuild host repeats of XmlTokenPackagedBridge pass all five
+  checks (VS2022 and VS2026). Generated collection runtime checks pass in
+  AlarmCollections/e918a84f68d44c4abf901a38d167fffd: 119 procedure-disabled,
+  117 procedure-enabled and 13 minimum-count checks on each framework, with
+  matching export bytes.
+- VS2026's first SharedReferencesRename run spent several minutes waiting on
+  three idle native build workers during initial Build. Diagnostic stacks are
+  under SharedXmlStartup2026/SharedXmlBuild2026. Stopped only workers whose parent,
+  executable and node-mode arguments matched that owned IDE. The build recovered,
+  all shared rename assertions passed and the IDE exited normally
+  (TestResults/ae324d8bdea54d10b81c809d0f5ae1c5; 5 minutes 22 seconds). This records
+  the setup intervention explicitly; a repeat will run with desktop build-host
+  checks fully sequential. The fixture now also includes acknowledged partial
+  project-parameter Rename when a shared use binds incompatibly in another
+  consumer. That expanded scenario still needs acceptance on both hosts.
+- The first expanded shared scenario fails at project-file preparation on VS2022
+  (workspace 60df270fd8be4f8a8a38f1681551537d;
+  TestResults/151b37a534eb46558c3d8fa6597e7696). Its native status reports
+  E_NOINTERFACE before an applicable preview; the prior shared ALMX/resource
+  transaction and Undo/Redo pass. Production preparation now explicitly opens
+  project/import XML in the native XML editor, using the existing navigation
+  pattern, before obtaining its editable buffer. COM preparation errors include
+  the affected path. This fix still requires the current native rerun.
+  Added a separate auxiliary fixture for lookup identity/reference and procedure
+  group XML Rename, linked Undo and unchanged literal/saved bytes; both hosts
+  still need its native execution. Iteration 13 remains in progress.
+- Explicit XML opening did not resolve the preview failure (workspace
+  17ee891966154290807b1df571c6d31a). Added recoverable preview exception logging
+  to the native Activity Log. One diagnostic attempt
+  (76c5223963f6409d858efd9f4dd11632) cancelled before the resource target resolved;
+  the fixture now confirms the selected consumer's published resolved alarm
+  before its XML request. The next run (4c6e833680f645b5804382cbcb970f54;
+  TestResults/9003663f368543848ea02cde15a229de) identifies the actual failure:
+  InvalidCastException at EnvDTE.Document.ReadOnly, through
+  DteLinkedEditWorkspace.Buffer.IsReadOnly. The CPS project exposes text but not
+  that automation property. Removed the unrelated explicit-editor workaround;
+  production now supplies live ITextBuffer edit restrictions through the shared
+  adapter's optional read-only callback, alongside current version and identity.
+  The native transaction fixture retains its existing automation fallback. The
+  current rerun must verify this fix before acceptance.
+- The expanded Area=SharedReferencesRename now passes on VS2022 in
+  TestResults/7d8f872188024fd88764800abc2358f4 (1 minute 6 seconds; workspace
+  e01cbb9bd47e4c8a903fbbc79061968a), with normal owned-IDE cleanup. It verifies
+  the shared ALMX/two-resource transaction and linked Undo/Redo, followed by an
+  explicitly acknowledged partial North project-parameter rename. The shared
+  use bound differently in South is skipped, South stays unchanged, expected
+  diagnostics are reviewed, project edits stay unsaved and Undo restores them.
+  VS2026's expanded repeat is now running sequentially. Auxiliary symbol fixtures
+  and the final full affected host regression are still pending.
+- The expanded shared/partial scenario passes sequentially on VS2026 in
+  TestResults/a91af55074c64411b6187a0c6d9dbe7a (1 minute 1 second), with normal
+  startup, all assertions and owned-IDE cleanup and no setup intervention. The
+  current build includes explicit stale-solution guidance for an internally
+  cancelled XML discovery instead of displaying a raw cancellation message.
+- Area=AuxiliaryReferencesRename's first VS2022 attempt stopped at a fixture
+  assumption that ItemOperations.OpenFile always returns a Window (workspace
+  401b2f007c1e49639836e5fb3248eead). It now activates the opened Document, matching
+  existing XML fixtures. The scenario passes on VS2022 in
+  TestResults/ecaf7f8473a7494cb82c1e9bf1b65e81 (32 seconds) and VS2026 in
+  TestResults/e3d6ba1506694f1ebca8514175020af8 (34 seconds): native lookup XML
+  resolves its identity, Apply changes the lookup and ALMX use together, linked
+  Undo restores both, procedure-group XML Rename/Undo works, and literal and saved
+  bytes are preserved. Both owned IDEs exit normally.
+- Value actions now include their field/parameter/collection context in accessible
+  reference/Rename names. The existing routed-button test asserts these labels.
+  Extended Area=ReferencesRename to invoke actual resolved Alarm Summary identity
+  actions and verify its selected Child identity and direct Rename focus. Its
+  current runs and the final full host regression remain pending.
+- The complete Area=ReferencesRename scenario, including actual Alarm Summary
+  selected-identity Find and direct Rename, passes on VS2022 in
+  TestResults/6919d40724e34d42a42ec6bc501a77b8 and VS2026 in
+  TestResults/ab29d8ce64e94a3b8d6f2768f8938332 (37 seconds each). Both retain the
+  earlier designer transaction, keyboard action, unsaved/literal preservation,
+  linked Undo/Redo and native XML checks, and both owned IDEs exit normally.
+  The shared edit adapter's native transaction gate is being repeated before
+  the full host unit regression and final iteration review.
+- Area=RenameTransaction passes again on VS2022 in
+  TestResults/7f7a7934104b4dabae43f011f4d54d45 (18 seconds) and VS2026 in
+  TestResults/cc32f4beb4d1440e9bc264656c7fb897 (15 seconds), retaining four-file
+  ALMX/RESX/lookup/project Apply, rollback and linked Undo/Redo coverage after the
+  shared adapter changes. Both owned IDEs exit normally. Full host/WPF regression
+  is now running. Reviewed the feature reference against the native examples,
+  confirmed no unfinished placeholders, and verified 84 local documentation links.
+- CompleteHost passes all 929 host/WPF checks, including current semantic XML
+  argument handling, source ownership, SDK isolation, context/freshness, drafts,
+  reference/Rename routing, accessible names, preview selection/acknowledgement
+  and transactional regressions. The full build reports no warnings. Added the
+  References tool-window registration assertion to the existing VSIX package
+  test; full VSIX/package/project-evaluation checks on both frameworks are the
+  final iteration-13 verification before its focused commit.
+- CompleteVsix passes all 14 package/project-evaluation checks on net8.0 and all
+  14 on net472, including References registration. Final diff, local paths, links,
+  compatibility values and source-preservation behavior were reviewed. No generated
+  outputs are included. Iteration 13 is complete: all designer/Summary/XML routes,
+  compiler-owned token selection/fallback classification, explicit shared contexts,
+  reference results, preview exclusions and acknowledgement, native unsaved Apply,
+  rollback, linked Undo/Redo, navigation/freshness guards, keyboard/accessibility
+  and feature documentation have their scoped checks. Current compiler suites
+  pass 850/852 tests; the net8.0 build retains its existing test-helper platform
+  warning. Package bridge checks pass on both task runtimes and both desktop
+  hosts; generated procedure/collection variants pass on both frameworks; host
+  regression passes 929 checks and VSIX integration passes 14 per framework.
+  Native ReferencesRename, SharedReferencesRename, AuxiliaryReferencesRename and
+  RenameTransaction pass on both IDE hosts, sequentially with the setup failures
+  and corrected production defects documented above. No iteration-13 blocker
+  remains. Iteration 14 still owns the guided tutorial, broader integrated
+  library/NuGet/fork/unloaded scenarios, performance/allocation/cancellation
+  measurements and final milestone regressions; no final acceptance is claimed.

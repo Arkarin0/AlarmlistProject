@@ -40,6 +40,7 @@ namespace Alarmlist.VisualStudio.UI
         private async Task ChangePreviewCultureAsync(AnalysisProject project, string culture)
         {
             _cultureBusy = true;
+            ReferenceActions?.InvalidateIntent();
             RefreshAnalysis();
             try
             {

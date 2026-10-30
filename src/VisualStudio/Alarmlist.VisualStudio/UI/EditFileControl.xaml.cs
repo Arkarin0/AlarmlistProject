@@ -23,6 +23,7 @@ namespace Alarmlist.VisualStudio
             InitializeComponent();
             DataContext = viewModel;
             ValueExplanationCommands.Bind(this, () => ViewModel);
+            ReferenceValueCommands.Bind(this, () => ViewModel);
         }
         private EditFileControlViewModel ViewModel => (EditFileControlViewModel)DataContext;
         internal bool NavigateSource(int position, string expectedText)

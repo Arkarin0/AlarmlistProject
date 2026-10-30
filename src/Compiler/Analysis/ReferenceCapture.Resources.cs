@@ -33,7 +33,7 @@ namespace Alarmlist.Analysis
                     return;
                 }
                 try { _sources.Add(path, new Source(new AlmxTextSnapshot(text, path, version), _token)); }
-                catch (XmlException) { _coverage.Add("Source spans unavailable for invalid XML: " + path); }
+                catch (XmlException) { _unavailableSources.Add(path); _coverage.Add("Source spans unavailable for invalid XML: " + path); }
             }
         }
 
@@ -101,8 +101,11 @@ namespace Alarmlist.Analysis
                 var expression = PropertyExpression.Parse(entry.Value, placeholders: true, allowItemReferences: true);
                 if (expression == null || expression.HasLocalization) continue;
                 foreach (var placeholder in expression.Placeholders)
+                {
+                    Probe(null, entry.ValueLocation, null, placeholder.Start, placeholder.Length);
                     foreach (var binding in declarations.Where(binding => binding.ArgumentName == placeholder.Name))
                         AddUse(_lookupSymbols[binding], "Placeholder", entry.ValueLocation, alarm.FullyQualifiedName, null, placeholder.Start, placeholder.Length);
+                }
             }
         }
     }

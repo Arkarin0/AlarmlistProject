@@ -79,7 +79,7 @@ namespace Alarmlist.Analysis
             {
                 token.ThrowIfCancellationRequested();
                 var input = inputs[index];
-                try { data[index] = Capture(input.Sources.ToArray(), input.Context, token, projectDocuments: input.ProjectDocuments, declaringLibrary: input.DeclaringLibrary); }
+                try { data[index] = Capture(input.Sources.ToArray(), input.Context, token, projectDocuments: input.ProjectDocuments, declaringLibrary: input.DeclaringLibrary, readOnlyPaths: input.ReadOnlyPaths); }
                 catch (XmlException error) { data[index] = new ReferenceData(Array.Empty<ReferenceSymbol>(), Array.Empty<ReferenceOccurrence>(), new[] { "References unavailable: " + error.Message }, Array.Empty<AnalysisDiagnostic>()); }
                 families[index] = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var symbol in data[index].Symbols)

@@ -32,9 +32,12 @@ namespace Alarmlist.VisualStudio.Editor
         public IWpfTextViewMargin CreateMargin(IWpfTextViewHost host, IWpfTextViewMargin container)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            return _documents.TryGetTextDocument(host.TextView.TextBuffer, out ITextDocument document)
-                && string.Equals(Path.GetExtension(document.FilePath), ".almx", StringComparison.OrdinalIgnoreCase)
-                ? new XmlProjectContextMargin(host.TextView, _analysis.Create(host.TextView.TextBuffer)) : null;
+            if (!_documents.TryGetTextDocument(host.TextView.TextBuffer, out ITextDocument document)) return null;
+            string extension = Path.GetExtension(document.FilePath);
+            if (string.Equals(extension, ".almx", StringComparison.OrdinalIgnoreCase))
+                return new XmlProjectContextMargin(host.TextView, _analysis.Create(host.TextView.TextBuffer));
+            if (!XmlReferenceCommands.SupportsExtension(extension)) return null;
+            return new XmlProjectContextMargin(host.TextView, _analysis.CreateReferenceContext(host.TextView.TextBuffer), hideWhenUnowned: true);
         }
     }
 
@@ -51,11 +54,13 @@ namespace Alarmlist.VisualStudio.Editor
         private Choice[] _shown = Array.Empty<Choice>();
         private string _shownSelected;
         private bool _initialized;
+        private readonly bool _hideWhenUnowned;
 
-        internal XmlProjectContextMargin(IWpfTextView view, IDesignerAnalysis analysis)
+        internal XmlProjectContextMargin(IWpfTextView view, IDesignerAnalysis analysis, bool hideWhenUnowned = false)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             _view = view; _analysis = analysis;
+            _hideWhenUnowned = hideWhenUnowned;
             _choice = new ComboBox { MinWidth = 260, MaxWidth = 720, DisplayMemberPath = nameof(Choice.Label),
                 SelectedValuePath = nameof(Choice.Path), ToolTip = "Choose the consumer that supplies analysis for this shared file." };
             AutomationProperties.SetName(_choice, "XML project context");
@@ -95,6 +100,7 @@ namespace Alarmlist.VisualStudio.Editor
             try
             {
                 var projects = _analysis.Projects;
+                _element.Visibility = _hideWhenUnowned && projects.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
                 string selected = _analysis.SelectedProjectPath;
                 var state = _analysis.Current;
                 _status.Text = selected == null ? "" : state?.Status == ProjectAnalysisStatus.Pending ? "Analyzing project"

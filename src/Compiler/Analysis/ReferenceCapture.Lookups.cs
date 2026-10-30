@@ -42,6 +42,7 @@ namespace Alarmlist.Analysis
                         if (_lookups.IsAmbiguous(list.Key, entry.Key)) _lookupSymbols[entry].Ambiguous = true;
                 foreach (var binding in document.Document.Bindings)
                 {
+                    Probe(null, binding.ListLocation, null, 0, binding.ListKey.Length);
                     if (!_lookups.IsAvailable(binding)) _lookupSymbols[binding].Ambiguous = true;
                     if (_listSymbols.TryGetValue(binding.ListKey, out var lists))
                         AddUse(lists[0], "ListBinding", binding.ListLocation, "Template:" + binding.TemplateKey, null, 0, binding.ListKey.Length);
@@ -110,6 +111,7 @@ namespace Alarmlist.Analysis
 
         private void ObserveLabel(LookupLabel label)
         {
+            Probe(null, label.Location, null, 0, label.Key.Length);
             var resource = ResourceSymbol(label.Key);
             if (resource != null) AddUse(resource, "LookupLabel", label.Location, "LookupLabel", null, 0, label.Key.Length);
         }

@@ -63,13 +63,16 @@ namespace Alarmlist.VisualStudio.Analysis
         public AnalysisReferenceSearch(int contractVersion, string toolingFingerprint, string snapshotId, AnalysisReferenceTarget target,
             AnalysisReferenceSymbol symbol, IEnumerable<AnalysisReferenceSymbol> symbols, IEnumerable<AnalysisReferenceOccurrence> occurrences,
             IEnumerable<string> coverage, IEnumerable<AnalysisDiagnostic> diagnostics, string projectPath, string configuration,
-            string platform, string culture, string message, bool isAvailable, bool targetAbsent, AnalysisReferenceSearch sharedFamily = null, bool isAmbiguous = false)
+            string platform, string culture, string message, bool isAvailable, bool targetAbsent, AnalysisReferenceSearch sharedFamily = null, bool isAmbiguous = false,
+            IEnumerable<AnalysisReferenceSymbol> candidates = null, bool isUnsupportedTarget = false)
         {
             ContractVersion = contractVersion; ToolingFingerprint = toolingFingerprint; SnapshotId = snapshotId; Target = target; Symbol = symbol;
             Symbols = sharedFamily?.Symbols ?? Array.AsReadOnly(symbols.ToArray()); Occurrences = sharedFamily?.Occurrences ?? Array.AsReadOnly(occurrences.ToArray());
             Coverage = sharedFamily?.Coverage ?? Array.AsReadOnly(coverage.ToArray()); Diagnostics = sharedFamily?.Diagnostics ?? Array.AsReadOnly(diagnostics.ToArray());
             ProjectPath = projectPath; Configuration = configuration; Platform = platform; Culture = culture; Message = message;
             IsAvailable = isAvailable; TargetAbsent = targetAbsent; IsAmbiguous = isAmbiguous;
+            IsUnsupportedTarget = isUnsupportedTarget;
+            Candidates = Array.AsReadOnly((candidates ?? Array.Empty<AnalysisReferenceSymbol>()).ToArray());
         }
         public int ContractVersion { get; }
         public string ToolingFingerprint { get; }
@@ -88,6 +91,8 @@ namespace Alarmlist.VisualStudio.Analysis
         public bool IsAvailable { get; }
         public bool TargetAbsent { get; }
         public bool IsAmbiguous { get; }
+        public bool IsUnsupportedTarget { get; }
+        public IReadOnlyList<AnalysisReferenceSymbol> Candidates { get; }
     }
 
     [Serializable]

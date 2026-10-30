@@ -195,7 +195,7 @@
                                AutomationProperties.HelpText="{Binding OriginText}" ToolTip="{Binding OriginText}" />
                     </AdornerDecorator>
                     <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
-                    <ui:ExplainValueButton ActionName="{Binding Name, StringFormat=Explain this value for resolved {0}}" />
+                    <ui:ValueActionsControl ValueName="{Binding Name, StringFormat=resolved {0}}" ActionName="{Binding Name, StringFormat=Explain this value for resolved {0}}" />
                     <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
                             AutomationProperties.Name="{Binding Name, StringFormat=Go to source for resolved {0}}" />
                   </StackPanel>
@@ -206,7 +206,9 @@
                   <StackPanel Margin="0,0,0,10">
                     <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding Summary}" Margin="0,3,0,6" />
-                    <ui:ExplainValueButton ActionName="Explain this value for resolved procedure title" />
+                    <ui:ValueActionsControl ValueName="resolved procedure title" ActionName="Explain this value for resolved procedure title" />
+                    <ui:ReferenceValueButton CommandParameter="{Binding ReferenceIdentity}" Content="Find group references" AutomationProperties.Name="Find references to this procedure group" />
+                    <ui:RenameValueButton CommandParameter="{Binding ReferenceIdentity}" Content="Rename group…" AutomationProperties.Name="Rename this procedure group" />
                     <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource ProcedureAnalysisRow}" />
                   </StackPanel>
                 </DataTemplate></ItemsControl.ItemTemplate>
@@ -221,7 +223,7 @@
                             <StackPanel Margin="4"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                               <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" AutomationProperties.Name="{Binding Name, StringFormat=Resolved collection {0}}" />
                               <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
-                              <ui:ExplainValueButton ActionName="{Binding Name, StringFormat=Explain this value for resolved collection {0}}" />
+                              <ui:ValueActionsControl ValueName="{Binding Name, StringFormat=resolved collection {0}}" ActionName="{Binding Name, StringFormat=Explain this value for resolved collection {0}}" />
                               <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" />
                             </StackPanel>
                           </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
@@ -235,7 +237,7 @@
                 <ItemsControl ItemsSource="{Binding ResolvedParameters}"><ItemsControl.ItemTemplate><DataTemplate>
                   <StackPanel Margin="0,4"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
                     <TextBox Text="{Binding Value, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" AutomationProperties.Name="{Binding Name, StringFormat=Resolved parameter {0}}" />
-                    <ui:ExplainValueButton ActionName="{Binding Name, StringFormat=Explain this value for resolved parameter {0}}" />
+                    <ui:ValueActionsControl ValueName="{Binding Name, StringFormat=resolved parameter {0}}" ActionName="{Binding Name, StringFormat=Explain this value for resolved parameter {0}}" />
                   </StackPanel>
                 </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
               </Expander>

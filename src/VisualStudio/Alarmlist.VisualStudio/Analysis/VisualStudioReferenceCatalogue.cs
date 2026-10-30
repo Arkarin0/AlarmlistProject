@@ -29,7 +29,8 @@ namespace Alarmlist.VisualStudio.Analysis
         internal IReadOnlyList<ReferenceProjectSelection> Projects { get; }
         internal IReadOnlyList<string> Coverage { get; }
         internal bool Matches(ReferenceCatalogueSnapshot other) => other != null && SolutionPath == other.SolutionPath && Configuration == other.Configuration
-            && Projects.Count == other.Projects.Count && Projects.Select((project, index) => project.Key == other.Projects[index].Key && project.Unavailable == other.Projects[index].Unavailable).All(equal => equal)
+            && Projects.Count == other.Projects.Count && Projects.Select((project, index) => project.Key == other.Projects[index].Key && project.Unavailable == other.Projects[index].Unavailable
+                && project.IsRefreshing == other.Projects[index].IsRefreshing).All(equal => equal)
             && Coverage.SequenceEqual(other.Coverage, StringComparer.Ordinal);
     }
 
@@ -96,15 +97,17 @@ namespace Alarmlist.VisualStudio.Analysis
                     int separator = canonical.IndexOf('|');
                     if (separator > 0) { globals["Configuration"] = canonical.Substring(0, separator); globals["Platform"] = canonical.Substring(separator + 1); }
                 }
+                globals["Platform"] = ReferenceProjectSelection.NormalizePlatform(globals["Platform"]);
                 string unavailable = state != null && state.Status == ProjectAnalysisStatus.Pending ? "Project inputs are refreshing. Wait for the active context." : null;
                 if (state != null && (!string.Equals(state.Project.Context.Configuration, globals["Configuration"], StringComparison.OrdinalIgnoreCase)
-                    || !string.Equals(state.Project.Context.Platform, globals["Platform"], StringComparison.OrdinalIgnoreCase)))
+                    || !string.Equals(ReferenceProjectSelection.NormalizePlatform(state.Project.Context.Platform), globals["Platform"], StringComparison.OrdinalIgnoreCase)))
                     unavailable = "The active project configuration is changing. Wait for the current project context.";
                 if (hierarchy != null && ErrorHandler.Succeeded(_solution.GetGuidOfProject(hierarchy, out Guid id)))
                     mappings.Add(new XElement("ProjectConfiguration", new XAttribute("Project", id.ToString("B")), new XAttribute("AbsolutePath", path),
                         new XAttribute("BuildProjectInSolution", context.ShouldBuild), globals["Configuration"] + "|" + globals["Platform"]));
                 else coverage.Add("Dependency configuration mapping unavailable: " + path);
-                selections[path] = new ReferenceProjectSelection(path, globals, liveProject: state?.Project, unavailable: unavailable);
+                selections[path] = new ReferenceProjectSelection(path, globals, liveProject: state?.Project, unavailable: unavailable,
+                    isRefreshing: state?.Status == ProjectAnalysisStatus.Pending);
                 if (!context.ShouldBuild) coverage.Add("Excluded from the active solution build: " + path + " [" + context.ConfigurationName + "|" + context.PlatformName + "]; saved reference inputs remain included.");
             }
             // Inventory includes unloaded hierarchies. A project without an active
@@ -147,7 +150,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (selection.Unavailable != null) continue;
                 var globals = selection.Globals.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
                 globals["CurrentSolutionConfigurationContents"] = configurationContents;
-                selections[path] = new ReferenceProjectSelection(path, globals, selection.UseOpenBuffers, selection.LiveProject);
+                selections[path] = new ReferenceProjectSelection(path, globals, selection.UseOpenBuffers, selection.LiveProject, isRefreshing: selection.IsRefreshing);
             }
             token.ThrowIfCancellationRequested();
             return new ReferenceCatalogueSnapshot(solutionPath, activeKey, selections.Values, coverage.Distinct(StringComparer.Ordinal));

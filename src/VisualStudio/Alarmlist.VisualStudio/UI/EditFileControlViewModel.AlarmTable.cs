@@ -31,6 +31,7 @@ namespace Alarmlist.VisualStudio.UI
             set
             {
                 if (_tableFilter == (value ?? "")) return;
+                ReferenceActions?.InvalidateIntent();
                 _tableFilter = value ?? "";
                 InvalidatePreviewActions();
                 RebuildTableRows(); Notify();
@@ -43,6 +44,7 @@ namespace Alarmlist.VisualStudio.UI
             set
             {
                 if (_refreshingTable || ReferenceEquals(value, _selectedPreviewRow) || (value != null && !AlarmTableRows.Contains(value))) return;
+                ReferenceActions?.InvalidateIntent();
                 _selectedPreviewRow = value;
                 InvalidatePreviewActions();
                 Notify();

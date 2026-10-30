@@ -63,12 +63,13 @@ namespace Alarmlist.Analysis
         internal static ReferenceRenamePreview Preview(AlmxTextSnapshot[] inputs, CompilationContext context,
             string symbolId, string newName, CancellationToken token = default, IReadOnlyList<ReferenceTextSnapshot> projectDocuments = null,
             ReferenceLibraryScope declaringLibrary = null, IReadOnlyCollection<string> includedGroups = null,
-            ReferenceCompilationSnapshot validationInputs = null, IReadOnlyCollection<string> coordinatedSymbols = null)
+            ReferenceCompilationSnapshot validationInputs = null, IReadOnlyCollection<string> coordinatedSymbols = null,
+            IReadOnlyList<string> readOnlyPaths = null)
         {
             ReferenceRenamePreview Failed(string message) => new ReferenceRenamePreview(Array.Empty<ReferenceRenameEdit>(),
                 Array.Empty<string>(), message, Array.Empty<AnalysisDiagnostic>());
             token.ThrowIfCancellationRequested();
-            var data = Capture(inputs, context, token, newName, projectDocuments, declaringLibrary);
+            var data = Capture(inputs, context, token, newName, projectDocuments, declaringLibrary, readOnlyPaths);
             var target = data.Symbols.SingleOrDefault(symbol => symbol.Id == symbolId);
             if (target == null) return Failed("The symbol or captured inputs changed. Find references again.");
             var selectedIds = new HashSet<string>(coordinatedSymbols ?? new[] { symbolId }, StringComparer.Ordinal) { symbolId };
@@ -183,7 +184,7 @@ namespace Alarmlist.Analysis
             var compiler = new AlarmCompiler();
             if (validationInputs != null)
             {
-                var before = new ReferenceCompilationSnapshot(inputs, context, projectDocuments, declaringLibrary);
+                var before = new ReferenceCompilationSnapshot(inputs, context, projectDocuments, declaringLibrary, token, readOnlyPaths ?? Array.Empty<string>());
                 string invalid = ValidateProjectedInputs(before, validationInputs, edits, token);
                 if (invalid != null) return Failed(invalid);
                 overlay = validationInputs.Sources.ToArray(); overlayContext = validationInputs.Context;

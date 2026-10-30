@@ -78,7 +78,14 @@ namespace Alarmlist.VisualStudio.UI
         public string SelectedProjectPath
         {
             get => _analysis?.SelectedProjectPath ?? _analysis?.Current?.Project?.ProjectPath;
-            set { if (!_refreshingAnalysis && _analysis != null) _analysis.SelectedProjectPath = value; }
+            set
+            {
+                if (!_refreshingAnalysis && _analysis != null)
+                {
+                    if (!string.Equals(value, SelectedProjectPath, StringComparison.OrdinalIgnoreCase)) ReferenceActions?.InvalidateIntent();
+                    _analysis.SelectedProjectPath = value;
+                }
+            }
         }
         public string AnalysisMessage => _analysisMessage;
         public DelegateCommand ApplyReferenceCommand { get; private set; }
@@ -89,6 +96,7 @@ namespace Alarmlist.VisualStudio.UI
         private void InitializeAnalysis(IDesignerAnalysis analysis)
         {
             _analysis = analysis;
+            ReferenceActions = new ReferenceActionsViewModel(analysis, message => { _error = message; Notify(nameof(Error)); });
             Explanation = new ValueExplanationViewModel(analysis);
             AcceptReference = ApplyReferenceSelectionAsync;
             ValidateCompletion = ValidateCompletionAsync;
@@ -428,6 +436,7 @@ namespace Alarmlist.VisualStudio.UI
             if (_disposed) return;
             _disposed = true;
             Explanation?.Dispose();
+            ReferenceActions?.Dispose();
             ClearCurrentAlarm();
             _choicesState = null; _choicesAlarm = null;
             RefreshPreview(null, null);

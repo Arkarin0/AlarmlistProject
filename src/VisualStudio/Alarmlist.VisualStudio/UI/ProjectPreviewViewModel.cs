@@ -72,6 +72,7 @@ namespace Alarmlist.VisualStudio.UI
         public ProjectPreviewViewModel(IDesignerAnalysis analysis, string pinnedProjectPath = null)
         {
             _analysis = analysis;
+            ReferenceActions = new ReferenceActionsViewModel(analysis, message => { Error = message; Notify(nameof(Error)); });
             Explanation = new ValueExplanationViewModel(analysis);
             _pinnedProjectPath = pinnedProjectPath;
             _analysis.Changed += OnAnalysisChanged;
@@ -82,6 +83,7 @@ namespace Alarmlist.VisualStudio.UI
         public void SelectProject(string path)
         {
             if (_disposed || (IsPinned && !SamePath(path, _pinnedProjectPath)) || SamePath(path, _projectPath)) return;
+            ReferenceActions.InvalidateIntent();
             _projectPath = path;
             _filter = ""; _selected = null; _selection = null; Error = null;
             InvalidatePreviewActions();
@@ -137,7 +139,7 @@ namespace Alarmlist.VisualStudio.UI
         public string AlarmTableFilter
         {
             get => _filter;
-            set { if (_filter == (value ?? "")) return; _filter = value ?? ""; InvalidatePreviewActions(); RebuildRows(); Notify(); }
+            set { if (_filter == (value ?? "")) return; ReferenceActions.InvalidateIntent(); _filter = value ?? ""; InvalidatePreviewActions(); RebuildRows(); Notify(); }
         }
         public AlarmPreviewRow SelectedPreviewRow
         {
@@ -145,6 +147,7 @@ namespace Alarmlist.VisualStudio.UI
             set
             {
                 if (_refreshing || ReferenceEquals(value, _selected) || (value != null && !AlarmTableRows.Contains(value))) return;
+                ReferenceActions.InvalidateIntent();
                 _selected = value; RememberSelection(); InvalidatePreviewActions(); Notify(); RefreshDetails();
             }
         }
@@ -276,6 +279,7 @@ namespace Alarmlist.VisualStudio.UI
         }
         private async Task ChangeCultureAsync(AnalysisProject project, string culture)
         {
+            ReferenceActions.InvalidateIntent();
             _cultureBusy = true; Explanation.Invalidate(); Refresh();
             try { await _analysis.SetPreviewCultureAsync(project, culture, _lifetime.Token); if (!_disposed && SamePath(project.ProjectPath, _projectPath)) Error = null; }
             catch (OperationCanceledException) when (_lifetime.IsCancellationRequested) { }
@@ -287,6 +291,7 @@ namespace Alarmlist.VisualStudio.UI
             if (_disposed) return;
             _disposed = true; InvalidatePreviewActions(); _lifetime.Cancel();
             Explanation.Dispose();
+            ReferenceActions.Dispose();
             _analysis.Changed -= OnAnalysisChanged; _analysis.Dispose();
             PreviewColumns.Changed -= OnColumnsChanged; PreviewColumns.Dispose();
             _state = null; _allRows = AlarmTableRows = Array.Empty<AlarmPreviewRow>(); _selected = null;

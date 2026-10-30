@@ -14,6 +14,55 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
     public partial class SdkAnalysisBridgeTests
     {
         [Fact]
+        public async Task PackageImportNavigationIsReadOnlyAndRenameKeepsItsDefinitionsUnchangedAsync()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                string root = sdk.DirectoryPath, cache = Path.Combine(root, "cache"); Directory.CreateDirectory(cache);
+                string project = Path.Combine(root, "App.almproj"), path = Path.Combine(root, "App.almx"), import = Path.Combine(cache, "Parameters.props");
+                string declarations = "<Project><ItemGroup><AlarmlistProperty Include='P' Value='0'/><AlarmlistProperty Update='p' Value='1'/></ItemGroup></Project>";
+                File.WriteAllText(import, declarations);
+                var source = Input("<FullyQualifiedName>A</FullyQualifiedName><Code>$(P)</Code>", path, 8); File.WriteAllText(path, source.Text);
+                File.WriteAllText(project, "<Project><PropertyGroup><OutputType>Exports</OutputType><AlarmlistCulture>en</AlarmlistCulture><AlarmlistCultures>en</AlarmlistCultures><NuGetPackageFolders>"
+                    + System.Security.SecurityElement.Escape(cache) + "</NuGetPackageFolders><AlarmlistAnalysisCompilerAssembly>" + System.Security.SecurityElement.Escape(sdk.CompilerPath)
+                    + "</AlarmlistAnalysisCompilerAssembly></PropertyGroup><Import Project='cache/Parameters.props'/><ItemGroup><Compile Include='App.almx'/></ItemGroup></Project>");
+                var catalogue = new SessionCatalogue(new ReferenceCatalogueSnapshot("Example.sln", "Debug|AnyCPU", new[] {
+                    new ReferenceProjectSelection(project, new Dictionary<string, string> { ["Configuration"] = "Debug", ["Platform"] = "AnyCPU" }) }, Array.Empty<string>()));
+                using (var session = await SolutionReferenceSession.CaptureAsync(catalogue, new SessionDocuments(source), new SdkAnalysisBridgeFactory(), CancellationToken.None))
+                {
+                    Assert.Contains(import, session.Capture.Projects[0].Request.ReadOnlyPaths);
+                    var target = new AnalysisReferenceTarget("Token", new AnalysisLocation(path, 1, 1, 1, 1, 8), offset: source.Text.IndexOf("$(P)", StringComparison.Ordinal) + 2);
+                    Assert.True((await session.FindAsync(0, target)).IsAvailable);
+                    var navigation = await session.ResolveNavigationAsync(0, new AnalysisLocation(import, 1, 1, 1, 2, 0));
+                    Assert.True(navigation.IsReadOnlyDefinition); Assert.Equal(declarations, navigation.Text);
+                    var preview = await session.PreviewAsync("Next");
+                    Assert.True(preview.IsApplicable, preview.Selection.Failure ?? preview.Validation.Failure); Assert.True(preview.RequiresAcknowledgement);
+                    Assert.Equal(path, Assert.Single(preview.Selection.Changes).Edit.Path);
+                    Assert.Equal(declarations, File.ReadAllText(import)); Assert.Equal(source.Text, File.ReadAllText(path));
+                }
+            }
+        }
+
+        [Fact]
+        public void SharedSourceMarkedReadOnlyByOneCapturedConsumerCannotBeEditedThroughAnother()
+        {
+            using (var sdk = new SdkAsset())
+            using (var bridge = Open(sdk.CompilerPath))
+            {
+                var source = Input("<FullyQualifiedName>A</FullyQualifiedName><Properties><Property Name='P' Value='1'/></Properties><Code>$(P)</Code>", Path.Combine(sdk.DirectoryPath, "Shared.almx"), 8);
+                var consumers = new[] {
+                    new ReferenceSearchConsumer(new AnalysisReferenceRequest(new[] { source }, new AnalysisContext(projectPath: "North")), bridge),
+                    new ReferenceSearchConsumer(new AnalysisReferenceRequest(new[] { source }, new AnalysisContext(projectPath: "South"), readOnlyPaths: new[] { source.FilePath }), bridge) };
+                var target = new AnalysisReferenceTarget("Token", new AnalysisLocation(source.FilePath, 1, 1, 1, 1, 8), offset: source.Text.IndexOf("$(P)", StringComparison.Ordinal) + 2);
+                var found = SolutionReferenceSearch.Find(consumers, 0, target, CancellationToken.None);
+                Assert.True(found.IsAvailable, found.Failure);
+                var selection = SolutionRenameSelection.Create(consumers, found, "Next", CancellationToken.None);
+                Assert.Null(selection.Failure); Assert.Empty(selection.Changes); Assert.True(selection.RequiresAcknowledgement);
+                Assert.Contains(selection.Skipped, message => message.Contains("read-only"));
+            }
+        }
+
+        [Fact]
         public async Task SolutionReferenceSessionRebuildsLibraryOverlaysForEveryConsumerContextAsync()
         {
             using (var sdk = new SdkAsset())
@@ -63,12 +112,25 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 var catalogue = new SessionCatalogue(new ReferenceCatalogueSnapshot("Example.sln", "Debug|AnyCPU", new[] {
                     new ReferenceProjectSelection(project, new Dictionary<string, string> { ["Configuration"] = "Debug", ["Platform"] = "AnyCPU" }) }, Array.Empty<string>()));
                 var documents = new SessionDocuments(source);
-                using (var session = await SolutionReferenceSession.CaptureAsync(catalogue, documents, new SdkAnalysisBridgeFactory(), CancellationToken.None))
+                using (var captureCancellation = new CancellationTokenSource())
+                using (var session = await SolutionReferenceSession.CaptureAsync(catalogue, documents, new SdkAnalysisBridgeFactory(), CancellationToken.None, captureCancellation.Token))
                 {
+                    // Capture cancellation belongs to acquisition only; a later
+                    // preview's cancellation must not destroy the rebased session.
+                    captureCancellation.Cancel(); Assert.False(session.IsObsolete);
                     Assert.Single(session.Capture.Projects);
                     var target = new AnalysisReferenceTarget("Token", new AnalysisLocation(path, 1, 1, 1, 1, 8), offset: source.Text.IndexOf("$(P)", StringComparison.Ordinal) + 2);
                     try { Assert.True((await session.FindAsync(0, target)).IsAvailable); }
                     catch (OperationCanceledException error) { throw new InvalidOperationException(session.ObsoleteReason, error); }
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => session.PreviewAsync("Cancelled", cancellationToken: new CancellationToken(true)));
+                    Assert.False(session.IsObsolete);
+                    var navigation = await session.ResolveNavigationAsync(0, new AnalysisLocation(path, 1, 1, 1, 2, 8));
+                    Assert.NotNull(navigation); Assert.Equal(source.Text, navigation.Text); Assert.False(navigation.IsReadOnlyDefinition);
+                    if (projectParameter)
+                    {
+                        var projectNavigation = await session.ResolveNavigationAsync(0, new AnalysisLocation(project, 1, 1, 1, 2, 0));
+                        Assert.NotNull(projectNavigation); Assert.Equal(projectText, projectNavigation.Text);
+                    }
                     var preview = await session.PreviewAsync("Next");
                     Assert.True(preview.IsApplicable, preview.Selection.Failure ?? preview.Validation.Failure);
                     Assert.Equal(projectParameter ? 3 : 2, preview.Selection.Changes.Count); Assert.Equal(source.Text, File.ReadAllText(path));
@@ -76,6 +138,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     int invalidations = 0; session.Invalidated += (sender, args) => invalidations++;
                     catalogue.Invalidate(); Assert.True(session.IsObsolete); Assert.Equal(1, invalidations);
                     await Assert.ThrowsAnyAsync<OperationCanceledException>(() => session.PreviewAsync("Other"));
+                    session.Dispose(); Assert.Null(session.Capture);
                 }
                 using (var session = await SolutionReferenceSession.CaptureAsync(catalogue, documents, new SdkAnalysisBridgeFactory(), CancellationToken.None))
                 {

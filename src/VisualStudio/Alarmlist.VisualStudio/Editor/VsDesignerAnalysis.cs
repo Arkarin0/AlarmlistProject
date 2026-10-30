@@ -17,6 +17,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Threading;
+using Microsoft.VisualStudio.ComponentModelHost;
 
 namespace Alarmlist.VisualStudio.Editor
 {
@@ -43,12 +44,24 @@ namespace Alarmlist.VisualStudio.Editor
         }
 
         public IDesignerAnalysis Create(ITextBuffer buffer, string openingProject = null)
+        { ThreadHelper.ThrowIfNotOnUIThread(); return CreateCore(buffer, openingProject, false); }
+
+        public IDesignerAnalysis CreateReferenceContext(ITextBuffer buffer)
+        { ThreadHelper.ThrowIfNotOnUIThread(); return CreateCore(buffer, null, true); }
+
+        internal bool HasReferenceOwner(string path)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            return _registry.GetProjects().Any(service => ReferenceDocumentOwnership.Contains(_registry.GetProject(service), path));
+        }
+
+        private IDesignerAnalysis CreateCore(ITextBuffer buffer, string openingProject, bool referenceScope)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
             _documents.TryGetTextDocument(buffer, out ITextDocument document);
             var selection = document == null ? null : _selections.GetValue(document, _ => new DocumentProjectSelection());
             selection?.SetOpeningProject(openingProject ?? OpeningProject(document));
-            return new VsDesignerAnalysis(_registry, _openDocuments, document, _services, _adapters, ThreadHelper.JoinableTaskContext, selection: selection);
+            return new VsDesignerAnalysis(_registry, _openDocuments, document, _services, _adapters, ThreadHelper.JoinableTaskContext, selection: selection, referenceScope: referenceScope);
         }
 
         private string OpeningProject(ITextDocument document)
@@ -73,7 +86,7 @@ namespace Alarmlist.VisualStudio.Editor
         }
     }
 
-    internal sealed class VsDesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings, IDesignerExplanation
+    internal sealed class VsDesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings, IDesignerExplanation, IDesignerReferences
     {
         private readonly DesignerAnalysisNotifications _notifications;
         private readonly ProjectAnalysisRegistry _registry;
@@ -82,6 +95,7 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly IServiceProvider _services;
         private readonly IVsEditorAdaptersFactoryService _adapters;
         private readonly bool _projectScope;
+        private readonly bool _referenceScope;
         private readonly DocumentProjectSelection _selection;
         private bool _disposed;
         private string _selectedProjectPath;
@@ -90,7 +104,9 @@ namespace Alarmlist.VisualStudio.Editor
         public string DocumentPath => _document?.FilePath;
         public IReadOnlyList<AnalysisProject> Projects => Contexts.Select(context => _registry.GetProject(context)).Where(project => project != null)
             .OrderBy(project => project.ProjectPath, StringComparer.OrdinalIgnoreCase).ThenBy(project => project.Configuration, StringComparer.Ordinal).ToArray();
-        private IReadOnlyList<ProjectAnalysisService> Contexts => _projectScope ? _registry.GetProjects() : _registry.GetContexts(DocumentPath);
+        private IReadOnlyList<ProjectAnalysisService> Contexts => _projectScope ? _registry.GetProjects()
+            : _referenceScope ? _registry.GetProjects().Where(service => ReferenceDocumentOwnership.Contains(_registry.GetProject(service), DocumentPath)).ToArray()
+            : _registry.GetContexts(DocumentPath);
         public string SelectedProjectPath
         {
             get => _projectScope ? _selectedProjectPath : _selection?.Resolve(Projects.Select(project => project.ProjectPath).ToArray());
@@ -116,10 +132,11 @@ namespace Alarmlist.VisualStudio.Editor
 
         public VsDesignerAnalysis(ProjectAnalysisRegistry registry, IOpenAnalysisDocuments openDocuments,
             ITextDocument document, IServiceProvider services, IVsEditorAdaptersFactoryService adapters, JoinableTaskContext threading, bool projectScope = false,
-            DocumentProjectSelection selection = null)
+            DocumentProjectSelection selection = null, bool referenceScope = false)
         {
             _registry = registry;
             _projectScope = projectScope;
+            _referenceScope = referenceScope;
             _selection = projectScope ? null : selection ?? new DocumentProjectSelection();
             _inputs = new ProjectAnalysisInputSource(openDocuments);
             _document = document;
@@ -158,6 +175,18 @@ namespace Alarmlist.VisualStudio.Editor
             var packageId = typeof(AlarmlistPackage).GUID;
             ErrorHandler.ThrowOnFailure(shell.LoadPackage(ref packageId, out IVsPackage package));
             (package as AlarmlistPackage)?.ShowExplanation(source);
+        }
+
+        public async Task FindReferencesAsync(ProjectAnalysisState state, AnalysisReferenceTarget target, ReferenceInvocation invocation)
+        {
+            var token = invocation.Token;
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
+            if (_disposed || !ReferenceEquals(state, Current) || !invocation.IsCurrent()) return;
+            var components = (IComponentModel)_services.GetService(typeof(SComponentModel));
+            if (components == null) throw new InvalidOperationException("Visual Studio's editor services are unavailable.");
+            await components.GetService<VsReferenceSearch>().FindAsync(state.Project, target,
+                () => !_disposed && ReferenceEquals(state, Current) && invocation.IsCurrent(), token,
+                intentIsCurrent: () => !_disposed && invocation.IntentIsCurrent(), intentToken: invocation.IntentToken, openRename: invocation.IsRename);
         }
 
         public void Navigate(AnalysisLocation location, string expectedText)

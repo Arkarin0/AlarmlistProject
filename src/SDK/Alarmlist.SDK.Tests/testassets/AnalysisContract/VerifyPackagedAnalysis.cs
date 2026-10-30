@@ -226,6 +226,13 @@ public sealed class VerifyPackagedAnalysis : Task
         object target = requestType.GetMethod("TargetAtToken").Invoke(request, new object[] { sourcePath, 17, sourceText.IndexOf("Base", StringComparison.Ordinal) });
         object found = find.Invoke(compiler, new object[] { request, target, System.Threading.CancellationToken.None });
         Require((bool)Value(found, "IsAvailable") && (int)Value(found, "ContractVersion") == 9, "Packaged reference search is unavailable.");
+        Require(!(bool)Value(found, "IsUnsupportedTarget"), "A bound packaged reference was classified as unsupported.");
+        object unsupported = requestType.GetMethod("TargetAtToken").Invoke(request, new object[] { sourcePath, 17, 0 });
+        Require((bool)Value(find.Invoke(compiler, new object[] { request, unsupported, System.Threading.CancellationToken.None }), "IsUnsupportedTarget"),
+            "Packaged XML caret classification lost native-command fallback for unsupported tokens.");
+        object nameEnd = requestType.GetMethod("TargetAtToken").Invoke(request, new object[] { sourcePath, 17, sourceText.IndexOf("Base", StringComparison.Ordinal) + 4 });
+        Require((bool)Value(find.Invoke(compiler, new object[] { request, nameEnd, System.Threading.CancellationToken.None }), "IsAvailable"),
+            "A packaged caret at the end of a bound name did not resolve.");
         Require((string)Value(Value(found, "Symbol"), "Kind") == "Alarm" && Items(found, "Occurrences").Length == 2,
             "Packaged search lost the bound inheritance reference.");
         string identity = (string)Value(Value(found, "Symbol"), "DeclarationId");
@@ -245,6 +252,18 @@ public sealed class VerifyPackagedAnalysis : Task
         try { ((IList)Value(preview, "Edits")).Clear(); }
         catch (NotSupportedException) { readOnly = true; }
         Require(readOnly, "Packaged rename results are mutable.");
+        object protectedRequest = Activator.CreateInstance(requestType, snapshots, context, null, null,
+            System.Threading.CancellationToken.None, new[] { sourcePath });
+        object protectedTarget = requestType.GetMethod("TargetAtToken").Invoke(protectedRequest,
+            new object[] { sourcePath, 17, sourceText.IndexOf("Base", StringComparison.Ordinal) });
+        object protectedFound = find.Invoke(compiler, new object[] { protectedRequest, protectedTarget, System.Threading.CancellationToken.None });
+        Require((bool)Value(protectedFound, "IsAvailable") && (bool)Value(Value(protectedFound, "Symbol"), "IsReadOnly"),
+            "Captured package/SDK source ownership was not retained by the compiler.");
+        object protectedPreview = rename.Invoke(compiler, new object[] { protectedRequest, protectedTarget, "RenamedBase", System.Threading.CancellationToken.None, null, null });
+        Require(Items(protectedPreview, "Edits").All(edit => (string)Value(edit, "Path") != sourcePath)
+            && (bool)Value(protectedPreview, "RequiresAcknowledgement"), "A captured read-only source was included in rename edits.");
+        Require(!(bool)Value(find.Invoke(compiler, new object[] { protectedRequest, target, System.Threading.CancellationToken.None }), "IsAvailable"),
+            "A target remained current after its captured source ownership changed.");
         using (var cancellation = new System.Threading.CancellationTokenSource())
         {
             cancellation.Cancel();

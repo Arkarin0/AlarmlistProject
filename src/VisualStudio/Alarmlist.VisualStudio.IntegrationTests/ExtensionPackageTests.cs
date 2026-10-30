@@ -47,6 +47,7 @@ namespace Alarmlist.VisualStudio.IntegrationTests
                 Assert.Contains("ItemTemplates\\Alarmlist", registration);
                 Assert.Contains("Menus.ctmenu, 2", registration);
                 Assert.Contains("ToolWindows\\{2c7f1b33-66f5-4831-96b1-c11cd1e28769}", registration);
+                Assert.Contains("ToolWindows\\{a840dc04-70c0-47c2-8618-8d3955e39ccc}", registration);
                 string pinnedRegistration = registration.Split(new[] { "[$RootKey$\\ToolWindows\\{a458fd24-65ad-462c-9fa2-376517a3c942}]" }, StringSplitOptions.None)[1].Split('[')[0];
                 Assert.Contains("\"DontForceCreate\"=dword:00000001", pinnedRegistration);
                 Assert.Contains("Editors\\{6b8cc287-1eb4-4b75-a8cb-4b8e13b60c2f}", registration);

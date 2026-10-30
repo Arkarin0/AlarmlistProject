@@ -111,7 +111,7 @@
                   <StackPanel><TextBox Style="{StaticResource CellEditor}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                            IsReadOnly="{Binding IsNameReadOnly}"
                            AutomationProperties.Name="{Binding NameAutomationName}" AutomationProperties.HelpText="{Binding RowHelp}" />
-                    <ui:ExplainValueButton ActionName="{Binding Name, StringFormat=Explain this value for parameter {0}}" />
+                    <ui:ValueActionsControl ValueName="{Binding Name, StringFormat=parameter {0}}" ActionName="{Binding Name, StringFormat=Explain this value for parameter {0}}" />
                   </StackPanel>
                 </DataTemplate></GridViewColumn.CellTemplate>
               </GridViewColumn>

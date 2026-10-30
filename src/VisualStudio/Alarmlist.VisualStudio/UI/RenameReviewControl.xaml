@@ -1,0 +1,63 @@
+<UserControl x:Class="Alarmlist.VisualStudio.UI.RenameReviewControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
+             xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+             AutomationProperties.Name="Rename review">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BooleanVisibility" />
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
+      <Setter Property="Padding" Value="5,3" />
+    </Style>
+    <Style TargetType="Button"><Setter Property="Padding" Value="8,3" /><Setter Property="Margin" Value="0,0,6,0" /></Style>
+  </UserControl.Resources>
+  <ScrollViewer MaxHeight="400" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="4">
+      <DockPanel Margin="0,4">
+        <Label Target="{Binding ElementName=NewNameBox}" Content="New _name:" />
+        <TextBox x:Name="NewNameBox" Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}"
+                 IsEnabled="{Binding CanEditName}" AutomationProperties.Name="New symbol name" AutomationProperties.AutomationId="RenameNewName" />
+      </DockPanel>
+      <WrapPanel Margin="0,4">
+        <Button Content="_Preview changes" Command="{Binding PreviewCommand}" AutomationProperties.Name="Preview rename changes" />
+        <Button Content="_Validate selection" Command="{Binding ValidateSelectionCommand}" AutomationProperties.Name="Validate selected rename changes" />
+        <Button Content="_Apply" Command="{Binding ApplyCommand}" AutomationProperties.Name="Apply approved rename" AutomationProperties.AutomationId="RenameApply" />
+        <Button Content="_Cancel" Command="{Binding CancelCommand}" AutomationProperties.Name="Cancel rename operation" />
+      </WrapPanel>
+      <ui:LiveStatusTextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,4" AutomationProperties.Name="{Binding Message}" AutomationProperties.AutomationId="RenameStatus" />
+      <Expander Header="Skipped findings and search coverage" Margin="0,4">
+        <TextBox Text="{Binding Findings, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="140" VerticalScrollBarVisibility="Auto"
+                 AutomationProperties.Name="Skipped rename findings and coverage" />
+      </Expander>
+      <Expander Header="Diagnostic differences" Margin="0,4">
+        <TextBox Text="{Binding Diagnostics, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="140" VerticalScrollBarVisibility="Auto"
+                 AutomationProperties.Name="Rename diagnostic differences" />
+      </Expander>
+      <CheckBox IsChecked="{Binding IsAcknowledged}" IsEnabled="{Binding CanEditName}" Margin="0,6" AutomationProperties.Name="Acknowledge partial rename and diagnostic changes"
+                Visibility="{Binding RequiresAcknowledgement, Converter={StaticResource BooleanVisibility}}">
+        <TextBlock Text="I understand the skipped findings, remaining references and expected diagnostic changes." TextWrapping="Wrap" />
+      </CheckBox>
+      <ListBox ItemsSource="{Binding Changes}" MaxHeight="220" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+               VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling"
+               AutomationProperties.Name="Editable rename change groups" AutomationProperties.AutomationId="RenameChanges"
+               Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+               Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
+        <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.ItemContainerStyle>
+        <ListBox.ItemTemplate><DataTemplate>
+          <Expander Header="{Binding Label}" Margin="0,3" Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
+            <StackPanel Margin="8,3">
+              <CheckBox Content="Include this change" IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanSelect}"
+                        AutomationProperties.Name="{Binding Label, StringFormat=Include change in {0}}" />
+              <TextBlock Text="Before" Margin="0,4,0,2" />
+              <TextBox Text="{Binding Before, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" AutomationProperties.Name="Before rename" />
+              <TextBlock Text="After" Margin="0,4,0,2" />
+              <TextBox Text="{Binding After, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" AutomationProperties.Name="After rename" />
+            </StackPanel>
+          </Expander>
+        </DataTemplate></ListBox.ItemTemplate>
+      </ListBox>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

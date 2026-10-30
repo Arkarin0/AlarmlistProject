@@ -59,6 +59,7 @@ namespace Alarmlist.VisualStudio.UI
                 if (_refreshing || ReferenceEquals(_selected, value)) return;
                 int index = Alarms.IndexOf(value);
                 if (!CommitPending()) { Notify(); return; }
+                ReferenceActions?.InvalidateIntent();
                 _selected = value == null ? null : Alarms.Contains(value) ? value : (index >= 0 && index < Alarms.Count ? Alarms[index] : null);
                 LoadFields();
                 Notify(); Notify(nameof(CanEdit)); DeleteCommand.Refresh();
@@ -88,6 +89,7 @@ namespace Alarmlist.VisualStudio.UI
             _pending = Fields.Any(field => field.HasChanges)
                 || Collections.Any(collection => collection.Items.Any(item => item.Fields.Any(field => field.HasChanges)))
                 || ProcedureSections.Any(section => section.TitleField.HasChanges || section.Items.Any(item => item.HasChanges)) || AllParameters.Any(row => row.HasChanges);
+            if (_pending) ReferenceActions?.InvalidateIntent();
             PendingChanged?.Invoke(this, EventArgs.Empty);
             Notify(nameof(HasPending));
             _draftVersion++;
@@ -235,6 +237,7 @@ namespace Alarmlist.VisualStudio.UI
         }
         private void OnModelChanged(object sender, EventArgs args)
         {
+            ReferenceActions?.InvalidateIntent();
             if (!_committing && !_pending) Refresh();
             else { Notify(nameof(IsValid)); Notify(nameof(CanEdit)); Notify(nameof(Error)); AddCommand.Refresh(); DeleteCommand.Refresh(); RefreshAnalysis(); }
         }

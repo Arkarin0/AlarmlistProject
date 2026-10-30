@@ -1,0 +1,75 @@
+<UserControl x:Class="Alarmlist.VisualStudio.UI.ReferencesControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
+             xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+             Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+             Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+             AutomationProperties.AutomationId="AlarmlistReferences"
+             AutomationProperties.Name="Alarmlist References">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BooleanVisibility" />
+    <HierarchicalDataTemplate DataType="{x:Type ui:ReferenceResultNode}" ItemsSource="{Binding Children}">
+      <StackPanel Margin="0,2">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="{Binding Label}" VerticalAlignment="Center" TextWrapping="Wrap" />
+          <Button Content="_Go to source" Command="{Binding GoToSourceCommand}" Margin="8,0,0,0" Padding="5,1"
+                  Visibility="{Binding HasSourceLink, Converter={StaticResource BooleanVisibility}}"
+                  AutomationProperties.Name="{Binding Label, StringFormat=Go to source for {0}}" />
+        </StackPanel>
+        <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Opacity="0.8" />
+      </StackPanel>
+    </HierarchicalDataTemplate>
+  </UserControl.Resources>
+  <Grid Margin="8">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <ui:LiveStatusTextBlock Text="{Binding Message}" TextWrapping="Wrap" Margin="0,0,0,6"
+               AutomationProperties.Name="{Binding Message}" AutomationProperties.AutomationId="ReferencesStatus" />
+    <StackPanel Grid.Row="1">
+      <StackPanel Visibility="{Binding HasSymbolChoices, Converter={StaticResource BooleanVisibility}}" Margin="0,0,0,6">
+        <TextBlock Text="Choose the symbol whose references you want to inspect:" Margin="0,0,0,4" />
+        <ListBox x:Name="SymbolChoices" ItemsSource="{Binding Symbols}" SelectedItem="{Binding SelectedSymbol}" IsSynchronizedWithCurrentItem="False" KeyDown="OnSymbolKeyDown"
+                 IsEnabled="{Binding CanSelectSymbol}" MaxHeight="140" VirtualizingStackPanel.IsVirtualizing="True"
+                 VirtualizingStackPanel.VirtualizationMode="Recycling" AutomationProperties.Name="Compiler-resolved symbols"
+                 AutomationProperties.AutomationId="ReferenceSymbolChoices" DisplayMemberPath="Label"
+                 Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+                 Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+        <Button Content="Show references to selected _symbol" Command="{Binding ChooseSymbolCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                AutomationProperties.Name="Find references to the selected symbol" />
+      </StackPanel>
+    <Expander Header="Search coverage and unavailable findings" Margin="0,0,0,6">
+      <TextBox Text="{Binding Coverage, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap"
+               VerticalScrollBarVisibility="Auto" MaxHeight="150" BorderThickness="0"
+               Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+               Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+               AutomationProperties.Name="Reference search coverage" />
+    </Expander>
+    </StackPanel>
+    <TreeView x:Name="Results" Grid.Row="2" ItemsSource="{Binding Definitions}" VirtualizingStackPanel.IsVirtualizing="True"
+              VirtualizingStackPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True"
+              Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+              Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+              AutomationProperties.Name="References grouped by declaration, physical source and consumer context"
+              AutomationProperties.AutomationId="ReferenceResults" KeyDown="OnResultKeyDown">
+      <TreeView.ItemContainerStyle>
+        <Style TargetType="TreeViewItem"><Setter Property="IsExpanded" Value="True" /></Style>
+      </TreeView.ItemContainerStyle>
+    </TreeView>
+    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,6,0,0">
+      <TextBlock Text="{Binding PageLabel}" VerticalAlignment="Center" Margin="0,0,8,0" />
+      <Button Content="Show _more" Command="{Binding ShowMoreCommand}" Padding="8,3"
+              AutomationProperties.Name="Show more reference findings" />
+    </StackPanel>
+    <Expander Grid.Row="4" Header="Rename" Margin="0,6,0,0" IsExpanded="{Binding Rename.IsExpanded, Mode=TwoWay}"
+              Visibility="{Binding HasRename, Converter={StaticResource BooleanVisibility}}"
+              Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
+      <ui:RenameReviewControl DataContext="{Binding Rename}" />
+    </Expander>
+  </Grid>
+</UserControl>

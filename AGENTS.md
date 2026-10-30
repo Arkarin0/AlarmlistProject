@@ -110,6 +110,13 @@ multi-file transaction acceptance on both IDEs is an essential early gate.
 Use Area=RenameTransaction for that gate. It links the production coordinator and
 automation adapter into the external runner, with no test command in the VSIX.
 Native UndoContext supplies linked Undo; SetAborted both rolls back and closes it.
+Area=ReferencesRename exercises designer and standard XML commands through the
+installed extension. Area=SharedReferencesRename adds explicit shared consumers,
+language resources and partial project edits; Area=AuxiliaryReferencesRename
+covers lookup and procedure-group XML. Run desktop MSBuild package checks and
+native IDE checks sequentially as well as keeping WPF/native input sequential.
+Explicitly select the intended editor mode and active view's caret in fixtures;
+persisted layout and multiple views must not choose a target accidentally.
 Keep version/text and Query Edit checks before mutation, and verify accepted text
 before completing the group. XML token edits use compiler-owned decoded-to-source
 spans; reject spans crossing comments/markup rather than discarding authored XML.
@@ -119,6 +126,30 @@ literal lookup/label text and capture formatted placeholders in the parser.
 Generated fields, sibling names, built-in names and definition caption keys are
 searchable but immutable. Propagate ambiguous ownership and refuse guessed edits;
 unavailable inheritance must not make a binder's partial choice a proven use.
+XML reference commands defer unsupported positions using the compiler's typed
+IsUnsupportedTarget result. Known unbound or invalid targets remain explicit
+unavailable results. Caret/selection stamps cancel discovery; published results
+retain the resolved identity across caret navigation and still invalidate on
+source/context changes. Auxiliary XML adopts saved captured versions only after
+whole-text equality; never let unsaved resources change ordinary saved-input rules.
+Captured raw sources, resources, lookups and project imports beneath evaluated
+package/SDK provider roots are searchable but read-only. Carry that ownership in
+the reference snapshot and reject a shared physical edit if any consumer protects
+it; do not discover ownership by enumerating package caches. Multiple symbols bound
+at one value require explicit selection from compiler-provided candidates. Map
+designer/Summary values using compiler locations and binding contexts, never their
+displayed text. Recheck both buffer identity and version through Query Edit, even
+when a replacement buffer contains identical bytes.
+For native reference capture, normalize Visual Studio's standard "Any CPU"
+display alias to the CPS/MSBuild "AnyCPU" platform token. Preserve project-defined
+platform names; never remove spaces from arbitrary names to guess a mapping.
+Opening rename buffers may refresh ordinary analysis. Keep user selection/draft
+intent separate from the initial analysis snapshot, clear obsolete source links,
+and wait for the same active context through catalogue events before recapturing.
+Accept a rebase only after full captured-input comparison and a new compiler
+search/preview. Readiness identity is not a freshness proof. Apply checks out the
+complete approved set before recapture, then consumes a single-use receipt for
+that exact set; retain native buffer identity/version checks through mutation.
 Reference requests own their frozen solution captures and private proposed overlays.
 Revalidate the original catalogue, graph, toolsets and captured bytes before
 publication, navigation and Apply; proposed-result validation never replaces this

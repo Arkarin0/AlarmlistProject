@@ -19,6 +19,8 @@ namespace Alarmlist.VisualStudio.Analysis
 
         internal static AnalysisNavigationTarget ReadOnlyDocument(string text, string caption, bool xml) =>
             new AnalysisNavigationTarget(new AnalysisLocation("package-content:" + caption, 1, 1, 1, 1, 0), text, caption, true, xml);
+        internal static AnalysisNavigationTarget ReadOnlySource(AnalysisNavigationTarget source) =>
+            new AnalysisNavigationTarget(source.Location, source.Text, "Read-only source: " + System.IO.Path.GetFileName(source.Location.FilePath), true);
 
         public static AnalysisNavigationTarget Resolve(ProjectAnalysisState state, AnalysisLocation location)
         {

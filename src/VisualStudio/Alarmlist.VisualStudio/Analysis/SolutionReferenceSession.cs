@@ -33,7 +33,7 @@ namespace Alarmlist.VisualStudio.Analysis
         private ReferenceCatalogueSnapshot _catalogueSnapshot;
         private CapturedReferenceSolution _capture;
         private SolutionReferenceSearchResult _search;
-        private bool _disposed;
+        private volatile bool _disposed;
         internal event EventHandler Invalidated;
 
         private SolutionReferenceSession(IReferenceSolutionCatalogue catalogue, IOpenAnalysisDocuments documents,
@@ -50,78 +50,108 @@ namespace Alarmlist.VisualStudio.Analysis
         internal string ObsoleteReason { get; private set; }
 
         internal static async Task<SolutionReferenceSession> CaptureAsync(IReferenceSolutionCatalogue catalogue,
-            IOpenAnalysisDocuments documents, ISdkAnalysisBridgeFactory factory, CancellationToken token)
+            IOpenAnalysisDocuments documents, ISdkAnalysisBridgeFactory factory, CancellationToken token,
+            CancellationToken captureCancellationToken = default)
         {
             var session = new SolutionReferenceSession(catalogue, documents, factory, token);
             try
             {
-                session._catalogueSnapshot = await catalogue.CaptureAsync(session._token).ConfigureAwait(false);
-                session._capture = await Task.Run(() => CapturedReferenceSolution.CaptureAsync(session._catalogueSnapshot.Projects,
-                    documents, factory, session._token, session._catalogueSnapshot.Coverage), session._token).ConfigureAwait(false);
-                session.WatchInputs();
-                if (!await session.RevalidateAsync().ConfigureAwait(false)) throw new InvalidOperationException("Solution inputs changed during capture. Try again.");
+                using (var request = CancellationTokenSource.CreateLinkedTokenSource(session._token, captureCancellationToken))
+                {
+                    session._catalogueSnapshot = await catalogue.CaptureAsync(request.Token).ConfigureAwait(false);
+                    session._capture = await Task.Run(() => CapturedReferenceSolution.CaptureAsync(session._catalogueSnapshot.Projects,
+                        documents, factory, request.Token, session._catalogueSnapshot.Coverage), request.Token).ConfigureAwait(false);
+                    session.WatchInputs();
+                    if (!await session.RevalidateAsync(request.Token).ConfigureAwait(false)) throw new InvalidOperationException("Solution inputs changed during capture. Try again.");
+                }
                 return session;
             }
             catch { session.Dispose(); throw; }
         }
 
-        internal async Task<SolutionReferenceSearchResult> FindAsync(int origin, AnalysisReferenceTarget target)
-        {
-            BeginOperation();
-            try
+        internal Task<SolutionReferenceSearchResult> FindAsync(int origin, AnalysisReferenceTarget target, CancellationToken cancellationToken = default)
+            => RunOperationAsync(async token =>
             {
-                _token.ThrowIfCancellationRequested();
+                _search = null;
                 var found = await Task.Run(() =>
                 {
-                    using (var leases = ConsumerLeases.Open(_capture, _factory, _token))
-                        return SolutionReferenceSearch.Find(leases.Consumers, origin, target, _token, _capture.Coverage);
-                }, _token).ConfigureAwait(false);
-                if (!await RevalidateAsync().ConfigureAwait(false)) throw new InvalidOperationException("Solution inputs changed. Find references again.");
+                    using (var leases = ConsumerLeases.Open(_capture, _factory, token))
+                        return SolutionReferenceSearch.Find(leases.Consumers, origin, target, token, _capture.Coverage);
+                }, token).ConfigureAwait(false);
+                if (!await RevalidateAsync(token).ConfigureAwait(false)) throw new InvalidOperationException("Solution inputs changed. Find references again.");
                 _search = found; return found;
-            }
-            finally { Volatile.Write(ref _operationRunning, 0); }
-        }
+            }, cancellationToken);
 
-        internal async Task<SolutionRenameProposal> PreviewAsync(string newName, IReadOnlyCollection<string> included = null)
-        {
-            BeginOperation();
-            try
+        internal Task<SolutionRenameProposal> PreviewAsync(string newName, IReadOnlyCollection<string> included = null,
+            CancellationToken cancellationToken = default)
+            => RunOperationAsync(async token =>
             {
-                _token.ThrowIfCancellationRequested();
                 if (_search == null) throw new InvalidOperationException("Find references before previewing a rename.");
                 var selectionIds = included?.ToArray();
                 var proposal = await Task.Run(async () =>
                 {
-                    using (var original = ConsumerLeases.Open(_capture, _factory, _token))
+                    using (var original = ConsumerLeases.Open(_capture, _factory, token))
                     {
-                        var selection = SolutionRenameSelection.Create(original.Consumers, _search, newName, _token, selectionIds);
+                        var selection = SolutionRenameSelection.Create(original.Consumers, _search, newName, token, selectionIds);
                         if (selection.Failure != null || selection.Changes.Count == 0)
                             return new SolutionRenameProposal(selection, SolutionRenameValidation.Validate(original.Consumers,
-                                Array.Empty<ReferenceSearchConsumer>(), selection, _token));
+                                Array.Empty<ReferenceSearchConsumer>(), selection, token));
                         var overlay = selection.CreateOverlay(original.Consumers);
                         var projected = await CapturedReferenceSolution.CaptureAsync(_capture.Selections, _documents, _factory,
-                            _token, _catalogueSnapshot.Coverage, overlay).ConfigureAwait(false);
-                        using (var proposed = ConsumerLeases.Open(projected, _factory, _token))
+                            token, _catalogueSnapshot.Coverage, overlay).ConfigureAwait(false);
+                        using (var proposed = ConsumerLeases.Open(projected, _factory, token))
                             return new SolutionRenameProposal(selection, SolutionRenameValidation.Validate(original.Consumers,
-                                proposed.Consumers, selection, _token, projected.Coverage));
+                                proposed.Consumers, selection, token, projected.Coverage));
                     }
-                }, _token).ConfigureAwait(false);
-                if (!await RevalidateAsync().ConfigureAwait(false)) throw new InvalidOperationException("The rename preview is obsolete. Find references again.");
+                }, token).ConfigureAwait(false);
+                if (!await RevalidateAsync(token).ConfigureAwait(false)) throw new InvalidOperationException("The rename preview is obsolete. Find references again.");
                 return proposal;
-            }
-            finally { Volatile.Write(ref _operationRunning, 0); }
-        }
+            }, cancellationToken);
 
-        internal async Task<bool> RevalidateAsync()
+        internal Task<AnalysisNavigationTarget> ResolveNavigationAsync(int consumer, AnalysisLocation location, CancellationToken cancellationToken = default)
+            => RunOperationAsync(async token =>
+            {
+                if (location == null) return null;
+                if (consumer < 0 || consumer >= _capture.Projects.Count) throw new ArgumentOutOfRangeException(nameof(consumer));
+                if (!await RevalidateAsync(token).ConfigureAwait(false)) return null;
+                var project = _capture.Projects[consumer];
+                var response = await Task.Run(() =>
+                {
+                    var opened = _factory.Open(project.CompilerPath);
+                    using (var bridge = opened.Bridge)
+                    {
+                        if (bridge == null) throw new InvalidOperationException(opened.Message ?? "The selected SDK is unavailable for navigation.");
+                        return bridge.Analyze(project.Request.Sources, token, project.Request.Context);
+                    }
+                }, token).ConfigureAwait(false);
+                if (response.Availability != AnalysisAvailability.Available || response.Snapshot == null)
+                    throw new InvalidOperationException(response.Message ?? "Source navigation is unavailable in the selected SDK.");
+                var state = new ProjectAnalysisState(0, project.Evaluation.Evaluation.Project, ProjectAnalysisStatus.Available, null, response,
+                    project.Sources.Concat(project.Request.ProjectDocuments.Select(input => new CapturedAnalysisInput(input))).ToArray(),
+                    project.Request.Context.Resources, project.Request.Context.Lookups, project.Request.Context.Configurations,
+                    project.Request.Context.Analyzers, project.Libraries);
+                var target = AnalysisNavigationTarget.Resolve(state, location);
+                if (target != null && !target.IsReadOnlyDefinition && _capture.Projects.Any(item =>
+                    item.Request.ReadOnlyPaths.Contains(target.Location.FilePath, StringComparer.OrdinalIgnoreCase)))
+                    target = AnalysisNavigationTarget.ReadOnlySource(target);
+                return await RevalidateAsync(token).ConfigureAwait(false) ? target : null;
+            }, cancellationToken);
+
+        internal async Task<bool> RevalidateAsync(CancellationToken cancellationToken = default)
         {
-            _token.ThrowIfCancellationRequested();
-            var catalogue = await _catalogue.CaptureAsync(_token).ConfigureAwait(false);
-            if (!_catalogueSnapshot.Matches(catalogue)) { Invalidate(); return false; }
-            var captured = await Task.Run(() => CapturedReferenceSolution.CaptureAsync(catalogue.Projects,
-                _documents, _factory, _token, catalogue.Coverage), _token).ConfigureAwait(false);
-            _token.ThrowIfCancellationRequested();
-            if (!_capture.Matches(captured)) { Invalidate(); return false; }
-            return true;
+            using (var request = CancellationTokenSource.CreateLinkedTokenSource(_token, cancellationToken))
+            {
+                var token = request.Token; token.ThrowIfCancellationRequested();
+                var original = _capture; var originalCatalogue = _catalogueSnapshot;
+                if (original == null || originalCatalogue == null) throw new OperationCanceledException(_token);
+                var catalogue = await _catalogue.CaptureAsync(token).ConfigureAwait(false);
+                if (!originalCatalogue.Matches(catalogue)) { Invalidate(); return false; }
+                var captured = await Task.Run(() => CapturedReferenceSolution.CaptureAsync(catalogue.Projects,
+                    _documents, _factory, token, catalogue.Coverage), token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                if (!original.Matches(captured)) { Invalidate(); return false; }
+                return true;
+            }
         }
 
         private void WatchInputs()
@@ -147,11 +177,20 @@ namespace Alarmlist.VisualStudio.Analysis
                     .Any(input => string.Equals(input.FilePath, args.Path, StringComparison.OrdinalIgnoreCase))) return;
             Invalidate("A captured input changed: " + (args.ObservedPath ?? "dependency or discovery inputs"));
         }
-        private void BeginOperation()
+        private async Task<T> RunOperationAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken)
         {
-            _token.ThrowIfCancellationRequested();
-            if (Interlocked.CompareExchange(ref _operationRunning, 1, 0) != 0)
-                throw new InvalidOperationException("Wait for the current reference operation to finish.");
+            using (var request = CancellationTokenSource.CreateLinkedTokenSource(_token, cancellationToken))
+            {
+                request.Token.ThrowIfCancellationRequested();
+                if (Interlocked.CompareExchange(ref _operationRunning, 1, 0) != 0)
+                    throw new InvalidOperationException("Wait for the current reference operation to finish.");
+                try { return await action(request.Token).ConfigureAwait(false); }
+                finally
+                {
+                    Volatile.Write(ref _operationRunning, 0);
+                    if (_disposed) ClearCapturedState();
+                }
+            }
         }
         private void Invalidate(string reason = "Captured solution inputs changed.")
         {
@@ -172,10 +211,13 @@ namespace Alarmlist.VisualStudio.Analysis
             }
             _catalogue.Changed -= OnChanged; _documents.Changed -= OnInputsChanged;
             foreach (var watcher in _watchers) { watcher.Changed -= OnInputsChanged; watcher.Dispose(); }
+            _watchers.Clear(); Invalidated = null;
             // Operations hold the token independently. No SDK worker or watcher
             // is retained here; their owning using/finally blocks perform cleanup.
             _obsolete.Dispose();
+            if (Volatile.Read(ref _operationRunning) == 0) ClearCapturedState();
         }
+        private void ClearCapturedState() { _search = null; _capture = null; _catalogueSnapshot = null; }
 
         private sealed class ConsumerLeases : IDisposable
         {

@@ -132,3 +132,13 @@ unit checks (847), compiler and downstream suites on both frameworks, packaged
 bridge checks on both desktop hosts, and native shared/library/custom-definition
 acceptance on both IDE versions pass. Timing and allocation measurements and
 actual validation evidence are recorded in MILESTONE-14.md.
+
+Milestone 14 follow-up iteration 13 adds the Find references and rename feature
+reference and index link. It describes compiler-resolved symbol choices, XML
+context selection, saved/unsaved inputs, coverage, preview exclusions,
+acknowledgement, linked Undo and immutable findings. The example matches the native
+two-file alarm/inheritance fixture. Host, compiler, packaged SDK/VSIX,
+generated-definition and both-IDE native validation pass; actual results and
+resolved failures are recorded in the milestone plan. Reviewed the article's
+examples, placeholder removal and local links. The guided tutorial and broader
+integrated/performance acceptance remain iteration 14.

@@ -90,6 +90,8 @@ namespace Alarmlist.VisualStudio.Analysis
                 var first = group.First(); var edit = first.Edit;
                 string blocked = conflictsByPath.TryGetValue(edit.Path, out var conflicts) ? conflicts.FirstOrDefault(conflict =>
                     Overlaps(conflict.Start, conflict.Length, edit.Start, edit.Length))?.Message : null;
+                if (blocked == null && consumers.Any(consumer => consumer.Request.ReadOnlyPaths.Contains(edit.Path, StringComparer.OrdinalIgnoreCase)))
+                    blocked = "A captured consumer identifies this source as read-only; no physical edit was guessed";
                 if (blocked == null && group.Select(item => item.Edit.Text).Distinct(StringComparer.Ordinal).Count() != 1)
                     blocked = "Consumer replacements disagree; no shared edit was guessed";
                 var inputs = documents.TryGetValue(edit.Path, out var captured) ? captured : Array.Empty<AnalysisInput>();

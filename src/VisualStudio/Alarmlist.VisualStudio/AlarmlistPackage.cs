@@ -10,7 +10,9 @@ using Alarmlist.VisualStudio.Editor;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Framework;
 using Microsoft.VisualStudio.Shell.Interop;
+using Microsoft.VisualStudio.Threading;
 
 namespace Alarmlist.VisualStudio
 {
@@ -22,6 +24,7 @@ namespace Alarmlist.VisualStudio
     [ProvideUIContextRule(ProjectSelectedContext, "Alarmlist project selected", "Project", new[] { "Project" }, new[] { "ActiveProjectCapability:Alarmlist" })]
     [ProvideOptionPage(typeof(NavigationOptions), "Alarmlist", "Navigation", 0, 0, true)]
     [ProvideToolWindow(typeof(AlarmlistPreviewWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 900, Height = 380)]
+    [ProvideToolWindow(typeof(AlarmlistReferencesWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 1000, Height = 420)]
     [ProvideToolWindow(typeof(ProjectAlarmSummaryWindow), MultiInstances = true, Transient = true,
         Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 900, Height = 380)]
     // These editors use captured ALMX analysis, not the host's language-project
@@ -55,6 +58,23 @@ namespace Alarmlist.VisualStudio
             window.ShowExplanation(source);
         }
 
+        internal void ShowReferences(Alarmlist.VisualStudio.UI.ReferenceResultsViewModel results)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var window = (AlarmlistReferencesWindow)FindToolWindow(typeof(AlarmlistReferencesWindow), 0, true);
+            window.ShowResults(results);
+            ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
+        }
+
+        internal void ReleaseReferenceNotifications(System.Action release)
+        {
+            JoinableTaskFactory.RunAsync(async () =>
+            {
+                await TaskScheduler.Default;
+                release();
+            }).FileAndForget("Alarmlist/References/ReleaseNotifications");
+        }
+
         protected override async Task InitializeAsync(CancellationToken cancellationToken, System.IProgress<ServiceProgressData> progress)
         {
             IComponentModel components = (IComponentModel)await GetServiceAsync(typeof(SComponentModel));
@@ -70,6 +90,12 @@ namespace Alarmlist.VisualStudio
                 ToolWindowPane window = FindToolWindow(typeof(AlarmlistPreviewWindow), 0, true);
                 ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
             }, new CommandID(PreviewLanguageCommands.CommandSet, AlarmlistPreviewWindow.ShowCommand)));
+            commands.AddCommand(new MenuCommand((sender, args) =>
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                var window = FindToolWindow(typeof(AlarmlistReferencesWindow), 0, true);
+                ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
+            }, new CommandID(PreviewLanguageCommands.CommandSet, AlarmlistReferencesWindow.ShowCommand)));
             var registry = components.GetService<ProjectAnalysisRegistry>();
             var monitor = (IVsMonitorSelection)await GetServiceAsync(typeof(SVsShellMonitorSelection));
             var projectPreview = new OleMenuCommand((sender, args) =>

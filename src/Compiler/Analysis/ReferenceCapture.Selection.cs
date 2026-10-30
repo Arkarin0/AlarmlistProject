@@ -38,6 +38,8 @@ namespace Alarmlist.Analysis
             if (before.Context.ProjectPath != after.Context.ProjectPath || before.Context.Configuration != after.Context.Configuration
                 || before.Context.Platform != after.Context.Platform || before.Context.Culture != after.Context.Culture)
                 return "The projected compilation belongs to another consumer context.";
+            if (!before.ReadOnlyPaths.SequenceEqual(after.ReadOnlyPaths, StringComparer.Ordinal))
+                return "The projected compilation changed captured source ownership. Capture a new request.";
             Dictionary<string, ReferenceTextSnapshot> Documents(ReferenceCompilationSnapshot input)
             {
                 var result = new Dictionary<string, ReferenceTextSnapshot>(StringComparer.Ordinal);

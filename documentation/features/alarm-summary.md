@@ -58,5 +58,8 @@ alarm to see `South pump pressure low`. Source XML keeps its localization expres
 
 ## Related features and tutorials
 
+Resolved values offer [Find references and rename](references-and-rename.md) actions
+in the selected consumer and language. Rename opens a review before changing buffers.
+
 See [edit and inspect](../tutorials/edit-and-inspect-alarms.md),
 [localization](localization.md), and [custom definitions](custom-fields-and-collections.md).
