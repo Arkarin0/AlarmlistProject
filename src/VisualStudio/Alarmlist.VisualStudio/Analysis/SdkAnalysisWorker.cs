@@ -13,7 +13,7 @@ namespace Alarmlist.VisualStudio.Analysis
 {
     // Activated only in the isolated domain. Never return reflection objects,
     // SDK instances, or SDK exceptions across the remoting boundary.
-    internal sealed class SdkAnalysisWorker : MarshalByRefObject
+    internal sealed partial class SdkAnalysisWorker : MarshalByRefObject
     {
         private Type _snapshotType;
         private Type _resourceType;
@@ -103,6 +103,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 if (_explain == null || _explain.IsStatic || _explain.ReturnType != assembly.GetType("Alarmlist.Analysis.ValueExplanationResult")
                     || _explanationTargetType.GetConstructor(new[] { _locationType, typeof(string), typeof(string), typeof(string), _locationType }) == null)
                     throw new NotSupportedException("The SDK has no compatible on-demand explanation API.");
+                InitializeReferences(assembly, compilerType);
                 PropertyInfo xml = _analyze.ReturnType.GetProperty("CompiledXml", BindingFlags.Public | BindingFlags.Instance);
                 if (xml?.PropertyType != typeof(string) || xml.GetGetMethod() == null || xml.GetIndexParameters().Length != 0)
                     throw new NotSupportedException("The SDK has no compatible compiled XML.");
@@ -118,7 +119,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 AnalysisAvailability state = failure is NotSupportedException || failure is TypeLoadException || failure is MissingMemberException
                     ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.LoadFailed;
                 return new AnalysisResponse(state, "Cannot use analysis compiler " + compilerPath
-                    + ". Restore an SDK supporting analysis contract 8 with captured diagnostic configuration and external analyzers. " + failure.Message);
+                    + ". Restore an SDK supporting analysis contract 9 with captured diagnostic configuration and external analyzers. " + failure.Message);
             }
         }
 
@@ -309,7 +310,20 @@ namespace Alarmlist.VisualStudio.Analysis
             context = context ?? AnalysisContext.Empty;
             Array properties = Array.CreateInstance(_propertyType, context.Properties.Count);
             for (int i = 0; i < context.Properties.Count; i++)
-                properties.SetValue(Activator.CreateInstance(_propertyType, new object[] { context.Properties[i].Name, context.Properties[i].Value, null }), i);
+            {
+                var location = context.Properties[i].Location;
+                object origin = location == null ? null : Activator.CreateInstance(_locationType,
+                    location.FilePath, location.LineNumber, location.ColumnNumber, location.EndColumnNumber - location.ColumnNumber, location.SourceVersion);
+                var references = Array.CreateInstance(_locationType, context.Properties[i].ReferenceLocations.Count);
+                for (int reference = 0; reference < references.Length; reference++)
+                {
+                    var nameOrigin = context.Properties[i].ReferenceLocations[reference];
+                    references.SetValue(Activator.CreateInstance(_locationType, nameOrigin.FilePath, nameOrigin.LineNumber, nameOrigin.ColumnNumber,
+                        nameOrigin.EndColumnNumber - nameOrigin.ColumnNumber, nameOrigin.SourceVersion), reference);
+                }
+                properties.SetValue(Activator.CreateInstance(_propertyType, new object[] { context.Properties[i].Name, context.Properties[i].Value, origin,
+                    references, context.Properties[i].HasAmbiguousReferences }), i);
+            }
             Array resources = Array.CreateInstance(_resourceType, context.Resources.Count);
             for (int i = 0; i < context.Resources.Count; i++)
             {

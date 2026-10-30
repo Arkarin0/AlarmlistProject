@@ -62,7 +62,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 && Resources.Select((resource, index) => resource.Matches(other.Resources[index])).All(equal => equal)
                 && Lookups.Count == other.Lookups.Count && Lookups.Select((lookup, index) => lookup.Matches(other.Lookups[index])).All(equal => equal)
                 && Properties.Count == other.Properties.Count && Properties.Select((property, index) =>
-                    property.Name == other.Properties[index].Name && property.Value == other.Properties[index].Value).All(equal => equal);
+                    property.Matches(other.Properties[index])).All(equal => equal);
     }
 
     [Serializable]
@@ -81,8 +81,23 @@ namespace Alarmlist.VisualStudio.Analysis
     [Serializable]
     internal sealed class AnalysisPropertyDefinition
     {
-        public AnalysisPropertyDefinition(string name, string value) { Name = name; Value = value; }
+        public AnalysisPropertyDefinition(string name, string value, AnalysisLocation location = null,
+            IEnumerable<AnalysisLocation> referenceLocations = null, bool hasAmbiguousReferences = false)
+        {
+            Name = name; Value = value; Location = location;
+            ReferenceLocations = Array.AsReadOnly((referenceLocations ?? Array.Empty<AnalysisLocation>()).ToArray());
+            HasAmbiguousReferences = hasAmbiguousReferences;
+        }
         public string Name { get; }
         public string Value { get; }
+        public AnalysisLocation Location { get; }
+        public IReadOnlyList<AnalysisLocation> ReferenceLocations { get; }
+        public bool HasAmbiguousReferences { get; }
+        public bool Matches(AnalysisPropertyDefinition other) => other != null && Name == other.Name && Value == other.Value
+            && HasAmbiguousReferences == other.HasAmbiguousReferences && LocationMatches(Location, other.Location)
+            && ReferenceLocations.Count == other.ReferenceLocations.Count && ReferenceLocations.Select((location, index) => LocationMatches(location, other.ReferenceLocations[index])).All(equal => equal);
+        private static bool LocationMatches(AnalysisLocation left, AnalysisLocation right)
+            => left == null ? right == null : right != null && left.FilePath == right.FilePath && left.LineNumber == right.LineNumber
+                && left.ColumnNumber == right.ColumnNumber && left.EndLineNumber == right.EndLineNumber && left.EndColumnNumber == right.EndColumnNumber && left.SourceVersion == right.SourceVersion;
     }
 }

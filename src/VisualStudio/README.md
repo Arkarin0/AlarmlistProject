@@ -326,7 +326,16 @@ Copying revalidates saved resources/lookups and source snapshots first. Errors
 mark unavailable row values and disable compiled XML. See the scope-specific draft
 behavior above.
 
-The bridge accepts analysis contract 8 and loads the resolved SDK's net472 compiler
+Reference/rename compiler APIs and detached contract-9 transport are available.
+Request-owned solution sessions capture active configurations, all configured
+cultures and reachable saved dependencies without executing project targets. They
+deduplicate physical selections, reevaluate private proposed overlays in the SDK,
+compare diagnostics and revalidate original captures before publication. This
+infrastructure does not itself edit buffers. References/rename UI, native command
+routing and Apply integration follow in milestone 14 iteration 13; native and
+integrated acceptance remains recorded in the milestone plan.
+
+The bridge accepts analysis contract 9 and loads the resolved SDK's net472 compiler
 in an isolated domain. Explain this value uses the same captured project inputs
 and the project-owned SDK worker through a cancellable on-demand request, with validation before
 publication and source navigation. Designer actions open Alarm Summary's read-only
@@ -346,7 +355,7 @@ keeps linked projects separate; each view can choose its owning project context.
 The bridge compares the generated definition's full tooling fingerprint before
 semantic actions. Incompatible toolsets disable designer changes while retaining
 XML editing and existing drafts. Rebuild the compiler/SDK and extension together.
-Contract 8 copies field descriptors, scalar states, canonical values and primitive
+Contract 9 copies field descriptors, scalar states, canonical values and primitive
 typed values; generated compiler or enum types never enter the host AppDomain.
 It also copies collection descriptors, procedure availability, local/effective/
 excluded entries, item/field origins and Clear exclusions. The compiler owns
@@ -375,7 +384,7 @@ built-in summary column while preserving ordinary fields named TestMethod.
 Unit tests extract the built SDK and VSIX to verify
 unsaved analysis, isolation, compatibility, cleanup, and the packaged worker
 without a compiler project reference or additional VSIX assemblies.
-Contract 8 retains captured-context analysis and compiled preview support. It
+Contract 9 retains captured-context analysis and compiled preview support. It
 also requires library snapshot analysis. CPS captures `OutputType=Library` and
 uses that mode for the project's own editor: missing consumer values are unavailable
 in previews, without treating those missing values as invalid library definitions.

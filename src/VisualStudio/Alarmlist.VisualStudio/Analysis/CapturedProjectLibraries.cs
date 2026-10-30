@@ -35,7 +35,8 @@ namespace Alarmlist.VisualStudio.Analysis
         }
 
         public static CapturedProjectLibraries Capture(AnalysisProject consumer, ISdkAnalysisBridgeFactory factory, CancellationToken token,
-            Action<IEnumerable<string>> observe = null, Action<IEnumerable<AnalysisDiscoveryGlob>> observeGlobs = null)
+            Action<IEnumerable<string>> observe = null, Action<IEnumerable<AnalysisDiscoveryGlob>> observeGlobs = null,
+            ReferenceInputOverlay overlay = null)
         {
             SavedProjectGraph graph = SavedProjectGraph.Capture(consumer, token,
                 path => observe?.Invoke(new[] { path }), evaluation =>
@@ -45,7 +46,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     .Concat(evaluation.Project.Inputs).Concat(evaluation.Project.Resources.Select(resource => resource.FilePath))
                     .Concat(evaluation.Project.Lookups).Concat(evaluation.Project.Analyzers)
                     .Concat(new[] { evaluation.Project.CompilerPath }).Where(path => !string.IsNullOrWhiteSpace(path)));
-                });
+                }, overlay);
             var captured = new List<CapturedLibraryProject>();
             var packages = new List<CapturedPackageLibraries>();
             var packageClosures = new Dictionary<SavedProjectEvaluation, IReadOnlyList<AnalysisInput>>();
@@ -55,7 +56,7 @@ namespace Alarmlist.VisualStudio.Analysis
             foreach (SavedProjectEvaluation project in graph.Projects)
             {
                 token.ThrowIfCancellationRequested();
-                CapturedLibraryProject inputs = CapturedLibraryProject.Capture(project, token);
+                CapturedLibraryProject inputs = CapturedLibraryProject.Capture(project, token, overlay);
                 observe?.Invoke(inputs.Context.Configurations.Select(configuration => configuration.FilePath));
                 captured.Add(inputs);
                 var children = graph.Dependencies[project];

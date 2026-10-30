@@ -2,7 +2,8 @@
 
 Status: original iterations 1–7 complete with required acceptance gates passed on
 2026-10-29. Follow-up iterations 8–14 (Find All References and Rename) authorized;
-implementation in progress. Original evidence and performance limits remain below.
+iterations 8–12 complete, with UI/integrated acceptance iterations 13–14 pending.
+Original evidence and performance limits remain below.
 
 ## Outcome and confirmed scope
 
@@ -634,3 +635,281 @@ Iteration 11 — complete:
   public APIs and contract-9 transport remain iteration 12. Changed contributor
   links, paths, diff and required checks reviewed. Analysis 8,
   analyzer 5, library 3, export 1 and definition fingerprints are unchanged.
+
+Iteration 12 — complete:
+
+- Internal request/target foundation captures source/context/project-document
+  bytes, library ownership/portable names, definition tooling fingerprint and
+  compiler module identity. Targets use declaration origins, compiler-mapped token
+  positions or compiler-issued declaration identities; stale captured targets are
+  rejected. Identity lookup in another frozen consumer creates a target bound to
+  that consumer's inputs instead of reusing another request's target.
+- Detached declaration identities include actual physical owners. Owning library
+  inputs can supply their authoritative portable source names so direct project
+  declarations and imported projections share identities; moving a declaration
+  to another owner does not reuse its identity at the same source position.
+  Compiler diagnostic source identities remain ordinal; host physical edit
+  deduplication remains a separate responsibility.
+- Captured project XML can map evaluated parameter declaration origins. Static
+  names require exact agreement with decoded declaration text; dynamic/composite
+  includes report explicit skipped findings. Project-file edits are not applicable
+  until SDK-owned overlay evaluation validates the proposed project context.
+  The initial prototype exposed those edits only for that pending validation.
+- Focused target/identity/compiler reference checks pass on both frameworks in
+  Iteration12/Targets and Identity (29 and 31 cases respectively); the latest
+  full compiler foundation verification passes 816 net472 / 818 net8.0 in
+  Iteration12/Foundation, including the project-evaluation applicability guard.
+  These foundation checks preceded public API/transport activation and used
+  analysis 8 with internal request/target types. The later contract-9 transition
+  and its evidence are recorded below; iteration-wide integration remains pending.
+- Internal preview selections now use stable snapshot/name-bound file groups;
+  excluded groups recompile the actual selection and report remaining changes
+  and expected diagnostics. Exact projected-input validation rejects omitted
+  changed files, extra edits, stale versions and another consumer context. A
+  matching SDK-evaluated project overlay clears the project-evaluation guard;
+  the request pipeline still needs to supply that complete overlay. Focused
+  selection/target checks pass 16 per framework in Iteration12/Selection.
+- Saved project evaluation now captures evaluated parameter Include origins and
+  accepts request-local project/import XML overlays through private MSBuild XML
+  roots. This reevaluates item membership and metadata without running targets.
+  Library graph/input capture accepts the same private overlay for project,
+  ALMX, RESX and lookup inputs. Normal callers retain saved-input behavior.
+  Dependency-overlay acceptance passes 21 net472 tests in
+  Iteration12/DependencyOverlay, including graph changes, conflicting shared
+  text, virtual inputs, preserved disk bytes and ordinary recapture.
+- Internal cross-context search follows actual declaration/family links to a
+  fixed point, retaining separate consumer/culture slices and external coverage
+  gaps. It does not connect unrelated equal names. Incompatible shared token
+  bindings are explicit unavailable occurrences without replacements. Focused
+  solution/target checks pass 12 per framework in Iteration12/SolutionFamilies;
+  the subsequent shared-conflict cases pass four per framework in
+  Iteration12/SharedSolution. The first build lacked a test namespace import;
+  it was corrected before these successful runs. A stalled shared-compiler
+  invocation was cancelled; these runs use UseSharedCompilation=false.
+- Saved all-culture capture reevaluates active configuration/platform membership
+  and metadata separately for each configured culture, also retaining the selected
+  consumer culture. Failed culture evaluations become explicit coverage findings;
+  cancellation still propagates. Import text is captured and replayed in a private
+  MSBuild collection so parameter locations and membership describe exactly the
+  attached XML bytes. A newly discovered import or changed captured text rejects
+  the request instead of pairing stale origins with newer text. Ordinary analysis
+  does not perform or retain this request-only capture.
+- All 27 focused host capture checks pass in
+  Iteration12/CapturedCultureDocuments (net472), including project/import overlays,
+  condition-dependent culture membership, partial culture coverage, exact import
+  text/locations, changed import discovery, saved-input preservation and cancellation.
+  Earlier culture-only foundation passed 25 in Iteration12/CultureCapture.
+  All 56 isolated packaged SDK bridge checks pass in Iteration12/ProjectOriginBridge;
+  project parameter source path/span/version survive domain unload while the host
+  remains free of compiler assemblies. These are contract-8 regression checks;
+  contract-9 reference transport and both desktop MSBuild host gates remain pending.
+- Latest full compiler regression checks pass 827 net472 / 829 net8.0 in
+  Iteration12/CompilerFoundation, using the current built assemblies after the
+  focused checks. The changed documentation paths and diff were reviewed.
+- The public FindReferencesSnapshots and PreviewRenameSnapshots APIs and detached
+  host transport now use analysis contract 9 together. Captured request creation
+  supports cancellation, library portable ownership and exact project/import text.
+  Search results and rename previews expose the contract/tooling fingerprint;
+  previews retain the snapshot-bound target/context and proposed name. Batch search
+  binds multiple independent targets in one pass, supporting solution identity
+  propagation and shared-token probes without retaining ordinary-analysis indexes.
+  Analyzer 5, library 3, export 1 and semantic definition fingerprints are unchanged.
+- The isolated SDK worker constructs only captured compiler inputs and copies
+  detached immutable declarations, occurrences, spans, diagnostics, groups and
+  replacements. It rejects stale request stamps before preview. Selected resource
+  and SDK-reevaluated project overlays are covered through the real package bridge;
+  no compiler objects or implementation assemblies enter the VS host. Contributor,
+  SDK and extension documentation, contract fixtures and repository guidance now
+  describe contract 9. Historical iteration records above retain their original
+  contract versions and acceptance evidence.
+- Full contract-9 compiler suites pass 828 net472 / 830 net8.0 in
+  Iteration12/Contract9Compiler. Isolated bridge checks pass 63 net472 in
+  Iteration12/SolutionReferenceBridge, including batch transport, transitive
+  cross-consumer/culture families, unrelated equal names, shared consumers with
+  incompatible bindings or captured text, source versions, partial groups,
+  reevaluated project metadata, cancellation and old-contract isolation.
+  Earlier transition checks passed 57 in Contract9BridgeFoundation and 60 in
+  ReferenceBridge before the final solution/batch additions.
+- The host solution search coordinator follows only compiler-issued declaration
+  identities and family edges. It retains consumer slices and coverage gaps;
+  shared token checks send exact compiler-issued spans back to each consumer's
+  SDK rather than interpreting text. Snapshot changes or failed revalidation
+  invalidate the search. Its request owner must still supply complete solution
+  capture and revalidate membership/toolsets/all inputs before publication.
+- Packaged SDK acceptance passes five cases per test framework using .NET MSBuild
+  in Iteration12/Contract9Package. The public reference/rename consumer fixture
+  verifies inheritance uses, compiler-issued declaration identities, immutable
+  versioned edits, excluded groups, cancellation and no captured-path file access.
+  Desktop MSBuild acceptance passes five cases each with VS 2022 and VS 2026 in
+  Iteration12/Contract9Desktop2022 and Contract9Desktop2026, sequentially. The
+  previous MSBuild host environment setting is restored after each run.
+- Generated-definition regression checks pass via eng/test-alarm-collections.ps1:
+  AlarmCollections/7dccf02ca9dc4af29727446b593943ac, 119 disabled / 117 enabled /
+  13 minimum-count checks per framework. The fixture now links the detached
+  reference result types and reader alongside the existing analysis transport.
+  These checks preserve procedure capability guards and collection metadata under
+  analysis contract 9.
+- The combined final bridge/capture run passes 90 net472 checks in
+  Iteration12/Contract9BridgeAndCapture after contract-shape constructor/target
+  checks were strengthened. Package checks exercise actual restored payloads;
+  host checks additionally verify detached transport/domain unload and shared
+  compiler-issued token probes. No native IDE interaction was needed for these
+  checks; interactive acceptance remains iterations 13–14.
+- The packaged owning-library/read-only-projection reference check passes in
+  Iteration12/ReferenceLibraryBridge (one net472 case). It verifies that the
+  library's portable source ownership survives detached transport, imported
+  declaration identities match the owning project, related consumer assignments
+  join the family, package declarations stay immutable and proven consumer edits
+  remain eligible only with partial-result acknowledgement.
+- Joint multi-target rename now validates one selected overlay for all participating
+  compiler-issued families in a consumer, retaining every target in ReferenceSearches.
+  It rejects incompatible names/kinds, coordinates a shared token only when all its
+  bound families participate, and leaves colliding families unchanged while proven
+  edits elsewhere require acknowledgement. Compiler groups now identify individual
+  physical replacements, so excluding one incompatible token does not discard other
+  proven changes in the same file; the host can aggregate groups for presentation.
+- Batch target lookup now indexes compiler-issued declaration/location/token spans.
+  A prefix-end interval index handles overlapping token uses without scanning the
+  complete index per probe. Family payloads share immutable declaration/occurrence
+  arrays in compiler batches and detached transport, including after domain unload.
+  Focused batch checks pass 11 cases per framework in Iteration12/BatchPayloadSharing,
+  including 1,000 probes with preserved targets and shared payload identity. Focused
+  joint/selection/reference checks pass 45 per framework in Iteration12/JointRename.
+- Reference occurrences retain their decoded token Spelling. Case-only renames use
+  each actual spelling, preserve already-correct XML entities and avoid no-op edits;
+  an existing independent/shadowing name in an insensitive namespace does not become
+  a new collision solely through case normalization. Full compiler acceptance passes
+  835 net472 / 837 net8.0 in Iteration12/JointCompilerFinal. The initial full run
+  used an incorrect unassigned-property assertion for a deliberately excluded
+  declaration edit; corrected it to the actual unknown-property diagnostic ALM0007
+  before the successful full run.
+- Added frozen reference-project and solution input capture. Known selections carry
+  active configuration/platform; missing selections become coverage gaps instead of
+  guessed defaults. Every configured culture and selected culture is evaluated.
+  Reachable saved project dependencies are discovered before artifact creation, so
+  an invalid library cannot hide other reachable projects. Consumer ALMX buffers
+  participate, dependencies remain saved, and resources/lookups/configuration/analyzer
+  inputs retain saved rules outside the private overlay. Captures include exact
+  project/import XML, portable library ownership and compiler hashes for every
+  involved project toolset. Comparison checks buffers, bytes, configuration,
+  membership, references, package assets/artifacts and toolsets. Active CPS membership
+  discrepancies are explicit coverage gaps; proposed overlays intentionally differ
+  from CPS and require original-input revalidation by their request owner.
+- Host capture/transport verification passes 69 checks in Iteration12/JointBridgeAndCapture.
+  Solution input capture passes eight cases in Iteration12/SolutionInputCaptureFinal,
+  including all cultures, missing contexts, active membership, virtual overlay
+  inputs and an invalid reachable library. The first run caught InvalidDataException
+  escaping the coverage boundary; added it to the explicit capture-failure filter
+  and verified continued dependency discovery. Final combined bridge/input checks
+  pass 100 net472 in Iteration12/JointSolutionBridgeFinal, including decoded spelling,
+  exact-token groups, joint transport and shared 1,000-target payloads. New async test
+  methods follow the host threading analyzer naming convention.
+- Investigation for the remaining project-declaration gate: the pinned MSBuild
+  evaluator's GetItemProvenance(string, itemType), with RecordEvaluatedItemElements,
+  reports applied Update operations, including overridden metadata updates, and
+  excludes false-conditioned/unmatched updates. This was verified with the local
+  MSBuildProvenanceProbe under Iteration12; its API XML comments still describe
+  Update as unimplemented. Capture these evaluator-issued name origins on demand
+  so a rename includes statically bound project parameter Update names. Do not
+  identify project usages through XML name matching; preserve explicit unavailable
+  findings for dynamic/ambiguous operations and retain ordinary saved-input rules.
+- Project item-name provenance now captures evaluator-issued Include and applied
+  Update origins on demand, including statically bound case aliases. Dynamic or
+  ambiguous origins remain searchable with explicit unavailable edits. Ordinary
+  evaluation does not record provenance. Focused host checks pass 81 in
+  Iteration12/ProjectBindingOrigins; full compiler checks pass 836 net472 / 838
+  net8.0 in ProjectOriginCompiler and RenameApplicability. Snapshot identity now
+  includes diagnostic policy, captured EditorConfig, analyzer identity and project
+  binding origins. Reference occurrences carry compiler-issued source-token and
+  declaration identities across owning libraries and imported projections.
+- Added the native solution catalogue for active configuration/platform mappings,
+  including unloaded projects and explicit unavailable/excluded selections. It
+  listens for solution/configuration/project registry changes. The first compile
+  exposed the native FindActiveProjectCfg array signature; corrected it. Combined
+  host build/capture checks pass 82 in Iteration12/ProjectBindingsAndCatalogue;
+  this is not evidence of native catalogue behavior on either IDE host.
+- Added solution physical edit selection, deduplication across cultures, exact
+  replacement exclusions, shared binding conflicts and compiler-issued ambiguous
+  or colliding family impact. Physical IDs include captured text and snapshot
+  identities; changed names and stale selections are rejected. Proposed overlays
+  remain private. Four focused bridge/selection checks pass in
+  Iteration12/PhysicalRenameSelection; five checks pass in PhysicalRenameValidation,
+  including exact selected overlay validation and actual partial-result diagnostic
+  differences. These runs preceded the final request-session integration.
+- Added request-owned session coordination, complete proposed-solution recapture,
+  SDK evaluation of proposed diagnostics and compiler token probes after edits.
+  Original inputs are recaptured before publication; navigation and Apply must
+  call the same revalidation. Watchers/catalogue events cancel obsolete operations.
+  The first request-session test failed through unexpected watcher cancellation
+  while opening its SDK worker (ReferenceSession: five passed, one failed).
+  Added observed-path diagnostics; investigation and the corrected acceptance run
+  remain pending. Do not treat this lifecycle gate as successful yet.
+- The watcher investigation identified a directory Changed event for the extracted
+  SDK's tasks directory during worker opening. Directory timestamp notifications
+  previously invalidated every selected descendant. Changed-directory timestamps
+  are now ignored while file changes and directory create/delete/rename events
+  retain their invalidation behavior. ReferenceSessionDiagnostics passed four
+  checks and reproduced the single session failure with its observed path before
+  this correction. ReferenceSessionWatcherFix passes all five focused checks after
+  the correction, including full session capture/search/preview/revalidation,
+  catalogue cancellation, a missed buffer event, exact partial-result validation,
+  shared physical selection and owning-library collision impact. A colliding
+  consumer prevents edits to the contributing library tokens while independent
+  proven consumer edits remain available with acknowledgement. The session test
+  confirms previews never modify the saved source. These are host tests, not
+  native command or buffer-Apply acceptance.
+- Structured ambiguity is now part of both target results and declaration data;
+  post-edit probes distinguish ambiguous bindings without reading message text.
+  Full compiler acceptance passes 837 net472 / 839 net8.0 in
+  Iteration12/StructuredReferenceAmbiguityFixed, including a translated resource
+  token bound to independent parameter families in two alarms. The first attempt
+  used the wrong namespace for the test's ResxTextSnapshot; fixed that test-only
+  compile error before the successful run.
+- The integrated host run passes 103 net472 checks in
+  Iteration12/IntegratedReferenceSession, covering SDK bridge isolation, frozen
+  captures, evaluator provenance, resources and evaluation-watch recovery after
+  session integration. Diagnostic comparison now retains physical origins and
+  adjusts known locations through approved edits, so fixing one file cannot hide
+  an identically worded new diagnostic in another. Owning-buffer and saved-library
+  contexts retain distinct captured identities without displaying evaluator globals.
+- Full request-session library/project overlays pass seven focused checks in
+  Iteration12/LibraryOverlaySessionFixed. They recapture owning buffers and saved
+  dependency contexts, recreate the library privately, validate every consumer and
+  prove that project Include plus case-aliased Update parameter bindings are
+  reevaluated together. Imported immutable projections of tokens edited through
+  their owning project no longer create false skipped findings. Actual immutable,
+  excluded or conflicting tokens remain explicit. The initial library case found
+  a null assets path for a project with no restored packages; absent optional
+  watcher paths are now omitted before watcher creation. No source or project file
+  is changed by capture, preview or proposed-result validation.
+- Final package checks pass five cases per framework in
+  Iteration12/FinalReferencePackage. Both desktop hosts pass five cases each in
+  FinalReferenceDesktop2022 and FinalReferenceDesktop2026, run sequentially with
+  the previous host environment restored. Generated-definition acceptance passes
+  via eng/test-alarm-collections.ps1 at
+  AlarmCollections/c29bc9f5d82e44b4b911545deb69b543 (procedure-enabled, disabled and
+  minimum-count variants on both frameworks), using the final detached contract-9
+  reference shapes and reader (119 disabled / 117 enabled / 13 minimum-count
+  checks per framework).
+- Added ownership handling for format-3 library project parameters, whose imported
+  declarations intentionally have no physical location. Compiler declaration IDs
+  connect that projection to the editable owning declaration; the host neither
+  guesses a project span nor changes the library format. The first final host run
+  passed 105 and failed one new assertion because its child application context
+  lacked a project parameter assignment: library project defaults do not flow
+  into that child's context, and the compiler correctly reported unbound P. The
+  ownership test now inspects the defining library projection; the actual unbound
+  coverage behavior is preserved. FinalSolutionReferenceHostFixed passes all 106
+  net472 host checks, including the corrected ownership scenario.
+- Completion: public opt-in APIs and immutable contract-9 transport, exact source
+  targeting, active/all-culture solution/dependency capture, coverage, physical
+  selection, private project/resource/library overlays, proposed diagnostics,
+  cancellation and original-input publication revalidation are implemented. The
+  compiler, focused host, packaged desktop and generated-definition gates above
+  pass. Diff/contract/documentation consistency reviewed; no generated evidence
+  files are included in the iteration commit.
+- Planned remaining gates: native solution catalogue mappings, References/rename
+  commands, navigation, private-draft blocking and buffer Apply integration on
+  both IDEs belong to iteration 13. Full integrated/native/tutorial/performance
+  acceptance belongs to iteration 14. No end-to-end References/Rename UI acceptance
+  is claimed by this iteration. Both later iterations remain authorized.

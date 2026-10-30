@@ -152,7 +152,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             using (var session = new SemanticSession())
             {
                 session.Analysis.ExplainHandler = (state, target, token) => Task.FromResult(new ExplanationResponse(AnalysisAvailability.Available, null,
-                    new AnalysisExplanation(8, Definition.AlarmDefinition.ToolingFingerprint, target, "P", "Debug", "AnyCPU", "keyword", 0,
+                    new AnalysisExplanation(9, Definition.AlarmDefinition.ToolingFingerprint, target, "P", "Debug", "AnyCPU", "keyword", 0,
                         Enumerable.Range(0, 125).Select(index => new AnalysisExplanationNode(index, "Dependency", "P" + index, null, "v", "v", "Valid", "String", "Context", null,
                             null, null, index == 0 ? Enumerable.Range(1, 124) : new[] { 124 }.Where(id => id != index), null, null)), Array.Empty<AnalysisDiagnostic>(), null, true)));
                 session.View.ExplainValue(session.Field("Name")); await session.View.Explanation.Pending;

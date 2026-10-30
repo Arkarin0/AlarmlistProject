@@ -21,6 +21,7 @@ namespace Alarmlist.Analysis
                 foreach (var group in alarm.TestProcedure.Groups)
                 {
                     var symbol = AddSymbol("Group", group.Name, group.Location);
+                    symbol.Owner = _alarms[alarm];
                     symbol.Ambiguous = _alarms[alarm].Ambiguous || !ProcedureGroupSyntax.IsValidName(group.Name)
                         || alarm.TestProcedure.Groups.Count(other => string.Equals(other.Name, group.Name, StringComparison.OrdinalIgnoreCase)) != 1;
                     _groups.Add(group, symbol);
@@ -56,9 +57,11 @@ namespace Alarmlist.Analysis
         {
             string field = Definition.AlarmDefinition.Fields.FirstOrDefault(candidate =>
                 string.Equals("AlarmlistAlarm" + candidate.Name, token.Key, StringComparison.OrdinalIgnoreCase))?.Name;
-            bool known = field != null || WellKnownProperties.Capture(_context, alarm).ContainsKey(token.Key);
+            var wellKnown = WellKnownProperties.Capture(_context, alarm);
+            bool known = field != null || wellKnown.ContainsKey(token.Key);
             if (!known) { _coverage.Add("Unknown built-in name: " + token.Key); return; }
-            var symbol = BuiltIn(field == null ? "WellKnown" : "DefinitionField", field ?? token.Key);
+            string canonical = field ?? wellKnown.Keys.First(name => string.Equals(name, token.Key, StringComparison.OrdinalIgnoreCase));
+            var symbol = BuiltIn(field == null ? "WellKnown" : "DefinitionField", canonical);
             AddUse(symbol, "BuiltIn", location, alarm.FullyQualifiedName, null, token.KeyStart, token.KeyLength);
             if (string.Equals(token.Key, "AlarmlistAlarmFullyQualifiedName", StringComparison.OrdinalIgnoreCase))
                 _uses.Add(new Use(_alarms[alarm], "Binding", location, alarm.FullyQualifiedName, null, null));

@@ -1,6 +1,7 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Alarmlist.ConfigurationInput;
@@ -13,7 +14,8 @@ namespace Alarmlist.VisualStudio.ProjectSystem
     {
         internal const string CompilerPathProperty = "AlarmlistAnalysisCompilerAssembly";
 
-        public static AnalysisProject Capture(ProjectInstance project, string projectPath, string configuration)
+        public static AnalysisProject Capture(ProjectInstance project, string projectPath, string configuration,
+            IEnumerable<AnalysisPropertyDefinition> parameterOrigins = null)
         {
             string directory = Path.GetDirectoryName(projectPath);
             // GetItems preserves evaluated order. Collapse equivalent physical
@@ -26,8 +28,8 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 item => item.GetMetadata("Culture")?.EvaluatedValue, link, projectPath);
             var lookupItems = EvaluatedInputSet.Unique(project.GetItems("AlarmlistLookup"), "AlarmlistLookup", Physical, link: link, projectPath: projectPath);
             string[] paths = compileItems.Select(Physical).ToArray();
-            var properties = project.GetItems("AlarmlistProperty").Select(item => new AnalysisPropertyDefinition(item.EvaluatedInclude,
-                item.GetMetadata("Value")?.EvaluatedValue)).ToArray();
+            var properties = (parameterOrigins ?? project.GetItems("AlarmlistProperty").Select(item => new AnalysisPropertyDefinition(item.EvaluatedInclude,
+                item.GetMetadata("Value")?.EvaluatedValue))).ToArray();
             var resources = resourceItems.Select(item => new AnalysisResourceItem(Physical(item), item.GetMetadata("Culture")?.EvaluatedValue)).ToArray();
             var context = new AnalysisContext(projectPath, EmptyToNull(project.GetPropertyValue("Configuration")),
                 EmptyToNull(project.GetPropertyValue("Platform")), properties, culture: project.GetPropertyValue("AlarmlistCulture"),

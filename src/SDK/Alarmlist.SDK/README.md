@@ -18,7 +18,7 @@ assemblies, and their runtime dependencies.
 
 ### Generated definitions and compatibility
 
-Current toolsets use analysis contract 8, analyzer contract 5 and library format 3.
+Current toolsets use analysis contract 9, analyzer contract 5 and library format 3.
 Rebuild old analyzers and `.almlib` artifacts with the matching toolset. Libraries
 carry a semantic definition fingerprint; a different field layout, type, default,
 required flag, bound or enum choice is incompatible. Presentation-only changes do
@@ -81,7 +81,7 @@ This is a breaking transition: replace old Instructions/Reset elements with
 `<Group Name="Instructions">` / `<Group Name="Reset">`. Legacy elements are
 rejected. Compiled XML uses Group/Name/Title and TestProcedureItem children.
 The compiler's TestProcedure exposes Groups; detached alarm analysis exposes
-ProcedureSections with title provenance. Analysis contract 8 requires the matching
+ProcedureSections with title provenance. Analysis contract 9 requires the matching
 extension; external analyzers must be rebuilt for analyzer contract 5. No migration
 tool or compatibility aliases are supplied. See the
 [milestone-eight contract](../../VisualStudio/MILESTONE-8.md).
@@ -748,7 +748,7 @@ It shares the compiler's resolution rules and never reads or writes snapshot pat
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and returns contract 8.
+The original overload keeps its analysis-only behavior and returns contract 9.
 `AnalyzeLibrarySnapshots(snapshots, context, cancellationToken)` analyzes library
 definitions with the same deferred-value rules as library validation. Missing
 consumer values remain unavailable; syntax, structure and reference errors remain
@@ -789,7 +789,19 @@ Ordinary compilation and analysis retain no explanation graph. Callers must stil
 revalidate source/dependency/resource/context inputs before publication/navigation.
 Use allowDeferredValues for library contexts; abstract targets defer automatically.
 
-The bridge requires contract 8 and copies this data into host-owned serializable
+`FindReferencesSnapshots(request, target, cancellationToken)` and
+`PreviewRenameSnapshots(request, target, newName, cancellationToken, includedGroups,
+validationInputs)` provide opt-in reference discovery and versioned rename previews.
+`ReferenceCompilationSnapshot` holds captured sources, context and optional exact
+project/import text. Its target factories identify a compiler-bound token,
+declaration location or compiler-issued declaration identity. Targets are bound to
+the captured input stamp. Results include exact source spans, semantic families,
+coverage, diagnostics, and (for rename) selected change groups and proposed-result
+diagnostics. Project edits remain non-applicable until SDK-owned project overlay
+evaluation supplies matching validation inputs. No edits or file I/O occur inside
+these compiler APIs; ordinary analysis retains no reference index.
+
+The bridge requires contract 9 and copies this data into host-owned serializable
 objects. Resource filename inference is delegated to the SDK's
 `LocalizationCulture.InferResourceCulture`; explicit empty culture stays distinct.
 CPS saved-resource capture and designer localization follow in iterations six/seven.
@@ -812,7 +824,7 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 8 and a CPS
+The extension now has an isolated AppDomain bridge for contract 9 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear

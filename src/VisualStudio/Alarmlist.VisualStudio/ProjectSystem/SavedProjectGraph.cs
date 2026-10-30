@@ -52,7 +52,8 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                 && PropertiesMatch(item.Metadata, right[index].Metadata)).All(equal => equal);
 
         public static SavedProjectGraph Capture(AnalysisProject consumer, CancellationToken token,
-            Action<string> observeReference = null, Action<SavedProjectEvaluation> observeEvaluation = null)
+            Action<string> observeReference = null, Action<SavedProjectEvaluation> observeEvaluation = null,
+            ReferenceInputOverlay overlay = null)
         {
             var completed = new Dictionary<string, SavedProjectEvaluation>(StringComparer.Ordinal);
             var dependencies = new Dictionary<SavedProjectEvaluation, IReadOnlyList<SavedProjectEvaluation>>();
@@ -90,7 +91,7 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                     frame.Children.Add(existing);
                     continue;
                 }
-                SavedProjectEvaluation evaluation = SavedProjectEvaluation.Capture(path, globals, token, observeEvaluation);
+                SavedProjectEvaluation evaluation = SavedProjectEvaluation.Capture(path, globals, token, observeEvaluation, overlay?.ProjectDocuments);
                 observeEvaluation?.Invoke(evaluation);
                 frame.Children.Add(evaluation);
                 activePaths.Add(path);

@@ -100,6 +100,16 @@ namespace Alarmlist.Compiler
         {
         }
 
+        /// <summary>Captures evaluator-issued project item name bindings for opt-in reference requests.</summary>
+        public PropertyDefinition(string name, string value, SourceLocation location, IEnumerable<SourceLocation> referenceLocations,
+            bool hasAmbiguousReferences)
+            : this(name, value, location, false)
+        {
+            ReferenceLocations = Array.AsReadOnly((referenceLocations ?? Array.Empty<SourceLocation>()).ToArray());
+            if (ReferenceLocations.Any(reference => reference == null)) throw new ArgumentException("A reference origin cannot be null.", nameof(referenceLocations));
+            HasAmbiguousReferences = hasAmbiguousReferences;
+        }
+
         internal PropertyDefinition(string name, string value, SourceLocation location, bool invalidContent)
         {
             Name = name;
@@ -111,6 +121,8 @@ namespace Alarmlist.Compiler
         public string Name { get; }
         public string Value { get; }
         public SourceLocation Location { get; }
+        public IReadOnlyList<SourceLocation> ReferenceLocations { get; } = Array.Empty<SourceLocation>();
+        public bool HasAmbiguousReferences { get; }
         internal bool HasInvalidContent { get; }
     }
 }

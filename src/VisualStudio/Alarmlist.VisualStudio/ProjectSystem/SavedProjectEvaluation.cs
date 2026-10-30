@@ -160,7 +160,8 @@ namespace Alarmlist.VisualStudio.ProjectSystem
         public IReadOnlyList<AnalysisDiscoveryGlob> DiscoveryGlobs { get; }
 
         public static SavedProjectEvaluation Capture(string projectPath, IDictionary<string, string> globalProperties,
-            CancellationToken token, Action<SavedProjectEvaluation> observeFailedEvaluation = null)
+            CancellationToken token, Action<SavedProjectEvaluation> observeFailedEvaluation = null,
+            IReadOnlyDictionary<string, string> projectOverlays = null, bool captureReferences = false)
         {
             token.ThrowIfCancellationRequested();
             string path = Path.GetFullPath(projectPath);
@@ -169,10 +170,23 @@ namespace Alarmlist.VisualStudio.ProjectSystem
             {
                 try
                 {
+                    var overlayRoots = new List<Microsoft.Build.Construction.ProjectRootElement>();
+                    foreach (var overlay in projectOverlays ?? new Dictionary<string, string>())
+                    {
+                        token.ThrowIfCancellationRequested();
+                        string overlayPath = Path.GetFullPath(overlay.Key);
+                        using (var reader = XmlReader.Create(new StringReader(overlay.Value),
+                            new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null }, overlayPath))
+                        {
+                            var root = Microsoft.Build.Construction.ProjectRootElement.Create(reader, collection);
+                            root.FullPath = overlayPath; overlayRoots.Add(root);
+                        }
+                    }
                     // Do not reuse CPS ProjectRootElement instances: their XML may contain
                     // unsaved project edits. A new collection also avoids stale import caches.
                     Project evaluated;
-                    try { evaluated = collection.LoadProject(path); }
+                    try { evaluated = captureReferences ? new Project(path, collection.GlobalProperties, null, collection,
+                        ProjectLoadSettings.RecordEvaluatedItemElements) : collection.LoadProject(path); }
                     catch (Microsoft.Build.Exceptions.InvalidProjectFileException)
                     {
                         // On first capture there are no previous watches to retain.
@@ -197,9 +211,37 @@ namespace Alarmlist.VisualStudio.ProjectSystem
                     }
                     token.ThrowIfCancellationRequested();
                     var snapshot = AlarmlistProjectSnapshot.Capture(evaluated.CreateProjectInstance(), path,
-                        evaluated.GetPropertyValue("Configuration") + "|" + evaluated.GetPropertyValue("Platform"));
-                    return new SavedProjectEvaluation(snapshot, new[] { path }.Concat(evaluated.Imports
+                        evaluated.GetPropertyValue("Configuration") + "|" + evaluated.GetPropertyValue("Platform"),
+                        evaluated.GetItems("AlarmlistProperty").Select(item =>
+                        {
+                            var origin = item.Xml.IncludeLocation;
+                            var location = origin == null || origin.Line < 1 || origin.Column < 1 ? null
+                                : new AnalysisLocation(item.Xml.ContainingProject.FullPath, origin.Line, origin.Column,
+                                    origin.Line, origin.Column + "Include".Length, 0);
+                            if (!captureReferences) return new AnalysisPropertyDefinition(item.EvaluatedInclude, item.GetMetadata("Value")?.EvaluatedValue, location);
+                            var references = new List<AnalysisLocation>();
+                            bool produced = false, ambiguous = false;
+                            // Query the evaluator's actual item operations, not XML
+                            // names. The item overload stops at the producer and
+                            // would omit later Update operations.
+                            foreach (var provenance in evaluated.GetItemProvenance(item.EvaluatedInclude, "AlarmlistProperty"))
+                            {
+                                token.ThrowIfCancellationRequested();
+                                if (ReferenceEquals(provenance.ItemElement, item.Xml) && provenance.Operation == Operation.Include) { produced = true; continue; }
+                                if (!produced) continue;
+                                if (provenance.Operation == Operation.Include || provenance.Operation == Operation.Remove) { ambiguous = true; continue; }
+                                if (provenance.Operation != Operation.Update) continue;
+                                var update = provenance.ItemElement.UpdateLocation;
+                                if (update == null || update.Line < 1 || update.Column < 1) { ambiguous = true; continue; }
+                                references.Add(new AnalysisLocation(provenance.ItemElement.ContainingProject.FullPath, update.Line, update.Column,
+                                    update.Line, update.Column + "Update".Length, 0));
+                            }
+                            return new AnalysisPropertyDefinition(item.EvaluatedInclude, item.GetMetadata("Value")?.EvaluatedValue, location, references, ambiguous || !produced);
+                        }));
+                    var captured = new SavedProjectEvaluation(snapshot, new[] { path }.Concat(evaluated.Imports
                         .Select(import => import.ImportedProject.FullPath)).Distinct(StringComparer.OrdinalIgnoreCase), evaluated, token);
+                    GC.KeepAlive(overlayRoots);
+                    return captured;
                 }
                 finally { collection.UnloadAllProjects(); }
             }

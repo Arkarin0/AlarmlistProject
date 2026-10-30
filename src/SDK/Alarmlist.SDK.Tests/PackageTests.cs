@@ -42,7 +42,7 @@ namespace Alarmlist.MSBuild.SDK.Tests
             var app = _fixture.CreateTestApp("AnalysisContract");
             var result = app.Run(_output, "/t:VerifyAnalysis");
             Assert.True(result.ExitCode == 0, result.Output);
-            Assert.Contains("Packaged analysis contract 8 passed", result.Output);
+            Assert.Contains("Packaged analysis contract 9 passed", result.Output);
             Assert.False(File.Exists(app.OutputPath));
         }
 

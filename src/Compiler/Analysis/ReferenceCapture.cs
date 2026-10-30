@@ -24,7 +24,7 @@ namespace Alarmlist.Analysis
     {
         private readonly CompilationContext _context;
         private readonly CancellationToken _token;
-        private readonly Dictionary<string, Source> _sources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, Source> _sources = new Dictionary<string, Source>(StringComparer.Ordinal);
         private readonly Dictionary<AlarmSyntaxNode, Symbol> _alarms = new Dictionary<AlarmSyntaxNode, Symbol>();
         private readonly Dictionary<PropertyDefinition, Symbol> _parameters = new Dictionary<PropertyDefinition, Symbol>();
         private readonly List<Symbol> _symbols = new List<Symbol>();
@@ -34,6 +34,7 @@ namespace Alarmlist.Analysis
         private readonly string _replacement;
         private string _requestStamp;
         private IReadOnlyList<AnalysisDiagnostic> _diagnostics = Array.Empty<AnalysisDiagnostic>();
+        private ReferenceLibraryScope _declaringLibrary;
 
         private ReferenceCapture(CompilationContext context, CancellationToken token, string replacement)
         {
@@ -41,14 +42,16 @@ namespace Alarmlist.Analysis
         }
 
         internal static ReferenceData Capture(AlmxTextSnapshot[] inputs, CompilationContext context,
-            CancellationToken token = default, string replacement = null)
+            CancellationToken token = default, string replacement = null, IReadOnlyList<ReferenceTextSnapshot> projectDocuments = null,
+            ReferenceLibraryScope declaringLibrary = null)
         {
             if (inputs == null) throw new ArgumentNullException(nameof(inputs));
             if (context == null) throw new ArgumentNullException(nameof(context));
             if (inputs.Any(input => input == null)) throw new ArgumentException("A captured input cannot be null.", nameof(inputs));
             token.ThrowIfCancellationRequested();
             var capture = new ReferenceCapture(context, token, replacement);
-            capture._requestStamp = StampInputs(inputs, context, token);
+            capture._declaringLibrary = declaringLibrary;
+            capture._requestStamp = StampInputs(inputs, context, token, projectDocuments, declaringLibrary);
             var binder = new Binder();
             foreach (var input in inputs)
             {
@@ -64,10 +67,18 @@ namespace Alarmlist.Analysis
                 binder.AddSourceText(input.CreateSourceText());
             }
             capture.AddAuxiliarySources(context);
+            foreach (var document in projectDocuments ?? Array.Empty<ReferenceTextSnapshot>())
+            {
+                token.ThrowIfCancellationRequested();
+                if (capture._sources.ContainsKey(document.FilePath)) throw new ArgumentException("A project source path must be unambiguous.");
+                capture._sources.Add(document.FilePath, new Source(new AlmxTextSnapshot(document.Text, document.FilePath, document.Version), token));
+            }
             var binding = LibraryCompilation.Include(binder.Bind(), context);
             capture.Observe(binding.SyntaxTree);
             token.ThrowIfCancellationRequested();
-            capture._diagnostics = Array.AsReadOnly(SnapshotAnalyzer.Compile(binding, context, token).Diagnostics
+            var compilation = declaringLibrary == null ? SnapshotAnalyzer.Compile(binding, context, token)
+                : SnapshotAnalyzer.ValidateLibrary(binding, context, token, out _);
+            capture._diagnostics = Array.AsReadOnly(compilation.Diagnostics
                 .Select(diagnostic => new AnalysisDiagnostic(diagnostic)).ToArray());
             return capture.Freeze();
         }
@@ -77,18 +88,19 @@ namespace Alarmlist.Analysis
             ObserveResources(tree.LibraryGraph);
             ObserveLookups(tree.LibraryGraph);
             ObserveGeneratedCaptions();
-            AddParameters(_context.Properties, "Project:" + _context.ProjectPath);
+            AddParameters(_context.Properties, "Project:" + _context.ProjectPath, libraryProject: _declaringLibrary?.Identity);
             foreach (var file in tree.Files)
             {
-                AddParameters(file.Library?.Properties ?? Enumerable.Empty<PropertyDefinition>(), "LibraryProject:" + file.Library?.Identity);
+                AddParameters(file.Library?.Properties ?? Enumerable.Empty<PropertyDefinition>(), "LibraryProject:" + file.Library?.Identity, libraryProject: file.Library?.Identity);
                 AddParameters(file.Properties, FileScope(file));
                 foreach (var alarm in file.Alarms)
                 {
                     _token.ThrowIfCancellationRequested();
                     var symbol = AddSymbol("Alarm", alarm.FullyQualifiedName, alarm.GetFieldLocation("FullyQualifiedName") ?? alarm.Location);
                     _alarms.Add(alarm, symbol);
+                    symbol.TargetLocation = alarm.Location;
                     AddUse(symbol, "Declaration", symbol.Location, alarm.FullyQualifiedName, null, 0, alarm.FullyQualifiedName?.Length ?? 0);
-                    AddParameters(alarm.Properties, alarm.FullyQualifiedName);
+                    AddParameters(alarm.Properties, alarm.FullyQualifiedName, owner: symbol);
                 }
             }
             var duplicateAlarms = new HashSet<string>(tree.Alarms.GroupBy(alarm => alarm.FullyQualifiedName, StringComparer.Ordinal)
@@ -220,7 +232,7 @@ namespace Alarmlist.Analysis
             }
         }
 
-        private void AddParameters(IEnumerable<PropertyDefinition> properties, string scope)
+        private void AddParameters(IEnumerable<PropertyDefinition> properties, string scope, Symbol owner = null, LibraryIdentity libraryProject = null)
         {
             var declarations = properties.ToArray();
             var counts = declarations.GroupBy(property => property.Name ?? string.Empty, StringComparer.OrdinalIgnoreCase)
@@ -228,23 +240,32 @@ namespace Alarmlist.Analysis
             foreach (var property in declarations)
             {
                 if (_parameters.ContainsKey(property)) continue;
-                var symbol = AddSymbol("Parameter", property.Name, property.Location);
+                var symbol = AddSymbol("Parameter", property.Name, property.Location, identityScope: scope,
+                    identitySite: libraryProject == null ? null : "LibraryProject:" + libraryProject.ToString().ToUpperInvariant());
+                symbol.Owner = owner;
                 symbol.Ambiguous = property.HasInvalidContent || !PropertyExpression.IsValidName(property.Name)
                     || property.Name.StartsWith("Alarmlist", StringComparison.OrdinalIgnoreCase)
-                    || counts[property.Name ?? string.Empty] != 1;
+                    || counts[property.Name ?? string.Empty] != 1 || property.HasAmbiguousReferences;
+                if (property.HasAmbiguousReferences) _coverage.Add("Ambiguous project item data flow for parameter: " + property.Name);
                 _parameters.Add(property, symbol);
-                AddUse(symbol, "Declaration", property.Location, scope, "Name", 0, property.Name?.Length ?? 0);
+                string attribute = property.Location != null && _sources.TryGetValue(property.Location.FilePath, out var source)
+                    && source.Find(property.Location) is XAttribute ? null : "Name";
+                AddUse(symbol, "Declaration", property.Location, scope, attribute, 0, property.Name?.Length ?? 0);
+                foreach (var reference in property.ReferenceLocations) AddUse(symbol, "ProjectBinding", reference, scope, null, 0, property.Name?.Length ?? 0);
             }
         }
 
         private static string FileScope(AlarmSyntaxTree file) => "File:" + (file?.Properties.FirstOrDefault()?.Location?.FilePath ?? "unavailable");
 
-        private Symbol AddSymbol(string kind, string name, SourceLocation location, bool readOnly = false)
+        private Symbol AddSymbol(string kind, string name, SourceLocation location, bool readOnly = false, string identityScope = null, string identitySite = null)
         {
             bool mapped = location != null && _sources.TryGetValue(location.FilePath, out var source)
                 && location.SourceVersion == source.Input.Version;
             string stamp = mapped ? _sources[location.FilePath].Stamp : "external";
             var symbol = new Symbol(kind + ":" + _requestStamp + ":" + stamp + ":" + Address(location) + ":" + _symbols.Count, kind, name, location, !mapped || readOnly);
+            string identity = kind + ":" + Definition.AlarmDefinition.SchemaFingerprint + ":" + (identitySite ?? (location == null
+                ? identityScope ?? "Definition" : CanonicalSourceIdentity(location.FilePath) + ":" + location.LineNumber + ":" + location.ColumnNumber)) + ":" + name;
+            using (var hash = SHA256.Create()) symbol.DeclarationId = BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(identity)));
             _symbols.Add(symbol);
             return symbol;
         }
@@ -252,18 +273,38 @@ namespace Alarmlist.Analysis
         private void AddUse(Symbol symbol, string role, SourceLocation location, string consumer, string attribute, int start, int length)
         {
             MappedTextEdit edit = null;
-            string unavailable = null;
+            string unavailable = null, spelling = null;
             if ((role == "Declaration" && symbol.ReadOnly) || location == null || !_sources.TryGetValue(location.FilePath, out var source) || location.SourceVersion != source.Input.Version)
                 unavailable = "The defining source is read-only or was not captured.";
             else
             {
                 var node = source.Find(location);
                 XObject value = attribute == null ? node : (node as XElement ?? (node as XAttribute)?.Parent)?.Attribute(attribute);
-                if (value == null || !source.Map.Values.TryGetValue(value, out var mapped)
-                    || !mapped.TryReplace(start, length, _replacement ?? symbol.Name ?? string.Empty, out edit))
+                if (value == null || !source.Map.Values.TryGetValue(value, out var mapped))
                     unavailable = "The token has no contiguous editable source span.";
+                else
+                {
+                    if (start >= 0 && length >= 0 && start <= mapped.Value.Length && length <= mapped.Value.Length - start) spelling = mapped.Value.Substring(start, length);
+                    if ((role == "Declaration" || role == "ProjectBinding") && !string.Equals(mapped.Value, symbol.Name,
+                        symbol.Kind == "Parameter" || symbol.Kind == "Group" ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+                    {
+                        unavailable = "A dynamic or composite declaration cannot be renamed by guessing its source.";
+                        spelling = mapped.Value;
+                        // Search may still navigate the proven MSBuild operation.
+                        // Its full source range is observable, never replaceable.
+                        mapped.TryReplace(0, mapped.Value.Length, mapped.Value, out edit);
+                    }
+                    else if (!mapped.TryReplace(start, length, _replacement ?? symbol.Name ?? string.Empty, out edit))
+                        unavailable = "The token has no contiguous editable source span.";
+                }
             }
-            _uses.Add(new Use(symbol, role, location, consumer, edit, unavailable));
+            string sourceTokenId = null;
+            if (location != null)
+            {
+                string identity = CanonicalSourceIdentity(location.FilePath) + "\n" + location.LineNumber + ":" + location.ColumnNumber + ":" + start + ":" + length;
+                using (var hash = SHA256.Create()) sourceTokenId = BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(identity)));
+            }
+            _uses.Add(new Use(symbol, role, location, consumer, edit, unavailable, spelling, sourceTokenId));
         }
 
         private ReferenceData Freeze()
@@ -273,19 +314,31 @@ namespace Alarmlist.Analysis
                 if (symbol.Owner != null && Root(symbol.Owner).Ambiguous) { symbol.Ambiguous = true; Root(symbol).Ambiguous = true; }
             var ambiguous = new HashSet<Symbol>(_symbols.Where(symbol => symbol.Ambiguous).Select(Root));
             foreach (var symbol in ambiguous) _coverage.Add("Ambiguous or invalid declaration: " + symbol.Kind + " " + symbol.Name);
+            var declarations = new Dictionary<Symbol, string>();
+            string Declaration(Symbol symbol)
+            {
+                if (declarations.TryGetValue(symbol, out string existing)) return existing;
+                string identity = symbol.DeclarationId;
+                if (symbol.Owner != null)
+                    using (var hash = SHA256.Create()) identity = BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(Declaration(symbol.Owner) + ":" + identity)));
+                declarations.Add(symbol, identity); return identity;
+            }
             return new ReferenceData(_symbols.Select(symbol => new ReferenceSymbol(symbol.Id, Root(symbol).Id, symbol.Kind,
-                symbol.Name, symbol.Location, symbol.ReadOnly, symbol.Owner == null ? null : Root(symbol.Owner).Id)), _uses.GroupBy(use => (Root(use.Symbol).Id, use.Role,
+                symbol.Name, symbol.Location, symbol.ReadOnly, symbol.Owner == null ? null : Root(symbol.Owner).Id,
+                Declaration(symbol), symbol.TargetLocation, ambiguous.Contains(Root(symbol)))), _uses.GroupBy(use => (Root(use.Symbol).Id, use.Role,
                     Address(use.Location), use.Consumer, use.Edit?.Start, use.Edit?.Length, use.Unavailable)).Select(group => group.First())
                 .Select(use => new ReferenceOccurrence(Root(use.Symbol).Id,
                 use.Role, use.Location, use.Consumer, use.Edit?.Start,
                 use.Edit?.Length, ambiguous.Contains(Root(use.Symbol)) ? null : use.Edit?.Text,
-                ambiguous.Contains(Root(use.Symbol)) ? "Ambiguous or invalid binding; no replacement was guessed." : use.Unavailable)), _coverage, _diagnostics);
+                ambiguous.Contains(Root(use.Symbol)) ? "Ambiguous or invalid binding; no replacement was guessed." : use.Unavailable,
+                use.Spelling, Declaration(use.Symbol), use.SourceTokenId)), _coverage, _diagnostics);
         }
 
         private static string Address(SourceLocation location) => location == null ? "unavailable" :
             location.FilePath + ":" + location.SourceVersion + ":" + location.LineNumber + ":" + location.ColumnNumber;
 
-        private static string StampInputs(AlmxTextSnapshot[] inputs, CompilationContext context, CancellationToken token)
+        internal static string StampInputs(AlmxTextSnapshot[] inputs, CompilationContext context, CancellationToken token,
+            IReadOnlyList<ReferenceTextSnapshot> projectDocuments = null, ReferenceLibraryScope declaringLibrary = null)
         {
             var text = new StringBuilder();
             void Add(string value)
@@ -294,13 +347,54 @@ namespace Alarmlist.Analysis
                 text.Append(value?.Length ?? -1).Append(':').Append(value);
             }
             Add(context.ProjectPath); Add(context.Configuration); Add(context.Platform); Add(context.Culture);
+            Add(Definition.AlarmDefinition.ToolingFingerprint);
+            Add(typeof(ReferenceCapture).Assembly.ManifestModule.ModuleVersionId.ToString());
+            void Count(int count) => Add(count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Count(inputs.Length);
             foreach (var input in inputs) { Add(input.FilePath); Add(input.Version.ToString(System.Globalization.CultureInfo.InvariantCulture)); Add(input.Text); }
-            foreach (var property in context.Properties) { Add(property.Name); Add(property.Value); Add(Address(property.Location)); }
+            Count(context.Properties.Count);
+            foreach (var property in context.Properties)
+            {
+                Add(property.Name); Add(property.Value); Add(Address(property.Location)); Add(property.HasAmbiguousReferences.ToString());
+                Count(property.ReferenceLocations.Count);
+                foreach (var reference in property.ReferenceLocations) Add(Address(reference));
+            }
+            Count(context.Resources.Count);
             foreach (var resource in context.Resources) { Add(resource.FilePath); Add(resource.Culture); Add(resource.Version.ToString(System.Globalization.CultureInfo.InvariantCulture)); Add(resource.Text); }
+            Count(context.Lookups.Count);
             foreach (var lookup in context.Lookups) { Add(lookup.FilePath); Add(lookup.Version.ToString(System.Globalization.CultureInfo.InvariantCulture)); Add(lookup.Text); }
+            Count(context.Libraries.Roots.Count);
             foreach (var root in context.Libraries.Roots) Add(root.ToString());
+            Count(context.Libraries.Artifacts.Count);
             foreach (var library in context.Libraries.Artifacts) { Add(library.FilePath); Add(library.Version.ToString(System.Globalization.CultureInfo.InvariantCulture)); Add(library.Text); }
+            Count(projectDocuments?.Count ?? 0);
+            foreach (var document in projectDocuments ?? Array.Empty<ReferenceTextSnapshot>()) { Add(document.FilePath); Add(document.Version.ToString(System.Globalization.CultureInfo.InvariantCulture)); Add(document.Text); }
+            Add(declaringLibrary?.Identity.ToString());
+            Count(declaringLibrary?.SourceNames.Count ?? 0);
+            if (declaringLibrary != null) foreach (var name in declaringLibrary.SourceNames.OrderBy(pair => pair.Key, StringComparer.Ordinal)) { Add(name.Key); Add(name.Value); }
+            Add(context.DiagnosticOptions.TreatWarningsAsErrors.ToString());
+            foreach (var ids in new[] { context.DiagnosticOptions.NoWarn, context.DiagnosticOptions.WarningsAsErrors, context.DiagnosticOptions.WarningsNotAsErrors })
+            { Count(ids.Count); foreach (string id in ids) Add(id); }
+            Count(context.DiagnosticOptions.Configuration.Inputs.Count);
+            foreach (var configuration in context.DiagnosticOptions.Configuration.Inputs)
+            { Add(configuration.FilePath); Add(configuration.Version.ToString(System.Globalization.CultureInfo.InvariantCulture)); Add(configuration.Text); }
+            Count(context.Analyzers.Count);
+            foreach (var analyzer in context.Analyzers)
+            { Add(analyzer.GetType().FullName); Add(analyzer.GetType().Assembly.FullName); Add(analyzer.GetType().Module.ModuleVersionId.ToString()); }
             using (var hash = SHA256.Create()) return BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(text.ToString())));
+        }
+
+        private string CanonicalSourceIdentity(string path)
+        {
+            if (_declaringLibrary != null && _declaringLibrary.SourceNames.TryGetValue(path, out string portable))
+                return "library://" + _declaringLibrary.Identity.ToString().ToUpperInvariant() + "/" + portable;
+            if (path.StartsWith("library://", StringComparison.OrdinalIgnoreCase))
+            {
+                int owner = path.IndexOf('/', "library://".Length);
+                int version = owner < 0 ? -1 : path.IndexOf('/', owner + 1);
+                if (version >= 0) return "library://" + path.Substring("library://".Length, version - "library://".Length).ToUpperInvariant() + path.Substring(version);
+            }
+            return path;
         }
         private static Symbol Root(Symbol symbol)
         {
@@ -330,13 +424,15 @@ namespace Alarmlist.Analysis
             internal bool Ambiguous;
             internal Symbol Parent;
             internal Symbol Owner;
+            internal SourceLocation TargetLocation;
+            internal string DeclarationId;
         }
         private sealed class Use
         {
-            internal Use(Symbol symbol, string role, SourceLocation location, string consumer, MappedTextEdit edit, string unavailable)
-            { Symbol = symbol; Role = role; Location = location; Consumer = consumer; Edit = edit; Unavailable = unavailable; }
+            internal Use(Symbol symbol, string role, SourceLocation location, string consumer, MappedTextEdit edit, string unavailable, string spelling = null, string sourceTokenId = null)
+            { Symbol = symbol; Role = role; Location = location; Consumer = consumer; Edit = edit; Unavailable = unavailable; Spelling = spelling; SourceTokenId = sourceTokenId; }
             internal readonly Symbol Symbol;
-            internal readonly string Role, Consumer, Unavailable;
+            internal readonly string Role, Consumer, Unavailable, Spelling, SourceTokenId;
             internal readonly SourceLocation Location;
             internal readonly MappedTextEdit Edit;
         }

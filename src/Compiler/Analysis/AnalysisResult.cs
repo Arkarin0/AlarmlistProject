@@ -12,7 +12,7 @@ namespace Alarmlist.Analysis
     /// <summary>A detached, read-only result for one complete set of source snapshots.</summary>
     public sealed class AnalysisResult
     {
-        public const int CurrentContractVersion = 8;
+        public const int CurrentContractVersion = 9;
         public string SchemaFingerprint => Definition.AlarmDefinition.SchemaFingerprint;
         public string ToolingFingerprint => Definition.AlarmDefinition.ToolingFingerprint;
         public IReadOnlyList<Definition.AlarmFieldDescriptor> FieldDefinitions => Definition.AlarmDefinition.Fields;

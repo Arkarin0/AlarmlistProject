@@ -29,7 +29,7 @@ namespace Alarmlist.VisualStudio.Analysis
         public AnalysisContext Context { get; }
         public IReadOnlyDictionary<string, string> PortableNames { get; }
 
-        public static CapturedLibraryProject Capture(SavedProjectEvaluation evaluation, CancellationToken token)
+        public static CapturedLibraryProject Capture(SavedProjectEvaluation evaluation, CancellationToken token, ReferenceInputOverlay overlay = null)
         {
             token.ThrowIfCancellationRequested();
             if (!string.Equals(evaluation.OutputType, "Library", StringComparison.OrdinalIgnoreCase))
@@ -40,7 +40,7 @@ namespace Alarmlist.VisualStudio.Analysis
             string Read(string path)
             {
                 token.ThrowIfCancellationRequested();
-                if (!text.TryGetValue(path, out string value)) text.Add(path, value = ProjectAnalysisInputSource.ReadXmlText(path));
+                if (!text.TryGetValue(path, out string value)) text.Add(path, value = overlay == null ? ProjectAnalysisInputSource.ReadXmlText(path) : overlay.Read(path));
                 return value;
             }
             AnalysisProject project = evaluation.Project;

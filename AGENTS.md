@@ -66,7 +66,7 @@ Existing plans and iteration records:
 
 | Plan | Scope |
 | --- | --- |
-| [Milestone 14](src/VisualStudio/MILESTONE-14.md) | Explain this value: compiler-owned chosen contributors, read-only designer/Summary explanations, opt-in capture and analysis-8 SDK transition. |
+| [Milestone 14](src/VisualStudio/MILESTONE-14.md) | Explain this value and the Find All References/Rename follow-up: compiler-owned provenance/identities, detached analysis-9 SDK transport, read-only explanations and previewed unsaved edits. |
 | [Milestone 2](src/VisualStudio/MILESTONE-2.md) | Shared ALMX document, designer/XML editing, and editor lifecycle. |
 | [Milestone 3](src/VisualStudio/MILESTONE-3.md) | Reference-aware editing, analysis, diagnostics, previews, and lifecycle/performance follow-ups. |
 | [Milestone 4](src/VisualStudio/MILESTONE-4.md) | Property expressions, parameters, abstract alarms, and designer support; see its [design contract](src/VisualStudio/MILESTONE-4-DESIGN.md). |
@@ -77,8 +77,9 @@ Existing plans and iteration records:
 | [Milestone 12](src/VisualStudio/MILESTONE-12.md) | Authorized XML IntelliSense for ALMX, .almlookup and .almproj files, and native Visual Studio Shared Projects; follow its accepted defaults and 15% remaining-allowance stop. |
 
 Read the selected plan's current status and remaining gates before resuming it.
-Milestone 14 activates analysis contract 8 for the complete opt-in ExplainSnapshots
-API and detached SDK bridge. Keep analyzer 5, library format 3, export contract 1
+Milestone 14 introduced ExplainSnapshots with analysis contract 8; its reference/
+rename follow-up advances the compiler and detached SDK bridge to contract 9.
+Keep analyzer 5, library format 3, export contract 1
 and semantic definition fingerprints unchanged. Ordinary analysis/builds retain no
 explanation graphs. Capture chosen contributors in compiler evaluation; never
 reconstruct semantics in the host. Entry targets carry defining source/version,
@@ -96,8 +97,10 @@ Do not retain explanation graphs in ordinary project analysis. Performance evide
 uses Area=Explanations and Area=ExplanationAllocations; outer-domain allocation
 counters cannot account for compiler allocations in the SDK domain.
 Milestone 14 follow-up iterations 8–14 authorize compiler-owned Find All References
-and Rename. Continue its existing plan and dev branch. Keep the new index opt-in
-and internal until complete contract-9 activation in iteration 12. Reference families
+and Rename. Continue its existing plan and dev branch. The contract-9
+FindReferencesSnapshots/PreviewRenameSnapshots APIs use immutable captured requests
+and snapshot-bound targets; keep their reference indexes opt-in and request-owned.
+Reference families
 follow binding, never equal text. Validate solution active configurations and all
 configured cultures, reporting coverage gaps. Partial rename requires explicit
 acknowledgement and revalidated proven edits; never guess ambiguous replacements.
@@ -116,6 +119,21 @@ literal lookup/label text and capture formatted placeholders in the parser.
 Generated fields, sibling names, built-in names and definition caption keys are
 searchable but immutable. Propagate ambiguous ownership and refuse guessed edits;
 unavailable inheritance must not make a binder's partial choice a proven use.
+Reference requests own their frozen solution captures and private proposed overlays.
+Revalidate the original catalogue, graph, toolsets and captured bytes before
+publication, navigation and Apply; proposed-result validation never replaces this
+original-input check. Preserve separate owning-buffer and saved-dependency contexts
+for the same project. Deduplicate physical edits without dropping consumer evidence.
+Directory timestamp notifications alone must not invalidate selected descendants;
+watch actual file changes and directory create/delete/rename membership changes.
+Reference batches share detached family payloads and index compiler-issued token
+spans; never copy a full family for each probe. Coordinated families require one
+compiler-validated selected rename overlay. Compiler change groups identify exact
+physical replacements so an incompatible shared token can be excluded without
+discarding proven edits elsewhere in the same file. Frozen solution capture keeps
+consumer buffers separate from saved dependency inputs and compares every involved
+toolset's bytes. Capture project item-name origins from MSBuild's evaluation
+provenance on demand; never infer project usages by matching XML names.
 [Milestone 12](src/VisualStudio/MILESTONE-12.md) uses the native XML completion
 presenter with host lexical context and generated descriptors; compiler-owned
 expression/reference semantics remain in detached analysis. Native XML completion
@@ -840,7 +858,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   project previews include shared unsaved ALMX buffers and visibly explain that
   unapplied designer field edits are excluded; never auto-apply those drafts.
   Clear all scopes during stale/unavailable analysis; project XML requires
-  whole-project success. Require context-aware contract 8 and preview
+  whole-project success. Require context-aware contract 9 and preview
   support, and copy XML as a string outside the required property map.
 - Designer lookup caches must validate current text/version before reuse and be
   keyed by immutable analysis state, captured input, and selected source. Keep

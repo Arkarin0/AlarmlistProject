@@ -102,8 +102,8 @@ namespace Alarmlist.VisualStudio.Analysis
                         };
                         created.Add(watcher);
                         watcher.Changed += OnDiskChanged;
-                        watcher.Created += OnDiskChanged;
-                        watcher.Deleted += OnDiskChanged;
+                        watcher.Created += OnDiskMembershipChanged;
+                        watcher.Deleted += OnDiskMembershipChanged;
                         watcher.Renamed += OnDiskRenamed;
                         watcher.Error += OnWatcherError;
                     }
@@ -241,7 +241,14 @@ namespace Alarmlist.VisualStudio.Analysis
             }
             foreach (string path in selected) Notify(path);
         }
-        private void OnDiskChanged(object sender, FileSystemEventArgs args) => NotifyDisk(args.FullPath);
+        private void OnDiskChanged(object sender, FileSystemEventArgs args)
+        {
+            // A directory's timestamp can change while the runtime opens SDK
+            // files. Child file events still report actual byte changes; only
+            // create/delete/rename events change directory membership.
+            if (!Directory.Exists(args.FullPath)) NotifyDisk(args.FullPath);
+        }
+        private void OnDiskMembershipChanged(object sender, FileSystemEventArgs args) => NotifyDisk(args.FullPath);
         private void OnDiskRenamed(object sender, RenamedEventArgs args) { NotifyDisk(args.OldFullPath); NotifyDisk(args.FullPath); }
         private void NotifyDisk(string path)
         {
@@ -274,7 +281,7 @@ namespace Alarmlist.VisualStudio.Analysis
             {
                 bool dependency;
                 lock (_gate) dependency = _dependencyPaths.Contains(path, StringComparer.OrdinalIgnoreCase);
-                Changed?.Invoke(this, new AnalysisFileChangedEventArgs(dependency ? null : path));
+                Changed?.Invoke(this, new AnalysisFileChangedEventArgs(dependency ? null : path, changedPath));
             }
         }
 

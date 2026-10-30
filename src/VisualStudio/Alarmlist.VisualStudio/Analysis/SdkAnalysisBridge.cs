@@ -101,6 +101,16 @@ namespace Alarmlist.VisualStudio.Analysis
             CancellationToken cancellationToken = default, AnalysisContext context = null);
     }
 
+    internal interface ISdkReferenceBridge
+    {
+        ReferenceResponse FindReferences(AnalysisReferenceRequest request, AnalysisReferenceTarget target, CancellationToken cancellationToken = default);
+        ReferenceBatchResponse FindReferences(AnalysisReferenceRequest request, IReadOnlyList<AnalysisReferenceTarget> targets, CancellationToken cancellationToken = default);
+        RenameResponse PreviewRename(AnalysisReferenceRequest request, AnalysisReferenceTarget target, string newName,
+            CancellationToken cancellationToken = default, IReadOnlyCollection<string> includedGroups = null, AnalysisReferenceRequest validationInputs = null);
+        RenameResponse PreviewRename(AnalysisReferenceRequest request, IReadOnlyList<AnalysisReferenceTarget> targets, string newName,
+            CancellationToken cancellationToken = default, IReadOnlyCollection<string> includedGroups = null, AnalysisReferenceRequest validationInputs = null);
+    }
+
     [Export(typeof(ISdkAnalysisBridgeFactory))]
     internal sealed class SdkAnalysisBridgeFactory : ISdkAnalysisBridgeFactory
     {
@@ -108,7 +118,7 @@ namespace Alarmlist.VisualStudio.Analysis
     }
 
     /// <summary>Owned by one project/configuration. Call off the UI thread and dispose on SDK change or project unload.</summary>
-    internal sealed class SdkAnalysisBridge : ISdkLibraryBridge, ISdkPackageGraphBridge, ISdkExplanationBridge
+    internal sealed partial class SdkAnalysisBridge : ISdkLibraryBridge, ISdkPackageGraphBridge, ISdkExplanationBridge, ISdkReferenceBridge
     {
         private readonly object _gate = new object();
         private AppDomain _domain;
@@ -123,7 +133,7 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             if (string.IsNullOrWhiteSpace(evaluatedCompilerPath))
                 return new BridgeOpenResult(AnalysisAvailability.SdkUnavailable,
-                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 8.");
+                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 9.");
 
             AppDomain domain = null;
             try

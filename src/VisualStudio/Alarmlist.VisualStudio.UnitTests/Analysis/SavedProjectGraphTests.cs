@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Xml.Linq;
+using Alarmlist.VisualStudio.Analysis;
 using Alarmlist.VisualStudio.ProjectSystem;
 using Xunit;
 
@@ -15,6 +16,21 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
     {
         private readonly string _directory = Path.Combine(Path.GetTempPath(), "AlarmlistSavedGraph", Guid.NewGuid().ToString("N"));
         public SavedProjectGraphTests() { Directory.CreateDirectory(_directory); }
+
+        [Fact]
+        public void ReferenceOverlayChangesDependencyMembershipWithoutChangingTheSavedGraph()
+        {
+            string first = Write("First", ""), next = Write("Next", "");
+            string consumer = Write("Consumer", Reference("First"));
+            var root = SavedProjectEvaluation.Capture(consumer, null, CancellationToken.None).Project;
+            var before = SavedProjectGraph.Capture(root, CancellationToken.None);
+            string overlayText = File.ReadAllText(first).Replace("</Project>", "<ItemGroup><ProjectReference Include='Next.almproj'/></ItemGroup></Project>");
+            var overlay = new ReferenceInputOverlay(new[] { new AnalysisInput(overlayText, first, 0) }, new[] { first });
+            var proposed = SavedProjectGraph.Capture(root, CancellationToken.None, overlay: overlay);
+            Assert.Equal(new[] { "Next.almproj", "First.almproj" }, proposed.Projects.Select(project => Path.GetFileName(project.Project.ProjectPath)));
+            Assert.Equal(first, Assert.Single(before.Projects).Project.ProjectPath);
+            Assert.True(before.Matches(SavedProjectGraph.Capture(root, CancellationToken.None)));
+        }
 
         [Fact]
         public void DiamondIsDependencyFirstAndSavedRecaptureDetectsCyclesAndRecovery()

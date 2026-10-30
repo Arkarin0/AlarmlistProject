@@ -135,7 +135,8 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         // Null means that all watched inputs must be refreshed (e.g. watcher overflow).
         public string Path { get; }
-        public AnalysisFileChangedEventArgs(string path) { Path = path; }
+        internal string ObservedPath { get; }
+        public AnalysisFileChangedEventArgs(string path, string observedPath = null) { Path = path; ObservedPath = observedPath ?? path; }
     }
 
     internal interface IProjectAnalysisInputSource : IDisposable

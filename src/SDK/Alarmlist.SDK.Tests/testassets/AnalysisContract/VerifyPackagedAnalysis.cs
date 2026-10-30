@@ -40,7 +40,7 @@ public sealed class VerifyPackagedAnalysis : Task
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 8, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 9, "Unexpected analysis contract version.");
         Require(((string)Value(result, "SchemaFingerprint")).Length == 64 && ((string)Value(result, "ToolingFingerprint")).Length == 64,
             "Packaged definition fingerprints are missing.");
         Require(Items(result, "FieldDefinitions").Select(field => (string)Value(field, "Name")).SequenceEqual(new[] { "Name", "Code", "Category", "Description" }),
@@ -189,7 +189,7 @@ public sealed class VerifyPackagedAnalysis : Task
         Require(!(bool)Value(staleExplanation, "IsAvailable"), "A stale source target was retargeted.");
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object explanation = explain.Invoke(compiler, new object[] { snapshots, emptyContext, target, System.Threading.CancellationToken.None, false });
-        Require((bool)Value(explanation, "IsAvailable") && (int)Value(explanation, "ContractVersion") == 8,
+        Require((bool)Value(explanation, "IsAvailable") && (int)Value(explanation, "ContractVersion") == 9,
             "Packaged explanation unavailable: " + Value(explanation, "Message"));
         object root = Items(explanation, "Nodes").Single(node => (int)Value(node, "Id") == (int)Value(explanation, "RootId"));
         Require((string)Value(root, "Value") == "Inherited" && Items(explanation, "Nodes").Any(node => (string)Value(node, "Kind") == "Inheritance"),
@@ -208,8 +208,56 @@ public sealed class VerifyPackagedAnalysis : Task
             catch (TargetInvocationException exception) { cancelled = exception.InnerException is OperationCanceledException; }
             Require(cancelled, "Packaged explanation ignored cancellation.");
         }
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 8 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, compiled XML preview and on-demand explanations.");
+        VerifyReferences(assembly, compilerType, compiler, snapshots, emptyContext, basePath, baseText);
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 9 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, compiled XML preview, on-demand explanations, reference search and rename preview.");
         return true;
+    }
+
+    private static void VerifyReferences(Assembly assembly, Type compilerType, object compiler, Array snapshots,
+        object context, string sourcePath, string sourceText)
+    {
+        Type requestType = assembly.GetType("Alarmlist.Analysis.ReferenceCompilationSnapshot", true);
+        MethodInfo find = compilerType.GetMethod("FindReferencesSnapshots", new[] { requestType,
+            assembly.GetType("Alarmlist.Analysis.ReferenceSymbolTarget", true), typeof(System.Threading.CancellationToken) });
+        MethodInfo rename = compilerType.GetMethod("PreviewRenameSnapshots", new[] { requestType,
+            assembly.GetType("Alarmlist.Analysis.ReferenceSymbolTarget", true), typeof(string), typeof(System.Threading.CancellationToken), typeof(IReadOnlyCollection<string>), requestType });
+        Require(find != null && rename != null, "The packaged reference/rename APIs are missing.");
+        object request = Activator.CreateInstance(requestType, snapshots, context, null, null, System.Threading.CancellationToken.None);
+        object target = requestType.GetMethod("TargetAtToken").Invoke(request, new object[] { sourcePath, 17, sourceText.IndexOf("Base", StringComparison.Ordinal) });
+        object found = find.Invoke(compiler, new object[] { request, target, System.Threading.CancellationToken.None });
+        Require((bool)Value(found, "IsAvailable") && (int)Value(found, "ContractVersion") == 9, "Packaged reference search is unavailable.");
+        Require((string)Value(Value(found, "Symbol"), "Kind") == "Alarm" && Items(found, "Occurrences").Length == 2,
+            "Packaged search lost the bound inheritance reference.");
+        string identity = (string)Value(Value(found, "Symbol"), "DeclarationId");
+        object rebound = requestType.GetMethod("TargetIdentity").Invoke(request, new object[] { identity });
+        Require((bool)Value(find.Invoke(compiler, new object[] { request, rebound, System.Threading.CancellationToken.None }), "IsAvailable"),
+            "A compiler-issued declaration identity could not be resolved.");
+        object preview = rename.Invoke(compiler, new object[] { request, target, "RenamedBase", System.Threading.CancellationToken.None, null, null });
+        Require((bool)Value(preview, "IsApplicable") && Items(preview, "Edits").Length == 2 && Items(preview, "Groups").Length == 2,
+            "Packaged rename did not coordinate the definition and inheritance use.");
+        Require(Items(preview, "Edits").All(edit => (string)Value(edit, "Text") == "RenamedBase")
+            && (string)Value(Value(preview, "References"), "SnapshotId") == (string)Value(found, "SnapshotId"),
+            "Packaged rename lost text replacements or its target snapshot.");
+        object excluded = rename.Invoke(compiler, new object[] { request, target, "RenamedBase", System.Threading.CancellationToken.None, new string[0], null });
+        Require(!(bool)Value(excluded, "IsApplicable") && (bool)Value(excluded, "RequiresAcknowledgement") && Items(excluded, "Edits").Length == 0,
+            "Excluded groups were silently restored to the approved edit set.");
+        bool readOnly = false;
+        try { ((IList)Value(preview, "Edits")).Clear(); }
+        catch (NotSupportedException) { readOnly = true; }
+        Require(readOnly, "Packaged rename results are mutable.");
+        using (var cancellation = new System.Threading.CancellationTokenSource())
+        {
+            cancellation.Cancel();
+            foreach (MethodInfo method in new[] { find, rename })
+            {
+                bool cancelled = false;
+                try { method.Invoke(compiler, method == find ? new object[] { request, target, cancellation.Token }
+                    : new object[] { request, target, "RenamedBase", cancellation.Token, null, null }); }
+                catch (TargetInvocationException exception) { cancelled = exception.InnerException is OperationCanceledException; }
+                Require(cancelled, "Packaged reference/rename request ignored cancellation.");
+            }
+        }
+        Require(!File.Exists(sourcePath), "Reference search or rename accessed the captured source path.");
     }
 
     private static object Value(object instance, string property)

@@ -268,7 +268,7 @@ internal static class Program
     {
         var compiler = new AlarmCompiler();
         var analysis = compiler.AnalyzeSnapshots(new[] { baseSource, childSource }, includeCompiledXml: true);
-        Check(analysis.ContractVersion == 8 && analysis.CollectionDefinitions.Count == 3 && analysis.HasTestProcedure == AlarmDefinition.HasTestProcedure, "Analysis metadata and capability");
+        Check(analysis.ContractVersion == 9 && analysis.CollectionDefinitions.Count == 3 && analysis.HasTestProcedure == AlarmDefinition.HasTestProcedure, "Analysis metadata and capability");
         Check(analysis.Sources.All(source => (source.ProcedureCreation.Groups.Count != 0) == AlarmDefinition.HasTestProcedure), "Creation defaults honor optional procedures");
         var child = analysis.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child");
         var checks = child.Collections.Single(collection => collection.Name == "Checks");

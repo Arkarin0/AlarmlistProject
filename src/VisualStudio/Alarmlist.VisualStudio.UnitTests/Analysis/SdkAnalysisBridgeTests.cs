@@ -41,7 +41,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 Assert.Equal(AnalysisAvailability.Available, response.Availability);
                 var explanation = response.Explanation;
                 Assert.True(explanation?.IsAvailable == true, response.Message);
-                Assert.Equal(8, explanation.ContractVersion);
+                Assert.Equal(9, explanation.ContractVersion);
                 Assert.Equal("Inspect 001", explanation.Nodes.Single(node => node.Id == explanation.RootId).Value);
                 Assert.Contains(explanation.Nodes, node => node.Kind == "Resource" && node.SupplyingCulture == "en" && node.Location.SourceVersion == 19);
                 Assert.DoesNotContain(explanation.Nodes, node => node.Value == "unrelated");
@@ -129,7 +129,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Contains("$(loc:Inspection)", keyword.CompiledXml);
                 }
                 AnalysisSnapshot snapshot = response.Snapshot;
-                Assert.Equal(8, snapshot.ContractVersion);
+                Assert.Equal(9, snapshot.ContractVersion);
                 Assert.Equal("de-DE", snapshot.Culture);
                 Assert.Equal("de", Assert.Single(snapshot.Resources).Culture);
                 Assert.Equal(31, snapshot.Resources[0].Version);
@@ -275,7 +275,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             using (var sdk = new SdkAsset())
             {
                 AnalysisResponse response;
-                var definitions = new[] { new AnalysisPropertyDefinition("p", "001"), new AnalysisPropertyDefinition("empty", "") };
+                var projectOrigin = new AnalysisLocation(Path.Combine(sdk.DirectoryPath, "Parameters.props"), 8, 12, 8, 19, 0);
+                var definitions = new[] { new AnalysisPropertyDefinition("p", "001", projectOrigin), new AnalysisPropertyDefinition("empty", "") };
                 var context = new AnalysisContext(Path.Combine(sdk.DirectoryPath, "Plant.almproj"), "Release", "AnyCPU", definitions);
                 definitions[0] = new AnalysisPropertyDefinition("p", "changed");
                 using (SdkAnalysisBridge bridge = Open(sdk.CompilerPath))
@@ -297,6 +298,11 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 AnalysisProperty parameter = child.Properties.Single(property => property.Name == "p");
                 Assert.Equal("A", parameter.DeclarationOrigin.Alarm.FullyQualifiedName);
                 Assert.Equal("Project", parameter.ValueOrigin.Scope);
+                Assert.Equal(projectOrigin.FilePath, parameter.ValueOrigin.Location.FilePath);
+                Assert.Equal(projectOrigin.LineNumber, parameter.ValueOrigin.Location.LineNumber);
+                Assert.Equal(projectOrigin.ColumnNumber, parameter.ValueOrigin.Location.ColumnNumber);
+                Assert.Equal(projectOrigin.EndColumnNumber, parameter.ValueOrigin.Location.EndColumnNumber);
+                Assert.Equal(projectOrigin.SourceVersion, parameter.ValueOrigin.Location.SourceVersion);
                 Assert.Equal("001", parameter.EffectiveValue);
                 Assert.Equal("$(AlarmlistAlarmCode) $$(p)", child.ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries[0].RawText);
                 Assert.Equal("001 $(p)", child.ProcedureSections.Single(group => group.Name == "Instructions").EffectiveEntries[0].Text);
@@ -334,7 +340,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.DoesNotContain("<ReferenceName>", xml);
                     Assert.DoesNotContain("<Clear", xml);
                     Assert.True(snapshot.Success);
-                    Assert.Equal(8, snapshot.ContractVersion);
+                    Assert.Equal(9, snapshot.ContractVersion);
                     Assert.Equal(new[] { 4, 9 }, snapshot.Sources.Select(source => source.Version));
                     AnalysisAlarm child = snapshot.Alarms[1];
                     Assert.Equal("Base", Assert.Single(child.ReferenceChain).FullyQualifiedName);
@@ -489,6 +495,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         [InlineData(5)]
         [InlineData(6)]
         [InlineData(7)]
+        [InlineData(8)]
         public void IncompatibleSdkVersionsDoNotInterfereWithACompatibleProject(int contract)
         {
             using (var sdk = new SdkAsset())
@@ -498,7 +505,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 incompatible.ReplaceWithIncompatibleCompiler(contract);
                 BridgeOpenResult result = new SdkAnalysisBridgeFactory().Open(incompatible.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, result.Availability);
-                Assert.Contains("contract 8", result.Message);
+                Assert.Contains("contract 9", result.Message);
                 Assert.Contains(incompatible.CompilerPath, result.Message);
                 Assert.Null(result.Bridge);
                 Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
@@ -519,7 +526,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         {
             using (var sdk = new SdkAsset())
             {
-                sdk.ReplaceWithIncompatibleCompiler(8);
+                sdk.ReplaceWithIncompatibleCompiler(9);
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
@@ -568,7 +575,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
-                Assert.Contains("contract 8", response.Message);
+                Assert.Contains("contract 9", response.Message);
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
             }
         }

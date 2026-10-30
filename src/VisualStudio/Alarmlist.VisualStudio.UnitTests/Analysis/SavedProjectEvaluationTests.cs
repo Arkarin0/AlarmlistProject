@@ -107,6 +107,58 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Fact]
+        public void OverlayReevaluatesImportedNamesValuesAndMembershipWithoutWritingOrExecutingTargets()
+        {
+            string imports = Path.Combine(_directory, "Parameters.props");
+            string original = "<Project><PropertyGroup><ItemName>Old</ItemName></PropertyGroup><ItemGroup>"
+                + "<AlarmlistProperty Include='$(ItemName)' Value='value'/><Compile Include='$(ItemName).almx'/></ItemGroup></Project>";
+            File.WriteAllText(imports, original);
+            File.WriteAllText(ProjectPath, "<Project InitialTargets='NeverRun'><Import Project='Parameters.props'/><Target Name='NeverRun'><Error Text='Never execute targets'/></Target></Project>");
+            byte[] projectBytes = File.ReadAllBytes(ProjectPath), importBytes = File.ReadAllBytes(imports);
+            var before = SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None);
+            var after = SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None, projectOverlays:
+                new Dictionary<string, string> { [imports] = original.Replace("<ItemName>Old</ItemName>", "<ItemName>New</ItemName>") });
+            Assert.Equal("Old", Assert.Single(before.Project.Context.Properties).Name);
+            var property = Assert.Single(after.Project.Context.Properties);
+            Assert.Equal("New", property.Name); Assert.Equal(imports, property.Location.FilePath);
+            Assert.True(property.Location.LineNumber > 0); Assert.True(property.Location.ColumnNumber > 0);
+            Assert.Equal(0, property.Location.SourceVersion);
+            Assert.EndsWith("New.almx", Assert.Single(after.Project.Inputs), StringComparison.Ordinal);
+            Assert.Equal(projectBytes, File.ReadAllBytes(ProjectPath)); Assert.Equal(importBytes, File.ReadAllBytes(imports));
+            Assert.Equal("Old", Assert.Single(SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None).Project.Context.Properties).Name);
+        }
+
+        [Fact]
+        public void StaticParameterDeclarationOriginIdentifiesTheIncludeAttributeAndValueMetadataIsReevaluated()
+        {
+            string original = "<Project><ItemGroup>\r\n<AlarmlistProperty Include='Old'><Value>%(Identity)</Value></AlarmlistProperty></ItemGroup></Project>";
+            File.WriteAllText(ProjectPath, original);
+            var before = SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None);
+            var property = Assert.Single(before.Project.Context.Properties);
+            Assert.Equal("Old", property.Value); Assert.Equal(2, property.Location.LineNumber);
+            Assert.Equal(original.Split('\n')[1].IndexOf("Include", StringComparison.Ordinal) + 1, property.Location.ColumnNumber);
+            var after = SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None, projectOverlays:
+                new Dictionary<string, string> { [ProjectPath] = original.Replace("Include='Old'", "Include='New'") });
+            Assert.Equal("New", Assert.Single(after.Project.Context.Properties).Name);
+            Assert.Equal("New", Assert.Single(after.Project.Context.Properties).Value);
+            Assert.Equal(original, File.ReadAllText(ProjectPath));
+        }
+
+        [Fact]
+        public void ProjectItemUpdateOriginsComeFromOptInEvaluatedProvenance()
+        {
+            File.WriteAllText(ProjectPath, "<Project><ItemGroup>\n<AlarmlistProperty Include='P' Value='first'/>\n<AlarmlistProperty Update='P' Value='second'/>\n"
+                + "<AlarmlistProperty Update='p' Value='last'/>\n<AlarmlistProperty Update='P' Condition='false' Value='unused'/>\n<AlarmlistProperty Update='Q' Value='other'/></ItemGroup></Project>");
+            var ordinary = Assert.Single(SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None).Project.Context.Properties);
+            Assert.Empty(ordinary.ReferenceLocations); Assert.False(ordinary.HasAmbiguousReferences); Assert.Equal("last", ordinary.Value);
+            var captured = Assert.Single(SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None, captureReferences: true).Project.Context.Properties);
+            Assert.False(captured.HasAmbiguousReferences); Assert.Equal(new[] { 3, 4 }, captured.ReferenceLocations.Select(location => location.LineNumber));
+            Assert.All(captured.ReferenceLocations, location => Assert.Equal(ProjectPath, location.FilePath));
+            Assert.True(captured.ReferenceLocations.All(location => location.ColumnNumber == "<AlarmlistProperty ".Length + 1));
+            Assert.False(ordinary.Matches(captured));
+        }
+
+        [Fact]
         public void CancellationPreventsEvaluation()
         {
             using (var cancellation = new CancellationTokenSource())

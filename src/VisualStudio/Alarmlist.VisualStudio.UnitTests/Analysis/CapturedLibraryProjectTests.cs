@@ -63,6 +63,36 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         }
 
         [Fact]
+        public void ReferenceOverlayCapturesChangedProjectSourcesResourcesAndLookupsWithoutChangingSavedRules()
+        {
+            var before = Capture();
+            var bytes = Directory.GetFiles(_directory).ToDictionary(path => path, File.ReadAllBytes);
+            string projectText = File.ReadAllText(ProjectPath).Replace("<ItemGroup>", "<ItemGroup><AlarmlistProperty Include='Next' Value='overlay'/>")
+                .Replace("Include='Input.almx'", "Include='Virtual.almx'");
+            string virtualPath = Path.Combine(_directory, "Virtual.almx");
+            string source = "<Alarmlist><Alarm><FullyQualifiedName>Overlay</FullyQualifiedName></Alarm></Alarmlist>";
+            string resource = "<root><data name='Next'><value>Overlay</value></data></root>";
+            string lookup = "<Lookup xmlns='urn:alarmlist:lookup:1'><List Key='Next'/></Lookup>";
+            var overlay = new ReferenceInputOverlay(new[] { new AnalysisInput(projectText, ProjectPath, 0), new AnalysisInput(source, virtualPath, 0),
+                new AnalysisInput(resource, Path.Combine(_directory, "Labels.resx"), 0), new AnalysisInput(lookup, Path.Combine(_directory, "Tags.almlookup"), 0) }, new[] { ProjectPath });
+            var evaluation = SavedProjectEvaluation.Capture(ProjectPath, null, CancellationToken.None, projectOverlays: overlay.ProjectDocuments);
+            var proposed = CapturedLibraryProject.Capture(evaluation, CancellationToken.None, overlay);
+            Assert.Equal(source, Assert.Single(proposed.Sources).Text);
+            Assert.Equal(resource, Assert.Single(proposed.Context.Resources).Text); Assert.Equal(lookup, Assert.Single(proposed.Context.Lookups).Text);
+            Assert.Equal("Next", Assert.Single(proposed.Context.Properties).Name); Assert.NotNull(proposed.Context.Properties[0].Location);
+            Assert.False(File.Exists(virtualPath)); Assert.All(bytes, pair => Assert.Equal(pair.Value, File.ReadAllBytes(pair.Key)));
+            Assert.True(before.Matches(Capture()));
+        }
+
+        [Fact]
+        public void ConflictingSharedOverlayTextsAndMissingProjectRootsAreRejected()
+        {
+            Assert.Throws<InvalidOperationException>(() => new ReferenceInputOverlay(new[] { new AnalysisInput("one", ProjectPath, 0),
+                new AnalysisInput("two", ProjectPath.ToUpperInvariant(), 0) }, new[] { ProjectPath }));
+            Assert.Throws<InvalidOperationException>(() => new ReferenceInputOverlay(Array.Empty<AnalysisInput>(), new[] { ProjectPath }));
+        }
+
+        [Fact]
         public void NonLibraryAndMissingSavedInputFailWithoutProducingOutputs()
         {
             File.WriteAllText(ProjectPath, File.ReadAllText(ProjectPath).Replace("<OutputType>Library</OutputType>", "<OutputType>Application</OutputType>"));

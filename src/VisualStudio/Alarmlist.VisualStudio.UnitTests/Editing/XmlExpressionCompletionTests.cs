@@ -99,7 +99,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             var unresolved = Alarm(3, "Broken", resolved: false);
             var duplicate1 = Alarm(4, "Duplicate");
             var duplicate2 = Alarm(5, "Duplicate");
-            var snapshot = new AnalysisSnapshot(8, true, Array.Empty<AnalysisSource>(),
+            var snapshot = new AnalysisSnapshot(9, true, Array.Empty<AnalysisSource>(),
                 new[] { current, good, cycle, unresolved, duplicate1, duplicate2 }, Array.Empty<AnalysisDiagnostic>());
             var result = XmlExpressionCompletion.Complete(Request("<Alarmlist><Alarm><ReferenceName>¦</ReferenceName></Alarm></Alarmlist>"), snapshot, current, null);
             Assert.Equal("Template", Assert.Single(result.Candidates).Insertion);
@@ -112,7 +112,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 "$(list:Devices#Motor)", Array.Empty<AnalysisListMetadata>());
             var other = new AnalysisLookupListEntry("Pump", "P1", "Pump", null, null, false,
                 "$(list:Other#Pump)", Array.Empty<AnalysisListMetadata>());
-            var snapshot = new AnalysisSnapshot(8, true, Array.Empty<AnalysisSource>(), new[] { Alarm() }, Array.Empty<AnalysisDiagnostic>(),
+            var snapshot = new AnalysisSnapshot(9, true, Array.Empty<AnalysisSource>(), new[] { Alarm() }, Array.Empty<AnalysisDiagnostic>(),
                 lookupLists: new[] { new AnalysisLookupList("Devices", new[] { entry }), new AnalysisLookupList("Other", new[] { other }) },
                 argumentBindings: new[] { new AnalysisArgumentBinding("Template", "device", "Devices", null, true) });
             const string marked = "<Alarmlist><Alarm><Name>$(loc:Template, device=&quot;pump¦&quot;)</Name></Alarm></Alarmlist>";
@@ -183,7 +183,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         [Fact]
         public void LookupSuggestionsUseExactStoredExpressionAndSuppressAmbiguities()
         {
-            var snapshot = new AnalysisSnapshot(8, true, Array.Empty<AnalysisSource>(), new[] { Alarm() }, Array.Empty<AnalysisDiagnostic>(),
+            var snapshot = new AnalysisSnapshot(9, true, Array.Empty<AnalysisSource>(), new[] { Alarm() }, Array.Empty<AnalysisDiagnostic>(),
                 lookupPaths: new[]
                 {
                     new AnalysisLookupPath("Panel", false, null, "$(path:Panel)", "caption", true,
@@ -213,7 +213,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             AlarmFieldDescriptor Field(string name) => new AlarmFieldDescriptor(name, "String", false, null, null, null,
                 name, null, false, true, 100, Array.Empty<string>(), Array.Empty<string>());
             var record = new AlarmCollectionDescriptor("Checks", "Complex", "Checks", null, 0, null, new[] { Field("Text"), Field("Other") });
-            var snapshot = new AnalysisSnapshot(8, true, Array.Empty<AnalysisSource>(), new[] { Alarm() }, Array.Empty<AnalysisDiagnostic>(),
+            var snapshot = new AnalysisSnapshot(9, true, Array.Empty<AnalysisSource>(), new[] { Alarm() }, Array.Empty<AnalysisDiagnostic>(),
                 collectionDefinitions: new[] { record });
             const string marked = "<Alarmlist><Alarm><Checks><Item><Text>$(item:O¦)</Text></Item></Checks></Alarm></Alarmlist>";
             string text = marked.Replace("¦", "");
@@ -256,7 +256,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         private static XmlSemanticResult Complete(string marked, AnalysisSnapshot snapshot = null)
             => XmlExpressionCompletion.Complete(Request(marked), snapshot ?? Snapshot(), Alarm(), null);
         private static AnalysisSnapshot Snapshot(AnalysisTranslation[] translations = null)
-            => new AnalysisSnapshot(8, true, Array.Empty<AnalysisSource>(), new[] { Alarm() }, Array.Empty<AnalysisDiagnostic>(), translations: translations);
+            => new AnalysisSnapshot(9, true, Array.Empty<AnalysisSource>(), new[] { Alarm() }, Array.Empty<AnalysisDiagnostic>(), translations: translations);
         private static AnalysisProperty Property(string name, bool wellKnown = false)
             => new AnalysisProperty(name, wellKnown, true, "value", null, "value", true, null, null);
         private static AnalysisAlarm Alarm(int index = 0, string name = "Current", AnalysisAlarmOrigin[] chain = null, bool resolved = true)

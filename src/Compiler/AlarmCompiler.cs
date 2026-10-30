@@ -21,6 +21,28 @@ namespace Alarmlist.Compiler
     {
         public AlarmCompiler() { }
 
+        /// <summary>Finds a compiler-bound semantic family in captured inputs. No files are accessed or indexes retained.</summary>
+        public ReferenceSearchResult FindReferencesSnapshots(ReferenceCompilationSnapshot inputs, ReferenceSymbolTarget target,
+            CancellationToken cancellationToken = default)
+            => ReferenceCapture.Find(inputs, target, cancellationToken);
+
+        /// <summary>Resolves multiple unambiguous targets against one captured binding pass.</summary>
+        public IReadOnlyList<ReferenceSearchResult> FindReferencesSnapshots(ReferenceCompilationSnapshot inputs,
+            IEnumerable<ReferenceSymbolTarget> targets, CancellationToken cancellationToken = default)
+            => ReferenceCapture.FindMany(inputs, targets, cancellationToken);
+
+        /// <summary>Previews the selected versioned text changes and their compiler diagnostics without changing captured inputs.</summary>
+        public ReferenceRenamePreview PreviewRenameSnapshots(ReferenceCompilationSnapshot inputs, ReferenceSymbolTarget target,
+            string newName, CancellationToken cancellationToken = default, IReadOnlyCollection<string> includedGroups = null,
+            ReferenceCompilationSnapshot validationInputs = null)
+            => ReferenceCapture.Preview(inputs, target, newName, cancellationToken, includedGroups, validationInputs);
+
+        /// <summary>Validates the joint overlay for compiler-issued families connected across solution consumers.</summary>
+        public ReferenceRenamePreview PreviewRenameSnapshots(ReferenceCompilationSnapshot inputs, IEnumerable<ReferenceSymbolTarget> targets,
+            string newName, CancellationToken cancellationToken = default, IReadOnlyCollection<string> includedGroups = null,
+            ReferenceCompilationSnapshot validationInputs = null)
+            => ReferenceCapture.PreviewMany(inputs, targets, newName, cancellationToken, includedGroups, validationInputs);
+
         /// <summary>
         /// Creates a culture-independent library from captured inputs. Source, resource and lookup
         /// paths must be portable relative artifact names, or have entries in portablePaths supplied

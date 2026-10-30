@@ -54,15 +54,44 @@ locations do not replace dependency or package byte validation. Analysis contrac
 3, export contract 1 and semantic definition fingerprints are unchanged. IDE
 actions and presentation follow in iteration 6.
 
-## Internal reference discovery and rename preview
+## Reference discovery and rename preview
 
 Milestone 14 follow-up iterations 10–11 add request-owned ReferenceCapture for
 alarms, custom parameters, localization keys, lookups, groups and immutable
-generated/built-in names. This is an internal foundation; no public reference
-API or SDK transport is exposed yet, and analysis contract 8 remains active.
-Follow iterations 12–14 for contract 9, solution
-coordination, commands and integrated acceptance. Ordinary analysis does not
+generated/built-in names. Iteration 12 exposes the complete compiler surface and
+detached SDK transport with analysis contract 9. Solution coordination, commands
+and integrated acceptance are tracked in iterations 12–14. Ordinary analysis does not
 construct or retain a reference index.
+
+Construct `ReferenceCompilationSnapshot` from captured ALMX, `CompilationContext`
+and optional exact project/import `ReferenceTextSnapshot` inputs. A library owner
+also supplies `ReferenceLibraryScope` with its identity and authoritative portable
+source names. Creation accepts cancellation and stamps all captured inputs and
+tooling. Use `TargetAtToken(path, version, offset)`, `TargetAtLocation(kind, location,
+name)` or a compiler-issued `TargetIdentity(declarationId)` to obtain a target bound
+to that request. Literal text and unsupported/ambiguous tokens remain unavailable.
+
+`AlarmCompiler.FindReferencesSnapshots(request, target, cancellationToken)` returns
+detached declarations, uses, exact UTF-16 spans, context, diagnostics and coverage.
+The overload accepting multiple targets resolves them against one binding pass;
+each target remains independently snapshot-bound and unambiguous. This supports
+solution identity propagation and shared-token probes without retaining an index
+in ordinary analysis.
+`IsAmbiguous` distinguishes an ambiguous target from an unsupported/unbound one;
+available symbols also carry their compiler-owned ambiguity state. Occurrence
+`DeclarationId` and `SourceTokenId` preserve binding and source-token identity
+between an owning library and its imported read-only projection. A solution
+coordinator can use these identities to protect a shared contributing token when
+one consumer's family cannot be renamed. It must not decode library paths or
+match source names to infer that relationship.
+`PreviewRenameSnapshots(request, target, newName, cancellationToken, includedGroups,
+validationInputs)` returns versioned replacements, change groups, skipped findings
+and proposed diagnostics. Null includedGroups selects all proven edits; an empty
+selection selects none. Group IDs are snapshot/name-bound. A projected request
+must describe precisely the approved overlay, including SDK-reevaluated project
+metadata/membership. These APIs access no files and apply no edits.
+`NonApplicableFamilies` identifies compiler-rejected families explicitly, including
+collisions or ambiguous bindings, so callers need not interpret failure messages.
 
 Binding uses Binder/LibraryCompilation, PropertyResolver, the expression parser,
 effective scalar origins and existing procedure/collection resolution. Equal names
@@ -87,14 +116,32 @@ at the host boundary in iteration 12. Imported library and uncaptured project
 declarations remain searchable and read-only; project text overlay capture is
 also part of iteration 12.
 
-Internal Preview recomputes binding, validates names/collisions, deduplicates
+Preview recomputes binding, validates names/collisions, deduplicates
 physical edits and compiles temporary ALMX/resource/lookup overlays. It returns versioned edits
 and proposed diagnostics without mutating input snapshots. Unavailable/read-only
 findings, conflicting shared tokens and new diagnostics require acknowledgement
 before any eventual host Apply. Invalid names, declaration collisions and
-overlapping replacements cannot apply. Selection/exclusion, project/dependency
-overlays, all-culture coordination and UI acknowledgement are later gates;
-do not expose this internal prototype as a completed rename feature.
+overlapping replacements cannot apply. Requests support
+snapshot-bound change groups: excluding a group revalidates the actual selected
+overlay and reports remaining references and additional diagnostics. A supplied
+SDK-evaluated project overlay must match exactly those selected text changes before
+project edits become applicable. Ordinary analysis never sees this overlay.
+Each compiler change group identifies one proven physical replacement, including
+its version/span/text. The host can combine groups by file for presentation and
+exclude an incompatible shared token without dropping other proven edits in the
+same document. The multi-target rename overload compiles one joint selected overlay;
+it retains every selected target in ReferenceSearches. Colliding families remain
+unchanged, while proven edits elsewhere require partial-result acknowledgement.
+Solution coordination and UI acknowledgement remain required host gates;
+compiler API availability alone does not complete the end-to-end rename feature.
+
+The internal multi-context search follows compiler-issued declaration identities
+and each captured context's actual family edges to a fixed point. It retains every
+project/configuration/platform/culture slice, including unavailable input coverage;
+unrelated equal names do not connect. Physical tokens bound to another family in
+a captured consumer receive an explicit conflict and no guessed replacement.
+This helper does not discover solution projects, choose active configurations or
+load toolsets; those remain host capture and SDK isolation responsibilities.
 
 Resource and lookup constructors expose opt-in observation at their existing
 provider registration/override selections. No observer/index is retained by

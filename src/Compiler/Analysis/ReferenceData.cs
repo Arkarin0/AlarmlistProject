@@ -7,39 +7,52 @@ using Alarmlist.Text;
 
 namespace Alarmlist.Analysis
 {
-    // Internal until all symbol categories, overlays and SDK transport are ready.
     // These records retain no syntax, binders, XML objects or deferred delegates.
-    internal sealed class ReferenceSymbol
+    public sealed class ReferenceSymbol
     {
-        internal ReferenceSymbol(string id, string family, string kind, string name, SourceLocation location, bool readOnly, string scope = null)
+        internal ReferenceSymbol(string id, string family, string kind, string name, SourceLocation location, bool readOnly, string scope = null,
+            string declarationId = null, SourceLocation targetLocation = null, bool isAmbiguous = false)
         {
             Id = id; Family = family; Kind = kind; Name = name; Location = location; IsReadOnly = readOnly; Scope = scope;
+            DeclarationId = declarationId; TargetLocation = targetLocation ?? location;
+            IsAmbiguous = isAmbiguous;
         }
-        internal string Id { get; }
-        internal string Family { get; }
-        internal string Kind { get; }
-        internal string Name { get; }
-        internal SourceLocation Location { get; }
-        internal bool IsReadOnly { get; }
-        internal string Scope { get; }
+        public string Id { get; }
+        public string Family { get; }
+        public string Kind { get; }
+        public string Name { get; }
+        public SourceLocation Location { get; }
+        public bool IsReadOnly { get; }
+        public bool IsAmbiguous { get; }
+        public string Scope { get; }
+        public string DeclarationId { get; }
+        public SourceLocation TargetLocation { get; }
     }
 
-    internal sealed class ReferenceOccurrence
+    public sealed class ReferenceOccurrence
     {
         internal ReferenceOccurrence(string family, string role, SourceLocation location, string consumer,
-            int? start, int? length, string replacement, string unavailable)
+            int? start, int? length, string replacement, string unavailable, string spelling = null,
+            string declarationId = null, string sourceTokenId = null)
         {
             Family = family; Role = role; Location = location; Consumer = consumer;
             Start = start; Length = length; Replacement = replacement; Unavailable = unavailable;
+            Spelling = spelling;
+            DeclarationId = declarationId; SourceTokenId = sourceTokenId;
         }
-        internal string Family { get; }
-        internal string Role { get; }
-        internal SourceLocation Location { get; }
-        internal string Consumer { get; }
-        internal int? Start { get; }
-        internal int? Length { get; }
-        internal string Replacement { get; }
-        internal string Unavailable { get; }
+        public string Family { get; }
+        public string Role { get; }
+        public SourceLocation Location { get; }
+        public string Consumer { get; }
+        public int? Start { get; }
+        public int? Length { get; }
+        public string Replacement { get; }
+        public string Unavailable { get; }
+        /// <summary>The decoded token spelling at this use, before the proposed replacement.</summary>
+        public string Spelling { get; }
+        public string DeclarationId { get; }
+        /// <summary>Compiler-issued token identity shared by owning library sources and imported location maps.</summary>
+        public string SourceTokenId { get; }
     }
 
     internal sealed class ReferenceData
