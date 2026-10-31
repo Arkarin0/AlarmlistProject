@@ -32,6 +32,8 @@ namespace Alarmlist.VisualStudio.UI
             };
         }
         private ParameterListViewModel ViewModel => DataContext as ParameterListViewModel;
+        private bool HasPrivateDraft => ValueContextMenu.Ancestors(this).OfType<FrameworkElement>()
+            .Select(element => element.DataContext).OfType<EditFileControlViewModel>().Any(view => view.HasPending);
         internal bool NavigateTo(ParameterViewModel row)
         {
             Section.IsExpanded = true;
@@ -58,6 +60,7 @@ namespace Alarmlist.VisualStudio.UI
         }
         private void OnCellFocus(object sender, KeyboardFocusChangedEventArgs args)
         {
+            if (Mouse.RightButton == MouseButtonState.Pressed && HasPrivateDraft) return;
             if (((FrameworkElement)sender).DataContext is ParameterViewModel row && ViewModel != null)
                 ViewModel.Selected = row;
         }
@@ -67,8 +70,9 @@ namespace Alarmlist.VisualStudio.UI
             if (!((menu.PlacementTarget as FrameworkElement)?.DataContext is ParameterViewModel row)
                 || ViewModel == null || !ViewModel.Rows.Contains(row))
             { menu.IsOpen = false; return; }
-            // Right-click can target an unselected row. Use the ordinary selection
-            // guard so a conflicting draft cannot redirect an action elsewhere.
+            // The ordinary selection setter commits valid drafts. A menu must
+            // refuse another row before that setter, even without a conflict.
+            if (HasPrivateDraft && !ReferenceEquals(ViewModel.Selected, row)) { menu.IsOpen = false; return; }
             ViewModel.Selected = row;
             if (!ReferenceEquals(ViewModel.Selected, row)) { menu.IsOpen = false; return; }
             menu.DataContext = ViewModel;
@@ -114,7 +118,17 @@ namespace Alarmlist.VisualStudio.UI
                 ReferenceEquals(box.DataContext, list.Selected) && AutomationProperties.GetName(box) == target && box.IsVisible && !box.IsReadOnly);
             if (editor != null) { editor.BringIntoView(); editor.Focus(); editor.SelectAll(); }
         }
-        protected override void OnPreviewMouseDown(MouseButtonEventArgs args) { _inputVersion++; base.OnPreviewMouseDown(args); }
+        protected override void OnPreviewMouseDown(MouseButtonEventArgs args)
+        {
+            _inputVersion++;
+            if (args.ChangedButton == MouseButton.Right && HasPrivateDraft)
+            {
+                var row = ValueContextMenu.Ancestors(args.OriginalSource as DependencyObject).OfType<FrameworkElement>()
+                    .Select(element => element.DataContext).OfType<ParameterViewModel>().FirstOrDefault();
+                if (row != null && !ReferenceEquals(row, ViewModel?.Selected)) args.Handled = true;
+            }
+            base.OnPreviewMouseDown(args);
+        }
         protected override void OnPreviewKeyDown(KeyEventArgs args) { _inputVersion++; base.OnPreviewKeyDown(args); }
         private static IEnumerable<DependencyObject> Children(DependencyObject parent)
         {

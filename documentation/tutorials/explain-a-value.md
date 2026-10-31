@@ -47,9 +47,9 @@ information. The abstract Base supplies the expression; Child supplies the value
 
 ### 2. Explain Name
 
-Choose **Explain this value** beside Name. Alarm Summary opens its Selected alarm
-view and expands Explanation. You can also use Tab to focus the action and
-Space or Enter to activate it.
+Right-click Name and choose **Explain this value**. Alarm Summary opens its
+Selected alarm view and expands Explanation. You can also focus Name, press
+Shift+F10 or the Menu key, select the action and press Enter.
 
 Expected result: Explanation shows the consuming project/configuration/language,
 the raw inherited expression, and resolved/canonical `Position 1, code 001`.

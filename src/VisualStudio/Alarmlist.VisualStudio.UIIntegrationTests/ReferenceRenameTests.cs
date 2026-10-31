@@ -44,14 +44,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)))
                 .Patterns.SelectionItem.Pattern.Select();
             Assert.DoesNotContain(ide.Automation.Documents.Cast<Document>(), document => string.Equals(document.FullName, child, StringComparison.OrdinalIgnoreCase));
-            Button Action(string name) => window.FindAllDescendants(cf => cf.ByName(name).And(cf.ByControlType(ControlType.Button)))
-                .FirstOrDefault(item => item.IsEnabled)?.AsButton();
+            Button Action(string name) => ValueActionUi.Find(window, name);
             AutomationElement ById(string id) => window.FindFirstDescendant(cf => cf.ByAutomationId(id));
             string Status(string id) => ById(id)?.Name ?? "";
             Button find = null;
-            VisualStudioSession.Wait(() => (find = Action("Find references to this alarm")) != null, "current alarm reference action");
+            VisualStudioSession.Wait(() => (find = ValueActionUi.Find(window, "Find references to this alarm", keyboard: true, useMenuKey: true)) != null, "current alarm reference action");
             find.Focus(); ide.RequireForeground(); Assert.True(find.Properties.HasKeyboardFocus.Value);
-            Keyboard.Type(VirtualKeyShort.SPACE);
+            Keyboard.Type(VirtualKeyShort.RETURN);
             VisualStudioSession.Wait(() =>
             {
                 Assert.True(string.IsNullOrEmpty(Status("DesignerError")), Status("DesignerError"));
@@ -96,6 +95,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.ExecuteCommand("Edit.Redo");
             VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath).Contains(">RenamedBase<") && ide.ReadText(child).Contains(">RenamedBase<"), "one-step rename Redo in both buffers");
             Assert.Equal(definingBytes, File.ReadAllBytes(workspace.AlarmPath)); Assert.Equal(consumingBytes, File.ReadAllBytes(child));
+            pane.Visible = false;
             ide.OpenDesigner(workspace.AlarmPath);
             Button directRename = null;
             VisualStudioSession.Wait(() => (directRename = Action("Rename this alarm")) != null, "direct rename action for current unsaved alarm identity");

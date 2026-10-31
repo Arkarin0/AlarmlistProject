@@ -52,6 +52,9 @@ namespace Alarmlist.VisualStudio
         }
         private void OnFieldLostFocus(object sender, KeyboardFocusChangedEventArgs args)
         {
+            // A context-menu gesture can focus another editor before opening its
+            // popup. It is a view action, never an implicit source transaction.
+            if (Mouse.RightButton == MouseButtonState.Pressed) return;
             // Shell toolbars live outside this view. Leaving the designer keeps
             // its draft private; moving to another designer control still commits.
             // Explicit Save/Enter still commits. Consumer and layout choices are

@@ -156,3 +156,10 @@ English templates and local links.
 Release timing/allocation and large-result/cancellation checks have
 actual evidence in the milestone plan; no speed threshold or retained-memory
 claim is attached to those measurements.
+
+Milestone 14 iteration 15 changes value and identity actions to context menus.
+Feature references and the explanation/reference tutorials now describe pointer,
+Shift+F10 and Menu-key invocation, preserving drafts and existing edit actions.
+Validation passes: 936 host tests, 14 packaged integration checks per framework,
+and native explanation/reference scenarios on both IDE hosts. Actual evidence,
+setup failures and successful repeats are recorded in the milestone plan.

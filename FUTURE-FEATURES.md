@@ -36,6 +36,12 @@ syntax, open questions and statements about future work in that history.
 | Alarm unit-style tests | Proposed; unassigned | Proposal below |
 | Bulk editing | Proposed; unassigned | Proposal below |
 
+Milestone 14 follow-up iterations 15–22 are authorized: context-menu value actions,
+a dockable Rename window with corrected scrolling/themes, formal expression syntax,
+compiler-provided classification and XML/designer/RESX semantic commands. These are
+planned follow-up work; completed reference/rename behavior remains recorded in the
+[milestone plan](src/VisualStudio/MILESTONE-14.md).
+
 ## Priorities and scope
 
 Priority decision (2026-10-27): Explain this value, Find All References and safe

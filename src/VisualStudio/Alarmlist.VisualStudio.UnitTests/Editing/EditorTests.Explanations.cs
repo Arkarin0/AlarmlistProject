@@ -231,7 +231,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
-        public void ExplanationButtonsRouteKeyboardCommandsAndTheSectionIsReadOnly()
+        public void ExplanationMenusAreAccessibleAndTheSectionIsReadOnly()
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
@@ -239,11 +239,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 using (var host = ExpressionHost())
                 {
                     var control = new EditFileControl(session.View); host.RootVisual = control; InheritanceAdornerTests.Pump();
-                    var button = VisualChildren(control).OfType<ExplainValueButton>().First(value => ReferenceEquals(value.DataContext, session.Field("Name")));
-                    Assert.True(button.IsEnabled); Assert.True(button.Focusable); Assert.Equal("PreserveDraft", button.Tag);
-                    Assert.Contains("Explain this value", AutomationProperties.GetName(button));
-                    Assert.Equal("Explain this value for Name", System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(button).GetName());
-                    Assert.True(button.Command.CanExecute(button.CommandParameter));
+                    var editor = VisualChildren(control).OfType<TextBox>().First(value => ReferenceEquals(value.DataContext, session.Field("Name")));
+                    var menu = OpenValueMenu(editor);
+                    var action = ValueAction(menu, "Explain this value");
+                    Assert.True(action.IsEnabled); Assert.True(action.Focusable); Assert.Equal("PreserveDraft", action.Tag);
+                    Assert.Equal("Explain this value for Name", System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(action).GetName());
+                    menu.IsOpen = false;
                     var summary = new PreviewControl { DataContext = session.View }; host.RootVisual = summary; summary.ShowExplanation(); InheritanceAdornerTests.Pump();
                     var section = VisualChildren(summary).OfType<ExplanationControl>().Single();
                     Assert.All(VisualChildren(section).OfType<TextBox>(), value => Assert.True(value.IsReadOnly));

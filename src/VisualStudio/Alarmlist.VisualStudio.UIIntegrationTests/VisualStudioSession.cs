@@ -33,7 +33,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 throw new InvalidOperationException("The configured Visual Studio installation does not match " + version);
             string suffix = Environment.GetEnvironmentVariable("ALARMLIST_VS_ROOT_SUFFIX") ?? "AlarmlistExp";
             if (!Regex.IsMatch(suffix, "^[A-Za-z][A-Za-z0-9_]*$")) throw new InvalidOperationException("Invalid experimental root suffix.");
-            var start = new ProcessStartInfo(executable) { UseShellExecute = false };
+            // Suppress an inherited console host; the IDE's GUI is explicitly
+            // shown below. A terminal can otherwise cover the test's work area.
+            var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true };
             start.Environment["NUGET_PACKAGES"] = Path.Combine(directory, ".packages");
             // Each fixture owns its IDE and private SDK/feed. Do not reuse
             // desktop build workers across those isolated project lifetimes.
@@ -138,10 +140,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         }
 
         public void RequireForeground()
+            => RequireForeground(_process.Id);
+
+        internal static void RequireForeground(int expectedProcess)
         {
             GetWindowThreadProcessId(GetForegroundWindow(), out uint processId);
-            if (processId != _process.Id) throw new InvalidOperationException(
-                $"The test IDE (PID {_process.Id}) lost foreground focus to PID {processId}; refusing keyboard input.");
+            if (processId != expectedProcess) throw new InvalidOperationException(
+                $"The test IDE (PID {expectedProcess}) lost foreground focus to PID {processId}; refusing input.");
         }
 
         public void Dispose()

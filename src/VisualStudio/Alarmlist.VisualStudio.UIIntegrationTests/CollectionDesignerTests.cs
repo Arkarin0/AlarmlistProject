@@ -81,17 +81,17 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => Collection("Tags") != null && Tags().Length == 2 && Tags()[0].IsEnabled, "local scalar collection rows");
             VisualStudioSession.Wait(() => Collection("Tags").FindAllDescendants().Any(item => item.Name.Contains("Inherited from UI.Base")), "read-only inherited collection entry");
             Assert.Equal(procedures, window.FindAllDescendants().Any(item => item.Name == "Add procedure group"));
-            ValueExplanationUi.Explain(window, "Explain this value for Count", "Canonical: 7", "Default: Count", beforeFreshRequest: () =>
+            ValueExplanationUi.Explain(ide, window, "Explain this value for Count", "Canonical: 7", "Default: Count", beforeFreshRequest: () =>
             {
                 Assert.Equal(original, ide.ReadText(workspace.AlarmPath));
                 HideExplanation();
             });
             HideExplanation();
-            ValueExplanationUi.Explain(window, "Explain this value for Copy", "Canonical: 7", "CollectionField: Checks[1].Count");
+            ValueExplanationUi.Explain(ide, window, "Explain this value for Copy", "Canonical: 7", "CollectionField: Checks[1].Count");
             HideExplanation();
             ReferenceAcceptanceUi.FindValue(ide, window, "Find references to Copy", "DefinitionField: Collection:Checks.Count (read-only)");
             ReferenceAcceptanceUi.Hide(ide); ide.ActivateDocument(workspace.AlarmPath); designer.Patterns.SelectionItem.Pattern.Select();
-            ValueExplanationUi.Explain(window, "Explain this value for inherited Tags", "inherited", "Membership:");
+            ValueExplanationUi.Explain(ide, window, "Explain this value for inherited Tags", "inherited", "Membership:");
             HideExplanation();
             Assert.Equal(original, ide.ReadText(workspace.AlarmPath));
             var count = Collection("Checks").FindFirstDescendant(cf => cf.ByName("Count").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
@@ -130,7 +130,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => Source().Element("Tags").Element("Clear") != null, "collection Clear directive");
             var cleared = Collection("Tags").FindFirstDescendant(cf => cf.ByName("Cleared entries").And(cf.ByControlType(ControlType.Group)));
             cleared.Patterns.ExpandCollapse.Pattern.Expand();
-            ValueExplanationUi.Explain(window, "Explain this value for cleared Tags", "Excluded", "Clear:");
+            ValueExplanationUi.Explain(ide, window, "Explain this value for cleared Tags", "Excluded", "Clear:");
             HideExplanation();
             Collection("Tags").FindFirstDescendant(cf => cf.ByName("Add Tags entry")).AsButton().Invoke();
             VisualStudioSession.Wait(() => Tags().Length == 2, "new scalar row");

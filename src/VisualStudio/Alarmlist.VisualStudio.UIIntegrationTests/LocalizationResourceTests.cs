@@ -189,8 +189,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 }
                 return false;
             }, "summary language choice " + culture);
-            choice.Patterns.SelectionItem.Pattern.Select();
-            selector.Collapse();
+            // UIA selection followed by Collapse can cancel the shell combo's
+            // pending choice without invoking its command. Exercise the user's
+            // actual commit gesture and await the displayed selection instead.
+            ide.RequireForeground(); choice.Click();
+            VisualStudioSession.Wait(() => selector.SelectedItem?.Text == culture, "committed summary language " + culture);
         }
 
         private static void AssertSavedPreviewWhileDraftFocused(VisualStudioSession ide, TextBox draft, TextBox preview, string expected)

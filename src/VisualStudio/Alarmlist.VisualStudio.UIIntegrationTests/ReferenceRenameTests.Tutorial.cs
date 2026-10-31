@@ -96,7 +96,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "reference-tutorial.png"));
 
             AutomationElement ById(string id) => window.FindFirstDescendant(cf => cf.ByAutomationId(id));
-            Button Action(string label) => window.FindAllDescendants(cf => cf.ByName(label).And(cf.ByControlType(ControlType.Button))).FirstOrDefault(item => item.IsEnabled)?.AsButton();
+            Button Action(string label) => ValueActionUi.Find(window, label);
             void Find()
             {
                 ide.OpenDesigner(source);
@@ -104,7 +104,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 Button find = null;
                 VisualStudioSession.Wait(() => (find = Action("Find references to this alarm")) != null, "tutorial alarm identity action");
                 find.Focus(); ide.RequireForeground(); Assert.True(find.Properties.HasKeyboardFocus.Value);
-                Keyboard.Type(VirtualKeyShort.SPACE);
+                Keyboard.Type(VirtualKeyShort.RETURN);
                 VisualStudioSession.Wait(() => ById("ReferencesStatus")?.Name == "References in this solution", "tutorial reference results");
             }
         }

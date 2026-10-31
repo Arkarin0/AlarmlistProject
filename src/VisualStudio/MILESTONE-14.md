@@ -5,6 +5,10 @@ Status: original iterations 1–7 complete with required acceptance gates passed
 iterations 8–14 complete with required acceptance gates passed on 2026-10-30.
 Original evidence and performance limits remain below.
 
+Follow-up iterations 15–22 are authorized on dev/milestone-14. Iteration 15 is
+complete with its required gates passed on 2026-10-31; iterations 16–22 remain
+planned. Implementation and evidence are recorded in the appended follow-up.
+
 ## Outcome and confirmed scope
 
 Provide Explain this value actions in the designer and Alarm Summary, displaying
@@ -1576,3 +1580,214 @@ as accepted in iteration 12.
 Final diff/whitespace review passes; 167 local links across the affected guidance,
 feature/tutorial, backlog, contributor and milestone documents resolve. No
 diagnostic probes, generated binaries, machine paths or unrelated edits are staged.
+
+## Follow-up iterations 15–22 — semantic editing and RESX commands
+
+Status: iteration 15 complete; iteration 16 next. Completed iterations 1–14 and their
+acceptance evidence above remain unchanged. No branch creation, merge or push is
+part of this follow-up. Work continues on dev/milestone-14.
+
+### Confirmed behavior and design
+
+Move value actions into context menus throughout designer and Alarm Summary,
+retaining existing edit, assignment, inheritance and navigation commands. Menus
+capture their owner and target and close on obsolete source/context/selection.
+Mouse, Shift+F10 and Menu-key invocation never commits a private draft, including
+when another parameter row is targeted. Identity menus remain distinct from title
+expression menus. Explanation stays read-only within Alarm Summary.
+
+Rename becomes one reusable dockable Alarmlist Rename window with its own session;
+new reference searches cannot replace a review. Hide retains it, Cancel clears
+approval, and a new request replaces idle/previewing work but never an Apply.
+Preserve all existing binding, coverage, acknowledgement, Query Edit, freshness,
+unsaved transaction, rollback and linked Undo/Redo guards. Pixel scrolling and
+stable change-owned expansion state replace nested scrolling and visual-only
+expansion state. Scrolling/recycling/resizing/selection cannot toggle expansion.
+
+Use Visual Studio theme resources in every nested References/Rename control and
+menu, including selection/focus/hover/disabled states and live theme changes.
+
+Introduce immutable ExpressionSyntaxKind, ExpressionSyntaxToken and structured
+reference/argument nodes following Roslyn's token/node separation. Preserve exact
+text, spans, whitespace, escaping and XML source mapping. Incomplete/malformed
+syntax has missing/invalid tokens; it is never executable by recovery alone.
+Evaluation, binding, explanations, references and classifications share this one
+compiler parser. Keep current grammar, case rules, diagnostics and fingerprints.
+The host receives detached classifications, never compiler syntax or bindings.
+
+Reuse the Visual Studio editor for designer expressions, with a dedicated content
+type and the same classifications used inside supported XML expressions. Preserve
+raw/resolved display, drafts, completion, multiline input, clipboard, accessibility
+and Undo/commit behavior. Target tokens under pointer/caret, including nested
+arguments; Go to Definition, Find All References and Rename use compiler-owned
+identities. Explain this value targets the containing value. Resolved output and
+escaped expression-like literals are not source expressions. Private drafts may
+be colored lexically but block semantic operations until commit/cancel.
+
+RESX XML key declarations already have a command route and need direct acceptance.
+Add Find All References/Rename on selected keys in the standard resource table.
+Require supported, unambiguous resource/key/context and pending-edit detection;
+never infer identities from displayed row text, implicitly save, use production UI
+automation/private reflection, or silently replace table support with XML-only
+support. A native feasibility gate on both IDEs must prove selection, command
+routing and synchronization of preview/unsaved Apply/linked Undo/Redo with the open
+table before that surface can be accepted. If unavailable, record an essential
+blocker and retain the user's requested scope for a concrete subsequent decision.
+
+Iterations 15–18 retain analysis contract 9. Iteration 19 activates contract 10 in
+compiler, SDK worker and extension together. Preserve analyzer 5, library format 3,
+export contract 1 and semantic definition fingerprints. Ordinary builds/analysis
+retain no reference indexes; classification caches belong only to current views.
+Saved resource/dependency rules, shared explicit consumers, version/identity checks
+and cancellation remain in force.
+
+### Numbered implementation and acceptance gates
+
+Each iteration depends on its predecessor and receives behavior tests,
+documentation, actual evidence and a focused commit before the next begins.
+
+| Iteration | Deliverable | Required acceptance |
+| --- | --- | --- |
+| 15 — Context menus | Replace inline value/identity actions with shared accessible menu attachment, exact owner/target routing and draft/freshness guards. | Host WPF routing, keyboard, readonly values, stale target, cross-row draft and cleanup tests; affected native explanation/reference scenarios on both IDEs. |
+| 16 — Dockable Rename and scrolling | Independent persistent tool window/session; pixel-scrolling virtualized list with change-owned expansion. | Independent search/review lifetimes, replacement/cancel/hide/reopen, stale inputs, partial Apply/Undo; oversized expanded rows, wheel/scrollbar/keyboard, recycling and resize on both IDEs. |
+| 17 — Themes | Dynamic VS styles for References/Rename/menus and all nested states. | Light/Dark/High Contrast injected palettes, selected/inactive/disabled/recycled rows, live theme swaps and both native IDEs. |
+| 18 — Expression syntax | Immutable typed tokens/nodes, exact mapping and missing/invalid syntax; migrate all compiler expression consumers. | Both-framework grammar/evaluation/diagnostic/reference/explanation regressions, malformed/incomplete/escaped/quoted/nested/placeholder/Unicode/entity/CDATA fidelity and generated definitions. |
+| 19 — Classification API/bridge | Opt-in ClassifyExpressionsSnapshots for versioned document/value snapshots and context, detached kinds/spans/diagnostics, cancellation; activate analysis 10. | Both runtimes and desktop packaged hosts, incompatible tools, isolation/cancellation, draft lexical classification without saved-input changes or request-owned index retention. |
+| 20 — XML and RESX | Shared classifications/Fonts and Colors; token commands and definition choices; resource-table commands through supported integration. | Exact/nested token targets, XML fallback/mapping, direct saved RESX keys, shared/culture/resource ambiguity; essential table feasibility/synchronization gate on both IDEs. |
+| 21 — Designer expression editor | Embedded VS editor, dedicated content type and shared classifications/commands with existing binding/draft/completion contract. | Typing, caret/selection, raw/resolved transition, completion, multiline/Unicode/clipboard/accessibility/Undo, token versus value menus, draft/stale guards on both IDEs. |
+| 22 — Integrated acceptance | Solution/shared/culture/fallback/library/package/generated-definition coverage, tutorial and performance evidence. | Compiler/affected downstream both frameworks; packaged bridge both desktop hosts; native both IDEs; typing/large-document timings/allocations, cancellation and bounded caches, no solution searches per keystroke. |
+
+Run WPF, native IDE and desktop MSBuild suites sequentially. Guard owned window
+focus/readiness against RDP input, never close a user IDE and avoid extra shell
+windows during native input. Report actual timing/allocation limits without
+arbitrary latency thresholds. Native tests cover the user's oversized Rename
+preview recording, scrolling items out/back and preserving expansion/inclusion.
+
+Excluded: Roslyn fork, C# grammar integration, whole-ALMX syntax-tree redesign,
+third-party resource editors, CodeLens, hover evaluation, additional refactorings,
+unknown external consumers, Git integration and file/project/schema renaming.
+
+### Actual follow-up evidence
+
+Iteration 15 started from clean dev/milestone-14 at affbc2b. Both feature and dev
+point to that accepted iteration-14 commit. No follow-up acceptance is claimed yet.
+
+Iteration 15 implementation/validation in progress (2026-10-31):
+
+- Replaced inline action stacks and alarm/group identity buttons with attached
+  context menus on labels, editors, parameter rows and resolved values. Existing
+  field/literal/assignment/text-editing menus retain their bindings and actions.
+  Popup commands capture the owning view/value and reference-context generation;
+  source/context changes and unload close the menu, and commands recheck the
+  captured generation even after WPF popup closure. Accessible value descriptions
+  advertise Shift+F10/Menu invocation without replacing existing help text.
+- Right-button focus changes preserve drafts. Parameter menus refuse another row
+  before its ordinary commit-on-selection setter, including valid private drafts.
+  The native helpers now open actual menus; initial explanation uses Shift+F10
+  and initial reference search uses Menu, followed by Enter with focus checks.
+- Initial restricted restore failed with NU1301 (package host resolution). Restore
+  with network access and NuGetAudit=false passed. A restricted test-host run
+  stalled and was cancelled; the desktop-capable repeat ran normally. Initial
+  focused tests caught early local menu initialization overriding parameter styles
+  and duplicate popup sessions; deferred style initialization and session cleanup
+  corrected both. Focused3 passes 7 tests, zero failures/skips.
+- Full host suite passes 936 tests, zero failures/skips, in
+  artifacts/log/Debug/Milestone14/Iteration15/HostFull (2 minutes 19 seconds).
+  It includes new stale-after-close, unload, readonly Summary and valid/conflicting
+  cross-row draft cases. Native runner build passes with zero warnings/errors
+  after correcting its focused-element API call to the installed FlaUI version.
+- Diff whitespace review passes; 108 local documentation/guidance links resolve.
+  Native ValueExplanation/ReferencesRename acceptance on VS2022 has started;
+  VS2026 follows sequentially. No iteration-15 acceptance or commit is claimed yet.
+- Initial native pair fails in TestResults/a8486f9a2e684366909a53b8b1309967.
+  ValueExplanation stops before its first menu: failure.png shows de-DE instead
+  of the requested en-GB. The shared selector used UIA SelectionItem.Select then
+  Collapse, which can cancel the native shell's pending choice. It now commits
+  through a real choice click and awaits the selected culture, retaining the
+  original resolved-value assertion. ReferencesRename exercises Menu-key search,
+  preview/Apply and linked Undo/Redo, then stops looking for the former inline
+  identity Rename name. Identity menus now preserve that accessible name and the
+  helper recognizes it. Designer menu fixtures hide obstructing floating panes;
+  offscreen values are revealed before input. The explanation fixture additionally
+  tests a different-field menu during a private draft without a focus-commit.
+- MenuFinal passes 13 affected host checks, zero failures/skips (10 seconds).
+  The corrected native pair is running on VS2022; both IDE gates remain pending.
+- The second native pair (TestResults/68c65b41cdf046a98227632aaa671743) gets through
+  culture fallback, source freshness, readonly Summary, parameter explanation and
+  cross-field private-draft assertions. It stops at a clipped procedure title:
+  WPF reports usable offscreen coordinates and the old helper right-clicks the
+  taskbar (retained failure screenshot). The next fixture's UIA focused-element
+  readiness check then fails. The helper now hit-tests points inside the owned
+  window, scrolls the actual ancestor viewport without focusing a draft, and
+  reuses VisualStudioSession's Win32 process foreground check. No assertion or
+  source-preservation gate was removed. Disabled marked controls also explicitly
+  permit a context menu for readonly inspection. Runner build passes with zero
+  warnings/errors; the third native pair is running sequentially on VS2022.
+- The third pair stops at foreground guards before semantic actions
+  (TestResults/c570ccd350bf4e1197722ffff8b825a9). The screenshot retains an extra
+  console and the earlier shell/taskbar menu. Computer-use inventory was read,
+  but Explorer app access timed out; no Explorer input was issued. The owned IDE
+  launch now sets CreateNoWindow=true (its GUI remains explicitly shown). A
+  focused explanation repeat still stops before culture input at the foreground
+  guard (TestResults/feb11979dd50415db39b4e0ebc80bbe9); it cannot prove native
+  acceptance. Desktop readiness has been requested. No guard was bypassed, user
+  IDE closed, iteration committed or iteration 16 implementation started.
+  Packaged extension checks are running independently while that gate waits.
+- Packaged VSIX integration passes 14 tests on net472 and 14 on net8.0, zero
+  failures/skips (Integration472 and Integration8 under the iteration directory,
+  11 seconds each). Final affected-menu regressions pass 13 tests, zero
+  failures/skips (MenuReviewed, 11 seconds), after preserving native/standalone
+  menus when no semantic owner exists. Diff whitespace and 108 local links pass.
+  The user reports all applications closed; native VS2022 acceptance is being
+  repeated against that cleared desktop before the sequential VS2026 run.
+- Cleared-desktop pair (TestResults/228011d2d2bc4f63bcd1436e99f573f2) passes
+  ReferencesRename2022, including keyboard search, direct identity/Summary Rename,
+  preview, unsaved Apply and linked Undo/Redo. ValueExplanation now passes the
+  procedure-title menu and stops at the entry menu. Its screenshot shows the
+  built-in TextBox editing menu: that class handler consumes opening when no
+  explicit child menu exists. Marked value containers now prepare a real editing
+  menu on such child text boxes before opening; existing explicit menus remain
+  unchanged. Native repeats retain all original expectations.
+- After that fix, both VS2022 cases pass, zero failures/skips, in
+  TestResults/689f7092e20f450fa2dd051a0c5c5690 (3 minutes 18 seconds).
+  This includes Shift+F10/Menu-key and pointer invocation, scalar/parameter/title/
+  entry and readonly Summary actions, cross-field private-draft preservation,
+  culture/input invalidation, physical-source navigation, identity/title
+  distinctions, direct Rename, unsaved Apply and linked Undo/Redo. The matching
+  VS2026 pair is running sequentially. Full host review after the final text-menu
+  route fix and final diff/link review follow before the iteration commit.
+- Both VS2026 cases also pass, zero failures/skips, in
+  TestResults/6485193184904d71ad06a93b640df06e (2 minutes 53 seconds).
+  The native menu gate is now passed on both supported IDEs. HostAccepted is
+  running the full host suite against the final child-text-menu fix before commit.
+
+### Iteration 15 — complete
+
+Value/identity actions now live in context menus throughout the designer and
+Alarm Summary. Explicit owner/target/context-generation capture preserves popup
+bindings and refuses stale commands. Existing clipboard, literal, assignment,
+inheritance and source menus remain usable. Keyboard and pointer invocation,
+readonly Summary, valid/conflicting cross-row drafts, a different-field private
+draft, unload and source/culture invalidation are covered. Ordinary compilation,
+analysis contract 9, analyzer 5, library 3, export 1 and fingerprints are unchanged.
+
+| Final gate | Actual result |
+| --- | --- |
+| Full extension host, final implementation | 936 passed, zero failures/skips; HostAccepted (2 minutes 19 seconds). |
+| Packaged VSIX integration net472 / net8.0 | 14 / 14 passed, zero failures/skips; Integration472 / Integration8 (11 seconds each). |
+| Native VS2022 ValueExplanation and ReferencesRename | 2 passed, zero failures/skips; TestResults/689f7092e20f450fa2dd051a0c5c5690 (3 minutes 18 seconds). |
+| Native VS2026 same scenarios | 2 passed, zero failures/skips; TestResults/6485193184904d71ad06a93b640df06e (2 minutes 53 seconds). |
+| Focused menu regressions after entry-route fix | 13 passed, zero failures/skips; MenuEntryFix (11 seconds), overlapping the full host suite. |
+| Review | Diff whitespace passes; 108 local documentation/guidance links resolve. No unrelated changes, machine paths or generated artifacts are included. |
+
+Host and integration commands: dotnet test on the corresponding VisualStudio
+test project, --no-restore -v quiet -m:1 -nr:false --logger trx, with framework
+net472/net8.0 for integration. Results are under
+artifacts/log/Debug/Milestone14/Iteration15. Native commands use
+eng/test-visualstudio.ps1 with the installed IDE path, -RootSuffix Alarmlist13Exp
+and -Filter 'Area=ValueExplanation|Area=ReferencesRename', sequentially. The
+retained progress log above records setup/input failures, actual product fixes
+and successful repeats. No scoped gate is deferred. Broader generated-definition,
+library/package and integrated tutorial/performance reacceptance remains in 22.
+Iteration 16 (separate Rename lifetime/window and expansion-preserving pixel
+scrolling) is next; its acceptance has not been claimed.

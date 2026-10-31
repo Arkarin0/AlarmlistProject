@@ -99,7 +99,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 "saved out-of-solution library analysis without Build");
             SelectPreviewTab(window, "Selected alarm summary");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Saved library", "inherited library preview");
-            ValueExplanationUi.Explain(window, "Explain this value for resolved Name", "Saved library", "Inheritance:");
+            ValueExplanationUi.Explain(ide, window, "Explain this value for resolved Name", "Saved library", "Inheritance:");
             ValueExplanationUi.Navigate(window, "Field: Name");
             VisualStudioSession.Wait(() => string.Equals(ide.Automation.ActiveDocument?.FullName, sourcePath, StringComparison.OrdinalIgnoreCase),
                 "library origin opens physical out-of-solution source");

@@ -101,7 +101,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             void Choose(string name) => ChooseDefaultContext(window, name);
             void Explain(string expected)
             {
-                ValueExplanationUi.Explain(window, "Explain this value for Name", expected);
+                ValueExplanationUi.Explain(ide, window, "Explain this value for Name", expected);
                 ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}").Visible = false;
                 ide.ActivateDocument(Path.Combine(workspace.DirectoryPath, "Shared", "PressureLow.almx"));
                 SelectDesigner(window);

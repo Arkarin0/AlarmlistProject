@@ -89,8 +89,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             });
         }
 
-        [Fact]
-        public void ParameterContextMenuRefusesAnotherRowWhenTheCurrentDraftConflicts()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ParameterContextMenuRefusesAnotherRowWhilePrivateDraftIsPending(bool conflicting)
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
@@ -103,8 +105,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     InheritanceAdornerTests.Pump();
                     ParameterListViewModel list = session.View.AlarmParameters;
                     list.Selected.Value = "private draft";
-                    string external = source.Replace("Value='alarm'", "Value='external'");
-                    session.Buffer.SetText(external);
+                    string external = conflicting ? source.Replace("Value='alarm'", "Value='external'") : source;
+                    if (conflicting) session.Buffer.SetText(external);
                     var view = VisualChildren(control).OfType<ListView>().Single(item => ReferenceEquals(item.DataContext, list));
                     var target = (ListViewItem)view.ItemContainerGenerator.ContainerFromItem(list.Rows.Single(row => row.Name == "q"));
                     ContextMenu menu = OpenParameterMenu(target);

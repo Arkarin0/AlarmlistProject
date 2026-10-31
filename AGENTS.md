@@ -77,6 +77,18 @@ Existing plans and iteration records:
 | [Milestone 12](src/VisualStudio/MILESTONE-12.md) | Authorized XML IntelliSense for ALMX, .almlookup and .almproj files, and native Visual Studio Shared Projects; follow its accepted defaults and 15% remaining-allowance stop. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+Milestone 14 follow-up iterations 15–22 authorize context-menu value actions,
+a separate dockable Rename window with pixel scrolling and change-owned expansion,
+consistent VS themes, formal expression tokens/nodes, detached contract-10
+classification, XML/designer token commands and native RESX resource-table actions.
+Follow its appended plan; iterations 15–18 keep analysis 9 and iteration 19 activates
+10 across compiler/SDK/host together. Preserve analyzer 5/library 3/export 1 and
+semantic fingerprints. Reuse the VS editor and the compiler's single expression
+parser; no host semantic parser or private-draft auto-commit. RESX table selection,
+pending edit detection and document/linked Undo synchronization on both IDEs are an
+essential gate; do not substitute XML-only support or depend on production UI
+automation/private reflection when that integration is unavailable.
+
 Milestone 14 introduced ExplainSnapshots with analysis contract 8; its reference/
 rename follow-up advances the compiler and detached SDK bridge to contract 9.
 Keep analyzer 5, library format 3, export contract 1
@@ -126,9 +138,15 @@ literal lookup/label text and capture formatted placeholders in the parser.
 Generated fields, sibling names, built-in names and definition caption keys are
 searchable but immutable. Propagate ambiguous ownership and refuse guessed edits;
 unavailable inheritance must not make a binder's partial choice a proven use.
-Value action groups requery routed commands after loading into the editor;
-accessibility expansion must not leave fresh controls with a cached disabled state.
-Requery only checks current targets and preserves the existing private-draft guards.
+Value actions use shared context menus on designer/Summary values and identity
+headings. Preserve existing editing/assignment/inheritance menus and bind popup
+commands to their captured owner and target, never the popup's mutable DataContext.
+Requery when the menu opens after the owner route is attached; fresh controls must
+not retain a cached disabled state. Recheck context generation at execution and
+close obsolete menus on input/context/selection changes or unload. Menu invocation
+must preserve private drafts, including right-button focus and another parameter
+row's ordinary commit-on-selection setter. Prepare explicit editing menus on child
+text boxes whose native class handler would otherwise consume the opening event.
 Reference acceptance uses Area=ReferenceTutorial for the documented two-file
 navigation/rename/Undo/Save/Build workflow. Integrated library, package, shared
 example and generated-collection checks extend their existing native fixtures.
@@ -1091,6 +1109,10 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Avoid launching extra shell windows during native input checks; poll the
   existing runner instead. A bounded foreground-readiness wait may restore the
   owned IDE, but retain the final process/focus check before sending input.
+  Suppress a console host for owned IDE launches while explicitly showing the GUI.
+  Hit-test pointer input inside the owned window against the intended element;
+  WPF can report IsOffscreen=false for clipped fields. Reveal values by scrolling
+  their actual ancestor viewport without focusing and committing a private draft.
   The isolated unit-test STA harness disables pen/touch discovery before WPF
   input initializes, avoiding the diagnosed RDP PenThreadWorker tablet-enumeration
   stall. Those tests exercise keyboard/mouse; do not propagate that switch to

@@ -335,9 +335,7 @@
         </ComboBox>
         <ScrollViewer x:Name="AlarmAreaScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Alarm settings content">
           <StackPanel>
-
-          <ui:ReferenceValueButton CommandParameter="{Binding}" Content="Find alarm references" AutomationProperties.Name="Find references to this alarm" />
-          <ui:RenameValueButton CommandParameter="{Binding}" Content="Rename alarm…" AutomationProperties.Name="Rename this alarm" />
+          <TextBlock Text="{Binding Selected.Identity, StringFormat=Alarm: {0}}" FontWeight="SemiBold" Margin="0,0,0,8" Focusable="True" ui:ValueContextMenu.Target="{Binding}" ui:ValueContextMenu.ReferenceOnly="True" ui:ValueContextMenu.Description="this alarm" />
           <ui:ParameterListControl DataContext="{Binding AlarmParameters}" LostKeyboardFocus="OnFieldLostFocus" Margin="0,0,8,12" />
           <StackPanel IsEnabled="{Binding CanEdit}">
           <CheckBox Content="Abstract template" IsChecked="{Binding IsAbstract}" Margin="0,0,8,12" AutomationProperties.Name="Abstract template"
@@ -345,14 +343,14 @@
           <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding CanEdit}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
-                <Grid Margin="0,0,8,8">
+                <Grid ui:ValueContextMenu.Description="{Binding Label}" ui:ValueContextMenu.ExplanationName="{Binding Label, StringFormat=Explain this value for {0}}" ui:ValueContextMenu.Target="{Binding}" Focusable="True" Margin="0,0,8,8">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="135" /><ColumnDefinition Width="26" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                   <StackPanel><Label x:Name="FieldLabel" Content="{Binding Label}" Padding="0,5,6,0"
                          Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}">
                     <Label.Style><Style TargetType="Label"><Setter Property="Target" Value="{Binding ElementName=LocalValueEditor}" /><Style.Triggers>
                       <DataTrigger Binding="{Binding IsReference}" Value="True"><Setter Property="Target" Value="{Binding ElementName=ReferenceValueEditor}" /></DataTrigger>
                     </Style.Triggers></Style></Label.Style>
-                  </Label><ui:ValueActionsControl Visibility="{Binding IsScalar, Converter={StaticResource Visibility}}" ValueName="{Binding Label}" ActionName="{Binding Label, StringFormat=Explain this value for {0}}" /></StackPanel>
+                  </Label></StackPanel>
                   <AdornerDecorator Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
                     <ContentControl Width="26" Height="27" Focusable="False" IsHitTestVisible="False"
                                     ui:InheritedValueBehavior.IsInherited="{Binding IsInherited}"
@@ -433,13 +431,13 @@
                             <StackPanel><TextBlock Text="{Binding Label}" /><TextBlock Text="{Binding State}" /></StackPanel>
                           </DockPanel></Expander.Header>
                           <ItemsControl ItemsSource="{Binding Fields}"><ItemsControl.ItemTemplate><DataTemplate>
-                            <Grid Margin="0,2"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="CollectionLabels" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid ui:ValueContextMenu.Description="{Binding Label, StringFormat=inherited {0}}" ui:ValueContextMenu.ExplanationName="{Binding Label, StringFormat=Explain this value for inherited {0}}" ui:ValueContextMenu.Target="{Binding}" Focusable="True" Margin="0,2"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="CollectionLabels" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                               <TextBlock Text="{Binding Label}" Margin="0,3,8,0"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
                                 <DataTrigger Binding="{Binding DataContext.IsSimple, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
                               </Style.Triggers></Style></TextBlock.Style></TextBlock>
                               <TextBox Grid.Column="1" Text="{Binding DisplayText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MinHeight="27"
                                        AutomationProperties.Name="{Binding Name, StringFormat=Inherited {0}}" />
-                              <ui:ValueActionsControl Grid.Column="1" Grid.Row="1" ValueName="{Binding Label, StringFormat=inherited {0}}" ActionName="{Binding Label, StringFormat=Explain this value for inherited {0}}" />
+
                             </Grid>
                           </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                         </Expander></AdornerDecorator>
@@ -467,7 +465,7 @@
                           <StackPanel>
                           <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding CanEdit}" Margin="0,4,0,4">
                             <ItemsControl.ItemTemplate><DataTemplate>
-                              <Grid Margin="0,2"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="CollectionLabels" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                              <Grid ui:ValueContextMenu.Description="{Binding Label}" ui:ValueContextMenu.ExplanationName="{Binding Label, StringFormat=Explain this value for {0}}" ui:ValueContextMenu.Target="{Binding}" Focusable="True" Margin="0,2"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="CollectionLabels" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                 <TextBlock x:Name="CollectionFieldLabel" Text="{Binding Label}" Margin="0,3,8,0"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers>
                                   <DataTrigger Binding="{Binding DataContext.IsSimple, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
                                 </Style.Triggers></Style></TextBlock.Style></TextBlock>
@@ -492,7 +490,7 @@
                                     </ContextMenu>
                                   </ui:ExpressionTextBox.ContextMenu>
                                 </ui:ExpressionTextBox>
-                                <ui:ValueActionsControl Grid.Column="1" Grid.Row="1" ValueName="{Binding Label}" ActionName="{Binding Label, StringFormat=Explain this value for {0}}" />
+
                                 <Button Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top" Width="28" Height="27" Content="▾" Tag="PreserveDraft"
                                         Visibility="{Binding HasLiteralChoices, Converter={StaticResource Visibility}}" Click="OnInheritanceActions" Unloaded="OnActionsUnloaded"
                                         ToolTip="Choose a literal value. Opening this menu preserves the current expression."
@@ -519,8 +517,8 @@
                     <Expander Header="Cleared entries" IsExpanded="False" Tag="PreserveDraft" Margin="0,6">
                       <ItemsControl ItemsSource="{Binding Excluded}"><ItemsControl.ItemTemplate><DataTemplate>
                         <StackPanel Margin="0,4"><TextBlock Text="{Binding Text}" TextWrapping="Wrap" /><Button Content="{Binding Origin}" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" />
-                          <ItemsControl ItemsSource="{Binding Fields}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,6,0" /><ui:ValueActionsControl ValueName="{Binding Label, StringFormat=cleared {0}}" ActionName="{Binding Label, StringFormat=Explain this value for cleared {0}}" />
+                          <ItemsControl ItemsSource="{Binding Fields}"><ItemsControl.ItemTemplate><DataTemplate><StackPanel ui:ValueContextMenu.Description="{Binding Label, StringFormat=cleared {0}}" ui:ValueContextMenu.ExplanationName="{Binding Label, StringFormat=Explain this value for cleared {0}}" ui:ValueContextMenu.Target="{Binding}" Focusable="True" Orientation="Horizontal">
+                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center" Margin="0,0,6,0" />
                           </StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
                         </StackPanel>
                       </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
@@ -568,7 +566,7 @@
                     <GroupBox Style="{StaticResource ProcedureGroup}" Margin="0,0,0,16" AutomationProperties.Name="{Binding Name, StringFormat=Procedure group {0}}">
                       <GroupBox.Header>
                         <StackPanel>
-                        <ui:ExpressionTextBox DataContext="{Binding TitleField}" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
+                        <ui:ExpressionTextBox ui:ValueContextMenu.Description="procedure title" ui:ValueContextMenu.ExplanationName="Explain this value for procedure title" ui:ValueContextMenu.Target="{Binding}" Focusable="True" DataContext="{Binding TitleField}" RawText="{Binding EditValue, UpdateSourceTrigger=PropertyChanged}"
                             ResolvedText="{Binding ResolvedValue}" HasResolvedValue="{Binding CanShowResolved}" MinHeight="26" Style="{StaticResource ProcedureHeading}"
                             IsEnabled="{Binding DataContext.CanEditTitle, RelativeSource={RelativeSource AncestorType=GroupBox}}"
                             Suggestions="{Binding DataContext.CompletionProperties, RelativeSource={RelativeSource AncestorType=UserControl}}"
@@ -588,10 +586,8 @@
                             </ContextMenu>
                           </ui:ExpressionTextBox.ContextMenu>
                         </ui:ExpressionTextBox>
-                        <ui:ValueActionsControl DataContext="{Binding TitleField}" ValueName="procedure title" ActionName="Explain this value for procedure title" />
-                        <TextBlock Text="{Binding Name, StringFormat=Group ID: {0}}" TextWrapping="Wrap" Margin="0,0,0,6" />
-                        <ui:ReferenceValueButton CommandParameter="{Binding ReferenceIdentity}" Content="Find group references" AutomationProperties.Name="Find references to this procedure group" />
-                        <ui:RenameValueButton CommandParameter="{Binding ReferenceIdentity}" Content="Rename group…" AutomationProperties.Name="Rename this procedure group" />
+
+                        <TextBlock ui:ValueContextMenu.Description="this procedure group" ui:ValueContextMenu.Target="{Binding ReferenceIdentity}" ui:ValueContextMenu.ReferenceOnly="True" Focusable="True" Text="{Binding Name, StringFormat=Group ID: {0}}" TextWrapping="Wrap" Margin="0,0,0,6" />
                         <ToggleButton Content="{Binding ExpansionText}" IsChecked="{Binding IsExpanded}" Tag="PreserveDraft"
                                       HorizontalAlignment="Left" Margin="0,0,0,6" Padding="6,3"
                                       AutomationProperties.Name="{Binding Name, StringFormat=Expand procedure group {0}}"
@@ -656,7 +652,7 @@
                                   <DataTrigger Binding="{Binding IsExcluded}" Value="True"><Setter Property="Opacity" Value="0.78" /></DataTrigger>
                                   <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="Opacity" Value="1" /><Setter Property="Visibility" Value="Visible" /></Trigger>
                                 </Style.Triggers></Style></Border.Style>
-                                <StackPanel>
+                                <StackPanel ui:ValueContextMenu.Description="procedure entry" ui:ValueContextMenu.ExplanationName="Explain this value for procedure entry" ui:ValueContextMenu.Target="{Binding}" Focusable="True">
                                   <WrapPanel Margin="0,0,0,5">
                                     <TextBlock Text="{Binding State}" VerticalAlignment="Center" Margin="0,0,8,0" />
                                     <ComboBox ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind, UpdateSourceTrigger=PropertyChanged}"
@@ -665,7 +661,7 @@
                                     <Button Content="↑" Command="{Binding MoveUpCommand}" Click="OnProcedureAction" ToolTip="Move entry up. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry up" />
                                     <Button Content="↓" Command="{Binding MoveDownCommand}" Click="OnProcedureAction" ToolTip="Move entry down. Moving across Clear changes which entries are included." AutomationProperties.Name="Move procedure entry down" />
                                     <Button Content="×" Command="{Binding DeleteCommand}" Click="OnProcedureAction" ToolTip="Remove this local source entry. Undo restores it." AutomationProperties.Name="Remove procedure entry" />
-                                    <ui:ValueActionsControl ValueName="procedure entry" ActionName="Explain this value for procedure entry" />
+
                                   </WrapPanel>
                                   <Separator Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />
                                   <TextBlock Text="Clear preceding entries" FontWeight="SemiBold" Visibility="{Binding IsClear, Converter={StaticResource Visibility}}" />

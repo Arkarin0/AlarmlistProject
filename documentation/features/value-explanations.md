@@ -20,9 +20,11 @@ existing saved-input rules. The selected summary language applies.
 
 ## How it works
 
-Choose Explain this value beside a designer field, parameter, procedure title or
-entry, or collection field. The same actions appear beside values in the selected
-alarm's summary. Parameters and context includes custom and well-known values.
+Right-click a designer field, parameter, procedure title or entry, or collection
+value and choose **Explain this value**. The same context menu is available on
+resolved values in Alarm Summary. With the value focused, Shift+F10 or the Menu
+key opens its menu. Opening a menu never commits a private draft. Parameters and
+context include custom and well-known values.
 
 Explanation shows the target, project/configuration/language, raw expression,
 resolved and canonical values, state, diagnostics and contributing steps. Expand

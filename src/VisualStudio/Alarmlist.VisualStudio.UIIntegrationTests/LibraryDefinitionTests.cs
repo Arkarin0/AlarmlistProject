@@ -95,7 +95,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 ide.Automation.ExecuteCommand("View.AlarmlistPreview");
                 SelectPreviewTab(window, "Selected alarm summary");
                 VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Packaged definition", "restored package analysis");
-                ValueExplanationUi.Explain(window, "Explain this value for resolved Name", "Packaged definition", "Inheritance:");
+                ValueExplanationUi.Explain(ide, window, "Explain this value for resolved Name", "Packaged definition", "Inheritance:");
                 ValueExplanationUi.Navigate(window, "Field: Name");
                 AutomationElement definition = null;
                 VisualStudioSession.Wait(() =>

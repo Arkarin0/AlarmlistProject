@@ -25,6 +25,9 @@
       <MenuItem Icon="{ui:MenuIcon {x:Static catalog:KnownMonikers.Remove}}" Header="Remove local declaration" Command="{Binding RemoveCommand}" ToolTip="Remove this local declaration and its assignment. An inherited declaration may remain visible." />
     </ContextMenu>
     <Style x:Key="CellEditor" TargetType="TextBox">
+      <Setter Property="ui:ValueContextMenu.Target" Value="{Binding}" />
+      <Setter Property="ui:ValueContextMenu.Description" Value="{Binding Name, StringFormat=parameter {0}}" />
+      <Setter Property="ui:ValueContextMenu.ExplanationName" Value="{Binding Name, StringFormat=Explain this value for parameter {0}}" />
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListViewItem}}" />
       <Setter Property="BorderBrush" Value="Transparent" />
@@ -84,6 +87,9 @@
                   ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"
                   AutomationProperties.Name="{Binding Heading}" SizeChanged="OnListSizeChanged" ScrollViewer.ScrollChanged="OnListScrollChanged">
           <ListView.ItemContainerStyle><Style TargetType="ListViewItem">
+            <Setter Property="ui:ValueContextMenu.Target" Value="{Binding}" />
+            <Setter Property="ui:ValueContextMenu.Description" Value="{Binding Name, StringFormat=parameter {0}}" />
+            <Setter Property="ui:ValueContextMenu.ExplanationName" Value="{Binding Name, StringFormat=Explain this value for parameter {0}}" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
@@ -111,7 +117,6 @@
                   <StackPanel><TextBox Style="{StaticResource CellEditor}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                            IsReadOnly="{Binding IsNameReadOnly}"
                            AutomationProperties.Name="{Binding NameAutomationName}" AutomationProperties.HelpText="{Binding RowHelp}" />
-                    <ui:ValueActionsControl ValueName="{Binding Name, StringFormat=parameter {0}}" ActionName="{Binding Name, StringFormat=Explain this value for parameter {0}}" />
                   </StackPanel>
                 </DataTemplate></GridViewColumn.CellTemplate>
               </GridViewColumn>

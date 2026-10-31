@@ -18,8 +18,11 @@ explicit consumer for shared XML when its ownership is ambiguous.
 
 ## How it works
 
-Designer and Alarm Summary values offer Find references and Rename actions.
-Alarm and procedure-group headings also offer actions for their identities.
+Right-click a designer or Alarm Summary value and choose **Find All References**
+or **Rename…**. With the value focused, Shift+F10 or the Menu key opens the same
+menu. Alarm and procedure-group identities have their own context menus. Existing
+text-editing and assignment actions remain available. Opening a menu preserves
+private drafts; commit or cancel drafts before invoking semantic actions.
 A value containing several referenced symbols presents a compiler-resolved choice.
 In XML, place the caret within or immediately after a supported token and use the
 standard Find All References or Rename command. Other tokens retain native XML

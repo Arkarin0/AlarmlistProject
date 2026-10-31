@@ -16,30 +16,80 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public partial class EditorTests
     {
         [Fact]
-        public void ValueActionsRequeryAfterTheirCommandRouteIsAttached()
+        public void ValueMenusRequeryWhenOpenedAndCloseWhenTheirContextChanges()
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
                 using (var session = new SemanticSession())
                 using (var host = ExpressionHost())
                 {
-                    var root = new System.Windows.Controls.StackPanel();
-                    ValueExplanationCommands.Bind(root, () => session.View);
-                    ReferenceValueCommands.Bind(root, () => session.View);
-                    host.RootVisual = root;
+                    var control = new EditFileControl(session.View); host.RootVisual = control;
                     InheritanceAdornerTests.Pump();
-                    var actions = new ValueActionsControl { DataContext = session.Field("Name") };
-                    InheritanceAdornerTests.Pump();
-                    var buttons = actions.Children.OfType<System.Windows.Controls.Button>().ToArray();
-                    Assert.Equal(3, buttons.Length);
-                    Assert.All(buttons, button => Assert.False(button.IsEnabled));
-                    root.Children.Add(actions);
-                    InheritanceAdornerTests.Pump();
-                    Assert.All(buttons, button => Assert.True(button.IsEnabled));
-                    session.Field("Name").EditValue = "private draft";
-                    InheritanceAdornerTests.Pump();
-                    Assert.All(buttons, button => Assert.False(button.IsEnabled));
+                    var editor = VisualChildren(control).OfType<System.Windows.Controls.TextBox>()
+                        .First(value => ReferenceEquals(value.DataContext, session.Field("Name")));
+                    var menu = OpenValueMenu(editor);
+                    Assert.True(menu.IsOpen);
+                    Assert.All(menu.Items.OfType<System.Windows.Controls.MenuItem>().Where(IsValueAction), item => Assert.True(item.IsEnabled));
+                    session.Field("Name").EditValue = "private draft"; InheritanceAdornerTests.Pump();
+                    Assert.False(menu.IsOpen);
+                    menu = OpenValueMenu(editor);
+                    Assert.True(menu.IsOpen);
+                    Assert.All(menu.Items.OfType<System.Windows.Controls.MenuItem>().Where(IsValueAction), item => Assert.False(item.IsEnabled));
                     Assert.Equal(0, session.Buffer.Edits);
+                    menu.IsOpen = false;
+                }
+            });
+        }
+        private static bool IsValueAction(System.Windows.Controls.MenuItem item)
+            => Equals(item.Header, "Explain this value") || Equals(item.Header, "Find All References") || Equals(item.Header, "Rename…");
+        private static System.Windows.Controls.ContextMenu OpenValueMenu(System.Windows.FrameworkElement source)
+        {
+            var menu = ValueContextMenu.Open(source); InheritanceAdornerTests.Pump();
+            Assert.NotNull(menu); return menu;
+        }
+        private static System.Windows.Controls.MenuItem ValueAction(System.Windows.Controls.ContextMenu menu, string header)
+            => menu.Items.OfType<System.Windows.Controls.MenuItem>().Single(item => Equals(item.Header, header));
+        [Fact]
+        public void ClosedValueMenuCannotExecuteAgainstANewerAnalysisAndUnloadingClosesIt()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession())
+                using (var host = ExpressionHost())
+                {
+                    var control = new EditFileControl(session.View); host.RootVisual = control; InheritanceAdornerTests.Pump();
+                    var editor = VisualChildren(control).OfType<System.Windows.Controls.TextBox>()
+                        .First(value => ReferenceEquals(value.DataContext, session.Field("Name")));
+                    var menu = OpenValueMenu(editor); var action = ValueAction(menu, "Find All References");
+                    menu.IsOpen = false; InheritanceAdornerTests.Pump();
+                    session.Analyze();
+                    Assert.False(action.Command.CanExecute(null));
+                    menu = OpenValueMenu(editor); Assert.True(menu.IsOpen);
+                    host.RootVisual = null; InheritanceAdornerTests.Pump();
+                    Assert.False(menu.IsOpen); Assert.Equal(0, session.Buffer.Edits);
+                }
+            });
+        }
+        [Fact]
+        public void ResolvedReadOnlyValuesOfferMenusWithoutInlineSemanticButtons()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession())
+                using (var host = ExpressionHost())
+                {
+                    var control = new PreviewControl { DataContext = session.View }; host.RootVisual = control;
+                    control.ShowExplanation(); InheritanceAdornerTests.Pump();
+                    var editor = VisualChildren(control).OfType<System.Windows.Controls.TextBox>()
+                        .First(value => AutomationProperties.GetName(value) == "Resolved Name");
+                    Assert.True(editor.IsReadOnly);
+                    var menu = OpenValueMenu(editor);
+                    Assert.True(ValueAction(menu, "Explain this value").IsEnabled);
+                    Assert.True(ValueAction(menu, "Find All References").IsEnabled);
+                    Assert.DoesNotContain(VisualChildren(control).OfType<System.Windows.Controls.Button>(),
+                        button => button.Command == ReferenceValueCommands.Find || button.Command == ReferenceValueCommands.Rename
+                            || button.Command == ValueExplanationCommands.Explain);
+                    menu.IsOpen = false; Assert.Equal(0, session.Buffer.Edits);
                 }
             });
         }
@@ -82,7 +132,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             }
         }
         [Fact]
-        public void ReferenceButtonsRouteCurrentTargetsAndPreserveDrafts()
+        public void ReferenceMenusRouteCurrentTargetsAndPreserveDrafts()
         {
             InheritanceAdornerTests.RunOnSta(() =>
             {
@@ -92,27 +142,31 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     AnalysisReferenceTarget selected = null;
                     session.Analysis.ReferencesHandler = (state, target, current, token) => { selected = target; return Task.CompletedTask; };
                     var control = new EditFileControl(session.View); host.RootVisual = control; InheritanceAdornerTests.Pump();
-                    var button = VisualChildren(control).OfType<ReferenceValueButton>().Single(item => ReferenceEquals(item.DataContext, session.Field("Name")));
-                    Assert.True(button.IsEnabled); Assert.True(button.Focusable); Assert.Equal("PreserveDraft", button.Tag);
-                    Assert.Equal("Find references to Name", AutomationProperties.GetName(button));
-                    var command = Assert.IsType<RoutedUICommand>(button.Command);
-                    Assert.True(command.CanExecute(button.CommandParameter, button));
-                    command.Execute(button.CommandParameter, button);
+                    var editor = VisualChildren(control).OfType<System.Windows.Controls.TextBox>()
+                        .First(value => ReferenceEquals(value.DataContext, session.Field("Name")));
+                    var menu = OpenValueMenu(editor);
+                    var find = ValueAction(menu, "Find All References");
+                    Assert.Equal("PreserveDraft", find.Tag); Assert.True(find.IsEnabled);
+                    find.Command.Execute(null);
                     Assert.Equal("Value", selected.Kind); Assert.Equal("Child", selected.Name);
-                    var rename = VisualChildren(control).OfType<RenameValueButton>().Single(item => ReferenceEquals(item.DataContext, session.Field("Name")));
-                    Assert.True(rename.Focusable); Assert.Equal("PreserveDraft", rename.Tag);
-                    Assert.Equal("Rename symbol for Name", AutomationProperties.GetName(rename));
-                    ((RoutedUICommand)rename.Command).Execute(rename.CommandParameter, rename);
+                    menu.IsOpen = false;
+                    menu = OpenValueMenu(editor);
+                    ValueAction(menu, "Rename…").Command.Execute(null);
                     Assert.True(session.Analysis.ReferencesInvocation.IsRename); Assert.Equal("Value", selected.Kind);
-                    var identity = VisualChildren(control).OfType<ReferenceValueButton>().Single(item => ReferenceEquals(item.CommandParameter, session.View));
-                    ((RoutedUICommand)identity.Command).Execute(identity.CommandParameter, identity);
+                    menu.IsOpen = false;
+                    var identity = VisualChildren(control).OfType<System.Windows.FrameworkElement>()
+                        .Single(item => ReferenceEquals(ValueContextMenu.GetTarget(item), session.View));
+                    menu = OpenValueMenu(identity);
+                    Assert.DoesNotContain(menu.Items.OfType<System.Windows.Controls.MenuItem>(), item => Equals(item.Header, "Explain this value"));
+                    ValueAction(menu, "Find All References").Command.Execute(null);
                     Assert.Equal("Alarm", selected.Kind);
-                    Assert.Equal(session.Analysis.Current.Response.Snapshot.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child").Origin.Location,
-                        selected.Location);
+                    menu.IsOpen = false;
                     session.Field("Name").EditValue = "private draft"; InheritanceAdornerTests.Pump();
-                    Assert.False(command.CanExecute(button.CommandParameter, button));
-                    Assert.False(((RoutedUICommand)rename.Command).CanExecute(rename.CommandParameter, rename));
+                    menu = OpenValueMenu(editor);
+                    Assert.False(ValueAction(menu, "Find All References").IsEnabled);
+                    Assert.False(ValueAction(menu, "Rename…").IsEnabled);
                     Assert.True(session.View.HasPending); Assert.Equal(0, session.Buffer.Edits);
+                    menu.IsOpen = false;
                 }
             });
         }

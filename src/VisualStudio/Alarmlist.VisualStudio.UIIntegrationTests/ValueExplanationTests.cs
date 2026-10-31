@@ -43,12 +43,16 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ReferenceAcceptanceUi.Hide(ide);
             ide.OpenDesigner(workspace.AlarmPath); window.SetForeground(); SelectDesigner(window); SelectCulture(ide, window, "en-GB");
             VisualStudioSession.Wait(() => Box(window, "Name")?.Text == "Inspect 001", "English designer value before explanation");
-            Button Action(string name) => window.FindAllDescendants(cf => cf.ByName(name).And(cf.ByControlType(ControlType.Button)))
-                .FirstOrDefault(item => item.IsEnabled)?.AsButton();
+            Button Action(string name)
+            {
+                if (name.StartsWith("Explain this value for ", StringComparison.Ordinal) && !name.Contains("resolved ", StringComparison.Ordinal))
+                    ReferenceAcceptanceUi.Hide(ide);
+                return ValueActionUi.Find(window, name);
+            }
             Button explain = null;
-            VisualStudioSession.Wait(() => (explain = Action("Explain this value for Name")) != null, "designer explanation action");
+            VisualStudioSession.Wait(() => (explain = ValueActionUi.Find(window, "Explain this value for Name", keyboard: true)) != null, "designer explanation action");
             explain.Focus(); ide.RequireForeground(); Assert.True(explain.Properties.HasKeyboardFocus.Value);
-            Keyboard.Type(VirtualKeyShort.SPACE);
+            Keyboard.Type(VirtualKeyShort.RETURN);
             VisualStudioSession.Wait(() => PreviewValue(window, "Explained value")?.Text.Contains("Inspect 001") == true, "keyboard explanation with parent-culture fallback");
             Assert.True(PreviewValue(window, "Explained value").IsReadOnly);
             var preview = ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}");
@@ -63,7 +67,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.ExecuteCommand("View.AlarmlistPreview");
             VisualStudioSession.Wait(() => PreviewValue(window, "Explained value")?.Text == "", "draft invalidates explanation");
             Assert.Null(Action("Explain this value for Code")); Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
-            code.Focus(); ResourceEditorTests.RequireFieldFocus(ide, code); Keyboard.Type(VirtualKeyShort.ESCAPE);
+            Assert.Null(Action("Explain this value for Name")); Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
+            // The cross-field menu must preserve Code's private draft. Escape
+            // from the current designer focus cancels it without a focus-commit.
+            ide.RequireForeground(); Keyboard.Type(VirtualKeyShort.ESCAPE);
             VisualStudioSession.Wait(() => Action("Explain this value for Name") != null, "cancelled draft restores explanation action");
             Action("Explain this value for Name").Invoke();
             VisualStudioSession.Wait(() => PreviewValue(window, "Explained value")?.Text.Contains("Inspect 001") == true, "explanation after draft cancellation");

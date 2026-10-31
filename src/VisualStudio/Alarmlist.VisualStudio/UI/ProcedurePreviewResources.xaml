@@ -9,14 +9,14 @@
                         AutomationProperties.Name="{Binding Label}" AutomationProperties.HelpText="{Binding OriginText}"
                         ToolTip="{Binding OriginText}">
           <Border BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" Padding="26,6,6,6">
-            <StackPanel>
+            <StackPanel ui:ValueContextMenu.Description="{Binding Label}" ui:ValueContextMenu.ExplanationName="{Binding Label, StringFormat=Explain this value for {0}}" ui:ValueContextMenu.Target="{Binding}" Focusable="True">
               <TextBlock Text="{Binding Label}" FontWeight="SemiBold" />
               <TextBox Text="{Binding Text, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="160"
                        VerticalScrollBarVisibility="Auto" AutomationProperties.Name="{Binding Label, StringFormat=Procedure {0}}"
                        AutomationProperties.HelpText="{Binding OriginText}" />
               <TextBlock Text="{Binding OriginText}" TextWrapping="Wrap" />
               <TextBlock Text="{Binding ExclusionText}" TextWrapping="Wrap" />
-              <ui:ValueActionsControl ValueName="{Binding Label}" ActionName="{Binding Label, StringFormat=Explain this value for {0}}" />
+
               <Button Content="Go to source" Command="{Binding GoToSourceCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
                       AutomationProperties.Name="{Binding Label, StringFormat=Go to source for {0}}" />
             </StackPanel>

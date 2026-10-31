@@ -45,9 +45,9 @@ consumer and language before invoking a semantic action.
 ### 1. Find the base alarm's consumers
 
 Open `ReferenceBase.almx` in Designer mode and select `ReferenceDemo.Base`.
-Choose **Find alarm references** beside its identity. Its accessible name is
-**Find references to this alarm**. You can focus the button with Tab and activate
-it with Space or Enter.
+Right-click the selected alarm identity heading and choose **Find All References**.
+Its accessible name is **Find references to this alarm**. You can focus the
+heading, press Shift+F10 or the Menu key, then select the action and press Enter.
 
 Expected result: Alarmlist References shows an Alarm definition for
 `ReferenceDemo.Base`, grouped by physical file and consumer context. Its findings
@@ -63,7 +63,7 @@ for the inheritance finding.
 Expected result: Visual Studio opens that physical source using your configured
 navigation preference. No text changes. Opening a previously closed buffer can
 invalidate the old search snapshot. Return to the base alarm and invoke
-**Find alarm references** again before continuing.
+**Find All References** on its identity again before continuing.
 
 ### 3. Review the rename
 

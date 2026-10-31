@@ -15,6 +15,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
     {
         internal static void FindValue(VisualStudioSession ide, Window window, string action, string expectedDefinition)
         {
+            foreach (EnvDTE.Window tool in ide.Automation.Windows)
+                if (tool.Caption == "Alarmlist References" || (tool.Caption == "Alarm Summary" && !action.Contains("resolved ", StringComparison.Ordinal))) tool.Visible = false;
             Button button = null;
             VisualStudioSession.Wait(() => (button = Action(window, action)) != null, "current reference action " + action);
             button.Invoke(); Expect(window, expectedDefinition);
@@ -71,7 +73,6 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 if (existing.Caption == "Alarmlist References" || existing.Caption == "Alarm Summary") existing.Visible = false;
         }
         private static AutomationElement ById(Window window, string id) => window.FindFirstDescendant(cf => cf.ByAutomationId(id));
-        private static Button Action(Window window, string name) => window.FindAllDescendants(cf => cf.ByName(name).And(cf.ByControlType(ControlType.Button)))
-            .FirstOrDefault(item => item.IsEnabled)?.AsButton();
+        private static Button Action(Window window, string name) => ValueActionUi.Find(window, name);
     }
 }

@@ -22,6 +22,7 @@ namespace Alarmlist.VisualStudio.UI
         private CancellationTokenSource _intent = new CancellationTokenSource();
         private ProjectAnalysisState _state;
         private bool _disposed;
+        public int ContextVersion { get; private set; }
         public Task Pending { get; private set; } = Task.CompletedTask;
 
         internal ReferenceActionsViewModel(IDesignerAnalysis analysis, Action<string> report)
@@ -32,6 +33,7 @@ namespace Alarmlist.VisualStudio.UI
             if (_disposed) return;
             _lifetime.Cancel(); _lifetime.Dispose(); _lifetime = new CancellationTokenSource();
             _state = null; _targets.Clear();
+            ContextVersion++; Notify(nameof(ContextVersion));
             System.Windows.Input.CommandManager.InvalidateRequerySuggested();
         }
         // Analysis refresh invalidates an initial snapshot, but a resolved
@@ -48,6 +50,7 @@ namespace Alarmlist.VisualStudio.UI
             if (!ReferenceEquals(_state, state)) Invalidate();
             _state = state; _targets.Clear();
             foreach (var pair in targets) if (pair.Value != null) _targets[pair.Key] = pair.Value;
+            ContextVersion++; Notify(nameof(ContextVersion));
             System.Windows.Input.CommandManager.InvalidateRequerySuggested();
         }
         public bool CanFind(object value) => !_disposed && _analysis is IDesignerReferences && value != null

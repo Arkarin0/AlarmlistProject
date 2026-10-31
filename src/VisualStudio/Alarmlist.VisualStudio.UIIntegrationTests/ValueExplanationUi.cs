@@ -10,14 +10,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
     {
         internal static string Value(Window window) => window.FindAllDescendants(cf => cf.ByName("Explained value").And(cf.ByControlType(ControlType.Edit)))
             .Select(item => item.AsTextBox()).FirstOrDefault(item => item.IsReadOnly)?.Text;
-        internal static void Explain(Window window, string action, string expected, string step = null, Action beforeFreshRequest = null)
+        internal static void Explain(VisualStudioSession ide, Window window, string action, string expected, string step = null, Action beforeFreshRequest = null)
         {
             const string obsolete = "Inputs or the selected value changed. Explain this value again.";
             for (int attempt = 0; attempt < 2; attempt++)
             {
+                if (!action.Contains("resolved ", StringComparison.Ordinal)) ReferenceAcceptanceUi.Hide(ide);
                 Button button = null;
-                VisualStudioSession.Wait(() => (button = window.FindAllDescendants(cf => cf.ByName(action).And(cf.ByControlType(ControlType.Button)))
-                    .FirstOrDefault(item => item.IsEnabled)?.AsButton()) != null, action);
+                VisualStudioSession.Wait(() => (button = ValueActionUi.Find(window, action)) != null, action);
                 button.Invoke();
                 bool refresh = false;
                 VisualStudioSession.Wait(() =>
