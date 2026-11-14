@@ -227,10 +227,10 @@ namespace Alarmlist.Analysis
                 return;
             }
             foreach (var token in expression.Tokens) ObserveToken(token);
-            void ObserveToken(ExpressionToken token)
+            void ObserveToken(ExpressionReferenceSyntax token)
             {
                 _token.ThrowIfCancellationRequested();
-                if (token.Kind == "parameter" || token.Kind == "loc" || token.Kind == "item")
+                if (token.Kind == ExpressionSyntaxKind.ParameterReference || token.Kind == ExpressionSyntaxKind.LocalizationReference || token.Kind == ExpressionSyntaxKind.ItemReference)
                     Probe(null, location, null, token.KeyStart, token.KeyLength);
                 else
                 {
@@ -241,10 +241,10 @@ namespace Alarmlist.Analysis
                 foreach (var argument in token.Arguments.Values) Probe(null, location, null, argument.NameStart, argument.NameLength);
                 if (!bindingAvailable)
                 {
-                    foreach (var argument in token.Arguments.Values) if (argument.Token != null) ObserveToken(argument.Token);
+                    foreach (var argument in token.Arguments.Values) if (argument.Reference != null) ObserveToken(argument.Reference);
                     return;
                 }
-                if (token.Kind == "parameter")
+                if (token.Kind == ExpressionSyntaxKind.ParameterReference)
                 {
                     if (bindings.TryGetValue(token.Key, out var parameter) && !token.Key.StartsWith("Alarmlist", StringComparison.OrdinalIgnoreCase))
                         AddUse(parameter, "Expression", location, alarm.FullyQualifiedName, null, token.KeyStart, token.KeyLength);
@@ -252,11 +252,11 @@ namespace Alarmlist.Analysis
                         _coverage.Add("Unbound parameter: " + token.Key + " at " + Address(location));
                     else ObserveWellKnown(token, location, alarm);
                 }
-                else if (token.Kind == "loc") ObserveLocalization(token, location, alarm, bindings, collectionName);
-                else if (token.Kind == "item") ObserveSibling(token, location, alarm, collectionName);
+                else if (token.Kind == ExpressionSyntaxKind.LocalizationReference) ObserveLocalization(token, location, alarm, bindings, collectionName);
+                else if (token.Kind == ExpressionSyntaxKind.ItemReference) ObserveSibling(token, location, alarm, collectionName);
                 else ObserveLookupToken(token, location, alarm);
                 foreach (var argument in token.Arguments.Values)
-                    if (argument.Token != null) ObserveToken(argument.Token);
+                    if (argument.Reference != null) ObserveToken(argument.Reference);
             }
         }
 

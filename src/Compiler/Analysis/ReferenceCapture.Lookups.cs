@@ -143,7 +143,7 @@ namespace Alarmlist.Analysis
                 Join(_bindingTemplates[binding], _bindingTemplates[priorBinding]);
         }
 
-        private void ObserveLookupToken(ExpressionToken token, SourceLocation location, AlarmSyntaxNode alarm)
+        private void ObserveLookupToken(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm)
         {
             var binding = LookupTokenBinding.Resolve(token, _lookups);
             if (binding.Failure != null) _coverage.Add("Unavailable lookup reference: " + binding.Failure + " at " + Address(location));
@@ -154,7 +154,7 @@ namespace Alarmlist.Analysis
                 AddUse(symbol, "Lookup", location, alarm.FullyQualifiedName, null, position, key.Length);
                 position += key.Length + 1;
             }
-            if (token.Kind == "list")
+            if (token.Kind == ExpressionSyntaxKind.ListReference)
             {
                 if (_listSymbols.TryGetValue(keys[0], out var lists)) Use(lists[0], keys[0]);
                 else position += keys[0].Length + 1;

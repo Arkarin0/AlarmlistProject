@@ -57,7 +57,7 @@ namespace Alarmlist.Analysis
             }
         }
 
-        private void ObserveWellKnown(ExpressionToken token, SourceLocation location, AlarmSyntaxNode alarm)
+        private void ObserveWellKnown(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm)
         {
             var target = BuiltInTarget(token.Key);
             string field = target.Kind == "DefinitionField" ? target.Name : null;
@@ -97,7 +97,7 @@ namespace Alarmlist.Analysis
             _uses.Add(new Use(symbol, "DefinitionUse", location, alarm.FullyQualifiedName, span, "Generated definition names are immutable."));
         }
 
-        private void ObserveSibling(ExpressionToken token, SourceLocation location, AlarmSyntaxNode alarm, string collectionName)
+        private void ObserveSibling(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm, string collectionName)
         {
             var collection = Definition.AlarmDefinition.Collections.FirstOrDefault(candidate => candidate.Name == collectionName);
             if (collection == null || !collection.Fields.Any(field => field.Name == token.Key))

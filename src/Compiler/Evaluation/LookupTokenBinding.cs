@@ -17,11 +17,11 @@ namespace Alarmlist.Evaluation
         internal string Failure { get; private set; }
         internal string[] Keys { get; private set; }
 
-        internal static LookupTokenBinding Resolve(ExpressionToken token, LookupCatalogue catalogue)
+        internal static LookupTokenBinding Resolve(ExpressionReferenceSyntax token, LookupCatalogue catalogue)
         {
             var result = new LookupTokenBinding { Keys = token.Key.Split('#') };
             string[] keys = result.Keys;
-            if (token.Kind == "list")
+            if (token.Kind == ExpressionSyntaxKind.ListReference)
             {
                 if (!catalogue.TryGetEntry(keys[0], keys[1], out var entry))
                     result.Failure = "missing or ambiguous list entry '" + token.Key + "'";
@@ -34,15 +34,15 @@ namespace Alarmlist.Evaluation
                 return result;
             }
             result.Path = path; result.Definition = path.Location;
-            if (token.Kind == "path") return result;
+            if (token.Kind == ExpressionSyntaxKind.PathReference) return result;
             var member = path.Members.FirstOrDefault(candidate => candidate.Key == keys[1]);
-            if (member == null || (token.Kind == "property" && member.Kind != "Property") || (token.Kind == "button" && member.Kind != "Button"))
+            if (member == null || (token.Kind == ExpressionSyntaxKind.PropertyReference && member.Kind != "Property") || (token.Kind == ExpressionSyntaxKind.ButtonReference && member.Kind != "Button"))
             {
                 result.Failure = "missing member or incorrect member kind '" + keys[1] + "'";
                 return result;
             }
             result.Member = member; result.Definition = member.Location;
-            if (token.Kind == "meta")
+            if (token.Kind == ExpressionSyntaxKind.MetadataReference)
             {
                 var metadata = member.Metadata.FirstOrDefault(candidate => candidate.Name == keys[2]);
                 if (metadata == null) result.Failure = "missing metadata '" + keys[2] + "'";

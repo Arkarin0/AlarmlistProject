@@ -317,12 +317,12 @@ namespace Alarmlist.Evaluation
             private Output.ExportText EvaluateExpressionText(PropertyExpression expression, SourceLocation location)
                 => expression?.EvaluateText(token => EvaluateTokenText(token, location));
 
-            private string EvaluateToken(ExpressionToken token, SourceLocation location)
+            private string EvaluateToken(ExpressionReferenceSyntax token, SourceLocation location)
                 => EvaluateTokenText(token, location)?.ResolvedText;
 
-            private Output.ExportText EvaluateTokenText(ExpressionToken token, SourceLocation location)
+            private Output.ExportText EvaluateTokenText(ExpressionReferenceSyntax token, SourceLocation location)
             {
-                if (token.Kind == "item")
+                if (token.Kind == ExpressionSyntaxKind.ItemReference)
                 {
                     if (_itemLookup != null)
                     {
@@ -332,7 +332,7 @@ namespace Alarmlist.Evaluation
                     _owner.Report(DiagnosticDescriptors.InvalidExpression, _alarm, location, token.Raw);
                     return null;
                 }
-                if (token.Kind == "parameter")
+                if (token.Kind == ExpressionSyntaxKind.ParameterReference)
                 {
                     string value = Lookup(token.Key, location);
                     if (value == null) return null;
@@ -342,7 +342,7 @@ namespace Alarmlist.Evaluation
                                 ? scalar.ExportText : PropertyExpression.LiteralText(value);
                     return PropertyExpression.LiteralText(value);
                 }
-                if (token.Kind == "loc")
+                if (token.Kind == ExpressionSyntaxKind.LocalizationReference)
                 {
                     using (var explanation = _explanation?.BeginOperation("Localization", token.Key, token.Raw, location, _owner._culture))
                     {
@@ -364,7 +364,7 @@ namespace Alarmlist.Evaluation
                 }
             }
 
-            private string LocalizeCore(ExpressionToken token, SourceLocation location, out ResourceEntry entry, out Output.ExportText expansion, out bool substitution)
+            private string LocalizeCore(ExpressionReferenceSyntax token, SourceLocation location, out ResourceEntry entry, out Output.ExportText expansion, out bool substitution)
             {
                 string key = token.Key;
                 entry = null;
@@ -374,9 +374,9 @@ namespace Alarmlist.Evaluation
                 {
                     foreach (string active in _visiting) _deferred.Add(active);
                     bool available = true;
-                    foreach (ExpressionArgument argument in token.Arguments.Values)
-                        if (argument.Token != null && argument.Token.Kind != "parameter"
-                            && EvaluateToken(argument.Token, location) == null) available = false;
+                    foreach (ExpressionArgumentSyntax argument in token.Arguments.Values)
+                        if (argument.Reference != null && argument.Reference.Kind != ExpressionSyntaxKind.ParameterReference
+                            && EvaluateToken(argument.Reference, location) == null) available = false;
                     return available ? token.Raw : null;
                 }
                 if (_owner._culture == null) return null; // Invalid culture already has a diagnostic.
@@ -392,7 +392,7 @@ namespace Alarmlist.Evaluation
                     return ExpandResource(token, location, entry, out expansion, out substitution, explanation);
             }
 
-            private string ExpandResource(ExpressionToken token, SourceLocation location, ResourceEntry entry,
+            private string ExpandResource(ExpressionReferenceSyntax token, SourceLocation location, ResourceEntry entry,
                 out Output.ExportText expansion, out bool substitution, AlarmExplanationCapture.Scope explanation)
             {
                 string key = token.Key;
@@ -430,11 +430,11 @@ namespace Alarmlist.Evaluation
                 _activeResources.Add(entry.ValueLocation);
                 try
                 {
-                    foreach (KeyValuePair<string, ExpressionArgument> argument in token.Arguments)
+                    foreach (KeyValuePair<string, ExpressionArgumentSyntax> argument in token.Arguments)
                         using (var argumentExplanation = _explanation?.BeginOperation("Argument", argument.Key,
-                            argument.Value.Token?.Raw ?? argument.Value.Literal, location))
+                            argument.Value.Reference?.Raw ?? argument.Value.Literal, location))
                         {
-                            var value = argument.Value.Token == null ? PropertyExpression.LiteralText(argument.Value.Literal) : EvaluateTokenText(argument.Value.Token, location);
+                            var value = argument.Value.Reference == null ? PropertyExpression.LiteralText(argument.Value.Literal) : EvaluateTokenText(argument.Value.Reference, location);
                             values.Add(argument.Key, value);
                             argumentExplanation?.CompleteText(value?.ResolvedText);
                         }
@@ -449,7 +449,7 @@ namespace Alarmlist.Evaluation
                 => _owner.Diagnostics.Add(new Diagnostic(DiagnosticDescriptors.InvalidLocalizationArguments, key, reason)
                     .WithLocation(location ?? _alarm.Location, new[] { entry.ValueLocation }));
 
-            private Output.ExportText ResolveLookupText(ExpressionToken token, SourceLocation location, out SourceLocation definition)
+            private Output.ExportText ResolveLookupText(ExpressionReferenceSyntax token, SourceLocation location, out SourceLocation definition)
             {
                 var binding = LookupTokenBinding.Resolve(token, _owner._lookups);
                 definition = binding.Definition;
@@ -480,7 +480,7 @@ namespace Alarmlist.Evaluation
                     : string.Join(" -> ", texts.Select(text => text.ResolvedText)), segments);
             }
 
-            private Output.ExportText MissingLookupText(ExpressionToken token, string reason, SourceLocation location, SourceLocation definition)
+            private Output.ExportText MissingLookupText(ExpressionReferenceSyntax token, string reason, SourceLocation location, SourceLocation definition)
             {
                 DeferConsumerInput();
                 _owner.ReportDiagnostic(new Diagnostic(DiagnosticDescriptors.MissingLookup, token.Raw, reason)

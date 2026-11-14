@@ -88,6 +88,12 @@ parser; no host semantic parser or private-draft auto-commit. RESX table selecti
 pending edit detection and document/linked Undo synchronization on both IDEs are an
 essential gate; do not substitute XML-only support or depend on production UI
 automation/private reflection when that integration is unavailable.
+Compiler expression syntax lives in Evaluation/ExpressionSyntax.cs and the single
+Evaluation/ExpressionParser.cs. Its immutable typed tokens/nodes retain authored
+UTF-16 spans, escapes and whitespace. Recovery may expose missing/invalid syntax
+for inspection; PropertyExpression admits only error-free roots for evaluation
+and proven references. Preserve that strict boundary when adding classification
+or editor commands; do not create a second semantic parser in the host.
 
 Milestone 14 introduced ExplainSnapshots with analysis contract 8; its reference/
 rename follow-up advances the compiler and detached SDK bridge to contract 9.

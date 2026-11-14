@@ -66,7 +66,7 @@ namespace Alarmlist.Analysis
             return null;
         }
 
-        private void ObserveLocalization(ExpressionToken token, SourceLocation location, AlarmSyntaxNode alarm, Dictionary<string, Symbol> bindings, string collectionName)
+        private void ObserveLocalization(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm, Dictionary<string, Symbol> bindings, string collectionName)
         {
             var symbol = ResourceSymbol(token.Key);
             if (symbol == null && !_resources.Entries.Any(entry => entry.Key == token.Key)) symbol = TemplateSymbol(token.Key);
@@ -89,7 +89,7 @@ namespace Alarmlist.Analysis
             }
         }
 
-        private void ObserveArguments(ExpressionToken token, SourceLocation location, AlarmSyntaxNode alarm, Symbol resource)
+        private void ObserveArguments(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm, Symbol resource)
         {
             if (token.Arguments.Count == 0) return;
             var declarations = _lookups.Bindings.Where(binding => binding.TemplateKey == token.Key && _lookups.IsAvailable(binding)).ToArray();

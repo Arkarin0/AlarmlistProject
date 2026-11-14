@@ -8,8 +8,9 @@ Original evidence and performance limits remain below.
 Follow-up iterations 15–22 are authorized on dev/milestone-14. Iteration 15 is
 complete with its required gates passed on 2026-10-31. Iteration 16 is complete
 with its required gates passed on 2026-11-14. Iteration 17 is complete with its
-required gates passed on 2026-11-14;
-iterations 18–22 remain planned.
+required gates passed on 2026-11-14. Iteration 18 is complete with required gates
+passed on 2026-11-14;
+iterations 19–22 remain planned.
 Implementation and evidence are recorded in the appended follow-up.
 
 ## Outcome and confirmed scope
@@ -1586,7 +1587,7 @@ diagnostic probes, generated binaries, machine paths or unrelated edits are stag
 
 ## Follow-up iterations 15–22 — semantic editing and RESX commands
 
-Status: iterations 15 (aae945e), 16 (fa5e72f) and 17 complete. Completed iterations 1–14 and their
+Status: iterations 15 (aae945e), 16 (fa5e72f), 17 (5ac54d6) and 18 complete. Completed iterations 1–14 and their
 acceptance evidence above remain unchanged. No branch creation, merge or push is
 part of this follow-up. Work continues on dev/milestone-14.
 
@@ -2104,3 +2105,105 @@ change is claimed. Earlier failures, their actual causes and successful repeats
 remain above. No iteration-17 gate is deferred. Analysis 9/analyzer 5/library 3/
 export 1 and semantic fingerprints remain unchanged. Iteration 18 starts the
 compiler's formal expression syntax; the broader integrated gates remain 22.
+
+### Iteration 18 — in progress
+
+Starting from clean dev/milestone-14 after 5ac54d6. Introduce internal immutable
+expression roots, typed lexical tokens, reference/argument/placeholder nodes and
+explicit missing/invalid syntax. The current compiler grammar remains authoritative:
+ASCII parameter/resource names, Unicode lookup keys, case-sensitive expression
+prefixes, one non-localization reference per formatted argument, context-gated
+item references and exactly-once escapes. Lossless UTF-16 spans stay compatible
+with the existing XML decoded-to-source map. Ordinary evaluation accepts only
+fully valid syntax; recovery is inspectable but cannot execute or create proven
+references. All expression consumers use this one compiler parser. Public bridge
+contract activation remains iteration 19; analysis 9 and existing fingerprints
+remain unchanged here. Required gates include both-framework compiler/downstream
+regressions and generated definition/collection variants.
+
+- Replaced the mutable/string-kind expression parts with immutable typed syntax.
+  The sole parser owns lexical punctuation/keywords, argument and placeholder
+  boundaries, exact source spans, iterative invalid-call recovery and missing
+  tokens. Token text is a slice of the authored value rather than one retained
+  string per punctuation mark. Strict PropertyExpression construction rejects
+  every recovered root with errors. Evaluation, localization, lookup binding,
+  provenance, references and exchange protection use the shared compiler parser;
+  no host parser or public contract change is introduced.
+- Initial8 passes 316 existing expression/reference/explanation tests (171 ms).
+  The new xUnit theory initially exposes an internal enum in a public method's
+  signature; its data now passes the enum's integer value without making compiler
+  syntax public. Syntax8Fixed passes all 33 new tests (92 ms), covering all kinds,
+  nested/quoted arguments, lossless typing prefixes and 300 malformed delimiter
+  combinations, immutable collections, exact escapes/placeholders, Unicode/XML
+  mapping and rejection of recovered semantic uses. Full compiler suites pass
+  883 on net472 (1 second) and 885 on net8.0 (333 ms), zero failures/skips
+  (Compiler472/Compiler8). The existing CA1416 test-helper warning is unchanged.
+  Results are under artifacts/log/Debug/Milestone14/Iteration18.
+- Generated scalar lifecycle/type/required-value checks pass on both frameworks
+  (AlarmDefinitionGeneration/07ca9bd0bf074478806427c6b29bc2df). Collection runtime
+  checks pass procedure-enabled, procedure-disabled and minimum-count variants on
+  both frameworks, including identical JSON hashes
+  (AlarmCollections/5a3ee7ecf2f94aa4844a63f6cb05a2a3). MSBuild task tests pass
+  124 per framework, task integration passes 4 per framework and zenon passes
+  9 net472 / 10 net8.0, zero failures/skips. The downstream launcher then uses an
+  incorrect SDK project filename and stops before running that suite. It is
+  corrected to AlarmList.MSBuild.SDK.Tests.csproj; both full SDK suites are running.
+  No SDK acceptance is claimed from the failed launcher.
+- Full SDK suites pass 97 on net472 (4 minutes 10 seconds) and 94 on net8.0
+  (4 minutes 7 seconds), zero failures/skips. Final review replaces a list scan
+  for duplicate arguments with an ordinal hash set, retains the original linear
+  name validator and groups contiguous invalid recovery text. A 1,024-argument
+  case verifies distinct names, duplicate rejection and losslessness without a
+  timing threshold. Final compiler suites pass 884 on net472 (1 second) and
+  886 on net8.0 (317 ms), including all 34 new cases. The full SDK runs precede
+  this complexity-only correction; final packaged desktop/bridge checks repeat
+  the affected behavior against the corrected compiler. Generated scalar and
+  collection runs above precede that correction as well.
+- Final focused packaged checks pass 17 tests on each installed desktop MSBuild
+  host, zero failures/skips: Desktop-2022 (45 seconds) and Desktop-18 (48 seconds).
+  They cover package isolation and the analysis-9 snapshot API, compiler inputs,
+  formatted lookups and analyzer package loading against the corrected compiler.
+  The full extension-host suite and packaged VSIX checks are running sequentially.
+
+### Iteration 18 — complete
+
+The compiler now owns immutable ExpressionSyntaxKind/ExpressionSyntaxToken data
+and structured reference, argument, literal and placeholder nodes. The single
+parser preserves authored text, UTF-16 spans, whitespace, quoted/escaped literals,
+context-gated record references and all existing grammar/case rules. Incomplete
+syntax has explicit missing tokens and diagnostics; invalid calls recover without
+recursive call expansion. Only error-free roots enter PropertyExpression,
+evaluation or proven reference capture. All compiler consumers use the typed
+nodes; XML source mapping still protects entities, CDATA, comments and surrogates.
+Duplicate-name validation remains linear in argument count. There is no host
+semantic parser, new dependency, public API or contract/fingerprint transition.
+
+| Gate | Actual result |
+| --- | --- |
+| Final compiler net472 / net8.0 | 884 / 886 passed, zero failures/skips; CompilerFinal-net472 / CompilerFinal-net8.0 (1 second / 317 ms), including 34 new syntax/recovery cases. |
+| MSBuild task net472 / net8.0 | 124 / 124 passed; Task-net472 / Task-net8.0 (1 second / 918 ms). |
+| Task integration net472 / net8.0 | 4 / 4 passed; TaskIntegration-net472 / TaskIntegration-net8.0 (1 second each). |
+| Zenon net472 / net8.0 | 9 / 10 passed; Zenon-net472 / Zenon-net8.0 (492 / 157 ms). |
+| Full SDK net472 / net8.0 | 97 / 94 passed; SDK-net472 / SDK-net8.0 (4 minutes 10 seconds / 4 minutes 7 seconds), before the final complexity-only correction noted above. |
+| Final desktop SDK checks, VS2022 / VS2026 | 17 / 17 passed; Desktop-2022 / Desktop-18 (45 / 48 seconds), against the corrected compiler. |
+| Final full extension-host suite | 953 passed, zero failures/skips; HostFinal (2 minutes 41 seconds). |
+| Final packaged VSIX net472 / net8.0 | 14 / 14 passed, zero failures/skips; VSIX-net472 / VSIX-net8.0 (13 seconds each). |
+| Generated scalar/runtime checks | Passed both frameworks, all scalar types and required/default variants; AlarmDefinitionGeneration/07ca9bd0bf074478806427c6b29bc2df. |
+| Generated collection/runtime checks | Passed both frameworks, procedures enabled/disabled and minimum-count variants; AlarmCollections/5a3ee7ecf2f94aa4844a63f6cb05a2a3. |
+| Review | Whitespace diff passes; 123 local documentation/guidance links resolve. Only the iteration's source, tests and guidance are included. |
+
+Tests use dotnet test on the corresponding project with --no-restore, the selected
+framework, -v quiet -m:1 -nr:false --logger trx and results under
+artifacts/log/Debug/Milestone14/Iteration18. Desktop repeats select PackageTests,
+CompilationTests and LookupTests, setting/restoring ALARMLIST_TEST_MSBUILD_PATH
+for the selected installation. Generator commands are
+eng/test-alarm-definition-generation.ps1 and eng/test-alarm-collections.ps1;
+their evidence is under artifacts/log/Debug with the identifiers above. Full
+downstream and generated runs precede the final complexity-only correction;
+the final compiler, desktop and host/package checks validate that correction.
+All executed test groups have zero failures/skips after the documented fixture
+and launcher corrections. The pre-existing CA1416 shared-test-helper warning
+remains. This iteration changes compiler internals, with no new native UI action;
+native classification/editor acceptance remains in 20–22. No iteration-18 gate
+is deferred. Analysis 9, analyzer 5, library 3, export 1 and semantic fingerprints
+remain unchanged. Iteration 19 exposes detached classification and activates 10.

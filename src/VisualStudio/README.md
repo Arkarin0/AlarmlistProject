@@ -356,6 +356,15 @@ Run it sequentially with the other native and WPF checks. Shared dynamic styles
 preserve native templates and refresh existing accessibility peers after template
 changes; isolated host tests inject Light/Dark/High Contrast palettes.
 
+The compiler's internal [expression parser](../Compiler/Evaluation/ExpressionParser.cs)
+produces immutable [typed syntax](../Compiler/Evaluation/ExpressionSyntax.cs),
+including exact UTF-16 token spans, whitespace, escapes and missing/invalid syntax.
+Evaluation, localization, lookup binding, explanations and references share that
+parser. Only error-free roots enter evaluation or proven reference capture;
+recovery does not make malformed input executable. Syntax objects remain inside
+the compiler. Detached editor classification and its contract transition follow
+in Milestone 14 iteration 19.
+
 The bridge accepts analysis contract 9 and loads the resolved SDK's net472 compiler
 in an isolated domain. Explain this value uses the same captured project inputs
 and the project-owned SDK worker through a cancellable on-demand request, with validation before

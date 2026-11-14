@@ -41,7 +41,9 @@ a dockable Rename window with corrected scrolling/themes, formal expression synt
 compiler-provided classification and XML/designer/RESX semantic commands.
 Iterations 15–17 are complete with both-IDE acceptance (status updated 2026-11-14):
 context menus, independent dockable Rename, reliable preview scrolling and live
-themes. Formal syntax and semantic editor/RESX work remain planned in 18–22;
+themes. Iteration 18 adds internal immutable expression syntax with both-framework
+and generated-definition validation. Detached classification and semantic
+editor/RESX work remain planned in 19–22;
 completed reference/rename behavior and actual evidence remain recorded in the
 [milestone plan](src/VisualStudio/MILESTONE-14.md).
 

@@ -19,10 +19,10 @@ namespace Alarmlist.Core.UnitTests.Text
                 Assert.Equal(token.Raw, raw.Substring(token.Start, token.Raw.Length));
                 Assert.Equal(token.Key, raw.Substring(token.KeyStart, token.KeyLength));
             }
-            var parameter = tokens[0].Arguments["Position"].Token;
+            var parameter = tokens[0].Arguments["Position"].Reference;
             Assert.Equal("P", raw.Substring(parameter.KeyStart, parameter.KeyLength));
             Assert.Equal("Position", raw.Substring(tokens[0].Arguments["Position"].NameStart, tokens[0].Arguments["Position"].NameLength));
-            Assert.Null(tokens[0].Arguments["Literal"].Token);
+            Assert.Null(tokens[0].Arguments["Literal"].Reference);
         }
     }
 }

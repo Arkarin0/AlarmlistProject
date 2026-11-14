@@ -180,3 +180,13 @@ checks per framework and sequential native theme/Rename cases on both IDE hosts.
 Light/Dark captures were visually reviewed; High Contrast uses injected palettes.
 The native fixture supports classic and modern Options and restores the original
 theme. Exact evidence and resolved failures remain in the milestone plan.
+
+Milestone 14 iteration 18 documents the compiler's single typed expression parser
+in contributor guidance. Immutable tokens/nodes preserve source spans and recover
+incomplete syntax; only error-free roots can evaluate or publish proven uses.
+User grammar and analysis contract 9 remain unchanged. Compiler tests pass
+884/886 on net472/net8.0, generated scalar/collection variants pass both frameworks,
+and task/exporter/SDK/host/package checks pass. Final desktop checks pass on both
+MSBuild hosts. The milestone distinguishes full runs before the final linearity
+correction from final compiler/desktop/bridge checks after it. Editor classification
+and its public contract transition remain iteration 19.
