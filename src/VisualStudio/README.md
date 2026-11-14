@@ -326,7 +326,7 @@ Copying revalidates saved resources/lookups and source snapshots first. Errors
 mark unavailable row values and disable compiled XML. See the scope-specific draft
 behavior above.
 
-Reference/rename compiler APIs and detached contract-9 transport are available.
+Reference/rename compiler APIs and detached contract-10 transport are available.
 Request-owned solution sessions capture active configurations, all configured
 cultures and reachable saved dependencies without executing project targets. They
 deduplicate physical selections, reevaluate private proposed overlays in the SDK,
@@ -362,10 +362,18 @@ including exact UTF-16 token spans, whitespace, escapes and missing/invalid synt
 Evaluation, localization, lookup binding, explanations and references share that
 parser. Only error-free roots enter evaluation or proven reference capture;
 recovery does not make malformed input executable. Syntax objects remain inside
-the compiler. Detached editor classification and its contract transition follow
-in Milestone 14 iteration 19.
+the compiler. Iteration 19 adds opt-in detached classification through
+ClassifyExpressionsSnapshots and the project-owned SDK worker. Results contain
+lexical roles, exact display spans/XML projections, syntax diagnostics and
+target/context stamps; commands must independently resolve fresh semantic targets.
+Private raw drafts remain separate from saved dependency/resource inputs. Literal
+defaults, assignments, resolved displays and escaped references stay literal.
+Classification skips analyzer loading and retains no ordinary-analysis index or
+cache. Both pre- and post-request validation reject changed captured inputs.
+See the [compiler API reference](../Compiler/Analysis/README.md#expression-classification).
+Native editor presentation and RESX table integration remain iterations 20–22.
 
-The bridge accepts analysis contract 9 and loads the resolved SDK's net472 compiler
+The bridge accepts analysis contract 10 and loads the resolved SDK's net472 compiler
 in an isolated domain. Explain this value uses the same captured project inputs
 and the project-owned SDK worker through a cancellable on-demand request, with validation before
 publication and source navigation. Designer actions open Alarm Summary's read-only

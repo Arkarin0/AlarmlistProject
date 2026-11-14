@@ -68,7 +68,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             {
                 var first = Symbol();
                 var second = new AnalysisReferenceSymbol("other", "other-family", "Parameter", "Q", Location("Base.almx"), false, "Alarm", "other-declaration", null);
-                var origin = new AnalysisReferenceSearch(9, "fingerprint", "snapshot", new AnalysisReferenceTarget("Value", Location("Base.almx")), null,
+                var origin = new AnalysisReferenceSearch(10, "fingerprint", "snapshot", new AnalysisReferenceTarget("Value", Location("Base.almx")), null,
                     Array.Empty<AnalysisReferenceSymbol>(), Array.Empty<AnalysisReferenceOccurrence>(), Array.Empty<string>(), Array.Empty<AnalysisDiagnostic>(),
                     "App.almproj", "Debug", "AnyCPU", "en", "Choose a symbol.", false, false, isAmbiguous: true, candidates: new[] { first, second });
                 view.Present(new SolutionReferenceSearchResult(Array.Empty<ReferenceContextSearch>(), Array.Empty<string>(), Array.Empty<ReferenceSharedConflict>(), origin.Message, origin));
@@ -85,7 +85,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         private static AnalysisReferenceOccurrence Use(string path, string token, int? start, string unavailable = null) => new AnalysisReferenceOccurrence(
             "family", "Declaration", Location(path), "Base", start, start.HasValue ? (int?)1 : null, null, unavailable, "P", "declaration", token);
         private static AnalysisReferenceSearch Family(AnalysisReferenceSymbol symbol, IEnumerable<AnalysisReferenceOccurrence> uses, string culture = "en")
-            => new AnalysisReferenceSearch(9, "fingerprint", "snapshot", new AnalysisReferenceTarget("Identity", declarationId: "declaration"), symbol,
+            => new AnalysisReferenceSearch(10, "fingerprint", "snapshot", new AnalysisReferenceTarget("Identity", declarationId: "declaration"), symbol,
                 new[] { symbol }, uses, Array.Empty<string>(), Array.Empty<AnalysisDiagnostic>(), "App.almproj", "Debug", "AnyCPU", culture, null, true, false);
         private static SolutionReferenceSearchResult Result(params ReferenceContextSearch[] contexts) => new SolutionReferenceSearchResult(contexts,
             new[] { "Unavailable project: Missing.almproj", "Excluded configuration: Release" }, Array.Empty<ReferenceSharedConflict>(), null);

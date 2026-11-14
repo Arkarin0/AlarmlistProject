@@ -11,7 +11,7 @@ namespace Alarmlist.VisualStudio.Analysis
     {
         private static void ValidateReferences(object result)
         {
-            if (result == null || Value<int>(result, "ContractVersion") != 9
+            if (result == null || Value<int>(result, "ContractVersion") != CurrentVersion
                 || Value<string>(result, "ToolingFingerprint") != Definition.AlarmDefinition.ToolingFingerprint)
                 throw new NotSupportedException("The SDK returned incompatible reference data. Rebuild matching tools.");
         }
@@ -35,7 +35,7 @@ namespace Alarmlist.VisualStudio.Analysis
             string snapshot = Value<string>(result, "SnapshotId");
             AnalysisReferenceSearch shared = null;
             if (symbol != null) families?.TryGetValue((snapshot, symbol.Family), out shared);
-            var copied = new AnalysisReferenceSearch(9, Value<string>(result, "ToolingFingerprint"), snapshot,
+            var copied = new AnalysisReferenceSearch(CurrentVersion, Value<string>(result, "ToolingFingerprint"), snapshot,
                 new AnalysisReferenceTarget(Value<string>(target, "Kind"), Location(Value<object>(target, "Location")),
                     Value<string>(target, "Name"), Value<int?>(target, "Offset"), Value<string>(target, "DeclarationId"), Value<string>(target, "SnapshotId")),
                 symbol, shared?.Symbols ?? List(result, "Symbols", ReferenceSymbol), shared?.Occurrences ?? List(result, "Occurrences", use =>
@@ -52,7 +52,7 @@ namespace Alarmlist.VisualStudio.Analysis
         internal AnalysisRenamePreview ReadRename(object result)
         {
             ValidateReferences(result);
-            return new AnalysisRenamePreview(9, Value<string>(result, "ToolingFingerprint"), List(result, "Edits", RenameEdit),
+            return new AnalysisRenamePreview(CurrentVersion, Value<string>(result, "ToolingFingerprint"), List(result, "Edits", RenameEdit),
                 List(result, "Skipped", value => (string)value), Value<string>(result, "Failure"), List(result, "Diagnostics", ReferenceDiagnostic),
                 Value<bool>(result, "RequiresProjectEvaluation"), List(result, "Groups", group => new AnalysisRenameGroup(Value<string>(group, "Id"),
                     Value<string>(group, "Path"), List(group, "Edits", RenameEdit), Value<bool>(group, "IsIncluded"))), Value<bool>(result, "IsApplicable"),

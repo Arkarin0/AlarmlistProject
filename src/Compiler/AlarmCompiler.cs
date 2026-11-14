@@ -21,6 +21,12 @@ namespace Alarmlist.Compiler
     {
         public AlarmCompiler() { }
 
+        /// <summary>Classifies captured XML or one raw value without evaluation, files or retained indexes.
+        /// Returned spans are lexical presentation only; semantic commands must resolve a fresh compiler target.</summary>
+        public ExpressionClassificationResult ClassifyExpressionsSnapshots(ExpressionClassificationRequest request,
+            CancellationToken cancellationToken = default)
+            => ExpressionClassifier.Classify(request, cancellationToken);
+
         /// <summary>Finds a compiler-bound semantic family in captured inputs. No files are accessed or indexes retained.</summary>
         public ReferenceSearchResult FindReferencesSnapshots(ReferenceCompilationSnapshot inputs, ReferenceSymbolTarget target,
             CancellationToken cancellationToken = default)

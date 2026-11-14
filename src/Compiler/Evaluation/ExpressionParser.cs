@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Alarmlist.Localization;
 using Alarmlist.Lookups;
 
@@ -16,10 +17,13 @@ namespace Alarmlist.Evaluation
         private readonly string _raw;
         private readonly List<ExpressionSyntaxDiagnostic> _diagnostics = new List<ExpressionSyntaxDiagnostic>();
         private int _position;
-        private ExpressionParser(string raw, int position = 0) { _raw = raw; _position = position; }
+        private readonly CancellationToken _cancellation;
+        private int _cancellationPolls;
+        private ExpressionParser(string raw, int position = 0, CancellationToken cancellation = default)
+        { cancellation.ThrowIfCancellationRequested(); _raw = raw; _position = position; _cancellation = cancellation; }
 
-        internal static ExpressionSyntax Parse(string raw, bool placeholders, bool allowItemReferences)
-            => new ExpressionParser(raw).ReadExpression(placeholders, allowItemReferences);
+        internal static ExpressionSyntax Parse(string raw, bool placeholders, bool allowItemReferences, CancellationToken cancellation = default)
+            => new ExpressionParser(raw, cancellation: cancellation).ReadExpression(placeholders, allowItemReferences);
 
         internal static bool IsValidName(string name)
         {
@@ -31,11 +35,11 @@ namespace Alarmlist.Evaluation
         private static bool IsStart(char c) => c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
 
         internal static bool TryReadReference(string raw, ref int position, out ExpressionReferenceSyntax reference,
-            bool allowLocalization = true, bool allowItemReferences = false)
+            bool allowLocalization = true, bool allowItemReferences = false, CancellationToken cancellation = default)
         {
             reference = null;
             if (position + 1 >= raw.Length || raw[position] != '$' || raw[position + 1] != '(') return false;
-            var parser = new ExpressionParser(raw, position);
+            var parser = new ExpressionParser(raw, position, cancellation);
             var parsed = parser.ReadReference(allowLocalization, allowItemReferences);
             if (parsed.HasErrors) return false;
             reference = parsed; position = parser._position; return true;
@@ -84,11 +88,11 @@ namespace Alarmlist.Evaluation
             }
             while (_position < _raw.Length)
             {
-                int start = _position;
+                Poll(); int start = _position;
                 if (At('$', '$'))
                 {
                     int escaped = _position + 1;
-                    if (TryReadReference(_raw, ref escaped, out var reference, allowItemReferences: true))
+                    if (TryReadReference(_raw, ref escaped, out var reference, allowItemReferences: true, cancellation: _cancellation))
                     { literal.Append(reference.Raw); _position = escaped; }
                     else { literal.Append('$'); _position += 2; }
                     Emit(tokens, ExpressionSyntaxKind.EscapedTextToken, start, _position); continue;
@@ -125,12 +129,13 @@ namespace Alarmlist.Evaluation
                 }
                 // Plain text is one token until a grammar delimiter, including
                 // whitespace and dollar signs that do not start an expression.
-                do { _position++; }
+                do { Poll(); _position++; }
                 while (_position < _raw.Length && !At('$', '$') && !At('$', '(')
                     && (!placeholders || _raw[_position] != '{' && _raw[_position] != '}'));
                 literal.Append(_raw, start, _position - start); Emit(tokens, ExpressionSyntaxKind.LiteralTextToken, start, _position);
             }
             Flush();
+            _cancellation.ThrowIfCancellationRequested();
             return new ExpressionSyntax(_raw, parts, _diagnostics);
         }
 
@@ -141,7 +146,7 @@ namespace Alarmlist.Evaluation
             Emit(tokens, ExpressionSyntaxKind.DollarToken, _position, ++_position);
             Emit(tokens, ExpressionSyntaxKind.OpenParenToken, _position, ++_position);
             int head = _position;
-            while (_position < _raw.Length && _raw[_position] != ')' && _raw[_position] != ',' && !char.IsWhiteSpace(_raw[_position])) _position++;
+            while (_position < _raw.Length && _raw[_position] != ')' && _raw[_position] != ',' && !char.IsWhiteSpace(_raw[_position])) { Poll(); _position++; }
             string name = Slice(head, _position);
             int colon = name.IndexOf(':');
             string prefix = colon < 0 ? null : name.Substring(0, colon);
@@ -155,12 +160,15 @@ namespace Alarmlist.Evaluation
             }
             int segment = keyStart;
             for (int i = keyStart; i <= _position; i++)
+            {
+                Poll();
                 if (i == _position || _raw[i] == '#')
                 {
                     Emit(tokens, ExpressionSyntaxKind.IdentifierToken, segment, i, i == segment);
                     if (i != _position) Emit(tokens, ExpressionSyntaxKind.HashToken, i, i + 1);
                     segment = i + 1;
                 }
+            }
             bool validKey = kind == ExpressionSyntaxKind.ParameterReference ? IsValidName(key)
                 : kind == ExpressionSyntaxKind.ItemReference ? IsValidName(key) && allowItemReferences
                 : kind == ExpressionSyntaxKind.LocalizationReference ? ResourceCatalogue.IsValidKey(key) && allowLocalization
@@ -199,7 +207,7 @@ namespace Alarmlist.Evaluation
         {
             int start = _position, before = _diagnostics.Count;
             var tokens = new List<ExpressionSyntaxToken>();
-            while (_position < _raw.Length && (IsStart(_raw[_position]) || char.IsDigit(_raw[_position]))) _position++;
+            while (_position < _raw.Length && (IsStart(_raw[_position]) || char.IsDigit(_raw[_position]))) { Poll(); _position++; }
             string name = Slice(start, _position);
             Emit(tokens, ExpressionSyntaxKind.IdentifierToken, start, _position, name.Length == 0);
             if (!IsValidName(name)) Error("Invalid argument name.", start, name.Length);
@@ -211,7 +219,7 @@ namespace Alarmlist.Evaluation
             else
             {
                 int valueStart = _position;
-                while (_position < _raw.Length && _raw[_position] != ')' && _raw[_position] != ',') _position++;
+                while (_position < _raw.Length && _raw[_position] != ')' && _raw[_position] != ',') { Poll(); _position++; }
                 Emit(tokens, ExpressionSyntaxKind.BadToken, valueStart, _position, valueStart == _position);
                 Error("Expected a quoted literal or a non-localization reference.", valueStart, _position - valueStart);
             }
@@ -223,7 +231,7 @@ namespace Alarmlist.Evaluation
             int start = _position++; var value = new StringBuilder(); bool closed = false;
             while (_position < _raw.Length)
             {
-                char c = _raw[_position++];
+                Poll(); char c = _raw[_position++];
                 if (c == '"') { closed = true; break; }
                 if (c == '\\')
                 {
@@ -250,13 +258,14 @@ namespace Alarmlist.Evaluation
             int depth = 0;
             while (_position < _raw.Length && (_raw[_position] != ')' || depth != 0))
             {
+                Poll();
                 if (char.IsWhiteSpace(_raw[_position])) { ReadWhitespace(tokens); continue; }
                 if (_raw[_position] == '"') { ReadString(tokens); continue; }
                 int start = _position++; char c = _raw[start];
                 if (c == '(') depth++; else if (c == ')') depth--;
                 if (c != '(' && c != ')' && c != '$' && c != ',' && c != '=')
                     while (_position < _raw.Length && !char.IsWhiteSpace(_raw[_position])
-                        && "()$,=\"".IndexOf(_raw[_position]) < 0) _position++;
+                        && "()$,=\"".IndexOf(_raw[_position]) < 0) { Poll(); _position++; }
                 Emit(tokens, c == '(' ? ExpressionSyntaxKind.OpenParenToken : c == ')' ? ExpressionSyntaxKind.CloseParenToken
                     : c == '$' ? ExpressionSyntaxKind.DollarToken : c == ',' ? ExpressionSyntaxKind.CommaToken
                     : c == '=' ? ExpressionSyntaxKind.EqualsToken : ExpressionSyntaxKind.BadToken, start, _position);
@@ -265,7 +274,7 @@ namespace Alarmlist.Evaluation
         private void ReadWhitespace(List<ExpressionSyntaxToken> tokens)
         {
             int start = _position;
-            while (_position < _raw.Length && char.IsWhiteSpace(_raw[_position])) _position++;
+            while (_position < _raw.Length && char.IsWhiteSpace(_raw[_position])) { Poll(); _position++; }
             if (start != _position) Emit(tokens, ExpressionSyntaxKind.WhitespaceToken, start, _position);
         }
         private void Expect(List<ExpressionSyntaxToken> tokens, char character, ExpressionSyntaxKind kind)
@@ -277,6 +286,12 @@ namespace Alarmlist.Evaluation
         }
         private void Emit(List<ExpressionSyntaxToken> tokens, ExpressionSyntaxKind kind, int start, int end, bool missing = false)
             => tokens.Add(new ExpressionSyntaxToken(kind, _raw, start, end - start, missing));
+        private void Poll()
+        {
+            // Count work rather than absolute offsets: escaped pairs can skip
+            // every offset that is a multiple of the polling interval.
+            if (_cancellation.CanBeCanceled && (unchecked(++_cancellationPolls) & 255) == 0) _cancellation.ThrowIfCancellationRequested();
+        }
         private void Error(string message, int start, int length) => _diagnostics.Add(new ExpressionSyntaxDiagnostic(message, start, length));
         private string Slice(int start, int end) => _raw.Substring(start, end - start);
         private bool At(char first, char second) => _position + 1 < _raw.Length && _raw[_position] == first && _raw[_position + 1] == second;

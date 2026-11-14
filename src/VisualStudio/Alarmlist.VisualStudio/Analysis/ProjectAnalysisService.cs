@@ -11,7 +11,7 @@ using Microsoft.VisualStudio.Threading;
 namespace Alarmlist.VisualStudio.Analysis
 {
     /// <summary>One current analysis per project; no UI, persistence, or compiler semantics.</summary>
-    internal sealed class ProjectAnalysisService
+    internal sealed partial class ProjectAnalysisService
     {
         private readonly object _gate = new object();
         private readonly ReentrantSemaphore _analysisGate;

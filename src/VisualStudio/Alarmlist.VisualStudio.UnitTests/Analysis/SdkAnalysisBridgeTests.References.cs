@@ -86,7 +86,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Throws<OperationCanceledException>(() => bridge.PreviewRename(request, selector, "Next", new CancellationToken(true)));
                     Assert.True(bridge.Analyze(new[] { source }, context: request.Context).Snapshot.Success);
                 }
-                Assert.Equal(9, found.Result.ContractVersion); Assert.Equal("North.almproj", found.Result.ProjectPath);
+                Assert.Equal(10, found.Result.ContractVersion); Assert.Equal("North.almproj", found.Result.ProjectPath);
                 Assert.All(repeated.Results, result => { Assert.Same(repeated.Results[0].Symbols, result.Symbols); Assert.Same(repeated.Results[0].Occurrences, result.Occurrences); });
                 Assert.Equal("Parameter", found.Result.Symbol.Kind); Assert.NotEmpty(found.Result.Symbol.DeclarationId);
                 Assert.Equal(2, found.Result.Occurrences.Count(use => use.Role != "Binding"));

@@ -40,7 +40,7 @@ public sealed class VerifyPackagedAnalysis : Task
         snapshots.SetValue(Activator.CreateInstance(snapshotType, baseText, basePath, 17), 0);
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object result = analyze.Invoke(compiler, new object[] { snapshots });
-        Require((int)Value(result, "ContractVersion") == 9, "Unexpected analysis contract version.");
+        Require((int)Value(result, "ContractVersion") == 10, "Unexpected analysis contract version.");
         Require(((string)Value(result, "SchemaFingerprint")).Length == 64 && ((string)Value(result, "ToolingFingerprint")).Length == 64,
             "Packaged definition fingerprints are missing.");
         Require(Items(result, "FieldDefinitions").Select(field => (string)Value(field, "Name")).SequenceEqual(new[] { "Name", "Code", "Category", "Description" }),
@@ -189,7 +189,7 @@ public sealed class VerifyPackagedAnalysis : Task
         Require(!(bool)Value(staleExplanation, "IsAvailable"), "A stale source target was retargeted.");
         snapshots.SetValue(Activator.CreateInstance(snapshotType, childText, childPath, 23), 1);
         object explanation = explain.Invoke(compiler, new object[] { snapshots, emptyContext, target, System.Threading.CancellationToken.None, false });
-        Require((bool)Value(explanation, "IsAvailable") && (int)Value(explanation, "ContractVersion") == 9,
+        Require((bool)Value(explanation, "IsAvailable") && (int)Value(explanation, "ContractVersion") == 10,
             "Packaged explanation unavailable: " + Value(explanation, "Message"));
         object root = Items(explanation, "Nodes").Single(node => (int)Value(node, "Id") == (int)Value(explanation, "RootId"));
         Require((string)Value(root, "Value") == "Inherited" && Items(explanation, "Nodes").Any(node => (string)Value(node, "Kind") == "Inheritance"),
@@ -209,8 +209,43 @@ public sealed class VerifyPackagedAnalysis : Task
             Require(cancelled, "Packaged explanation ignored cancellation.");
         }
         VerifyReferences(assembly, compilerType, compiler, snapshots, emptyContext, basePath, baseText);
-        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 9 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, compiled XML preview, on-demand explanations, reference search and rename preview.");
+        VerifyClassifications(assembly, compilerType, compiler, snapshotType, emptyContext, basePath);
+        Log.LogMessage(MessageImportance.High, "Packaged analysis contract 10 passed: origins, Clear, creation defaults, immutable results, unsaved inputs, libraries, compiled XML preview, on-demand explanations, reference search, rename preview and expression classification.");
         return true;
+    }
+
+    private static void VerifyClassifications(Assembly assembly, Type compilerType, object compiler, Type snapshotType, object context, string path)
+    {
+        const string text = "<Alarmlist><Alarm><FullyQualifiedName>A</FullyQualifiedName><Name>$(loc:K, X=$(P), Literal=&quot;$(Literal)&quot;) $$(Escaped)</Name></Alarm></Alarmlist>";
+        Array sources = Array.CreateInstance(snapshotType, 1);
+        sources.SetValue(Activator.CreateInstance(snapshotType, text, path, 17), 0);
+        Type inputType = assembly.GetType("Alarmlist.Analysis.ReferenceCompilationSnapshot", true);
+        object inputs = Activator.CreateInstance(inputType, sources, context, null, null, System.Threading.CancellationToken.None);
+        Type textType = assembly.GetType("Alarmlist.Analysis.ReferenceTextSnapshot", true);
+        Type targetType = assembly.GetType("Alarmlist.Analysis.ExpressionClassificationTarget", true);
+        object target = Activator.CreateInstance(targetType, "packaged", "Almx", Activator.CreateInstance(textType, text, path, 17), null, null, false, false);
+        Type requestType = assembly.GetType("Alarmlist.Analysis.ExpressionClassificationRequest", true);
+        object request = Activator.CreateInstance(requestType, inputs, target);
+        MethodInfo classify = compilerType.GetMethod("ClassifyExpressionsSnapshots", new[] { requestType, typeof(System.Threading.CancellationToken) });
+        Require(classify != null, "The packaged classification API is missing.");
+        object result = classify.Invoke(compiler, new object[] { request, System.Threading.CancellationToken.None });
+        Require((int)Value(result, "ContractVersion") == 10 && (bool)Value(result, "IsAvailable") && (bool)Value(result, "IsLexicalOnly"), "Packaged classification is unavailable.");
+        object[] spans = Items(result, "Spans");
+        Require(spans.Where(span => (string)Value(span, "Kind") == "Parameter").Select(span => text.Substring((int)Value(span, "Start"), (int)Value(span, "Length"))).SequenceEqual(new[] { "P" }),
+            "Packaged classification changed quoted/escaped literal semantics.");
+        Require(spans.Any(span => (string)Value(span, "Kind") == "LocalizationKey") && spans.Any(span => (string)Value(span, "Kind") == "ArgumentName"), "Packaged classification lost typed roles.");
+        Require((string)Value(Value(result, "Target"), "Id") == "packaged" && (string)Value(result, "SnapshotId") == (string)Value(inputs, "SnapshotId"), "Packaged classification lost freshness stamps.");
+        bool immutable = false;
+        try { ((IList)Value(result, "Spans")).Clear(); } catch (NotSupportedException) { immutable = true; }
+        Require(immutable, "Packaged classifications are mutable.");
+        using (var cancellation = new System.Threading.CancellationTokenSource())
+        {
+            cancellation.Cancel(); bool canceled = false;
+            try { classify.Invoke(compiler, new object[] { request, cancellation.Token }); }
+            catch (TargetInvocationException error) { canceled = error.InnerException is OperationCanceledException; }
+            Require(canceled, "Packaged classification ignored cancellation.");
+        }
+        Require(!File.Exists(path), "Classification read or wrote the captured source path.");
     }
 
     private static void VerifyReferences(Assembly assembly, Type compilerType, object compiler, Array snapshots,
@@ -225,7 +260,7 @@ public sealed class VerifyPackagedAnalysis : Task
         object request = Activator.CreateInstance(requestType, snapshots, context, null, null, System.Threading.CancellationToken.None);
         object target = requestType.GetMethod("TargetAtToken").Invoke(request, new object[] { sourcePath, 17, sourceText.IndexOf("Base", StringComparison.Ordinal) });
         object found = find.Invoke(compiler, new object[] { request, target, System.Threading.CancellationToken.None });
-        Require((bool)Value(found, "IsAvailable") && (int)Value(found, "ContractVersion") == 9, "Packaged reference search is unavailable.");
+        Require((bool)Value(found, "IsAvailable") && (int)Value(found, "ContractVersion") == 10, "Packaged reference search is unavailable.");
         Require(!(bool)Value(found, "IsUnsupportedTarget"), "A bound packaged reference was classified as unsupported.");
         object unsupported = requestType.GetMethod("TargetAtToken").Invoke(request, new object[] { sourcePath, 17, 0 });
         Require((bool)Value(find.Invoke(compiler, new object[] { request, unsupported, System.Threading.CancellationToken.None }), "IsUnsupportedTarget"),

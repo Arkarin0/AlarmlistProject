@@ -104,6 +104,7 @@ namespace Alarmlist.VisualStudio.Analysis
                     || _explanationTargetType.GetConstructor(new[] { _locationType, typeof(string), typeof(string), typeof(string), _locationType }) == null)
                     throw new NotSupportedException("The SDK has no compatible on-demand explanation API.");
                 InitializeReferences(assembly, compilerType);
+                InitializeClassifications(assembly, compilerType);
                 PropertyInfo xml = _analyze.ReturnType.GetProperty("CompiledXml", BindingFlags.Public | BindingFlags.Instance);
                 if (xml?.PropertyType != typeof(string) || xml.GetGetMethod() == null || xml.GetIndexParameters().Length != 0)
                     throw new NotSupportedException("The SDK has no compatible compiled XML.");
@@ -119,7 +120,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 AnalysisAvailability state = failure is NotSupportedException || failure is TypeLoadException || failure is MissingMemberException
                     ? AnalysisAvailability.UnsupportedContract : AnalysisAvailability.LoadFailed;
                 return new AnalysisResponse(state, "Cannot use analysis compiler " + compilerPath
-                    + ". Restore an SDK supporting analysis contract 9 with captured diagnostic configuration and external analyzers. " + failure.Message);
+                    + ". Restore an SDK supporting analysis contract 10 with captured diagnostic configuration and external analyzers. " + failure.Message);
             }
         }
 
@@ -302,7 +303,7 @@ namespace Alarmlist.VisualStudio.Analysis
         }
 
         private T WithCapturedInputs<T>(AnalysisInput[] inputs, AnalysisContext context, Func<Array, object, T> operation,
-            Action<object> captureAnalyzerMetadata = null)
+            Action<object> captureAnalyzerMetadata = null, bool includeAnalyzers = true)
         {
             Array snapshots = Array.CreateInstance(_snapshotType, inputs.Length);
             for (int i = 0; i < inputs.Length; i++)
@@ -348,6 +349,7 @@ namespace Alarmlist.VisualStudio.Analysis
             object options = Activator.CreateInstance(_diagnosticOptionsType, configuration, policy.TreatWarningsAsErrors,
                 new[] { policy.NoWarn }, new[] { policy.WarningsAsErrors }, new[] { policy.WarningsNotAsErrors });
             capturedContext = _withDiagnosticOptions.Invoke(capturedContext, new[] { options });
+            if (!includeAnalyzers) return operation(snapshots, capturedContext);
             Array analyzerReferences = Array.CreateInstance(_analyzerReferenceType, context.Analyzers.Count);
             for (int i = 0; i < context.Analyzers.Count; i++)
             {

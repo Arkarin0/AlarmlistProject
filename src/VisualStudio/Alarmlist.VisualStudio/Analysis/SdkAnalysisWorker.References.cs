@@ -92,7 +92,7 @@ namespace Alarmlist.VisualStudio.Analysis
             }
         }
 
-        private T WithReferenceRequest<T>(AnalysisReferenceRequest request, CancellationToken token, Func<object, T> operation)
+        private T WithReferenceRequest<T>(AnalysisReferenceRequest request, CancellationToken token, Func<object, T> operation, bool includeAnalyzers = true)
             => WithCapturedInputs(request.Sources.ToArray(), request.Context, (sources, context) =>
             {
                 token.ThrowIfCancellationRequested();
@@ -111,7 +111,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 }
                 var captured = Activator.CreateInstance(_referenceRequestType, sources, context, documents, scope, token, request.ReadOnlyPaths);
                 return operation(captured);
-            });
+            }, includeAnalyzers: includeAnalyzers);
 
         private object ReferenceTarget(object request, AnalysisReferenceTarget target)
         {

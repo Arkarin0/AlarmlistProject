@@ -42,8 +42,10 @@ compiler-provided classification and XML/designer/RESX semantic commands.
 Iterations 15–17 are complete with both-IDE acceptance (status updated 2026-11-14):
 context menus, independent dockable Rename, reliable preview scrolling and live
 themes. Iteration 18 adds internal immutable expression syntax with both-framework
-and generated-definition validation. Detached classification and semantic
-editor/RESX work remain planned in 19–22;
+and generated-definition validation. Iteration 19 implements opt-in detached
+classification and the coordinated analysis-10 bridge, with compiler/downstream,
+generated-definition and both-desktop packaged acceptance passed. Semantic
+editor/RESX work remains planned in 20–22;
 completed reference/rename behavior and actual evidence remain recorded in the
 [milestone plan](src/VisualStudio/MILESTONE-14.md).
 

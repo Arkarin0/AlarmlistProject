@@ -129,10 +129,16 @@ internal static class Program
         var snapshots = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName><Count>$(Value)</Count><Code>9</Code><Properties><Property Name='Value'/></Properties></Alarm><Alarm><FullyQualifiedName>Child</FullyQualifiedName><ReferenceName>Base</ReferenceName><Code/><Properties><Property Name='Value' Value='12'/></Properties></Alarm></Alarmlist>", "inheritance.almx", 1) };
         var inherited = new AlarmCompiler().CompileSnapshots(snapshots);
         Check(inherited.Success && inherited.AlarmList.Single().Count == 12 && inherited.AlarmList.Single().Code == 9, "abstract inheritance resolves in consumer context");
+        var classification = new AlarmCompiler().ClassifyExpressionsSnapshots(new Alarmlist.Analysis.ExpressionClassificationRequest(
+            new Alarmlist.Analysis.ReferenceCompilationSnapshot(snapshots, CompilationContext.Empty),
+            new Alarmlist.Analysis.ExpressionClassificationTarget("generated-scalars", "Almx",
+                new Alarmlist.Analysis.ReferenceTextSnapshot(snapshots[0].Text, snapshots[0].FilePath, snapshots[0].Version))));
+        Check(classification.IsAvailable && classification.ContractVersion == 10 && classification.Spans.Any(span => span.Kind == "Parameter"
+            && snapshots[0].Text.Substring(span.Start, span.Length) == "Value"), "Generated typed scalar classification uses compiler metadata");
         var librarySources = new[] { new AlmxTextSnapshot("<Alarmlist><Alarm><FullyQualifiedName>Library</FullyQualifiedName><Count>$(Consumer)</Count></Alarm></Alarmlist>", "library.almx", 1) };
         Check(new AlarmCompiler().AnalyzeLibrarySnapshots(librarySources, CompilationContext.Empty).Success, "library consumer values defer");
         var libraryAnalysis = new AlarmCompiler().AnalyzeLibrarySnapshots(librarySources, CompilationContext.Empty);
-        Check(libraryAnalysis.ContractVersion == 9 && libraryAnalysis.SchemaFingerprint == AlarmDefinition.SchemaFingerprint
+        Check(libraryAnalysis.ContractVersion == 10 && libraryAnalysis.SchemaFingerprint == AlarmDefinition.SchemaFingerprint
             && libraryAnalysis.FieldDefinitions.Any(field => field.Name == "Code" && field.Type == "Int64"), "analysis schema metadata");
         Check(libraryAnalysis.Alarms.Single().Fields.Single(field => field.Name == "Count").State == AlarmFieldValueState.Deferred, "analysis consumer field defers");
         var defaultCode = libraryAnalysis.Alarms.Single().Fields.Single(field => field.Name == "Code");

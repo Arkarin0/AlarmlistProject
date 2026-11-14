@@ -208,7 +208,7 @@ namespace Alarmlist.Core.UnitTests.Analysis
                 changed.TargetAtToken(source.FilePath, source.Version, 0) });
             Assert.Equal(3, result.Count); Assert.True(result[0].IsAvailable); Assert.True(result[1].TargetAbsent);
             Assert.False(result[2].IsAvailable); Assert.Contains("inputs changed", result[2].Message);
-            Assert.Equal(9, result[0].ContractVersion);
+            Assert.Equal(10, result[0].ContractVersion);
             Assert.Equal(result[0].Symbol.DeclarationId, compiler.FindReferencesSnapshots(request, target).Symbol.DeclarationId);
             var preview = compiler.PreviewRenameSnapshots(request, target, "Next");
             Assert.True(preview.IsApplicable, preview.Failure); Assert.Equal("Next", preview.NewName);

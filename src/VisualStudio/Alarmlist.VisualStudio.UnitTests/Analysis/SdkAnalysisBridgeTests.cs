@@ -41,7 +41,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 Assert.Equal(AnalysisAvailability.Available, response.Availability);
                 var explanation = response.Explanation;
                 Assert.True(explanation?.IsAvailable == true, response.Message);
-                Assert.Equal(9, explanation.ContractVersion);
+                Assert.Equal(10, explanation.ContractVersion);
                 Assert.Equal("Inspect 001", explanation.Nodes.Single(node => node.Id == explanation.RootId).Value);
                 Assert.Contains(explanation.Nodes, node => node.Kind == "Resource" && node.SupplyingCulture == "en" && node.Location.SourceVersion == 19);
                 Assert.DoesNotContain(explanation.Nodes, node => node.Value == "unrelated");
@@ -129,7 +129,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.Contains("$(loc:Inspection)", keyword.CompiledXml);
                 }
                 AnalysisSnapshot snapshot = response.Snapshot;
-                Assert.Equal(9, snapshot.ContractVersion);
+                Assert.Equal(10, snapshot.ContractVersion);
                 Assert.Equal("de-DE", snapshot.Culture);
                 Assert.Equal("de", Assert.Single(snapshot.Resources).Culture);
                 Assert.Equal(31, snapshot.Resources[0].Version);
@@ -340,7 +340,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.DoesNotContain("<ReferenceName>", xml);
                     Assert.DoesNotContain("<Clear", xml);
                     Assert.True(snapshot.Success);
-                    Assert.Equal(9, snapshot.ContractVersion);
+                    Assert.Equal(10, snapshot.ContractVersion);
                     Assert.Equal(new[] { 4, 9 }, snapshot.Sources.Select(source => source.Version));
                     AnalysisAlarm child = snapshot.Alarms[1];
                     Assert.Equal("Base", Assert.Single(child.ReferenceChain).FullyQualifiedName);
@@ -496,6 +496,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         [InlineData(6)]
         [InlineData(7)]
         [InlineData(8)]
+        [InlineData(9)]
         public void IncompatibleSdkVersionsDoNotInterfereWithACompatibleProject(int contract)
         {
             using (var sdk = new SdkAsset())
@@ -505,7 +506,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 incompatible.ReplaceWithIncompatibleCompiler(contract);
                 BridgeOpenResult result = new SdkAnalysisBridgeFactory().Open(incompatible.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, result.Availability);
-                Assert.Contains("contract 9", result.Message);
+                Assert.Contains("contract 10", result.Message);
                 Assert.Contains(incompatible.CompilerPath, result.Message);
                 Assert.Null(result.Bridge);
                 Assert.True(bridge.Analyze(Array.Empty<AnalysisInput>()).Snapshot.Success);
@@ -526,7 +527,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
         {
             using (var sdk = new SdkAsset())
             {
-                sdk.ReplaceWithIncompatibleCompiler(9);
+                sdk.ReplaceWithIncompatibleCompiler(10);
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
@@ -575,7 +576,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                 BridgeOpenResult response = SdkAnalysisBridge.Open(sdk.CompilerPath);
                 Assert.Equal(AnalysisAvailability.UnsupportedContract, response.Availability);
                 Assert.Null(response.Bridge);
-                Assert.Contains("contract 9", response.Message);
+                Assert.Contains("contract 10", response.Message);
                 Assert.DoesNotContain(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.GetName().Name == "Alarmlist.Core");
             }
         }

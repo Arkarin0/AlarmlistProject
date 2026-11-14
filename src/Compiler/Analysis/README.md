@@ -1,7 +1,49 @@
-# Explanation and reference capture
+# Explanation, reference capture and expression classification
 
 Milestone 14 adds opt-in provenance capture and the public ExplainSnapshots API.
 Follow its [iteration plan](../../VisualStudio/MILESTONE-14.md).
+Current compiler/SDK/extension toolsets use analysis contract 10. Earlier contract
+transitions below describe their implementation stages; analyzer 5, library 3,
+export 1 and semantic fingerprints remain unchanged by classification.
+
+## Expression classification
+
+`AlarmCompiler.ClassifyExpressionsSnapshots(request, cancellationToken)` accepts
+an immutable `ExpressionClassificationRequest` with a `ReferenceCompilationSnapshot`
+and one `ExpressionClassificationTarget`. Target kinds are `Almx`, `Resx` and
+`Value`. Each carries an explicit view ID and a versioned `ReferenceTextSnapshot`;
+value targets additionally carry the compiler's `ValueExplanationTarget` and
+authored value location. Original entry locations identify collection/procedure
+entries; effective indices never do. Unsupported kinds return an unavailable
+result, preserving other editor languages such as MSBuild.
+
+The result copies target/context stamps, input snapshot identity, typed lexical
+roles, UTF-16 spans, containing-expression ranges, physical XML projections and
+syntax diagnostics into immutable collections. Document offsets refer to the
+displayed document; Value offsets refer to the standalone raw value. Fragmented
+XML tokens have separate physical ranges, preserving comments, entities and CDATA.
+These ranges describe presentation and never authorize an edit.
+
+Only compiler-defined expression fields, procedure values and collection fields
+are inspected. The shared expression parser handles incomplete text and context
+rules, including record siblings and formatted resource placeholders. Literal
+assignments/defaults, escaped references and resolved display values stay literal.
+RESX uses one explicit captured consumer and reports mixed template usage rather
+than guessing placeholder meaning. Lookup/enum caption resources stay literal.
+
+`IsDraft` permits lexical classification of a private raw value or displayed RESX
+buffer without replacing captured source or saved resource/dependency inputs.
+ALMX document targets must match their captured bytes/version when present.
+`IsLexicalOnly` is always true: syntax recovery supplies no proven identity.
+Commands must separately resolve their compiler target against fresh inputs.
+
+Classification neither evaluates values nor loads analyzers or builds a reference
+index. It uses no file I/O or ordinary-analysis cache. Cancellation is checked
+during long expression scans and source projection. The host copies detached
+data from the existing project SDK worker and revalidates captured inputs before
+and after the request; requesting views own result lifetime.
+
+## Value explanations
 
 ValueExplanationCapture is supplied explicitly to CompilationEvaluator. It selects
 the consuming alarm; ordinary evaluator construction retains no recorder or graph.

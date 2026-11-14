@@ -211,7 +211,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             var view = new ReferenceResultsViewModel((consumer, location, token) => Task.CompletedTask, () => true);
             var location = new AnalysisLocation("Base.almx", 1, 1, 1, 2, 0);
             var symbol = new AnalysisReferenceSymbol("symbol", "family", "Parameter", "P", location, false, "Alarm", "declaration", location);
-            var family = new AnalysisReferenceSearch(9, "fingerprint", "snapshot", new AnalysisReferenceTarget("Identity", declarationId: "declaration"), symbol,
+            var family = new AnalysisReferenceSearch(10, "fingerprint", "snapshot", new AnalysisReferenceTarget("Identity", declarationId: "declaration"), symbol,
                 new[] { symbol }, Enumerable.Range(0, 250).Select(index => new AnalysisReferenceOccurrence("family", "Use", location, "A", index, 1, null, null, "P", "declaration", "token" + index)),
                 Array.Empty<string>(), Array.Empty<AnalysisDiagnostic>(), "App.almproj", "Debug", "AnyCPU", "en", null, true, false);
             view.Present(new SolutionReferenceSearchResult(new[] { new ReferenceContextSearch(0, new[] { family }) }, Array.Empty<string>(), Array.Empty<ReferenceSharedConflict>(), null));

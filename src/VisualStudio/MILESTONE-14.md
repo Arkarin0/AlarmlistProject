@@ -9,8 +9,9 @@ Follow-up iterations 15–22 are authorized on dev/milestone-14. Iteration 15 is
 complete with its required gates passed on 2026-10-31. Iteration 16 is complete
 with its required gates passed on 2026-11-14. Iteration 17 is complete with its
 required gates passed on 2026-11-14. Iteration 18 is complete with required gates
-passed on 2026-11-14;
-iterations 19–22 remain planned.
+passed on 2026-11-14. Iteration 19 is complete with required gates passed on
+2026-11-14;
+iterations 20–22 remain planned.
 Implementation and evidence are recorded in the appended follow-up.
 
 ## Outcome and confirmed scope
@@ -1587,7 +1588,7 @@ diagnostic probes, generated binaries, machine paths or unrelated edits are stag
 
 ## Follow-up iterations 15–22 — semantic editing and RESX commands
 
-Status: iterations 15 (aae945e), 16 (fa5e72f), 17 (5ac54d6) and 18 complete. Completed iterations 1–14 and their
+Status: iterations 15 (aae945e), 16 (fa5e72f), 17 (5ac54d6), 18 (b37f56c) and 19 complete. Completed iterations 1–14 and their
 acceptance evidence above remain unchanged. No branch creation, merge or push is
 part of this follow-up. Work continues on dev/milestone-14.
 
@@ -2207,3 +2208,121 @@ remains. This iteration changes compiler internals, with no new native UI action
 native classification/editor acceptance remains in 20–22. No iteration-18 gate
 is deferred. Analysis 9, analyzer 5, library 3, export 1 and semantic fingerprints
 remain unchanged. Iteration 19 exposes detached classification and activates 10.
+
+### Iteration 19 — in progress
+
+Starting from clean dev/milestone-14 after b37f56c. Add an opt-in classification
+request over frozen compiler inputs/context and one versioned document or value.
+Return detached classifications, original spans/XML projections, diagnostics,
+target/context stamps and explicit unavailable/literal states. The compiler alone
+selects expression-capable source values through generated metadata and source
+syntax. Raw private values may receive lexical classifications; resolved values,
+literal assignments/defaults and escaped expression-like text do not become
+semantic targets. Saved dependency/resource inputs remain separate from displayed
+draft text. Classification creates no solution reference index and retains no
+ordinary-analysis cache. Reuse the project-owned SDK worker and freshness gate;
+cancel obsolete calls and revalidate inputs before publication. Activate analysis
+10 across compiler, SDK and host only with the completed transport. Analyzer 5,
+library 3, export 1 and semantic fingerprints remain unchanged. Required gates
+include both compiler frameworks, both packaged task runtimes/desktop hosts,
+compatible/incompatible toolsets, isolation and cancellation.
+
+Implementation and validation in progress (2026-11-14):
+
+- ClassifyExpressionsSnapshots accepts frozen original inputs and one separately
+  versioned Almx/Resx/Value presentation target. Immutable results carry context,
+  snapshot/view stamps, lexical roles, containing expression ranges, diagnostics
+  and exact physical XML projections. Generated metadata selects expression fields,
+  procedure values and simple/record collection fields. Default/assignment text,
+  resolved displays and escaped references remain literal. Private drafts have
+  lexical data without a physical edit projection or saved-input substitution.
+- The single syntax parser supplies incomplete/recovered classifications; these
+  never confer semantic identity or rename permission. RESX requires an explicit
+  captured consumer, uses saved project/library bindings for template roles and
+  reports mixed formatted/plain usage rather than guessing. Literal lookup/enum
+  captions stay literal. Document mapping preserves entities, CDATA, comments and
+  UTF-16 offsets. Repeated containing-expression projections are shared within
+  the request instead of rescanning the outer expression for every argument token.
+- Analysis 10 is activated across compiler, SDK package verification and host
+  reader/worker. All classification objects crossing the SDK AppDomain are copied
+  into serializable host records; internal syntax and compiler objects stay inside.
+  Classification skips analyzer loading/evaluation and creates no reference index.
+  ProjectAnalysisService reuses its owned worker under the analysis gate, validates
+  complete inputs before/after, and cancels obsolete requests before disposal.
+- Focused bridge tests pass 2 (ClassificationHostInitial, 793 ms), including an
+  invalid captured analyzer image that must never be loaded, domain unload,
+  immutable results, escaped/quoted roles, private drafts and saved RESX isolation.
+  Four service tests pass (ClassificationServiceInitial, 102 ms): worker reuse,
+  replacement buffer identity, silent post-worker input changes, project stop and
+  caller cancellation followed by a valid later request. Existing bridge compatibility
+  tests pass 82 (BridgeInitial, 48 seconds), including explicit rejection of 9.
+- New compiler classification tests pass 14 (CompilerClassificationExtended,
+  net8.0, 135 ms). They cover all mapped roles, malformed/incomplete text, exact
+  entities/CDATA/comments/Unicode, source/draft/default states, RESX context and
+  mixed templates, stable procedure entry targeting, case-insensitive group IDs,
+  immutability and cancellation during a long expression request. The group test
+  exposed an ordinal comparison inconsistent with existing procedure identities;
+  classification now follows their established case-insensitive rule.
+- Generated scalar lifecycle/runtime checks pass both frameworks
+  (AlarmDefinitionGeneration/6d96b541fb014179b0d661f5b438724a). Generated collection
+  checks pass both frameworks with procedures enabled/disabled and minimum-count
+  variants (AlarmCollections/b1301c5f3a4f487ea6aec950e843c76d). They now assert typed
+  scalar and record-sibling classification plus detached contract-10 transport.
+- Full compiler suites pass 898 net472 (1 second) / 900 net8.0 (377 ms), zero
+  failures/skips, Compiler-net472 / Compiler-net8.0. The pre-existing CA1416 shared
+  test-helper warning remains. Full SDK/package acceptance is running; no completion
+  is claimed yet. All 150 reviewed local documentation links resolve and the
+  whitespace diff passes. Other results are under
+  artifacts/log/Debug/Milestone14/Iteration19 unless separately identified above.
+- Full SDK suites pass 97 net472 (4 minutes 11 seconds) and 94 net8.0 (4 minutes
+  7 seconds), zero failures/skips, SDK-net472 / SDK-net8.0. Packaged verification
+  invokes the new API directly, checking contract/context stamps, typed roles,
+  quoted/escaped literals, immutable results, cancellation and no source-path I/O.
+  Review then makes cancellation polling count parser work rather than absolute
+  offsets so escaped pairs cannot skip the polling interval; an additional long
+  escaped-string case covers that path. The net472 full SDK run predates this
+  cancellation-only refinement; net8.0 and final desktop/host checks use it.
+  Final generated collection acceptance additionally checks imported-library raw
+  values classify without inventing physical edit projections. Ordinary saved
+  analysis is asserted to produce actual non-null compiled XML before and after
+  private resource/value classification. Final acceptance is running sequentially.
+
+### Iteration 19 — complete
+
+Opt-in expression classification is available through the public compiler API and
+detached SDK transport. Analysis contract 10 is activated together across compiler,
+SDK and extension; analyzer 5, library 3, export 1 and semantic fingerprints remain
+unchanged. The compiler's shared parser supplies typed lexical roles and recoverable
+syntax diagnostics; exact display/source projections retain XML entities, CDATA,
+comments and Unicode. Classification is presentation data, never a proven semantic
+reference. Private raw drafts remain separate from captured/saved inputs. Literal
+defaults/assignments, resolved output and escaped text remain literal. No evaluator,
+analyzer loading, solution search, ordinary-analysis cache or retained reference
+index participates. Project-owned workers enforce cancellation and complete input
+validation before/after publication, including buffer identity and saved dependencies.
+
+| Gate | Actual result |
+| --- | --- |
+| Final compiler net472 / net8.0 | 899 / 901 passed, zero failures/skips; CompilerFinal-net472 / CompilerFinal-net8.0 (1 second / 333 ms), including 15 classification cases. |
+| MSBuild task net472 / net8.0 | 124 / 124 passed; Task-UnitTests-net472 / Task-UnitTests-net8.0 (1 second / 582 ms). |
+| Task integration net472 / net8.0 | 4 / 4 passed; Task-IntegrationTests-net472 / Task-IntegrationTests-net8.0 (1 second each). |
+| Zenon net472 / net8.0 | 9 / 10 passed; Zenon-net472 / Zenon-net8.0 (516 / 128 ms). |
+| Full SDK net472 / net8.0 | 97 / 94 passed; SDK-net472 / SDK-net8.0 (4 minutes 11 seconds / 4 minutes 7 seconds); net472 precedes the cancellation polling refinement recorded above. |
+| Final desktop packaged SDK, VS2022 / VS2026 | 17 / 17 passed, zero failures/skips; Desktop-2022 / Desktop-18 (44 / 48 seconds), including direct contract-10 classification verification. |
+| Final full extension-host suite | 960 passed, zero failures/skips; HostFinal (2 minutes 42 seconds), including detached isolation, draft/saved-input separation, stale buffers, cancellation and incompatible toolsets. |
+| Final packaged VSIX net472 / net8.0 | 14 / 14 passed, zero failures/skips; VSIX-net472 / VSIX-net8.0 (11 / 10 seconds). |
+| Generated scalar/runtime checks | Passed both frameworks; AlarmDefinitionGeneration/6d96b541fb014179b0d661f5b438724a, before the cancellation-only polling refinement. |
+| Final generated collection/runtime checks | Passed both frameworks, procedures enabled/disabled and minimum-count variants; AlarmCollections/12b6df5e9b17490c875bddc505e160bb. Includes record siblings, detached transport and library raw values without invented physical ranges. |
+| Documentation/review | 150 local links resolve; whitespace diff passes; current contracts and saved-input/lexical boundaries are documented without rewriting historical acceptance. |
+
+Tests use dotnet test on each corresponding project with --no-restore, the chosen
+framework, -v quiet -m:1 -nr:false --logger trx and results under
+artifacts/log/Debug/Milestone14/Iteration19. Desktop repeats select PackageTests,
+CompilationTests and LookupTests and set/restore ALARMLIST_TEST_MSBUILD_PATH for
+the selected installation. Generated commands are eng/test-alarm-collections.ps1
+and eng/test-alarm-definition-generation.ps1, with evidence locations above. All
+test groups run sequentially; no native/WPF/desktop MSBuild overlap occurs. The
+existing CA1416 shared-test-helper warning remains. There is no new UI action in
+this iteration; actual classifications, XML/designer commands and the essential
+native RESX-table feasibility/synchronization gate remain in iterations 20–22.
+No iteration-19 required gate is deferred. Only this iteration's changes are included.

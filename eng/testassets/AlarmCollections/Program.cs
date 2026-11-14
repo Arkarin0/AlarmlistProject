@@ -268,7 +268,17 @@ internal static class Program
     {
         var compiler = new AlarmCompiler();
         var analysis = compiler.AnalyzeSnapshots(new[] { baseSource, childSource }, includeCompiledXml: true);
-        Check(analysis.ContractVersion == 9 && analysis.CollectionDefinitions.Count == 3 && analysis.HasTestProcedure == AlarmDefinition.HasTestProcedure, "Analysis metadata and capability");
+        Check(analysis.ContractVersion == 10 && analysis.CollectionDefinitions.Count == 3 && analysis.HasTestProcedure == AlarmDefinition.HasTestProcedure, "Analysis metadata and capability");
+        var classificationInputs = new Alarmlist.Analysis.ReferenceCompilationSnapshot(new[] { baseSource, childSource }, CompilationContext.Empty);
+        var classified = compiler.ClassifyExpressionsSnapshots(new Alarmlist.Analysis.ExpressionClassificationRequest(classificationInputs,
+            new Alarmlist.Analysis.ExpressionClassificationTarget("generated-records", "Almx",
+                new Alarmlist.Analysis.ReferenceTextSnapshot(baseSource.Text, baseSource.FilePath, baseSource.Version))));
+        Check(classified.IsAvailable && classified.IsLexicalOnly && classified.Spans.Any(span => span.Kind == "ItemField"
+            && baseSource.Text.Substring(span.Start, span.Length) == "Count"), "Generated record classification uses sibling context");
+        Check(classified.Spans.Any(span => span.Kind == "Parameter" && baseSource.Text.Substring(span.Start, span.Length) == "P"), "Generated scalar collection field classification");
+        var detachedClassification = new Alarmlist.VisualStudio.Analysis.AnalysisContractReader(typeof(AlarmCompiler).Assembly).ReadClassifications(classified);
+        Check(detachedClassification.ContractVersion == 10 && detachedClassification.Spans.Count == classified.Spans.Count
+            && !ReferenceEquals(detachedClassification.Spans[0], classified.Spans[0]), "Generated classification transport is detached");
         Check(analysis.Sources.All(source => (source.ProcedureCreation.Groups.Count != 0) == AlarmDefinition.HasTestProcedure), "Creation defaults honor optional procedures");
         var child = analysis.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child");
         var checks = child.Collections.Single(collection => collection.Name == "Checks");
@@ -303,6 +313,15 @@ internal static class Program
         var libraryEntry = consumer.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child").Collections.Single(collection => collection.Name == "Checks").EffectiveEntries.Single();
         Check(consumer.Success && libraryEntry.Origin.Alarm.Library.Id == "Records" && libraryEntry.Origin.Location.FilePath.StartsWith("library://Records/1.0.0/"), "Library record ownership restored");
         Check((long)libraryEntry.Fields.Single(field => field.Name == "Copy").TypedValue == 4 && libraryEntry.Origin.Location.LineNumber == entry.Origin.Location.LineNumber, "Library expressions and original locations round trip");
+        var libraryCopy = libraryEntry.Fields.Single(field => field.Name == "Copy");
+        var libraryClassification = compiler.ClassifyExpressionsSnapshots(new Alarmlist.Analysis.ExpressionClassificationRequest(
+            new Alarmlist.Analysis.ReferenceCompilationSnapshot(new[] { childSource }, context),
+            new Alarmlist.Analysis.ExpressionClassificationTarget("library-record", "Value",
+                new Alarmlist.Analysis.ReferenceTextSnapshot(libraryCopy.EffectiveExpression, "library-value", 1),
+                new Alarmlist.Analysis.ValueExplanationTarget(consumer.Alarms.Single(alarm => alarm.Origin.FullyQualifiedName == "Child").Origin.Location,
+                    "CollectionField", "Checks", "Copy", libraryEntry.Origin.Location), libraryCopy.ValueLocation)));
+        Check(libraryClassification.IsAvailable && libraryClassification.Spans.Any(span => span.Kind == "ItemField")
+            && libraryClassification.Spans.All(span => span.SourceRanges.Count == 0), "Library raw values classify without inventing physical projections");
         Check(consumer.Libraries.Single().Sources.Single().Origins.Any(origin => origin.Key.Contains("/collections/Checks/entries/0/fields/Count")), "Library navigation maps record fields");
         var explanationCapture = new Alarmlist.Evaluation.ValueExplanationCapture(alarm => alarm.FullyQualifiedName == "Child");
         var explanationAnalysis = Alarmlist.Analysis.SnapshotAnalyzer.Analyze(new[] { childSource }, context, false, explanations: explanationCapture);

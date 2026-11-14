@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 
 namespace Alarmlist.Evaluation
 {
@@ -63,8 +64,8 @@ namespace Alarmlist.Evaluation
         internal IReadOnlyList<ExpressionPartSyntax> Parts { get; }
         internal IReadOnlyList<ExpressionSyntaxDiagnostic> Diagnostics { get; }
         internal override IEnumerable<ExpressionSyntaxToken> Tokens => Parts.SelectMany(part => part.Tokens);
-        internal static ExpressionSyntax Parse(string raw, bool placeholders = false, bool allowItemReferences = false)
-            => ExpressionParser.Parse(raw ?? string.Empty, placeholders, allowItemReferences);
+        internal static ExpressionSyntax Parse(string raw, bool placeholders = false, bool allowItemReferences = false, CancellationToken cancellationToken = default)
+            => ExpressionParser.Parse(raw ?? string.Empty, placeholders, allowItemReferences, cancellationToken);
     }
 
     internal abstract class ExpressionPartSyntax : ExpressionSyntaxNode

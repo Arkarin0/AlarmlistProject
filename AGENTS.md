@@ -66,7 +66,7 @@ Existing plans and iteration records:
 
 | Plan | Scope |
 | --- | --- |
-| [Milestone 14](src/VisualStudio/MILESTONE-14.md) | Explain this value and the Find All References/Rename follow-up: compiler-owned provenance/identities, detached analysis-9 SDK transport, read-only explanations and previewed unsaved edits. |
+| [Milestone 14](src/VisualStudio/MILESTONE-14.md) | Explain this value, Find All References/Rename and expression editor follow-up: compiler-owned provenance/identities/syntax, detached analysis-10 SDK transport, read-only explanations and previewed unsaved edits. |
 | [Milestone 2](src/VisualStudio/MILESTONE-2.md) | Shared ALMX document, designer/XML editing, and editor lifecycle. |
 | [Milestone 3](src/VisualStudio/MILESTONE-3.md) | Reference-aware editing, analysis, diagnostics, previews, and lifecycle/performance follow-ups. |
 | [Milestone 4](src/VisualStudio/MILESTONE-4.md) | Property expressions, parameters, abstract alarms, and designer support; see its [design contract](src/VisualStudio/MILESTONE-4-DESIGN.md). |
@@ -94,9 +94,19 @@ UTF-16 spans, escapes and whitespace. Recovery may expose missing/invalid syntax
 for inspection; PropertyExpression admits only error-free roots for evaluation
 and proven references. Preserve that strict boundary when adding classification
 or editor commands; do not create a second semantic parser in the host.
+ClassifyExpressionsSnapshots is opt-in over frozen inputs and a separately
+versioned Almx/Resx document or Value target. Classification is lexical presentation,
+never a proven reference or permission to rename. Keep draft text separate from
+saved resources/dependencies, preserve compiler XML projections and stable entry
+locations, and classify only compiler-declared expression values. Resolved values,
+literal defaults/assignments and escaped text stay literal. Reuse the project-owned
+SDK worker under its analysis gate, skip analyzer loading, cancel obsolete calls
+and compare all captured inputs before and after publication. Retain results only
+for their requesting view; ordinary analysis/builds have no classification cache.
 
 Milestone 14 introduced ExplainSnapshots with analysis contract 8; its reference/
-rename follow-up advances the compiler and detached SDK bridge to contract 9.
+rename follow-up introduced contract 9; expression classification advances the
+compiler and detached SDK bridge together to contract 10.
 Keep analyzer 5, library format 3, export contract 1
 and semantic definition fingerprints unchanged. Ordinary analysis/builds retain no
 explanation graphs. Capture chosen contributors in compiler evaluation; never
@@ -115,7 +125,7 @@ Do not retain explanation graphs in ordinary project analysis. Performance evide
 uses Area=Explanations and Area=ExplanationAllocations; outer-domain allocation
 counters cannot account for compiler allocations in the SDK domain.
 Milestone 14 follow-up iterations 8–14 authorize compiler-owned Find All References
-and Rename. Continue its existing plan and dev branch. The contract-9
+and Rename. Continue its existing plan and dev branch. The contract-10
 FindReferencesSnapshots/PreviewRenameSnapshots APIs use immutable captured requests
 and snapshot-bound targets; keep their reference indexes opt-in and request-owned.
 Reference families
@@ -818,7 +828,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   changes through native NuGet management, not project-reference deletion.
 - The evaluated `AlarmlistAnalysisCompilerAssembly` property identifies the resolved
   SDK's net472 compiler independently of the build task runtime. The extension's
-  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-8 data
+  `SdkAnalysisBridge` loads it in a dedicated AppDomain and copies contract-10 data
   into host-owned results. Do not load compiler types in the VS host domain, add a
   compiler project reference, or substitute another SDK on failure. Call bridge
   operations off the UI thread; owners must dispose on SDK/configuration changes
@@ -844,7 +854,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Capture saved lookup bytes only, watch regeneration/deletion, and compare captured
   text/path/order/version before publication, completion or navigation. Lookup drafts
   and close notifications must not expose unsealed changes. The bridge requires the
-  library-capable contract-8 context and copies catalogue labels, metadata, placeholder
+  library-capable contract-10 context and copies catalogue labels, metadata, placeholder
   names and usage provenance into detached host DTOs. Never parse catalogues or RESX
   templates in the IDE. Template completion inserts explicit empty named arguments;
   lookup/member/metadata completion inserts compiler-supplied expressions, with no
@@ -943,7 +953,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   project previews include shared unsaved ALMX buffers and visibly explain that
   unapplied designer field edits are excluded; never auto-apply those drafts.
   Clear all scopes during stale/unavailable analysis; project XML requires
-  whole-project success. Require context-aware contract 9 and preview
+  whole-project success. Require context-aware contract 10 and preview
   support, and copy XML as a string outside the required property map.
 - Designer lookup caches must validate current text/version before reuse and be
   keyed by immutable analysis state, captured input, and selected source. Keep

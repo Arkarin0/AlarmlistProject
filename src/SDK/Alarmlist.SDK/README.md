@@ -18,7 +18,7 @@ assemblies, and their runtime dependencies.
 
 ### Generated definitions and compatibility
 
-Current toolsets use analysis contract 9, analyzer contract 5 and library format 3.
+Current toolsets use analysis contract 10, analyzer contract 5 and library format 3.
 Rebuild old analyzers and `.almlib` artifacts with the matching toolset. Libraries
 carry a semantic definition fingerprint; a different field layout, type, default,
 required flag, bound or enum choice is incompatible. Presentation-only changes do
@@ -81,7 +81,7 @@ This is a breaking transition: replace old Instructions/Reset elements with
 `<Group Name="Instructions">` / `<Group Name="Reset">`. Legacy elements are
 rejected. Compiled XML uses Group/Name/Title and TestProcedureItem children.
 The compiler's TestProcedure exposes Groups; detached alarm analysis exposes
-ProcedureSections with title provenance. Analysis contract 9 requires the matching
+ProcedureSections with title provenance. Analysis contract 10 requires the matching
 extension; external analyzers must be rebuilt for analyzer contract 5. No migration
 tool or compatibility aliases are supplied. See the
 [milestone-eight contract](../../VisualStudio/MILESTONE-8.md).
@@ -741,14 +741,26 @@ autosave a committed cell; that saved value is then eligible for capture.
 The compiler in each SDK task-runtime directory exposes
 `AlarmCompiler.AnalyzeSnapshots(IEnumerable<AlmxTextSnapshot>)` for host adapters.
 It returns a detached, read-only `Alarmlist.Analysis.AnalysisResult` with contract
-version 8, input versions, local/effective fields, defining alarms and locations,
+version 10, input versions, local/effective fields, defining alarms and locations,
 reference chains, procedure origins, Clear exclusions, and located diagnostics.
 It shares the compiler's resolution rules and never reads or writes snapshot paths.
+
+`ClassifyExpressionsSnapshots(request, cancellationToken)` provides opt-in lexical
+classification for a versioned ALMX/RESX document or standalone raw value. The
+request keeps captured compiler inputs separate from displayed private draft text.
+Immutable results include target/context stamps, UTF-16 spans, XML projections and
+syntax diagnostics. Resolved values and literal defaults/assignments stay literal;
+recoverable syntax is presentation data and supplies no proven references. This
+operation does not evaluate values, load analyzers or retain an ordinary-analysis
+index/cache. See the [classification API reference](../../Compiler/Analysis/README.md#expression-classification)
+for target kinds, saved-input rules and freshness requirements. Analysis contract
+10 requires matching compiler, SDK and extension tools; older bridges must be
+rebuilt. Analyzer 5, library 3, export 1 and semantic fingerprints are unchanged.
 
 The additive overload `AnalyzeSnapshots(snapshots, includeCompiledXml: true)` also
 returns `AnalysisResult.CompiledXml` from those same bound inputs through the
 normal XML output writer. It is null when not requested or compilation fails.
-The original overload keeps its analysis-only behavior and returns contract 9.
+The original overload keeps its analysis-only behavior and returns contract 10.
 `AnalyzeLibrarySnapshots(snapshots, context, cancellationToken)` analyzes library
 definitions with the same deferred-value rules as library validation. Missing
 consumer values remain unavailable; syntax, structure and reference errors remain
@@ -801,7 +813,7 @@ diagnostics. Project edits remain non-applicable until SDK-owned project overlay
 evaluation supplies matching validation inputs. No edits or file I/O occur inside
 these compiler APIs; ordinary analysis retains no reference index.
 
-The bridge requires contract 9 and copies this data into host-owned serializable
+The bridge requires contract 10 and copies this data into host-owned serializable
 objects. Resource filename inference is delegated to the SDK's
 `LocalizationCulture.InferResourceCulture`; explicit empty culture stays distinct.
 CPS saved-resource capture and designer localization follow in iterations six/seven.
@@ -824,7 +836,7 @@ runtime or an `AlarmlistTasksAssembly` override. Querying it requires no Build
 target and writes no compiled output. Treat it as an SDK-provided location;
 an absent property means the SDK does not provide this bridge integration.
 
-The extension now has an isolated AppDomain bridge for contract 9 and a CPS
+The extension now has an isolated AppDomain bridge for contract 10 and a CPS
 project service that captures this property and ordered Compile inputs from the
 same evaluation, then analyzes current buffer/disk snapshots. The designer uses
 these results for reference selection, inherited scalar/procedure values, Clear

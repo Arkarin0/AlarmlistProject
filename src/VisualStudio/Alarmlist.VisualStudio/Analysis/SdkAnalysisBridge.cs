@@ -13,23 +13,6 @@ namespace Alarmlist.VisualStudio.Analysis
     internal enum AnalysisAvailability { Available, SdkUnavailable, UnsupportedContract, LoadFailed, InvalidInput, AnalysisFailed }
 
     [Serializable]
-    internal sealed class AnalysisInput
-    {
-        public string Text { get; }
-        public string FilePath { get; }
-        public int Version { get; }
-
-        public AnalysisInput(string text, string filePath, int version)
-        {
-            Text = text ?? throw new ArgumentNullException(nameof(text));
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A source path is required.", nameof(filePath));
-            if (version < 0) throw new ArgumentOutOfRangeException(nameof(version));
-            FilePath = filePath;
-            Version = version;
-        }
-    }
-
-    [Serializable]
     internal sealed class AnalysisResponse
     {
         public AnalysisAvailability Availability { get; }
@@ -111,6 +94,11 @@ namespace Alarmlist.VisualStudio.Analysis
             CancellationToken cancellationToken = default, IReadOnlyCollection<string> includedGroups = null, AnalysisReferenceRequest validationInputs = null);
     }
 
+    internal interface ISdkClassificationBridge
+    {
+        ClassificationResponse Classify(AnalysisClassificationRequest request, CancellationToken cancellationToken = default);
+    }
+
     [Export(typeof(ISdkAnalysisBridgeFactory))]
     internal sealed class SdkAnalysisBridgeFactory : ISdkAnalysisBridgeFactory
     {
@@ -118,7 +106,7 @@ namespace Alarmlist.VisualStudio.Analysis
     }
 
     /// <summary>Owned by one project/configuration. Call off the UI thread and dispose on SDK change or project unload.</summary>
-    internal sealed partial class SdkAnalysisBridge : ISdkLibraryBridge, ISdkPackageGraphBridge, ISdkExplanationBridge, ISdkReferenceBridge
+    internal sealed partial class SdkAnalysisBridge : ISdkLibraryBridge, ISdkPackageGraphBridge, ISdkExplanationBridge, ISdkReferenceBridge, ISdkClassificationBridge
     {
         private readonly object _gate = new object();
         private AppDomain _domain;
@@ -133,7 +121,7 @@ namespace Alarmlist.VisualStudio.Analysis
         {
             if (string.IsNullOrWhiteSpace(evaluatedCompilerPath))
                 return new BridgeOpenResult(AnalysisAvailability.SdkUnavailable,
-                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 9.");
+                    "The project has no AlarmlistAnalysisCompilerAssembly property. Restore a matching Alarmlist.MSBuild.SDK with analysis contract 10.");
 
             AppDomain domain = null;
             try

@@ -190,3 +190,14 @@ and task/exporter/SDK/host/package checks pass. Final desktop checks pass on bot
 MSBuild hosts. The milestone distinguishes full runs before the final linearity
 correction from final compiler/desktop/bridge checks after it. Editor classification
 and its public contract transition remain iteration 19.
+
+Milestone 14 iteration 19 documents the opt-in classification API, its detached
+analysis-10 transport and the distinction between lexical draft presentation and
+compiler-resolved semantic commands. Compiler/SDK/extension contributor references
+describe exact UTF-16/XML projections, cancellation, freshness and saved-input
+isolation. Editor presentation and native RESX-table behavior remain iterations
+20–22; this API iteration makes no claim that those user actions have shipped.
+Validation passes 899/901 compiler tests, 960 host tests, 14 packaged VSIX checks
+per framework and 17 packaged SDK checks per desktop host, plus task/exporter/SDK
+and generated-definition suites. The milestone records exact results and the
+cancellation-only refinement made between the initial and final checks.
