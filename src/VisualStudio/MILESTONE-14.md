@@ -6,8 +6,9 @@ iterations 8–14 complete with required acceptance gates passed on 2026-10-30.
 Original evidence and performance limits remain below.
 
 Follow-up iterations 15–22 are authorized on dev/milestone-14. Iteration 15 is
-complete with its required gates passed on 2026-10-31; iterations 16–22 remain
-planned. Implementation and evidence are recorded in the appended follow-up.
+complete with its required gates passed on 2026-10-31. Iteration 16 is complete
+with its required gates passed on 2026-11-14; iterations 17–22 remain planned.
+Implementation and evidence are recorded in the appended follow-up.
 
 ## Outcome and confirmed scope
 
@@ -1583,7 +1584,7 @@ diagnostic probes, generated binaries, machine paths or unrelated edits are stag
 
 ## Follow-up iterations 15–22 — semantic editing and RESX commands
 
-Status: iteration 15 complete; iteration 16 next. Completed iterations 1–14 and their
+Status: iteration 15 complete (aae945e); iteration 16 in progress. Completed iterations 1–14 and their
 acceptance evidence above remain unchanged. No branch creation, merge or push is
 part of this follow-up. Work continues on dev/milestone-14.
 
@@ -1791,3 +1792,163 @@ and successful repeats. No scoped gate is deferred. Broader generated-definition
 library/package and integrated tutorial/performance reacceptance remains in 22.
 Iteration 16 (separate Rename lifetime/window and expansion-preserving pixel
 scrolling) is next; its acceptance has not been claimed.
+
+### Iteration 16 — in progress
+
+Starting from clean dev/milestone-14 after aae945e. A Rename window owns its own
+result/review and SolutionReferenceSession. A References action forks the frozen
+immutable capture only after revalidation, installs independent watchers and runs
+a new compiler identity search. Only a reference-counted source-intent lease is
+shared; disposing References must not dispose that lease while Rename owns it.
+Initial search cancellation remains separate from established source-context
+intent. XML retains resolved request leases across subsequent commands and still
+observes every leased source/context for invalidation. Hide/reopen preserves the
+review; replacement is refused during Apply and cancels an old preview otherwise.
+No iteration-16 acceptance is claimed yet.
+
+- Added the independently registered Alarmlist Rename tool window, its View menu
+  command, explicit compiler symbol chooser and References row context menu.
+  References and Rename use separate watched sessions; replacing References or
+  closing its result lease cannot cancel the retained Rename intent. XML keeps
+  every resolved request alive only while an owning result lease exists.
+- Preview expansion belongs to each change view model. The bounded virtualized
+  list uses pixel scrolling; before/after text forwards wheel and Page Up/Down
+  to that list. Selection validation preserves expansion, fresh preview resets
+  it, and Cancel clears changes, approval and acknowledgement. Apply remains
+  distinguishable until backend completion/rollback, preventing replacement.
+- Product build passes with zero warnings/errors. Initial focused suite passes
+  12 of 13: the fork test incorrectly expected false after catalogue invalidation,
+  while the existing API deliberately throws cancellation. Corrected that
+  assertion; the full host suite then passes 943 tests, zero failures/skips
+  (Host, 2 minutes 22 seconds). A final reference-row identity/stale-command test
+  and its neighboring suite pass 6 tests (ReferenceRows, overlapping the full
+  suite). These are under artifacts/log/Debug/Milestone14/Iteration16.
+- Packaged VSIX checks pass 14 tests on net472 and 14 on net8.0, zero
+  failures/skips (Integration472, 14 seconds; Integration8, 11 seconds), including
+  the new tool-window registration. Native fixture build passes. VS2022 native
+  ReferencesRename, ReferenceTutorial, SharedReferencesRename and
+  AuxiliaryReferencesRename are running sequentially before the VS2026 gate.
+  They now address Rename independently and retain unsaved Apply/Undo assertions.
+  The main scenario also checks dock/hide/reopen, a replacement Find while Rename
+  is hidden, and native wheel scrolling over an oversized expanded preview.
+- The VS2022 tutorial stops at its initial designer context-menu input because
+  another process takes foreground focus after readiness/hit testing. The final
+  guard refuses input (ReferenceTutorial/2022/e76da528b30a4e1b865a7a9d4aa2f10c).
+  This is not native acceptance; retained evidence will be reviewed and that case
+  repeated after the remaining sequential scenarios finish. No guard is bypassed.
+- That batch passes SharedReferencesRename and AuxiliaryReferencesRename. Its
+  tutorial screenshot identifies an inconsistent-line-endings dialog, so fixture
+  XML extracted from Markdown now uses consistent LF endings. The new menu
+  helper is also restricted to top-level windows of the owned IDE, matching the
+  existing value helper rather than traversing unrelated applications.
+  ReferencesRename subsequently stalls in fixture Solution.SaveAs, before any
+  product operation. Stopped only its verified executable/PID/start-time instance
+  to end the stalled case; its resulting RPC failure is retained in
+  TestResults/bf433c98275c4d079bb86a76b363a52e. A first cleanup check refused a
+  timezone-mismatched comparison; an exact UTC identity check passed before stop.
+  Both failed cases require fresh acceptance; the successful resource/lookup cases
+  do not establish the missing main-window/tutorial gates.
+- Focused repeat (TestResults/235a5a404ded4e3b9e5be887ccd2ea5d) times out in
+  tutorial IDE automation discovery before executing its corrected input. The main
+  scenario reaches dock/hide and the independent replacement Find, then identifies
+  a command-registration mismatch at View.AlarmlistRename. Its VSCT canonical
+  strings now follow the existing AlarmlistPreview naming pattern (plain
+  AlarmlistRename), so the shell supplies the View prefix. This production fix and
+  the remaining scrolling/Apply assertions require native repeats on both hosts.
+- VS2022 focused repeat passes both cases, zero failures/skips, in
+  TestResults/c1cf5ded20c24881800d8d965e1a9635 (1 minute 38 seconds). This verifies
+  References row/menu identity selection, separate dockable Rename, retained
+  preview through dock/hide/reopen and a replacement Find, the corrected View
+  command, oversized expanded before/after presentation, native wheel over the
+  header and readonly text without folding or changing inclusion, Cancel, direct
+  designer/Summary/XML Rename, unsaved Apply and linked Undo/Redo. The tutorial
+  reads its normalized XML examples and passes navigation, preview, Undo/Redo,
+  Save and Build. All four VS2026 scenarios are now running sequentially.
+- The VS2026 batch passes the main ReferencesRename and auxiliary lookup/group
+  case. Shared-key discovery correctly resolves Resource:Caption, then disables
+  it after a late catalogue publication; the fixture must explicitly recapture
+  that token instead of waiting for stale results to become editable. The shared
+  fixture now verifies unchanged source/saved bytes before any such recapture.
+  The tutorial pointer failure reveals a stretched heading's transparent glyph-only
+  hit testing: blank space hits its unmarked parent. Marked TextBlock headings now
+  have a transparent hit-test background, preserving explicit authored backgrounds.
+  A real visual hit test plus the related menu/render/review suite pass 10 tests
+  (HeadingHitTest, 4 seconds). The retained VS2026 batch is
+  TestResults/78b4cce9175c41f4baaaae52f259ff34. Native repeats follow this fix.
+- Final full host suite after the heading fix passes 944 tests, zero
+  failures/skips (HostFinal, 2 minutes 20 seconds). Final packaged checks and
+  sequential native repeats follow; no iteration-16 commit has been made.
+- Resumed on November 14 on the same dev branch and uncommitted iteration. The
+  previous package process handle is terminal/missing; its saved net472 report
+  proves 14 passes. Final net8.0 package checks pass 14, zero failures/skips
+  (Integration8Final, 17 seconds). Both installed IDE versions remain unchanged.
+  All four VS2026 scenarios pass after the heading and explicit shared recapture
+  fixes, zero failures/skips (TestResults/050e9cb68ab545abbb8c022cc9af67ee,
+  2 minutes 47 seconds).
+- Final row-routing review finds that a References command must also retain its
+  row's consumer index and compiler symbol projection. A declaration discovered
+  in another project must not be searched through the original project's SDK
+  context. Rows now index their family's compiler declarations once, preserve that
+  exact symbol/context through menu invocation and fork Rename into that context.
+  Group commands choose a compiler-provided context represented by their rows.
+  Added coverage for owning/read-only projections and different consumer cultures;
+  the signature and native menu path are being revalidated before commit.
+- RowContextsComplete passes 8 tests, zero failures/skips (8 seconds), including
+  a real packaged-compiler library/consumer family. Its child declaration is
+  unavailable in the original library context, resolves in its actual consumer,
+  and produces all four coordinated edits through an independent fork. View-model
+  coverage preserves each culture/consumer's exact readonly/owning projection.
+  Full host and affected native/package checks follow this routing correction.
+- HostRowContextsFinal passes the full 945-test host suite, zero failures/skips,
+  in 2 minutes 22 seconds. RowOrderingFinal passes all 7 reference presentation
+  tests (74 milliseconds), including the readonly consumer appearing first.
+- Final routing revision passes the packaged VSIX suites on net472 and net8.0:
+  14 tests each, zero failures/skips (Integration472RowContexts, 11 seconds;
+  Integration8RowContexts, 14 seconds). All four VS2022 native scenarios pass,
+  zero failures/skips, in TestResults/adb9a51b6b8549a58d3ec8db4b499462
+  (2 minutes 52 seconds). The two VS2026 References-menu workflows affected by
+  that routing revision are being repeated; its direct XML/resource/lookup
+  scenarios passed in the preceding four-case run and their path is unchanged.
+
+### Iteration 16 — complete
+
+Alarmlist Rename is a separate reusable dockable window with a compiler symbol
+chooser and its own watched solution session. Designer, Summary, XML and References
+menus open it. References rows retain the exact compiler declaration and consumer
+context. Independent source-intent leases preserve Rename when References is
+replaced; actual context/input changes still invalidate both. Hide/reopen preserves
+the review, replacement cancels preview work, Apply/rollback blocks replacement,
+and Cancel clears approval and acknowledgement. Changes own expansion state in a
+pixel-scrolling virtualized list. Oversized before/after text scrolls with the list,
+and selection validation, recycling and resize preserve expansion and inclusion.
+Marked identity headings also own their full pointer hit area.
+
+| Final gate | Actual result |
+| --- | --- |
+| Full host suite | 945 passed, zero failures/skips; HostRowContextsFinal (2 minutes 22 seconds). |
+| Packaged compiler/context routing | 8 passed; RowContextsComplete (8 seconds), including a child declaration unavailable in the original context and all four edits in its actual consumer. |
+| Final reference-row ordering | 7 passed; RowOrderingFinal (74 milliseconds), overlapping the full suite. |
+| Packaged VSIX net472 / net8.0 | 14 / 14 passed, zero failures/skips; Integration472RowContexts / Integration8RowContexts (11 / 14 seconds). |
+| Native VS2022 all four scenarios | 4 passed, zero failures/skips; TestResults/adb9a51b6b8549a58d3ec8db4b499462 (2 minutes 52 seconds). |
+| Native VS2026 all four scenarios | 4 passed, zero failures/skips; TestResults/050e9cb68ab545abbb8c022cc9af67ee (2 minutes 47 seconds). |
+| Native VS2026 affected menu workflows after final routing correction | 2 passed, zero failures/skips; TestResults/1cf28877e5fd4120bcf893922906e2f9 (1 minute 5 seconds). |
+| Review | Local documentation/guidance links resolve (33 checked); whitespace diff passes. No generated outputs or unrelated edits are included. |
+
+Host/package results are under artifacts/log/Debug/Milestone14/Iteration16;
+commands use dotnet test on the corresponding test project with --no-restore
+-v quiet -m:1 -nr:false --logger trx. Package runs select net472/net8.0. Native
+runs use eng/test-visualstudio.ps1, the selected installation, RootSuffix
+Alarmlist13Exp and the Area filters ReferencesRename, ReferenceTutorial,
+SharedReferencesRename and AuxiliaryReferencesRename. Native runs are sequential;
+the final VS2026 repeat selects the two affected ReferencesRename/ReferenceTutorial
+cases. ALARMLIST_VS_TIMEOUT_SECONDS=600 bounds only each owned fixture lifetime.
+Earlier setup failures, actual fixes and successful repeats remain above.
+
+Native checks cover dock/float/hide/reopen, independent searches, direct actions,
+source/context staleness, resource and partial project edits, unsaved Apply,
+linked Undo/Redo and the documented Save/Build tutorial. Host checks cover ignored
+cancellation, lease disposal, fork isolation, expansion/inclusion/acknowledgement,
+pixel wheel/Page Up/Page Down scrolling and recycling. Analysis contract 9,
+analyzer 5, library 3, export 1 and semantic fingerprints remain unchanged.
+No scoped gate is deferred. Theme states remain iteration 17; integrated
+library/generated-definition/performance reacceptance remains iteration 22.

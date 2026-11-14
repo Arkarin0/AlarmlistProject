@@ -35,12 +35,25 @@ identify unavailable projects, excluded configurations, ambiguous bindings and
 immutable definitions. Search validates active configurations and all configured
 cultures; it cannot discover unknown external consumers.
 
-Enter the new name in Rename and choose **Preview rename changes**. The preview
+Rename opens the separate, dockable **Alarmlist Rename** window. You can also
+right-click a definition or finding in References and choose **Rename…**.
+Use **View > Other Windows > Alarmlist Rename** to reopen it. Hiding, docking or
+floating it preserves the current review. New reference searches do not replace
+that review. A new Rename replaces it; source or context changes invalidate it.
+An Apply operation must finish or roll back before another Rename can start.
+
+Enter the new name and choose **Preview changes**. The preview
 shows before/after text, skipped findings, conflicts and diagnostic differences.
 You can exclude editable changes and revalidate the resulting selection. Partial
 coverage, exclusions, remaining references and expected new diagnostics require
 explicit acknowledgement. Invalid names, collisions, overlapping replacements and
 incompatible shared-consumer meanings cannot apply as approved changes.
+
+Expand individual changes to inspect their before/after text. The change list
+scrolls continuously, including over expanded text and headers; Page Up and
+Page Down scroll the list while inspecting text. Expansion survives scrolling,
+window resizing and selection validation. A fresh preview starts collapsed.
+**Cancel** discards the approved preview and acknowledgement without saving files.
 
 Apply opens affected files, checks editability and freshness, and changes the
 approved set as one linked Undo operation. A failure restores touched buffers.

@@ -16,6 +16,44 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public sealed class RenameReviewTests
     {
         [Fact]
+        public async Task ExpansionSurvivesSelectionValidationAndCancelDiscardsApprovalAsync()
+        {
+            using (var view = new RenameReviewViewModel(new Operations()))
+            {
+                view.NewName = "Next"; view.PreviewCommand.Execute(null); await view.Pending;
+                var first = view.Changes[0]; first.IsExpanded = true;
+                Assert.True(view.ApplyCommand.CanExecute(null));
+                view.Changes[1].IsIncluded = false;
+                view.ValidateSelectionCommand.Execute(null); await view.Pending;
+                Assert.Same(first, view.Changes[0]); Assert.True(first.IsExpanded);
+                view.IsAcknowledged = true;
+                view.CancelCommand.Execute(null);
+                Assert.Empty(view.Changes); Assert.False(view.IsAcknowledged);
+                Assert.False(view.ApplyCommand.CanExecute(null)); Assert.Contains("cancelled", view.Message);
+                view.PreviewCommand.Execute(null); await view.Pending;
+                Assert.NotSame(first, view.Changes[0]); Assert.All(view.Changes, change => Assert.False(change.IsExpanded));
+            }
+        }
+
+        [Fact]
+        public async Task ApplyingIsDistinctFromPreviewAndCancellationRollsBackBeforeItFinishesAsync()
+        {
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var operations = new Operations { Apply = async token => { await completion.Task; token.ThrowIfCancellationRequested(); } };
+            using (var view = new RenameReviewViewModel(operations))
+            {
+                view.NewName = "Next"; view.PreviewCommand.Execute(null); await view.Pending;
+                Assert.False(view.IsApplying);
+                view.ApplyCommand.Execute(null); var pending = view.Pending;
+                Assert.True(view.IsApplying); Assert.False(view.CanEditName);
+                view.CancelCommand.Execute(null);
+                Assert.True(view.IsApplying); // A replacement must wait for the backend's rollback.
+                completion.SetResult(true); await pending;
+                Assert.False(view.IsApplying); Assert.False(view.IsBusy); Assert.False(view.ApplyCommand.CanExecute(null));
+            }
+        }
+
+        [Fact]
         public async Task PartialSelectionRequiresRevalidationAndFreshExplicitAcknowledgementAsync()
         {
             var operations = new Operations { Incomplete = true };
@@ -90,6 +128,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             internal RenameReview Applied;
             internal string[] LastSelection;
             internal Func<string, IReadOnlyCollection<string>, CancellationToken, Task<RenameReview>> Preview;
+            internal Func<CancellationToken, Task> Apply;
             internal readonly SolutionRenameChange[] Changes = {
                 new SolutionRenameChange("one", new AnalysisRenameEdit("A.almx", 0, 3, 1, "Next"), "<x>P</x>", new[] { 0 }),
                 new SolutionRenameChange("two", new AnalysisRenameEdit("B.resx", 0, 3, 1, "Next"), "<x>P</x>", new[] { 0 }) };
@@ -103,7 +142,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                 return Preview == null ? Task.FromResult(Review(name, included)) : Preview(name, included, token);
             }
             public Task ApplyAsync(RenameReview review, bool acknowledged, CancellationToken token)
-            { token.ThrowIfCancellationRequested(); Applies++; Applied = review; AppliedAcknowledgement = acknowledged; return Task.CompletedTask; }
+            { token.ThrowIfCancellationRequested(); Applies++; Applied = review; AppliedAcknowledgement = acknowledged; return Apply?.Invoke(token) ?? Task.CompletedTask; }
         }
     }
 }

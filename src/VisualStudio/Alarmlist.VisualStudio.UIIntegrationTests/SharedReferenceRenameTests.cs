@@ -51,10 +51,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 "selected consumer has published its resolved shared alarm");
             ide.Automation.ExecuteCommand("View.ViewCode", "");
             VisualStudioSession.Wait(() => (ById("Alarmlist.XmlAnalysisStatus")?.Name ?? "").Length == 0, "chosen consumer analysis is ready");
-            Position("Caption");
-            ide.Automation.ExecuteCommand("Refactor.Rename");
-            VisualStudioSession.Wait(() => ById("RenameNewName")?.IsEnabled == true && ById("RenameNewName").AsTextBox().Text == "Caption",
-                "compiler resolves the shared localization key");
+            RenameCurrent("Caption");
+            pane = ide.Automation.Windows.Item(ReferenceAcceptanceUi.RenameWindow);
             pane.IsFloating = true; pane.Width = 1150; pane.Height = 800;
             pane.Left = window.BoundingRectangle.Left + 20; pane.Top = window.BoundingRectangle.Top + 40;
             ById("RenameNewName").AsTextBox().Text = "CaptionNext";
@@ -87,11 +85,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             string north = Path.Combine(workspace.ProjectDirectory, "Plant.almproj");
             string south = Path.Combine(workspace.DirectoryPath, "South", "South.almproj");
             string northText = File.ReadAllText(north), southText = File.ReadAllText(south);
-            Position("Site");
-            VisualStudioSession.Wait(() => (ById("Alarmlist.XmlAnalysisStatus")?.Name ?? "").Length == 0, "analysis after linked resource Redo");
-            ide.Automation.ExecuteCommand("Refactor.Rename");
-            VisualStudioSession.Wait(() => ById("RenameNewName")?.IsEnabled == true && ById("RenameNewName").AsTextBox().Text == "Site",
-                "shared parameter resolves in the explicit North consumer");
+            RenameCurrent("Site");
             ById("RenameNewName").AsTextBox().Text = "NorthSite";
             Action("Preview rename changes").Invoke();
             VisualStudioSession.Wait(() =>
@@ -113,6 +107,33 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Contains("$(Site)", ide.ReadText(path)); AssertSaved();
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "shared-reference-rename.png"));
 
+            void RenameCurrent(string token)
+            {
+                string captured = ide.ReadText(path);
+                for (int attempt = 0; attempt < 3; attempt++)
+                {
+                    ReferenceAcceptanceUi.Hide(ide);
+                    Position(token);
+                    VisualStudioSession.Wait(() => (ById("Alarmlist.XmlAnalysisStatus")?.Name ?? "").Length == 0, "current shared XML analysis");
+                    ide.Automation.ExecuteCommand("Refactor.Rename");
+                    EnvDTE.Window current = null;
+                    VisualStudioSession.Wait(() =>
+                    {
+                        current = ide.Automation.Windows.Cast<EnvDTE.Window>().FirstOrDefault(item => item.Caption == "Alarmlist Rename");
+                        return current?.Visible == true && (ById("RenameNewName")?.IsEnabled == true
+                            || Status("RenameStatus").Contains("The solution catalogue changed.", StringComparison.Ordinal));
+                    }, "compiler resolves the current shared " + token + " target");
+                    if (ById("RenameNewName")?.IsEnabled == true)
+                    {
+                        Assert.Equal(token, ById("RenameNewName").AsTextBox().Text); return;
+                    }
+                    // A late CPS publication must invalidate the first result.
+                    // Recapture the same explicit token, never enable stale edits.
+                    Assert.Equal(captured, ide.ReadText(path)); AssertSaved();
+                    File.AppendAllText(Path.Combine(workspace.DirectoryPath, "steps.log"), "Catalogue changed after Rename publication; recapturing " + token + Environment.NewLine);
+                }
+                throw new InvalidOperationException("The shared consumer catalogue did not settle for Rename: " + token);
+            }
             void Position(string token)
             {
                 ide.Automation.Documents.Item(path).Activate();

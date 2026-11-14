@@ -1,0 +1,33 @@
+<UserControl x:Class="Alarmlist.VisualStudio.UI.RenameWindowControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
+             xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+             Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+             Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+             AutomationProperties.Name="Alarmlist Rename" AutomationProperties.AutomationId="AlarmlistRename">
+  <UserControl.Resources><BooleanToVisibilityConverter x:Key="BooleanVisibility" /></UserControl.Resources>
+  <Grid Margin="8">
+    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+    <StackPanel>
+      <TextBlock Text="{Binding TargetLabel}" FontWeight="SemiBold" TextWrapping="Wrap" AutomationProperties.AutomationId="RenameTarget" />
+      <TextBlock Text="{Binding ContextLabel}" TextWrapping="Wrap" Margin="0,4" AutomationProperties.AutomationId="RenameContext" />
+      <ui:LiveStatusTextBlock Text="{Binding Message}" TextWrapping="Wrap" AutomationProperties.Name="{Binding Message}" AutomationProperties.AutomationId="RenameRequestStatus">
+        <ui:LiveStatusTextBlock.Style><Style TargetType="ui:LiveStatusTextBlock"><Setter Property="Visibility" Value="Visible" />
+          <Style.Triggers><DataTrigger Binding="{Binding HasRename}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers>
+        </Style></ui:LiveStatusTextBlock.Style>
+      </ui:LiveStatusTextBlock>
+      <StackPanel Visibility="{Binding HasSymbolChoices, Converter={StaticResource BooleanVisibility}}" Margin="0,6">
+        <TextBlock Text="Choose the symbol to rename:" />
+        <ListBox ItemsSource="{Binding Symbols}" SelectedItem="{Binding SelectedSymbol}" DisplayMemberPath="Label" MaxHeight="140"
+                 IsEnabled="{Binding CanSelectSymbol}" KeyDown="OnSymbolKeyDown" AutomationProperties.Name="Compiler-resolved rename symbols"
+                 AutomationProperties.AutomationId="RenameSymbolChoices" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
+        <Button Content="Continue with selected _symbol" Command="{Binding ChooseSymbolCommand}" HorizontalAlignment="Left" Margin="0,4"
+                AutomationProperties.Name="Choose symbol for rename" />
+      </StackPanel>
+    </StackPanel>
+    <Grid Grid.Row="1" Visibility="{Binding HasRename, Converter={StaticResource BooleanVisibility}}">
+      <ui:RenameReviewControl DataContext="{Binding Rename}" />
+    </Grid>
+  </Grid>
+</UserControl>

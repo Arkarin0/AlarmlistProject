@@ -82,6 +82,24 @@ namespace Alarmlist.VisualStudio.Analysis
                 _search = found; return found;
             }, cancellationToken);
 
+        internal async Task<SolutionReferenceSession> ForkAsync(CancellationToken ownerToken, CancellationToken cancellationToken)
+        {
+            if (_disposed || IsObsolete)
+                throw new InvalidOperationException("The reference inputs changed. Find references again before renaming.");
+            var fork = new SolutionReferenceSession(_catalogue, _documents, _factory, ownerToken);
+            try
+            {
+                // These detached captures are immutable. Operation state, search
+                // results, cancellation, leases and watches remain independent.
+                fork._catalogueSnapshot = _catalogueSnapshot; fork._capture = _capture;
+                fork.WatchInputs();
+                if (!await fork.RevalidateAsync(cancellationToken).ConfigureAwait(false))
+                    throw new InvalidOperationException("Solution inputs changed while opening Rename. Find references again.");
+                return fork;
+            }
+            catch { fork.Dispose(); throw; }
+        }
+
         internal Task<SolutionRenameProposal> PreviewAsync(string newName, IReadOnlyCollection<string> included = null,
             CancellationToken cancellationToken = default)
             => RunOperationAsync(async token =>

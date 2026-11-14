@@ -29,7 +29,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         {
             string repository = typeof(UiTestWorkspace).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(item => item.Key == "RepositoryRoot").Value;
             string article = File.ReadAllText(Path.Combine(repository, "documentation", "tutorials", "find-and-rename-an-alarm.md"));
-            var examples = Regex.Matches(article, "```xml\\r?\\n([\\s\\S]*?)\\r?\\n```").Cast<Match>().Select(match => match.Groups[1].Value + "\n").ToArray();
+            var examples = Regex.Matches(article, "```xml\\r?\\n([\\s\\S]*?)\\r?\\n```").Cast<Match>()
+                .Select(match => match.Groups[1].Value.Replace("\r\n", "\n") + "\n").ToArray();
             Assert.Equal(2, examples.Length);
             workspace.CreateProject(ide, build: false); ide.Automation.Solution.Close(false);
             string source = Path.Combine(workspace.ProjectDirectory, "ReferenceBase.almx"), child = Path.Combine(workspace.ProjectDirectory, "ReferenceChild.almx");
@@ -39,7 +40,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             using var automation = new UIA3Automation();
             var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             foreach (EnvDTE.Window existing in ide.Automation.Windows)
-                if (existing.Caption == "Alarmlist References") existing.Visible = false;
+                if (existing.Caption == "Alarmlist References" || existing.Caption == "Alarmlist Rename") existing.Visible = false;
             Find();
             var pane = ide.Automation.Windows.Item("{a840dc04-70c0-47c2-8618-8d3955e39ccc}");
             pane.IsFloating = true; pane.Width = 1150; pane.Height = 800;
@@ -56,8 +57,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => string.Equals(ide.Automation.ActiveDocument?.FullName, child, StringComparison.OrdinalIgnoreCase), "reference navigation opens the physical child source");
             Assert.Equal(examples[0], ide.ReadText(source)); Assert.Equal(examples[1], ide.ReadText(child));
             pane.Visible = false; Find();
-            var rename = window.FindAllDescendants().First(item => item.Name == "Rename" && item.Patterns.ExpandCollapse.IsSupported);
-            rename.Patterns.ExpandCollapse.Pattern.Expand();
+            var renamePane = ReferenceAcceptanceUi.RenameFromReferences(ide, window);
             TextBox name = null;
             VisualStudioSession.Wait(() => (name = ById("RenameNewName")?.AsTextBox())?.IsEnabled == true, "tutorial rename name");
             Assert.Equal("ReferenceDemo.Base", name.Text);
@@ -81,7 +81,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => ide.ReadText(source) == renamedSource && ide.ReadText(child) == renamedChild, "tutorial unsaved two-file result");
             Assert.Contains("Keep literal ReferenceDemo.Base", ide.ReadText(child));
             Assert.Equal(sourceBytes, File.ReadAllBytes(source)); Assert.Equal(childBytes, File.ReadAllBytes(child));
-            pane.Visible = false;
+            pane.Visible = false; renamePane.Visible = false;
             ide.Automation.Documents.Item(source).Activate(); ide.Automation.ExecuteCommand("Edit.Undo");
             VisualStudioSession.Wait(() => ide.ReadText(source) == examples[0] && ide.ReadText(child) == examples[1], "tutorial one-step Undo");
             ide.Automation.ExecuteCommand("Edit.Redo");

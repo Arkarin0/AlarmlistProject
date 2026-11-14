@@ -64,6 +64,51 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
 
         [Fact]
+        public void RenameUsesPixelScrollingAndRetainsExpandedChangesAcrossRecycling()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var review = new RenameReviewViewModel(new RenderingOperations(large: true)))
+                using (var host = new HwndSource(new HwndSourceParameters("Alarmlist Rename scrolling")
+                { Width = 650, Height = 460, WindowStyle = unchecked((int)0x90000000) }))
+                {
+                    review.NewName = "Next"; review.PreviewCommand.Execute(null);
+                    Assert.True(review.Pending.IsCompleted);
+                    var control = new RenameReviewControl { DataContext = review }; host.RootVisual = control;
+                    InheritanceAdornerTests.Pump(); control.UpdateLayout();
+                    var list = Find<ListBox>(control).Single();
+                    Assert.Equal(ScrollUnit.Pixel, VirtualizingPanel.GetScrollUnit(list));
+                    Assert.True(VirtualizingPanel.GetIsVirtualizing(list));
+                    review.Changes[0].IsExpanded = true;
+                    InheritanceAdornerTests.Pump(); control.UpdateLayout();
+                    var scroll = Find<ScrollViewer>(list).First();
+                    var before = Find<TextBox>(list).First(box => AutomationProperties.GetName(box) == "Before rename");
+                    Assert.True(before.ActualHeight > scroll.ViewportHeight);
+                    Assert.Equal(ScrollBarVisibility.Disabled, before.VerticalScrollBarVisibility);
+                    double offset = scroll.VerticalOffset;
+                    before.RaiseEvent(new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120)
+                    { RoutedEvent = Mouse.PreviewMouseWheelEvent });
+                    InheritanceAdornerTests.Pump(); control.UpdateLayout();
+                    Assert.True(scroll.VerticalOffset > offset);
+                    Assert.True(review.Changes[0].IsExpanded); Assert.True(review.Changes[0].IsIncluded);
+                    Assert.False(review.IsAcknowledged);
+                    scroll.ScrollToEnd(); InheritanceAdornerTests.Pump(); control.UpdateLayout();
+                    Assert.True(scroll.VerticalOffset > scroll.ViewportHeight);
+                    scroll.ScrollToHome(); InheritanceAdornerTests.Pump(); control.UpdateLayout();
+                    Assert.True(review.Changes[0].IsExpanded);
+                    Assert.True(Find<Expander>(list).First().IsExpanded);
+                    Assert.True(Find<ListBoxItem>(list).Count() < review.Changes.Count);
+                    before = Find<TextBox>(list).First(box => AutomationProperties.GetName(box) == "Before rename");
+                    var page = new KeyEventArgs(Keyboard.PrimaryDevice, host, Environment.TickCount, Key.PageDown)
+                    { RoutedEvent = Keyboard.PreviewKeyDownEvent };
+                    before.RaiseEvent(page); InheritanceAdornerTests.Pump(); control.UpdateLayout();
+                    Assert.True(page.Handled); Assert.True(scroll.VerticalOffset > 0);
+                    Assert.True(review.Changes[0].IsExpanded); Assert.True(review.Changes[0].IsIncluded);
+                }
+            });
+        }
+
+        [Fact]
         public void RenameControlsRequireAcknowledgementAndClearItWhenSelectionChanges()
         {
             InheritanceAdornerTests.RunOnSta(() =>
@@ -95,9 +140,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         }
         private sealed class RenderingOperations : IRenameReviewOperations
         {
+            private readonly bool _large;
+            internal RenderingOperations(bool large = false) { _large = large; }
             public bool IsCurrent => true;
             public Task<RenameReview> PreviewAsync(string name, System.Collections.Generic.IReadOnlyCollection<string> included, CancellationToken token)
-                => Task.FromResult(new RenameReview(name, new[] { new SolutionRenameChange("one", new AnalysisRenameEdit("Source.almx", 0, 3, 1, name), "<x>P</x>", new[] { 0 }) },
+                => Task.FromResult(new RenameReview(name, Enumerable.Range(0, _large ? 250 : 1).Select(index => new SolutionRenameChange("change" + index,
+                    new AnalysisRenameEdit("Source" + index + ".almx", 0, 3, _large ? 6000 : 1, name), "<x>" + (_large ? new string('P', 6000) : "P") + "</x>", new[] { 0 })),
                     "Unavailable project", "No diagnostic changes.", null, true, true));
             public Task ApplyAsync(RenameReview review, bool acknowledged, CancellationToken token) => Task.CompletedTask;
         }

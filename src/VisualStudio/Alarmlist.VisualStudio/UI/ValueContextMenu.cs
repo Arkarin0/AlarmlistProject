@@ -52,6 +52,10 @@ namespace Alarmlist.VisualStudio.UI
         private static void OnLoaded(object sender, RoutedEventArgs args) => EnsureMenu((FrameworkElement)sender);
         private static void EnsureMenu(FrameworkElement element)
         {
+            // A stretched heading otherwise hit-tests only its text glyphs.
+            // Its whole marked value area should own pointer context menus.
+            if (element is TextBlock text && text.Background == null)
+                text.SetCurrentValue(TextBlock.BackgroundProperty, Brushes.Transparent);
             if (element.ContextMenu == null) element.ContextMenu = NewMenu();
             ContextMenuService.SetShowOnDisabled(element, true);
             DescribeValue(element, element);

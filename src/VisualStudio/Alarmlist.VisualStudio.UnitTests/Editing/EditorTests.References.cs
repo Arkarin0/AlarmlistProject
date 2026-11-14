@@ -115,6 +115,28 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             }
         }
         [Fact]
+        public async Task FindAndRenameHaveIndependentDiscoveryButShareActualContextInvalidationAsync()
+        {
+            using (var session = new SemanticSession())
+            {
+                var field = session.Field("Name");
+                session.View.ReferenceActions.Rename(field); await session.View.ReferenceActions.Pending;
+                var rename = session.Analysis.ReferencesInvocation;
+                session.View.ReferenceActions.Find(field); await session.View.ReferenceActions.Pending;
+                var find = session.Analysis.ReferencesInvocation;
+                Assert.True(rename.IsRename); Assert.False(find.IsRename);
+                Assert.False(rename.Token.IsCancellationRequested); Assert.True(rename.IntentIsCurrent());
+                session.View.ReferenceActions.Find(field); await session.View.ReferenceActions.Pending;
+                Assert.True(find.Token.IsCancellationRequested);
+                Assert.False(rename.IntentToken.IsCancellationRequested);
+                session.View.ReferenceActions.InvalidateIntent();
+                Assert.True(rename.IntentToken.IsCancellationRequested);
+                Assert.True(session.Analysis.ReferencesInvocation.IntentToken.IsCancellationRequested);
+                Assert.Equal(0, session.Buffer.Edits);
+            }
+        }
+
+        [Fact]
         public async Task ReferenceIntentSurvivesEquivalentAnalysisRefreshButInitialSnapshotInvalidatesAsync()
         {
             using (var session = new SemanticSession())
@@ -156,6 +178,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     menu.IsOpen = false;
                     var identity = VisualChildren(control).OfType<System.Windows.FrameworkElement>()
                         .Single(item => ReferenceEquals(ValueContextMenu.GetTarget(item), session.View));
+                    var heading = Assert.IsType<System.Windows.Controls.TextBlock>(identity);
+                    var point = heading.TranslatePoint(new System.Windows.Point(heading.ActualWidth - 2, heading.ActualHeight / 2), control);
+                    var hit = System.Windows.Media.VisualTreeHelper.HitTest(control, point);
+                    Assert.Contains(heading, ValueContextMenu.Ancestors(hit.VisualHit));
                     menu = OpenValueMenu(identity);
                     Assert.DoesNotContain(menu.Items.OfType<System.Windows.Controls.MenuItem>(), item => Equals(item.Header, "Explain this value"));
                     ValueAction(menu, "Find All References").Command.Execute(null);

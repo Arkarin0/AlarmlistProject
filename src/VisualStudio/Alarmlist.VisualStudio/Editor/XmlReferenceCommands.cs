@@ -1,9 +1,11 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -58,6 +60,7 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly DesignerAnalysisNotifications _notifications;
         private IDesignerAnalysis _analysis, _owned;
         private Request _active;
+        private readonly HashSet<Request> _requests = new HashSet<Request>();
         private bool _disposed, _hasWork;
 
         internal XmlReferenceCommands(IVsTextView adapter, ITextView view, ITextDocumentFactoryService documents,
@@ -105,7 +108,7 @@ namespace Alarmlist.VisualStudio.Editor
             var current = _view.Properties.TryGetProperty(typeof(IDesignerAnalysis), out IDesignerAnalysis borrowed)
                 ? borrowed : _owned ?? (_owned = _factory.CreateReferenceContext(_view.TextBuffer));
             if (ReferenceEquals(current, _analysis)) return;
-            _active?.Dispose();
+            foreach (var request in _requests.ToArray()) request.Dispose();
             if (_analysis != null) _analysis.Changed -= OnAnalysisChanged;
             if (_owned != null && !ReferenceEquals(current, _owned)) { _owned.Dispose(); _owned = null; }
             _analysis = current; _analysis.Changed += OnAnalysisChanged;
@@ -130,14 +133,14 @@ namespace Alarmlist.VisualStudio.Editor
             ThreadHelper.ThrowIfNotOnUIThread();
             if (!Command(group, id, out bool rename) || !HasNoArguments(input) || output != IntPtr.Zero || !CanHandle(out var document))
                 return _next.Exec(ref group, id, options, input, output);
-            _active?.Dispose();
+            if (_active?.Resolved != true) _active?.Dispose();
             _hasWork = true;
             if (_analysis.Current?.Project == null || _analysis.Current.Status != ProjectAnalysisStatus.Available)
             {
                 string message = _analysis.SelectedProjectPath == null
                     ? "Choose an explicit consumer in the XML project context selector before finding references or renaming this shared file."
                     : "Project analysis is updating or unavailable. Wait for the selected consumer and language, then try again.";
-                _ = _work.RunAsync(async () => await ShowUnavailableAsync(message));
+                _ = _work.RunAsync(async () => await ShowUnavailableAsync(message, rename));
                 return VSConstants.S_OK;
             }
             var request = new Request(this, _view.TextBuffer.CurrentSnapshot, document.FilePath, _analysis.Current);
@@ -168,7 +171,7 @@ namespace Alarmlist.VisualStudio.Editor
                 bool current = await _analysis.IsCurrentAsync(request.State, request.Token);
                 await _work.SwitchToMainThreadAsync(request.Token);
                 if (!current)
-                { if (request.IntentIsCurrent()) await ShowUnavailableAsync("Captured inputs changed. Wait for current project analysis, then invoke the XML command again."); return; }
+                { if (request.IntentIsCurrent()) await ShowUnavailableAsync("Captured inputs changed. Wait for current project analysis, then invoke the XML command again.", rename); return; }
                 if (!request.IsCurrent()) return;
                 bool handled = await _search.FindAsync(request.State.Project, new AnalysisReferenceTarget("Token", offset: request.Caret), request.IsCurrent, request.Token,
                     allowNativeFallback: true, intentIsCurrent: request.IntentIsCurrent, intentToken: request.IntentToken, openRename: rename,
@@ -181,29 +184,30 @@ namespace Alarmlist.VisualStudio.Editor
             {
                 await _work.SwitchToMainThreadAsync();
                 if (!request.Token.IsCancellationRequested && request.IntentIsCurrent())
-                    await ShowUnavailableAsync("Captured solution inputs changed during discovery. Wait for current analysis, then invoke the XML command again.");
+                    await ShowUnavailableAsync("Captured solution inputs changed during discovery. Wait for current analysis, then invoke the XML command again.", rename);
             }
             catch (Exception error) when (SdkAnalysisBridge.IsRecoverable(error))
-            { if (request.IntentIsCurrent()) await ShowUnavailableAsync(error.Message); }
+            { if (request.IntentIsCurrent()) await ShowUnavailableAsync(error.Message, rename); }
             finally { await _work.SwitchToMainThreadAsync(); if (!handedOff) request.Dispose(); }
         }
-        private async Task ShowUnavailableAsync(string message)
+        private async Task ShowUnavailableAsync(string message, bool rename)
         {
-            try { await _search.ShowUnavailableAsync(message, _token); }
+            try { await _search.ShowUnavailableAsync(message, _token, rename); }
             catch (OperationCanceledException) when (_token.IsCancellationRequested) { }
             catch (Exception error) when (SdkAnalysisBridge.IsRecoverable(error)) { Trace.TraceError("Alarmlist reference window unavailable: {0}", error); }
         }
         private void OnAnalysisChanged(object sender, EventArgs args)
-        { ThreadHelper.ThrowIfNotOnUIThread(); _active?.AnalysisChanged(); }
+        { ThreadHelper.ThrowIfNotOnUIThread(); foreach (var request in _requests.ToArray()) request.AnalysisChanged(); }
         private void OnCaretChanged(object sender, CaretPositionChangedEventArgs args) => _notifications.Post();
         private void OnSelectionChanged(object sender, EventArgs args) => _notifications.Post();
         private void OnBufferChanged(object sender, TextContentChangedEventArgs args) => _notifications.Post();
-        private void ObserveSource() { ThreadHelper.ThrowIfNotOnUIThread(); _active?.SourceChanged(); }
+        private void ObserveSource()
+        { ThreadHelper.ThrowIfNotOnUIThread(); foreach (var request in _requests.ToArray()) request.SourceChanged(); }
         private void OnClosed(object sender, EventArgs args) { ThreadHelper.ThrowIfNotOnUIThread(); Dispose(); }
         public void Dispose()
         {
             ThreadHelper.ThrowIfNotOnUIThread(); if (_disposed) return; _disposed = true;
-            _lifetime.Cancel(); _active?.Dispose();
+            _lifetime.Cancel(); foreach (var request in _requests.ToArray()) request.Dispose();
             _view.Closed -= OnClosed; _view.Caret.PositionChanged -= OnCaretChanged; _view.Selection.SelectionChanged -= OnSelectionChanged;
             _view.TextBuffer.Changed -= OnBufferChanged;
             if (_analysis != null) _analysis.Changed -= OnAnalysisChanged;
@@ -231,6 +235,7 @@ namespace Alarmlist.VisualStudio.Editor
                 _initial = CancellationTokenSource.CreateLinkedTokenSource(owner._token);
                 _intent = CancellationTokenSource.CreateLinkedTokenSource(owner._token);
                 Token = _initial.Token; IntentToken = _intent.Token;
+                _owner._requests.Add(this);
             }
             internal ProjectAnalysisState State { get; private set; }
             internal AnalysisInput Input { get; private set; }
@@ -278,6 +283,7 @@ namespace Alarmlist.VisualStudio.Editor
                 if (_disposed) return; _disposed = true;
                 _initial.Cancel(); _intent.Cancel(); _initial.Dispose(); _intent.Dispose();
                 State = null; Input = null; _snapshot = null;
+                _owner._requests.Remove(this);
                 if (ReferenceEquals(_owner._active, this)) _owner._active = null;
             }
         }

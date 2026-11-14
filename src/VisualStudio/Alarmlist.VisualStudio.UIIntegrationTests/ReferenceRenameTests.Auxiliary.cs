@@ -65,7 +65,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             {
                 ide.Automation.ExecuteCommand("Refactor.Rename");
                 VisualStudioSession.Wait(() => ById("RenameNewName")?.IsEnabled == true && ById("RenameNewName").AsTextBox().Text == oldName, "resolved XML rename target " + oldName);
-                var pane = ide.Automation.Windows.Item("{a840dc04-70c0-47c2-8618-8d3955e39ccc}");
+                var pane = ide.Automation.Windows.Item(ReferenceAcceptanceUi.RenameWindow);
                 pane.IsFloating = true; pane.Width = 1150; pane.Height = 800;
                 pane.Left = window.BoundingRectangle.Left + 20; pane.Top = window.BoundingRectangle.Top + 40;
                 ById("RenameNewName").AsTextBox().Text = newName;

@@ -2,6 +2,9 @@
 
 using System;
 using System.Windows.Controls;
+using System.Windows;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace Alarmlist.VisualStudio.UI
@@ -9,6 +12,7 @@ namespace Alarmlist.VisualStudio.UI
     public partial class RenameReviewControl : UserControl
     {
         private DispatcherOperation _focus;
+        private ScrollViewer ChangesScroll => FindScroll(ChangesList);
         public RenameReviewControl()
         {
             InitializeComponent();
@@ -29,6 +33,33 @@ namespace Alarmlist.VisualStudio.UI
                 { NewNameBox.Focus(); NewNameBox.SelectAll(); }
             }), DispatcherPriority.Loaded);
 #pragma warning restore VSTHRD001
+        }
+        private static ScrollViewer FindScroll(DependencyObject element)
+        {
+            if (element is ScrollViewer scroll) return scroll;
+            for (int index = 0; index < VisualTreeHelper.GetChildrenCount(element); index++)
+            {
+                var found = FindScroll(VisualTreeHelper.GetChild(element, index));
+                if (found != null) return found;
+            }
+            return null;
+        }
+        private void OnPreviewTextMouseWheel(object sender, MouseWheelEventArgs args)
+        {
+            if (Keyboard.Modifiers != ModifierKeys.None || ChangesScroll is not ScrollViewer scroll) return;
+            args.Handled = true;
+            // Let the standard list viewport apply system wheel/page settings;
+            // a readonly TextBox must not consume scrolling in its own viewer.
+            scroll.RaiseEvent(new MouseWheelEventArgs(args.MouseDevice, args.Timestamp, args.Delta)
+            { RoutedEvent = Mouse.MouseWheelEvent, Source = scroll });
+        }
+        private void OnPreviewTextKeyDown(object sender, KeyEventArgs args)
+        {
+            if (Keyboard.Modifiers != ModifierKeys.None || ChangesScroll is not ScrollViewer scroll) return;
+            if (args.Key == Key.PageDown) scroll.PageDown();
+            else if (args.Key == Key.PageUp) scroll.PageUp();
+            else return;
+            args.Handled = true;
         }
     }
 }

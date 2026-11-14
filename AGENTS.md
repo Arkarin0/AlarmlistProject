@@ -180,6 +180,17 @@ search/preview. Readiness identity is not a freshness proof. Apply checks out th
 complete approved set before recapture, then consumes a single-use receipt for
 that exact set; retain native buffer identity/version checks through mutation.
 Reference requests own their frozen solution captures and private proposed overlays.
+Rename has its own dockable window and independently watched solution session.
+References may fork immutable captures and a reference-counted source-intent lease,
+but must never share mutable search/preview state or cancel Rename on a new Find.
+Hide/reopen preserves review; Cancel clears approval; replacement waits for Apply
+or rollback. Keep expanded change state in the change view model and use a bounded
+pixel-scrolling virtualized list with no competing before/after vertical scroll.
+Marked text headings must own their entire pointer hit area, including space past
+their glyphs. Verify actual hit testing and native pointer menus as well as routed
+commands. Native shared-result checks may recapture the same explicit token after
+a reported catalogue change, but must first verify no edits and keep stale Apply
+disabled; never reuse or enable the invalidated preview.
 Revalidate the original catalogue, graph, toolsets and captured bytes before
 publication, navigation and Apply; proposed-result validation never replaces this
 original-input check. Preserve separate owning-buffer and saved-dependency contexts

@@ -14,6 +14,36 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
     public partial class SdkAnalysisBridgeTests
     {
         [Fact]
+        public async Task ForkedRenameSearchSurvivesReferencesDisposalAndRevalidatesItsOwnCaptureAsync()
+        {
+            using (var sdk = new SdkAsset())
+            {
+                string project = Path.Combine(sdk.DirectoryPath, "App.almproj"), path = Path.Combine(sdk.DirectoryPath, "App.almx");
+                var source = Input("<FullyQualifiedName>A</FullyQualifiedName><Properties><Property Name='P' Value='1'/></Properties><Code>$(P)</Code>", path, 8);
+                File.WriteAllText(path, source.Text);
+                File.WriteAllText(project, "<Project><PropertyGroup><OutputType>Exports</OutputType><AlarmlistCultures>en</AlarmlistCultures><AlarmlistCulture>en</AlarmlistCulture>"
+                    + "<AlarmlistAnalysisCompilerAssembly>" + System.Security.SecurityElement.Escape(sdk.CompilerPath)
+                    + "</AlarmlistAnalysisCompilerAssembly></PropertyGroup><ItemGroup><Compile Include='App.almx'/></ItemGroup></Project>");
+                var catalogue = new SessionCatalogue(new ReferenceCatalogueSnapshot("Example.sln", "Debug|AnyCPU", new[] {
+                    new ReferenceProjectSelection(project, new Dictionary<string, string> { ["Configuration"] = "Debug", ["Platform"] = "AnyCPU" }) }, Array.Empty<string>()));
+                var references = await SolutionReferenceSession.CaptureAsync(catalogue, new SessionDocuments(source), new SdkAnalysisBridgeFactory(), CancellationToken.None);
+                Task<SolutionReferenceSession> opening = references.ForkAsync(CancellationToken.None, CancellationToken.None);
+                references.Dispose();
+                using (var rename = await opening)
+                {
+                    Assert.False(rename.IsObsolete);
+                    var target = new AnalysisReferenceTarget("Token", new AnalysisLocation(path, 1, 1, 1, 1, 8), offset: source.Text.IndexOf("$(P)", StringComparison.Ordinal) + 2);
+                    Assert.True((await rename.FindAsync(0, target)).IsAvailable);
+                    Assert.True((await rename.PreviewAsync("Next")).IsApplicable);
+                    Assert.Equal(source.Text, File.ReadAllText(path));
+                    catalogue.Invalidate();
+                    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => rename.RevalidateAsync(CancellationToken.None));
+                    Assert.True(rename.IsObsolete);
+                }
+            }
+        }
+
+        [Fact]
         public async Task PackageImportNavigationIsReadOnlyAndRenameKeepsItsDefinitionsUnchangedAsync()
         {
             using (var sdk = new SdkAsset())
@@ -91,6 +121,23 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
                     Assert.False(preview.RequiresAcknowledgement, string.Join(Environment.NewLine, preview.Selection.Skipped.Concat(preview.Validation.Findings)));
                     Assert.All(preview.Validation.Diagnostics, difference => Assert.Empty(difference.Added));
                     Assert.Equal(source.Text, File.ReadAllText(sourcePath)); Assert.Equal(appSource, File.ReadAllText(Path.Combine(sdk.DirectoryPath, "App.almx")));
+                    int consumer = session.Capture.Projects.Select((project, index) => (project, index))
+                        .Single(item => item.project.Request.Context.ProjectPath == app && item.project.UseOpenBuffers).index;
+                    var childDeclaration = found.Contexts.Where(context => context.Consumer == consumer).SelectMany(context => context.Families)
+                        .SelectMany(family => family.Symbols).Where(symbol => symbol.Name == "P" && symbol.Kind == "Parameter"
+                            && symbol.Location?.FilePath == Path.Combine(sdk.DirectoryPath, "App.almx"))
+                        .GroupBy(symbol => symbol.DeclarationId).Select(group => group.First()).Single();
+                    using (var rename = await session.ForkAsync(CancellationToken.None, CancellationToken.None))
+                    {
+                        var childTarget = new AnalysisReferenceTarget("Identity", declarationId: childDeclaration.DeclarationId);
+                        Assert.False((await rename.FindAsync(origin, childTarget)).IsAvailable);
+                        var rebound = await rename.FindAsync(consumer, childTarget);
+                        Assert.True(rebound.IsAvailable, rebound.Failure);
+                        Assert.Equal(childDeclaration.DeclarationId, rebound.Origin.Symbol.DeclarationId);
+                        var coordinated = await rename.PreviewAsync("Next");
+                        Assert.True(coordinated.IsApplicable, coordinated.Selection.Failure ?? coordinated.Validation.Failure);
+                        Assert.Equal(4, coordinated.Selection.Changes.Count);
+                    }
                 }
             }
         }

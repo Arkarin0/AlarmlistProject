@@ -20,6 +20,7 @@ namespace Alarmlist.VisualStudio.UI
         private readonly Dictionary<object, AnalysisReferenceTarget> _targets = new Dictionary<object, AnalysisReferenceTarget>();
         private CancellationTokenSource _lifetime = new CancellationTokenSource();
         private CancellationTokenSource _intent = new CancellationTokenSource();
+        private CancellationTokenSource _findRequest, _renameRequest;
         private ProjectAnalysisState _state;
         private bool _disposed;
         public int ContextVersion { get; private set; }
@@ -62,8 +63,14 @@ namespace Alarmlist.VisualStudio.UI
         private void Invoke(object value, bool rename)
         {
             if (!CanFind(value)) return;
-            _intent.Cancel(); _intent.Dispose(); _intent = new CancellationTokenSource();
-            Pending = FindAsync(value, _state, _targets[value], _lifetime.Token, _intent.Token, rename);
+            // A new query cancels discovery in its own channel. Established
+            // results retain the source-context intent until actual user/input
+            // changes invalidate it; Find must not cancel a Rename review.
+            var previous = rename ? _renameRequest : _findRequest;
+            previous?.Cancel(); previous?.Dispose();
+            var request = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+            if (rename) _renameRequest = request; else _findRequest = request;
+            Pending = FindAsync(value, _state, _targets[value], request.Token, _intent.Token, rename);
         }
 
         private async Task FindAsync(object value, ProjectAnalysisState state, AnalysisReferenceTarget target, CancellationToken token, CancellationToken intentToken, bool rename)
@@ -90,6 +97,10 @@ namespace Alarmlist.VisualStudio.UI
             { if (Current()) _report?.Invoke(error.Message); }
         }
         public void Dispose()
-        { if (_disposed) return; InvalidateIntent(); _disposed = true; _lifetime.Dispose(); _intent.Dispose(); }
+        {
+            if (_disposed) return;
+            InvalidateIntent(); _disposed = true; _lifetime.Dispose(); _intent.Dispose();
+            _findRequest?.Dispose(); _renameRequest?.Dispose();
+        }
     }
 }

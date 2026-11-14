@@ -13,15 +13,16 @@ namespace Alarmlist.VisualStudio.UI
     internal sealed class ReferenceResultNode : ObservableObject
     {
         internal ReferenceResultNode(string label, IEnumerable<ReferenceResultNode> children = null,
-            string detail = null, DelegateCommand navigate = null)
-        { Label = label; Children = BindingCollection.Create(children); Detail = detail; GoToSourceCommand = navigate; }
+            string detail = null, DelegateCommand navigate = null, DelegateCommand rename = null)
+        { Label = label; Children = BindingCollection.Create(children); Detail = detail; GoToSourceCommand = navigate; RenameCommand = rename; }
         public string Label { get; }
         public string Detail { get; }
         public IReadOnlyList<ReferenceResultNode> Children { get; }
         public DelegateCommand GoToSourceCommand { get; }
+        public DelegateCommand RenameCommand { get; }
         public bool HasSourceLink => GoToSourceCommand != null;
         internal void RefreshNavigation()
-        { GoToSourceCommand?.Refresh(); foreach (var child in Children) child.RefreshNavigation(); }
+        { GoToSourceCommand?.Refresh(); RenameCommand?.Refresh(); foreach (var child in Children) child.RefreshNavigation(); }
     }
 
     // Presentation consumes compiler identities/spans only. It never discovers
@@ -34,6 +35,7 @@ namespace Alarmlist.VisualStudio.UI
         private readonly Func<bool> _isCurrent;
         private readonly Action _release;
         private readonly Func<AnalysisReferenceSymbol, CancellationToken, Task> _choose;
+        private readonly Func<int, AnalysisReferenceSymbol, CancellationToken, Task> _rename;
         private CancellationTokenSource _lifetime = new CancellationTokenSource();
         private Row[] _rows = Array.Empty<Row>();
         private Dictionary<string, AnalysisReferenceSymbol> _definitions = new Dictionary<string, AnalysisReferenceSymbol>(StringComparer.Ordinal);
@@ -43,6 +45,8 @@ namespace Alarmlist.VisualStudio.UI
         private ReferenceSymbolChoice _selectedSymbol;
         public string Message { get; private set; } = "Choose Find All References in an Alarmlist editor or Alarm Summary.";
         public string Coverage { get; private set; }
+        public string TargetLabel { get; private set; }
+        public string ContextLabel { get; private set; }
         public string PageLabel => _rows.Length == 0 ? "" : "Showing " + Math.Min(_shown, _rows.Length) + " of " + _rows.Length + " findings.";
         public IReadOnlyList<ReferenceResultNode> Definitions { get; private set; } = BindingCollection.Create<ReferenceResultNode>(null);
         public DelegateCommand ShowMoreCommand { get; }
@@ -64,12 +68,14 @@ namespace Alarmlist.VisualStudio.UI
         public DelegateCommand ChooseSymbolCommand { get; }
 
         internal ReferenceResultsViewModel(Func<int, AnalysisLocation, CancellationToken, Task> navigate, Func<bool> isCurrent, Action release = null,
-            Func<AnalysisReferenceSymbol, CancellationToken, Task> choose = null)
+            Func<AnalysisReferenceSymbol, CancellationToken, Task> choose = null,
+            Func<int, AnalysisReferenceSymbol, CancellationToken, Task> rename = null)
         {
             _navigate = navigate ?? throw new ArgumentNullException(nameof(navigate));
             _isCurrent = isCurrent ?? throw new ArgumentNullException(nameof(isCurrent));
             _release = release;
             _choose = choose;
+            _rename = rename;
             ShowMoreCommand = new DelegateCommand(() => { _shown += PageSize; Build(); }, () => Current && _shown < _rows.Length);
             ChooseSymbolCommand = new DelegateCommand(() => Pending = ChooseSymbolAsync(), () => CanSelectSymbol && _choose != null && SelectedSymbol != null);
         }
@@ -94,6 +100,9 @@ namespace Alarmlist.VisualStudio.UI
             Reset();
             if (!preserveRename) ReleaseRename();
             Coverage = string.Join(Environment.NewLine, result.Coverage);
+            TargetLabel = result.Origin?.Symbol == null ? "Choose a symbol to rename" : result.Origin.Symbol.Kind + ": " + result.Origin.Symbol.Name;
+            ContextLabel = result.Origin == null ? null : result.Origin.ProjectPath + " [" + result.Origin.Configuration + "|"
+                + result.Origin.Platform + ", " + result.Origin.Culture + "]";
             if (!result.IsAvailable)
             {
                 if (result.Origin?.IsAmbiguous == true) Symbols = BindingCollection.Create(result.Origin.Candidates.Select(symbol => new ReferenceSymbolChoice(symbol)));
@@ -102,7 +111,12 @@ namespace Alarmlist.VisualStudio.UI
             var families = result.Contexts.SelectMany(context => context.Families.Select(family => (context.Consumer, Family: family))).ToArray();
             _definitions = families.SelectMany(item => item.Family.Symbols).GroupBy(symbol => symbol.DeclarationId, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.OrderBy(symbol => symbol.IsReadOnly).First(), StringComparer.Ordinal);
-            var findings = families.SelectMany(item => item.Family.Occurrences.Select(use => new Row(item.Consumer, item.Family, use))).ToArray();
+            var findings = families.SelectMany(item =>
+            {
+                var symbols = _rename == null ? null : item.Family.Symbols.ToDictionary(symbol => symbol.DeclarationId, StringComparer.Ordinal);
+                return item.Family.Occurrences.Select(use => new Row(item.Consumer, item.Family, use,
+                    symbols != null && use.DeclarationId != null && symbols.TryGetValue(use.DeclarationId, out var symbol) ? symbol : null));
+            }).ToArray();
             var owners = findings.Where(row => row.Use.SourceTokenId != null && row.Use.Start.HasValue && row.Use.Unavailable == null)
                 .GroupBy(row => row.Use.SourceTokenId, StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.First().Use.Location.FilePath, StringComparer.Ordinal);
@@ -138,9 +152,9 @@ namespace Alarmlist.VisualStudio.UI
                                 + (string.IsNullOrEmpty(row.Use.Consumer) ? "" : " · " + row.Use.Consumer);
                             var command = location == null ? null : new DelegateCommand(() => Pending = NavigateAsync(row, generation),
                                 () => generation == _generation && CanNavigate);
-                            return new ReferenceResultNode(title, detail: state, navigate: command);
-                        }));
-                    }))));
+                            return new ReferenceResultNode(title, detail: state, navigate: command, rename: RenameCommand(row, generation));
+                        }), rename: RenameCommand(context, generation));
+                    }), rename: RenameCommand(source, generation))), rename: RenameCommand(definition, generation));
             }));
             Changed();
         }
@@ -152,6 +166,21 @@ namespace Alarmlist.VisualStudio.UI
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (Exception error) when (SdkAnalysisBridge.IsRecoverable(error))
             { if (generation == _generation) Invalidate("Source navigation is unavailable: " + error.Message); }
+        }
+        private DelegateCommand RenameCommand(IEnumerable<Row> rows, int generation)
+            => RenameCommand(rows.FirstOrDefault(row => row.Symbol != null && !row.Symbol.IsReadOnly)
+                ?? rows.FirstOrDefault(row => row.Symbol != null), generation);
+        private DelegateCommand RenameCommand(Row row, int generation)
+            => _rename == null || row?.Symbol == null ? null : new DelegateCommand(() => Pending = OpenRenameAsync(row, generation),
+                () => generation == _generation && Current);
+        private async Task OpenRenameAsync(Row row, int generation)
+        {
+            if (generation != _generation || !Current || _rename == null) return;
+            var token = _lifetime.Token;
+            try { await _rename(row.Consumer, row.Symbol, token); }
+            catch (OperationCanceledException) { } // Superseded Rename or obsolete source intent.
+            catch (Exception error) when (SdkAnalysisBridge.IsRecoverable(error))
+            { if (generation == _generation) { Message = "Rename is unavailable: " + error.Message; Changed(); } }
         }
         private async Task ChooseSymbolAsync()
         {
@@ -181,6 +210,7 @@ namespace Alarmlist.VisualStudio.UI
         private void Changed()
         {
             Notify(nameof(Message)); Notify(nameof(Coverage)); Notify(nameof(PageLabel)); Notify(nameof(Definitions));
+            Notify(nameof(TargetLabel)); Notify(nameof(ContextLabel));
             Notify(nameof(Rename)); Notify(nameof(HasRename));
             Notify(nameof(Symbols)); Notify(nameof(HasSymbolChoices)); Notify(nameof(SelectedSymbol)); Notify(nameof(CanSelectSymbol));
             ShowMoreCommand.Refresh();
@@ -195,11 +225,12 @@ namespace Alarmlist.VisualStudio.UI
         }
         private sealed class Row
         {
-            internal Row(int consumer, AnalysisReferenceSearch family, AnalysisReferenceOccurrence use)
-            { Consumer = consumer; Family = family; Use = use; }
+            internal Row(int consumer, AnalysisReferenceSearch family, AnalysisReferenceOccurrence use, AnalysisReferenceSymbol symbol)
+            { Consumer = consumer; Family = family; Use = use; Symbol = symbol; }
             internal int Consumer { get; }
             internal AnalysisReferenceSearch Family { get; }
             internal AnalysisReferenceOccurrence Use { get; }
+            internal AnalysisReferenceSymbol Symbol { get; }
             internal string Source { get; set; }
         }
     }

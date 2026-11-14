@@ -42,6 +42,7 @@ namespace Alarmlist.VisualStudio.UI
         private readonly Action _changed;
         private readonly Func<bool> _canSelect;
         private bool _included = true;
+        private bool _expanded;
         internal RenameChangeViewModel(SolutionRenameChange change, Action changed, Func<bool> canSelect, bool conflict)
         {
             Change = change; _changed = changed; _canSelect = canSelect; IsConflict = conflict;
@@ -58,6 +59,7 @@ namespace Alarmlist.VisualStudio.UI
         public string Before { get; }
         public string After { get; }
         public bool IsConflict { get; }
+        public bool IsExpanded { get => _expanded; set { if (value == _expanded) return; _expanded = value; Notify(); } }
         public bool CanSelect => _canSelect();
         public bool IsIncluded
         {
@@ -75,7 +77,7 @@ namespace Alarmlist.VisualStudio.UI
         private CancellationTokenSource _pending;
         private RenameReview _approved;
         private string _name = "";
-        private bool _acknowledged, _busy, _disposed, _expanded;
+        private bool _acknowledged, _busy, _disposed, _expanded, _applying;
         private int _generation;
         public string NewName
         {
@@ -89,6 +91,7 @@ namespace Alarmlist.VisualStudio.UI
         }
         public bool IsExpanded { get => _expanded; set { _expanded = value; Notify(); } }
         public bool IsBusy => _busy;
+        public bool IsApplying => _applying;
         public bool CanEditName => !_busy && !_disposed && _operations.IsCurrent;
         public bool RequiresAcknowledgement => _approved?.RequiresAcknowledgement == true;
         public bool IsAcknowledged
@@ -113,7 +116,11 @@ namespace Alarmlist.VisualStudio.UI
             ValidateSelectionCommand = new DelegateCommand(() => Pending = PreviewAsync(true), () => CanEditName && Changes.Count != 0);
             ApplyCommand = new DelegateCommand(() => Pending = ApplyAsync(), () => CanEditName && _approved?.IsApplicable == true
                 && _approved.Name == NewName && (!RequiresAcknowledgement || IsAcknowledged));
-            CancelCommand = new DelegateCommand(() => { CancelPending(); ClearApproval(); Message = "Rename cancelled. No files were saved."; Changed(); }, () => _busy);
+            CancelCommand = new DelegateCommand(() =>
+            {
+                CancelPending(); ClearApproval(); Changes = BindingCollection.Create<RenameChangeViewModel>(null);
+                Findings = Diagnostics = null; Message = "Rename cancelled. No files were saved."; Changed();
+            }, () => !_disposed && (_busy || _operations.IsCurrent));
         }
         private async Task PreviewAsync(bool selected)
         {
@@ -149,6 +156,7 @@ namespace Alarmlist.VisualStudio.UI
             if (!ApplyCommand.CanExecute(null)) return;
             var approved = _approved; bool acknowledged = IsAcknowledged;
             var request = Start(false); int generation = _generation;
+            _applying = true;
             Message = "Applying the approved changes…"; Changed();
             try
             {
@@ -163,7 +171,7 @@ namespace Alarmlist.VisualStudio.UI
             { if (!_disposed && generation == _generation) Message = "Rename cancelled; touched buffers were restored."; }
             catch (Exception error) when (SdkAnalysisBridge.IsRecoverable(error))
             { if (!_disposed && generation == _generation) { ClearApproval(); Message = "Rename could not be applied: " + error.Message; } }
-            finally { Finish(request); }
+            finally { _applying = false; Finish(request); }
         }
         private CancellationTokenSource Start(bool clearApproval = true)
         {
@@ -190,6 +198,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             Notify(nameof(Message)); Notify(nameof(Findings)); Notify(nameof(Diagnostics)); Notify(nameof(Changes));
             Notify(nameof(IsBusy)); Notify(nameof(CanEditName)); Notify(nameof(RequiresAcknowledgement)); Notify(nameof(IsAcknowledged));
+            Notify(nameof(IsApplying));
             PreviewCommand.Refresh(); ValidateSelectionCommand.Refresh(); ApplyCommand.Refresh(); CancelCommand.Refresh();
             foreach (var change in Changes) change.Refresh();
         }

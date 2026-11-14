@@ -163,3 +163,11 @@ Shift+F10 and Menu-key invocation, preserving drafts and existing edit actions.
 Validation passes: 936 host tests, 14 packaged integration checks per framework,
 and native explanation/reference scenarios on both IDE hosts. Actual evidence,
 setup failures and successful repeats are recorded in the milestone plan.
+
+Milestone 14 iteration 16 moves Rename into its own dockable window. The feature
+reference and tutorial cover References menus, separate review lifetime,
+dock/hide/reopen, expanded preview scrolling, Cancel and unsaved linked Undo.
+The native tutorial consumes the article's XML with consistent line endings.
+Validation passes 945 host tests, 14 packaged checks per framework and native
+window/tutorial/resource/lookup workflows on both IDEs. The milestone records
+exact results, cross-project context routing, setup failures and successful repeats.

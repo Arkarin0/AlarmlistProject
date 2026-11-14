@@ -19,6 +19,15 @@
       </Group>
     </Groups>
     <Buttons>
+      <Button guid="guidPreviewCommands" id="ShowRename" priority="0x0602" type="Button">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        <Strings>
+          <ButtonText>Alarmlist Rename</ButtonText>
+          <CommandName>AlarmlistRename</CommandName>
+          <CanonicalName>AlarmlistRename</CanonicalName>
+          <LocCanonicalName>AlarmlistRename</LocCanonicalName>
+        </Strings>
+      </Button>
       <Button guid="guidPreviewCommands" id="ShowReferences" priority="0x0601" type="Button">
         <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
         <Strings>
@@ -82,6 +91,7 @@
       <IDSymbol name="ShowPreview" value="0x0200" />
       <IDSymbol name="PreviewProject" value="0x0201" />
       <IDSymbol name="ShowReferences" value="0x0202" />
+      <IDSymbol name="ShowRename" value="0x0203" />
       <IDSymbol name="ProjectPreviewGroup" value="0x1051" />
     </GuidSymbol>
   </Symbols>

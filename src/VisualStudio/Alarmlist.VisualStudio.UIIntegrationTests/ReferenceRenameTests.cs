@@ -59,8 +59,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             var pane = ide.Automation.Windows.Item("{a840dc04-70c0-47c2-8618-8d3955e39ccc}");
             pane.IsFloating = true; pane.Width = 1150; pane.Height = 800;
             pane.Left = window.BoundingRectangle.Left + 20; pane.Top = window.BoundingRectangle.Top + 40;
-            var rename = window.FindAllDescendants().First(item => item.Name == "Rename" && item.Patterns.ExpandCollapse.IsSupported);
-            rename.Patterns.ExpandCollapse.Pattern.Expand();
+            var renamePane = ReferenceAcceptanceUi.RenameFromReferences(ide, window);
             TextBox name = null;
             VisualStudioSession.Wait(() => (name = ById("RenameNewName")?.AsTextBox())?.IsEnabled == true, "rename name field");
             name.Focus(); ResourceEditorTests.RequireFieldFocus(ide, name);
@@ -70,13 +69,29 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() =>
             {
                 string status = Status("RenameStatus");
-                Assert.False(Status("ReferencesStatus").Contains("changed", StringComparison.OrdinalIgnoreCase), Status("ReferencesStatus"));
                 Assert.False(status.StartsWith("Rename preview is unavailable", StringComparison.Ordinal), status);
                 return status.StartsWith("Review ", StringComparison.Ordinal);
             }, "final rename preview after opening closed consumer buffer");
             Assert.Contains(ide.Automation.Documents.Cast<Document>(), document => string.Equals(document.FullName, child, StringComparison.OrdinalIgnoreCase));
             Assert.Equal(defining, ide.ReadText(workspace.AlarmPath)); Assert.Equal(consuming, ide.ReadText(child));
             Assert.Equal(definingBytes, File.ReadAllBytes(workspace.AlarmPath)); Assert.Equal(consumingBytes, File.ReadAllBytes(child));
+            int previewCount = ById("RenameChanges").AsListBox().Items.Length;
+            string previewStatus = Status("RenameStatus");
+            renamePane.IsFloating = false; renamePane.Visible = false;
+            pane.Visible = false; ide.OpenDesigner(workspace.AlarmPath);
+            Button findAgain = null;
+            VisualStudioSession.Wait(() => (findAgain = Action("Find references to this alarm")) != null, "new References request while Rename is hidden");
+            findAgain.Invoke();
+            VisualStudioSession.Wait(() => pane.Visible && Status("ReferencesStatus") == "References in this solution", "replacement References results");
+            Assert.Null(ById("ReferenceResults").FindFirstDescendant(cf => cf.ByAutomationId("RenameNewName")));
+            pane.Visible = false;
+            ide.Automation.ExecuteCommand("View.AlarmlistRename");
+            VisualStudioSession.Wait(() => renamePane.Visible && ById("RenameNewName")?.IsEnabled == true, "reopen docked Rename without recapture");
+            Assert.Equal("RenamedBase", ById("RenameNewName").AsTextBox().Text);
+            Assert.Equal(previewStatus, Status("RenameStatus"));
+            Assert.Equal(previewCount, ById("RenameChanges").AsListBox().Items.Length);
+            renamePane.IsFloating = true; renamePane.Width = 1150; renamePane.Height = 800;
+            renamePane.Left = window.BoundingRectangle.Left + 20; renamePane.Top = window.BoundingRectangle.Top + 40;
             var acknowledge = window.FindFirstDescendant(cf => cf.ByName("Acknowledge partial rename and diagnostic changes"))?.AsCheckBox();
             if (acknowledge?.IsOffscreen == false)
             {
@@ -95,7 +110,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.ExecuteCommand("Edit.Redo");
             VisualStudioSession.Wait(() => ide.ReadText(workspace.AlarmPath).Contains(">RenamedBase<") && ide.ReadText(child).Contains(">RenamedBase<"), "one-step rename Redo in both buffers");
             Assert.Equal(definingBytes, File.ReadAllBytes(workspace.AlarmPath)); Assert.Equal(consumingBytes, File.ReadAllBytes(child));
-            pane.Visible = false;
+            pane.Visible = false; renamePane.Visible = false;
             ide.OpenDesigner(workspace.AlarmPath);
             Button directRename = null;
             VisualStudioSession.Wait(() => (directRename = Action("Rename this alarm")) != null, "direct rename action for current unsaved alarm identity");
@@ -105,7 +120,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(defining.Replace(">Base<", ">RenamedBase<"), ide.ReadText(workspace.AlarmPath));
             Assert.Equal(consuming.Replace(">Base<", ">RenamedBase<"), ide.ReadText(child));
             Assert.Equal(definingBytes, File.ReadAllBytes(workspace.AlarmPath)); Assert.Equal(consumingBytes, File.ReadAllBytes(child));
-            pane.Visible = false;
+            CheckRenameScrolling(ide, window, renamePane);
+            pane.Visible = false; renamePane.Visible = false;
             ide.OpenDesigner(child);
             window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)))
                 .Patterns.SelectionItem.Pattern.Select();
@@ -119,14 +135,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             summaryFind.Invoke();
             VisualStudioSession.Wait(() => Status("ReferencesStatus") == "References in this solution"
                 && window.FindAllDescendants().Any(item => item.Name == "Alarm: Child"), "Summary resolves its selected concrete alarm identity");
-            pane.Visible = false; summary.Activate();
+            pane.Visible = false; renamePane.Visible = false; summary.Activate();
             Action("Rename symbol for resolved FullyQualifiedName").Invoke();
             VisualStudioSession.Wait(() => ById("RenameNewName")?.IsEnabled == true && ById("RenameNewName").AsTextBox().Text == "Child"
                 && ById("RenameNewName").Properties.HasKeyboardFocus.ValueOrDefault, "Summary direct Rename focuses the selected identity");
             summary.Visible = false;
             // Use the actual native XML editor and standard semantic commands,
             // retaining the unsaved result of the earlier linked transaction.
-            pane.Visible = false;
+            pane.Visible = false; renamePane.Visible = false;
             ide.OpenDesigner(child);
             ide.Automation.ExecuteCommand("View.ViewCode", "");
             int referenceEnd = ide.ReadText(child).IndexOf("RenamedBase</ReferenceName>", StringComparison.Ordinal) + "RenamedBase".Length;
@@ -138,7 +154,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.Automation.ExecuteCommand("Edit.FindAllReferences");
             VisualStudioSession.Wait(() => pane.Visible && Status("ReferencesStatus") == "References in this solution"
                 && ById("ReferenceResults") != null, "native XML command resolves inheritance token at its end");
-            pane.Visible = false;
+            pane.Visible = false; renamePane.Visible = false;
             ide.OpenDesigner(child); ide.Automation.ExecuteCommand("View.ViewCode", "");
             XmlCompletionTests.FocusXmlInput(ide, window, child);
             xmlSelection = (TextSelection)ide.Automation.ActiveDocument.Selection;
@@ -146,13 +162,55 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.Equal(referenceEnd + 1, xmlSelection.ActivePoint.AbsoluteCharOffset);
             VisualStudioSession.Wait(() => ide.Automation.Commands.Item("Refactor.Rename", 0).IsAvailable, "native XML Rename readiness");
             ide.Automation.ExecuteCommand("Refactor.Rename");
-            VisualStudioSession.Wait(() => pane.Visible && ById("RenameNewName")?.IsEnabled == true
+            VisualStudioSession.Wait(() => renamePane.Visible && ById("RenameNewName")?.IsEnabled == true
                 && ById("RenameNewName").AsTextBox().Text == "RenamedBase"
                 && ById("RenameNewName").Properties.HasKeyboardFocus.ValueOrDefault, "native XML Rename resolves and focuses the selected symbol");
             Assert.Equal(defining.Replace(">Base<", ">RenamedBase<"), ide.ReadText(workspace.AlarmPath));
             Assert.Equal(consuming.Replace(">Base<", ">RenamedBase<"), ide.ReadText(child));
             Assert.Equal(definingBytes, File.ReadAllBytes(workspace.AlarmPath)); Assert.Equal(consumingBytes, File.ReadAllBytes(child));
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "references-rename.png"));
+        }
+
+        private static void CheckRenameScrolling(VisualStudioSession ide, FlaUI.Core.AutomationElements.Window window, EnvDTE.Window pane)
+        {
+            pane.Width = 700; pane.Height = 700;
+            var name = window.FindFirstDescendant(cf => cf.ByAutomationId("RenameNewName")).AsTextBox();
+            name.Text = new string('A', 6000);
+            ValueActionUi.Find(window, "Preview rename changes").Invoke();
+            VisualStudioSession.Wait(() => (window.FindFirstDescendant(cf => cf.ByAutomationId("RenameStatus"))?.Name ?? "").StartsWith("Review ", StringComparison.Ordinal), "oversized rename preview");
+            var list = window.FindFirstDescendant(cf => cf.ByAutomationId("RenameChanges"));
+            var entry = list.FindAllDescendants().First(item => item.Patterns.ExpandCollapse.IsSupported);
+            entry.Patterns.ExpandCollapse.Pattern.Expand();
+            VisualStudioSession.Wait(() => list.Patterns.Scroll.Pattern.VerticallyScrollable.Value, "expanded preview exceeds its viewport");
+            var included = list.FindFirstDescendant(cf => cf.ByControlType(ControlType.CheckBox)).AsCheckBox();
+            Assert.True(included.IsChecked);
+            var scroll = list.Patterns.Scroll.Pattern;
+            WheelOver(entry, "expanded change header");
+            scroll.SetScrollPercent(-1, 0);
+            var after = list.FindFirstDescendant(cf => cf.ByName("After rename").And(cf.ByControlType(ControlType.Edit)));
+            WheelOver(after, "readonly after text");
+            Assert.True(included.IsChecked);
+            ValueActionUi.Find(window, "Cancel rename operation").Invoke();
+            VisualStudioSession.Wait(() => (window.FindFirstDescendant(cf => cf.ByAutomationId("RenameStatus"))?.Name ?? "").Contains("cancelled", StringComparison.Ordinal), "Cancel discards oversized preview");
+            Assert.False(window.FindFirstDescendant(cf => cf.ByAutomationId("RenameApply")).IsEnabled);
+            pane.Width = 1150; pane.Height = 800;
+
+            void WheelOver(AutomationElement target, string description)
+            {
+                window.SetForeground(); ide.RequireForeground();
+                var visible = System.Drawing.Rectangle.Intersect(target.BoundingRectangle, list.BoundingRectangle);
+                Assert.True(visible.Width > 10 && visible.Height > 10, description);
+                var point = new System.Drawing.Point(visible.Left + visible.Width / 2, visible.Top + Math.Min(20, visible.Height / 2));
+                var hit = window.Automation.FromPoint(point);
+                bool matches = false;
+                for (var item = hit; item != null; item = item.Parent)
+                    if (item.Equals(target)) { matches = true; break; }
+                Assert.True(matches, "hit-tested " + description);
+                double offset = scroll.VerticalScrollPercent.Value;
+                Mouse.MoveTo(point); ide.RequireForeground(); Mouse.Scroll(-2);
+                VisualStudioSession.Wait(() => scroll.VerticalScrollPercent.Value > offset, "wheel scrolls " + description);
+                Assert.Equal(ExpandCollapseState.Expanded, entry.Patterns.ExpandCollapse.Pattern.ExpandCollapseState.Value);
+            }
         }
     }
 }

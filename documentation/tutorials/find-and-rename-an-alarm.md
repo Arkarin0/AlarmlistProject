@@ -67,13 +67,16 @@ invalidate the old search snapshot. Return to the base alarm and invoke
 
 ### 3. Review the rename
 
-Expand **Rename** in Alarmlist References. Enter `ReferenceDemo.Template` as
+Right-click the alarm definition in Alarmlist References and choose **Rename…**.
+The separate **Alarmlist Rename** window opens. Enter `ReferenceDemo.Template` as
 the new name and choose **Preview changes**.
 
 Expected result: the preview proposes two token changes: the base declaration
 and the child's ReferenceName. It opens affected files into buffers before the
 final review. Inspect before/after text, search coverage, skipped findings and
 diagnostic differences. The child's identity and literal Description stay intact.
+You can dock or float this window, or hide and reopen it through **View > Other
+Windows > Alarmlist Rename**, without discarding the preview.
 
 If the preview requires acknowledgement, read its findings and select the
 acknowledgement checkbox. For this complete two-file exercise, retain both changes.

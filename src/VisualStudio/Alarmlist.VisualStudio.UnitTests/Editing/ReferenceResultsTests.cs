@@ -17,6 +17,49 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
     public sealed class ReferenceResultsTests
     {
         [Fact]
+        public async Task ReferenceContextMenusRenameTheCompilerDeclarationAndRejectOldRowsAsync()
+        {
+            AnalysisReferenceSymbol chosen = null;
+            using (var view = new ReferenceResultsViewModel((consumer, location, token) => Task.CompletedTask, () => true,
+                rename: (consumer, symbol, token) => { Assert.Equal(0, consumer); chosen = symbol; return Task.CompletedTask; }))
+            {
+                var symbol = Symbol();
+                var result = Result(new ReferenceContextSearch(0, new[] { Family(symbol, new[] { Use("Base.almx", "token", 0) }) }));
+                view.Present(result);
+                Assert.Null(view.Rename); Assert.False(view.HasRename);
+                var row = Leaves(view.Definitions).Single();
+                row.RenameCommand.Execute(null); await view.Pending;
+                Assert.Same(symbol, chosen);
+                chosen = null; view.Present(result);
+                Assert.False(row.RenameCommand.CanExecute(null));
+                row.RenameCommand.Execute(null); await view.Pending; Assert.Null(chosen);
+                view.Invalidate();
+                Assert.Empty(view.Definitions);
+            }
+        }
+
+        [Fact]
+        public async Task RenameRowsKeepTheirOwnConsumerAndCompilerSymbolProjectionAsync()
+        {
+            int selectedConsumer = -1; AnalysisReferenceSymbol selected = null;
+            using (var view = new ReferenceResultsViewModel((consumer, location, token) => Task.CompletedTask, () => true,
+                rename: (consumer, symbol, token) => { selectedConsumer = consumer; selected = symbol; return Task.CompletedTask; }))
+            {
+                var owning = Symbol(); var imported = Symbol(true);
+                view.Present(Result(new ReferenceContextSearch(7, new[] { Family(imported, new[] { Use(imported.Location.FilePath, "two", 1) }, "de-DE") }),
+                    new ReferenceContextSearch(2, new[] { Family(owning, new[] { Use("Base.almx", "one", 0) }) })));
+                var definition = Assert.Single(view.Definitions);
+                definition.RenameCommand.Execute(null); await view.Pending;
+                Assert.Equal(2, selectedConsumer); Assert.Same(owning, selected);
+                var context = definition.Children.Single(node => node.Label == imported.Location.FilePath).Children.Single();
+                context.RenameCommand.Execute(null); await view.Pending;
+                Assert.Equal(7, selectedConsumer); Assert.Same(imported, selected);
+                Assert.Single(context.Children).RenameCommand.Execute(null); await view.Pending;
+                Assert.Equal(7, selectedConsumer); Assert.Same(imported, selected);
+            }
+        }
+
+        [Fact]
         public async Task AmbiguousSymbolsRequireAnExplicitCurrentSelectionAsync()
         {
             AnalysisReferenceSymbol selected = null;

@@ -6,6 +6,8 @@ using System.Linq;
 using EnvDTE;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
+using FlaUI.Core.Input;
+using FlaUI.Core.WindowsAPI;
 using Xunit;
 using Window = FlaUI.Core.AutomationElements.Window;
 
@@ -13,10 +15,29 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 {
     internal static class ReferenceAcceptanceUi
     {
+        internal const string RenameWindow = "{b3de9bed-1b8a-452f-a054-b582700b6d50}";
+        internal static EnvDTE.Window RenameFromReferences(VisualStudioSession ide, Window window)
+        {
+            var tree = ById(window, "ReferenceResults");
+            var definition = tree.FindAllDescendants(cf => cf.ByControlType(ControlType.TreeItem)).First();
+            definition.Focus(); ide.RequireForeground();
+            Assert.True(definition.Properties.HasKeyboardFocus.Value);
+            Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
+            AutomationElement action = null;
+            VisualStudioSession.Wait(() => (action = window.Automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName("Rename referenced symbol").And(cf.ByControlType(ControlType.MenuItem))))
+                .FirstOrDefault(item => !item.IsOffscreen))?.IsEnabled == true, "reference definition Rename context menu");
+            action.AsMenuItem().Invoke();
+            VisualStudioSession.Wait(() => ById(window, "RenameNewName")?.IsEnabled == true, "independent Rename tool window");
+            var pane = ide.Automation.Windows.Item(RenameWindow);
+            pane.IsFloating = true; pane.Width = 1150; pane.Height = 800;
+            pane.Left = window.BoundingRectangle.Left + 20; pane.Top = window.BoundingRectangle.Top + 40;
+            return pane;
+        }
         internal static void FindValue(VisualStudioSession ide, Window window, string action, string expectedDefinition)
         {
             foreach (EnvDTE.Window tool in ide.Automation.Windows)
-                if (tool.Caption == "Alarmlist References" || (tool.Caption == "Alarm Summary" && !action.Contains("resolved ", StringComparison.Ordinal))) tool.Visible = false;
+                if (tool.Caption == "Alarmlist References" || tool.Caption == "Alarmlist Rename" || (tool.Caption == "Alarm Summary" && !action.Contains("resolved ", StringComparison.Ordinal))) tool.Visible = false;
             Button button = null;
             VisualStudioSession.Wait(() => (button = Action(window, action)) != null, "current reference action " + action);
             button.Invoke(); Expect(window, expectedDefinition);
@@ -46,7 +67,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             var pane = ide.Automation.Windows.Item("{a840dc04-70c0-47c2-8618-8d3955e39ccc}");
             pane.IsFloating = true; pane.Width = 1150; pane.Height = 800;
             pane.Left = window.BoundingRectangle.Left + 20; pane.Top = window.BoundingRectangle.Top + 40;
-            window.FindAllDescendants().First(item => item.Name == "Rename" && item.Patterns.ExpandCollapse.IsSupported).Patterns.ExpandCollapse.Pattern.Expand();
+            pane = RenameFromReferences(ide, window);
             TextBox name = null;
             VisualStudioSession.Wait(() => (name = ById(window, "RenameNewName")?.AsTextBox())?.IsEnabled == true, "library rename name field");
             name.Text = newName; Action(window, "Preview rename changes").Invoke();
@@ -70,7 +91,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         internal static void Hide(VisualStudioSession ide)
         {
             foreach (EnvDTE.Window existing in ide.Automation.Windows)
-                if (existing.Caption == "Alarmlist References" || existing.Caption == "Alarm Summary") existing.Visible = false;
+                if (existing.Caption == "Alarmlist References" || existing.Caption == "Alarmlist Rename" || existing.Caption == "Alarm Summary") existing.Visible = false;
         }
         private static AutomationElement ById(Window window, string id) => window.FindFirstDescendant(cf => cf.ByAutomationId(id));
         private static Button Action(Window window, string name) => ValueActionUi.Find(window, name);

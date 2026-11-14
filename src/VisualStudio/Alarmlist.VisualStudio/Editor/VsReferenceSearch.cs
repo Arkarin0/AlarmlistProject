@@ -37,13 +37,19 @@ namespace Alarmlist.VisualStudio.Editor
             if (selected == null) throw new ArgumentNullException(nameof(selected));
             if (target == null) throw new ArgumentNullException(nameof(target));
             if (sourceIsCurrent == null) throw new ArgumentNullException(nameof(sourceIsCurrent));
+            CancellationToken callerToken = token;
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
             if (!sourceIsCurrent()) throw new InvalidOperationException("The selected symbol or consumer changed. Choose it again.");
-            var session = await SolutionReferenceSession.CaptureAsync(_catalogue, _documents, _factory,
-                intentIsCurrent == null ? token : intentToken, token).ConfigureAwait(false);
+            var package = openRename ? LoadOwner() : null;
+            int renameRequest = package?.PrepareRenameRequest() ?? 0;
+            using var replacement = openRename ? CancellationTokenSource.CreateLinkedTokenSource(token, package.RenameRequestToken) : null;
+            if (replacement != null) token = replacement.Token;
+            SolutionReferenceSession session = null;
             ReferenceScope scope = null;
             try
             {
+                session = await SolutionReferenceSession.CaptureAsync(_catalogue, _documents, _factory,
+                    intentIsCurrent == null ? callerToken : intentToken, token).ConfigureAwait(false);
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
                 var candidates = session.Capture.Projects.Select((project, index) => (project, index)).Where(item => item.project.UseOpenBuffers
                     && string.Equals(item.project.Request.Context.ProjectPath, selected.ProjectPath, StringComparison.OrdinalIgnoreCase)
@@ -69,13 +75,19 @@ namespace Alarmlist.VisualStudio.Editor
                 await EnsureNoDraftsAsync(session.Capture, token);
                 var owner = LoadOwner();
                 scope = new ReferenceScope(this, session, intentIsCurrent ?? sourceIsCurrent,
-                    intentIsCurrent == null ? token : intentToken, owner, candidates[0].index, openRename, releaseIntent);
+                    intentIsCurrent == null ? callerToken : intentToken, owner, candidates[0].index, openRename, releaseIntent);
                 scope.Present(result);
-                owner.ShowReferences(scope.View);
+                if (openRename) owner.ShowRename(scope.View, renameRequest); else owner.ShowReferences(scope.View);
                 scope = null; // The tool window now owns the view and its request lifetime.
                 return true;
             }
-            catch { scope?.Dispose(); session.Dispose(); throw; }
+            catch (OperationCanceledException) when (openRename && !callerToken.IsCancellationRequested && replacement.IsCancellationRequested)
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                if (scope != null) scope.Dispose(); else releaseIntent?.Invoke();
+                session?.Dispose(); return true; // Superseded by another Rename, not changed inputs.
+            }
+            catch { scope?.Dispose(); session?.Dispose(); throw; }
         }
 
         private AlarmlistPackage LoadOwner()
@@ -87,12 +99,18 @@ namespace Alarmlist.VisualStudio.Editor
             ErrorHandler.ThrowOnFailure(shell.LoadPackage(ref packageGuid, out IVsPackage package));
             return package as AlarmlistPackage ?? throw new InvalidOperationException("The Alarmlist package is unavailable.");
         }
-        internal async Task ShowUnavailableAsync(string message, CancellationToken token)
+        internal async Task ShowUnavailableAsync(string message, CancellationToken token, bool rename = false)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
             var view = new ReferenceResultsViewModel((consumer, location, cancellation) => Task.CompletedTask, () => false);
             view.Present(new SolutionReferenceSearchResult(Array.Empty<ReferenceContextSearch>(), Array.Empty<string>(), Array.Empty<ReferenceSharedConflict>(), message));
-            LoadOwner().ShowReferences(view);
+            var owner = LoadOwner();
+            if (rename)
+            {
+                try { owner.ShowRename(view, owner.PrepareRenameRequest()); }
+                catch { view.Dispose(); throw; }
+            }
+            else owner.ShowReferences(view);
         }
         internal void ReleaseCommandTasks(Action release)
         { ThreadHelper.ThrowIfNotOnUIThread(); LoadOwner().ReleaseReferenceNotifications(release); }
@@ -116,7 +134,7 @@ namespace Alarmlist.VisualStudio.Editor
             private readonly AlarmlistPackage _package;
             private readonly int _origin;
             private readonly bool _openRename;
-            private Action _releaseIntent;
+            private readonly ReferenceIntentLease _intent;
             private string _originSnapshot;
             private Func<bool> _sourceIsCurrent;
             private readonly DesignerAnalysisNotifications _notifications;
@@ -127,22 +145,54 @@ namespace Alarmlist.VisualStudio.Editor
             internal ReferenceResultsViewModel View { get; }
             private bool IsCurrent => !_disposed && !_session.IsObsolete && _sourceIsCurrent?.Invoke() == true;
             internal ReferenceScope(VsReferenceSearch owner, SolutionReferenceSession session, Func<bool> sourceIsCurrent, CancellationToken token,
-                AlarmlistPackage package, int origin, bool openRename, Action releaseIntent)
+                AlarmlistPackage package, int origin, bool openRename, Action releaseIntent, ReferenceIntentLease intent = null)
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
-                _owner = owner; _session = session; _sourceIsCurrent = sourceIsCurrent; _package = package; _origin = origin;
-                _sourceToken = token;
+                _owner = owner; _session = session; _package = package; _origin = origin;
+                _intent = intent ?? new ReferenceIntentLease(sourceIsCurrent, token, releaseIntent);
+                _sourceIsCurrent = () => _intent.IsCurrent;
+                _sourceToken = _intent.Token;
                 _openRename = openRename;
-                _releaseIntent = releaseIntent;
-                View = new ReferenceResultsViewModel(NavigateAsync, () => IsCurrent, Dispose, ChooseSymbolAsync);
+                View = new ReferenceResultsViewModel(NavigateAsync, () => IsCurrent, Dispose, ChooseSymbolAsync,
+                    openRename ? null : (Func<int, AnalysisReferenceSymbol, CancellationToken, Task>)OpenRenameAsync);
                 _notifications = new DesignerAnalysisNotifications(ThreadHelper.JoinableTaskContext, InvalidateFromNotification);
                 _session.Invalidated += OnInvalidated;
-                _sourceCancellation = token.Register(_notifications.Post);
+                _sourceCancellation = _sourceToken.Register(_notifications.Post);
             }
             internal void Present(SolutionReferenceSearchResult result)
             {
                 _originSnapshot = result.Origin?.SnapshotId; _symbol = result.Origin?.Symbol; View.Present(result);
-                if (_symbol != null) View.AttachRename(new RenameReviewViewModel(this) { NewName = _symbol.Name, IsExpanded = _openRename });
+                if (_symbol != null && _openRename) View.AttachRename(new RenameReviewViewModel(this) { NewName = _symbol.Name, IsExpanded = true });
+            }
+            private async Task OpenRenameAsync(int consumer, AnalysisReferenceSymbol symbol, CancellationToken token)
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
+                if (!IsCurrent) throw new InvalidOperationException("The reference results are obsolete.");
+                int renameRequest = _package.PrepareRenameRequest();
+                // Once explicitly invoked, Rename owns discovery too. Replacing
+                // or closing the References pane must not cancel this request.
+                using var replacement = CancellationTokenSource.CreateLinkedTokenSource(_intent.Token, _package.RenameRequestToken);
+                token = replacement.Token;
+                ReferenceIntentLease intent = _intent.Retain();
+                SolutionReferenceSession session = null;
+                ReferenceScope scope = null;
+                try
+                {
+                    session = await _session.ForkAsync(intent.Token, token);
+                    await _owner.EnsureNoDraftsAsync(session.Capture, token);
+                    var result = await session.FindAsync(consumer, new AnalysisReferenceTarget("Identity", declarationId: symbol.DeclarationId), token);
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
+                    if (!intent.IsCurrent || session.IsObsolete) throw new InvalidOperationException("Inputs or context changed while opening Rename.");
+                    await _owner.EnsureNoDraftsAsync(session.Capture, token);
+                    scope = new ReferenceScope(_owner, session, null, intent.Token, _package, consumer, true, null, intent);
+                    intent = null; session = null;
+                    scope.Present(result); _package.ShowRename(scope.View, renameRequest); scope = null;
+                }
+                finally
+                {
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    scope?.Dispose(); session?.Dispose(); intent?.Release();
+                }
             }
             private async Task ChooseSymbolAsync(AnalysisReferenceSymbol symbol, CancellationToken token)
             {
@@ -184,7 +234,7 @@ namespace Alarmlist.VisualStudio.Editor
                 _disposed = true; _sourceIsCurrent = null;
                 _session.Invalidated -= OnInvalidated; _sourceCancellation.Dispose(); _session.Dispose();
                 _workspace = null; _symbol = null; _buffers = null;
-                var release = _releaseIntent; _releaseIntent = null; release?.Invoke();
+                _intent.Release();
             }
         }
     }

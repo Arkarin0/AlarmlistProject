@@ -25,6 +25,7 @@ namespace Alarmlist.VisualStudio
     [ProvideOptionPage(typeof(NavigationOptions), "Alarmlist", "Navigation", 0, 0, true)]
     [ProvideToolWindow(typeof(AlarmlistPreviewWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 900, Height = 380)]
     [ProvideToolWindow(typeof(AlarmlistReferencesWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 1000, Height = 420)]
+    [ProvideToolWindow(typeof(AlarmlistRenameWindow), Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 1000, Height = 550)]
     [ProvideToolWindow(typeof(ProjectAlarmSummaryWindow), MultiInstances = true, Transient = true,
         Style = VsDockStyle.Tabbed, Window = ToolWindowGuids80.Outputwindow, Width = 900, Height = 380)]
     // These editors use captured ALMX analysis, not the host's language-project
@@ -38,6 +39,30 @@ namespace Alarmlist.VisualStudio
     [ProvideEditorLogicalView(typeof(LibraryDefinitionEditorFactory), VSConstants.LOGVIEWID.TextView_string)]
     public sealed class AlarmlistPackage : AsyncPackage
     {
+        private CancellationTokenSource _renameRequests = new CancellationTokenSource();
+        private int _renameGeneration;
+        internal CancellationToken RenameRequestToken => _renameRequests.Token;
+        internal int PrepareRenameRequest()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var window = (AlarmlistRenameWindow)FindToolWindow(typeof(AlarmlistRenameWindow), 0, false);
+            if (window?.IsApplying == true) throw new System.InvalidOperationException("Finish applying or cancelling the current rename before starting another.");
+            _renameRequests.Cancel(); _renameRequests.Dispose(); _renameRequests = new CancellationTokenSource();
+            return ++_renameGeneration;
+        }
+        internal void ShowRename(Alarmlist.VisualStudio.UI.ReferenceResultsViewModel results, int request)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (request != _renameGeneration) { results.Dispose(); return; }
+            var window = (AlarmlistRenameWindow)FindToolWindow(typeof(AlarmlistRenameWindow), 0, true);
+            window.ShowResults(results);
+            ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
+        }
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) { _renameRequests.Cancel(); _renameRequests.Dispose(); }
+            base.Dispose(disposing);
+        }
         public const string PackageGuid = "2c4fa8f8-d641-4f5c-a7df-6cfc6bf30f34";
         public const string ProjectSelectedContext = "fa2ec571-5a83-48fc-9800-1c1bc23049d4";
         private readonly ProjectSummaryInstances _summaries = new ProjectSummaryInstances();
@@ -96,6 +121,12 @@ namespace Alarmlist.VisualStudio
                 var window = FindToolWindow(typeof(AlarmlistReferencesWindow), 0, true);
                 ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
             }, new CommandID(PreviewLanguageCommands.CommandSet, AlarmlistReferencesWindow.ShowCommand)));
+            commands.AddCommand(new MenuCommand((sender, args) =>
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                var window = FindToolWindow(typeof(AlarmlistRenameWindow), 0, true);
+                ErrorHandler.ThrowOnFailure(((IVsWindowFrame)window.Frame).Show());
+            }, new CommandID(PreviewLanguageCommands.CommandSet, AlarmlistRenameWindow.ShowCommand)));
             var registry = components.GetService<ProjectAnalysisRegistry>();
             var monitor = (IVsMonitorSelection)await GetServiceAsync(typeof(SVsShellMonitorSelection));
             var projectPreview = new OleMenuCommand((sender, args) =>
