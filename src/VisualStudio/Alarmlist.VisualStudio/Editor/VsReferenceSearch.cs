@@ -32,11 +32,12 @@ namespace Alarmlist.VisualStudio.Editor
 
         internal async Task<bool> FindAsync(AnalysisProject selected, AnalysisReferenceTarget target, Func<bool> sourceIsCurrent, CancellationToken token,
             bool allowNativeFallback = false, Func<bool> intentIsCurrent = null, CancellationToken intentToken = default, bool openRename = false,
-            AnalysisInput editorInput = null, Action releaseIntent = null)
+            AnalysisInput editorInput = null, Action releaseIntent = null, bool definitionsOnly = false)
         {
             if (selected == null) throw new ArgumentNullException(nameof(selected));
             if (target == null) throw new ArgumentNullException(nameof(target));
             if (sourceIsCurrent == null) throw new ArgumentNullException(nameof(sourceIsCurrent));
+            if (openRename && definitionsOnly) throw new ArgumentException("Definition navigation cannot replace a Rename review.");
             CancellationToken callerToken = token;
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
             if (!sourceIsCurrent()) throw new InvalidOperationException("The selected symbol or consumer changed. Choose it again.");
@@ -73,9 +74,11 @@ namespace Alarmlist.VisualStudio.Editor
                 if (allowNativeFallback && result.Origin?.IsUnsupportedTarget == true)
                 { session.Dispose(); return false; }
                 await EnsureNoDraftsAsync(session.Capture, token);
+                if (definitionsOnly && await NavigateSingleDefinitionAsync(session, result, candidates[0].index, sourceIsCurrent, token))
+                { session.Dispose(); session = null; releaseIntent?.Invoke(); return true; }
                 var owner = LoadOwner();
                 scope = new ReferenceScope(this, session, intentIsCurrent ?? sourceIsCurrent,
-                    intentIsCurrent == null ? callerToken : intentToken, owner, candidates[0].index, openRename, releaseIntent);
+                    intentIsCurrent == null ? callerToken : intentToken, owner, candidates[0].index, openRename, releaseIntent, definitionsOnly: definitionsOnly);
                 scope.Present(result);
                 if (openRename) owner.ShowRename(scope.View, renameRequest); else owner.ShowReferences(scope.View);
                 scope = null; // The tool window now owns the view and its request lifetime.
@@ -99,10 +102,25 @@ namespace Alarmlist.VisualStudio.Editor
             ErrorHandler.ThrowOnFailure(shell.LoadPackage(ref packageGuid, out IVsPackage package));
             return package as AlarmlistPackage ?? throw new InvalidOperationException("The Alarmlist package is unavailable.");
         }
-        internal async Task ShowUnavailableAsync(string message, CancellationToken token, bool rename = false)
+        private async Task<bool> NavigateSingleDefinitionAsync(SolutionReferenceSession session, SolutionReferenceSearchResult result,
+            int origin, Func<bool> isCurrent, CancellationToken token)
+        {
+            var definitions = ReferenceDefinitionSelection.Get(result, origin);
+            if (definitions.Count != 1) return false;
+            var definition = definitions[0];
+            var navigation = await session.ResolveNavigationAsync(definition.Consumer, definition.Location, token);
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
+            if (!isCurrent() || session.IsObsolete) throw new InvalidOperationException("The definition target or captured inputs changed. Invoke Go to Definition again.");
+            if (navigation == null) return false;
+            await EnsureNoDraftsAsync(session.Capture, token);
+            if (!isCurrent() || session.IsObsolete) throw new InvalidOperationException("The definition target or captured inputs changed. Invoke Go to Definition again.");
+            VsSourceNavigation.Navigate(_services, _adapters, navigation);
+            return true;
+        }
+        internal async Task ShowUnavailableAsync(string message, CancellationToken token, bool rename = false, bool definitionsOnly = false)
         {
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
-            var view = new ReferenceResultsViewModel((consumer, location, cancellation) => Task.CompletedTask, () => false);
+            var view = new ReferenceResultsViewModel((consumer, location, cancellation) => Task.CompletedTask, () => false, definitionsOnly: definitionsOnly);
             view.Present(new SolutionReferenceSearchResult(Array.Empty<ReferenceContextSearch>(), Array.Empty<string>(), Array.Empty<ReferenceSharedConflict>(), message));
             var owner = LoadOwner();
             if (rename)
@@ -134,6 +152,7 @@ namespace Alarmlist.VisualStudio.Editor
             private readonly AlarmlistPackage _package;
             private readonly int _origin;
             private readonly bool _openRename;
+            private readonly bool _definitionsOnly;
             private readonly ReferenceIntentLease _intent;
             private string _originSnapshot;
             private Func<bool> _sourceIsCurrent;
@@ -145,7 +164,7 @@ namespace Alarmlist.VisualStudio.Editor
             internal ReferenceResultsViewModel View { get; }
             private bool IsCurrent => !_disposed && !_session.IsObsolete && _sourceIsCurrent?.Invoke() == true;
             internal ReferenceScope(VsReferenceSearch owner, SolutionReferenceSession session, Func<bool> sourceIsCurrent, CancellationToken token,
-                AlarmlistPackage package, int origin, bool openRename, Action releaseIntent, ReferenceIntentLease intent = null)
+                AlarmlistPackage package, int origin, bool openRename, Action releaseIntent, ReferenceIntentLease intent = null, bool definitionsOnly = false)
             {
                 ThreadHelper.ThrowIfNotOnUIThread();
                 _owner = owner; _session = session; _package = package; _origin = origin;
@@ -153,8 +172,9 @@ namespace Alarmlist.VisualStudio.Editor
                 _sourceIsCurrent = () => _intent.IsCurrent;
                 _sourceToken = _intent.Token;
                 _openRename = openRename;
+                _definitionsOnly = definitionsOnly;
                 View = new ReferenceResultsViewModel(NavigateAsync, () => IsCurrent, Dispose, ChooseSymbolAsync,
-                    openRename ? null : (Func<int, AnalysisReferenceSymbol, CancellationToken, Task>)OpenRenameAsync);
+                    openRename ? null : (Func<int, AnalysisReferenceSymbol, CancellationToken, Task>)OpenRenameAsync, definitionsOnly);
                 _notifications = new DesignerAnalysisNotifications(ThreadHelper.JoinableTaskContext, InvalidateFromNotification);
                 _session.Invalidated += OnInvalidated;
                 _sourceCancellation = _sourceToken.Register(_notifications.Post);
@@ -202,7 +222,9 @@ namespace Alarmlist.VisualStudio.Editor
                 var result = await _session.FindAsync(_origin, new AnalysisReferenceTarget("Identity", declarationId: symbol.DeclarationId, snapshotId: _originSnapshot), token);
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(token);
                 if (!IsCurrent) throw new InvalidOperationException("The selected symbol or inputs changed. Find references again.");
-                await _owner.EnsureNoDraftsAsync(_session.Capture, token); Present(result);
+                await _owner.EnsureNoDraftsAsync(_session.Capture, token);
+                if (_definitionsOnly) await _owner.NavigateSingleDefinitionAsync(_session, result, _origin, () => IsCurrent, token);
+                Present(result);
             }
             private void OnInvalidated(object sender, EventArgs args) => _notifications.Post();
             private void InvalidateFromNotification()

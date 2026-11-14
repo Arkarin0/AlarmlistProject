@@ -143,7 +143,7 @@ namespace Alarmlist.Analysis
                 Join(_bindingTemplates[binding], _bindingTemplates[priorBinding]);
         }
 
-        private void ObserveLookupToken(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm)
+        private Symbol ObserveLookupToken(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm)
         {
             var binding = LookupTokenBinding.Resolve(token, _lookups);
             if (binding.Failure != null) _coverage.Add("Unavailable lookup reference: " + binding.Failure + " at " + Address(location));
@@ -159,11 +159,13 @@ namespace Alarmlist.Analysis
                 if (_listSymbols.TryGetValue(keys[0], out var lists)) Use(lists[0], keys[0]);
                 else position += keys[0].Length + 1;
                 if (binding.Entry != null) Use(_lookupSymbols[binding.Entry], keys[1]);
-                return;
+                return binding.Failure == null && binding.Entry != null ? _lookupSymbols[binding.Entry] : null;
             }
             if (binding.Path != null) Use(_lookupSymbols[binding.Path], keys[0]);
             if (binding.Member != null) Use(_lookupSymbols[binding.Member], keys[1]);
             if (binding.Metadata != null) Use(_lookupSymbols[binding.Metadata], keys[2]);
+            return binding.Failure != null ? null : binding.Metadata != null ? _lookupSymbols[binding.Metadata]
+                : binding.Member != null ? _lookupSymbols[binding.Member] : binding.Path != null ? _lookupSymbols[binding.Path] : null;
         }
 
         private Symbol TemplateSymbol(string key)

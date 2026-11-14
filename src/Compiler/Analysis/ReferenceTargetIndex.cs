@@ -60,6 +60,26 @@ namespace Alarmlist.Analysis
         }
 
         internal ReferenceFamilySlice Family(string id) => _families[id];
+        internal static bool TokenTouches(ReferenceTokenProbe probe, int offset) => probe.Start <= offset
+            && (offset < probe.Start + probe.Length || !probe.IsSyntaxFallback && probe.Start < offset && offset == probe.Start + probe.Length);
+        internal static HashSet<string> TokenFamilies(IEnumerable<ReferenceTokenProbe> probes, int offset)
+        {
+            var families = new HashSet<string>(StringComparer.Ordinal); int best = int.MaxValue;
+            foreach (var probe in probes)
+            {
+                if (!TokenTouches(probe, offset)) continue;
+                bool containing = offset < probe.Start + probe.Length;
+                if (!containing && probe.Start == offset) continue;
+                // An identifier, including a caret at its end, is more precise
+                // than the owning node's punctuation/keyword fallback. A known
+                // unbound identifier still prevents a guessed enclosing target.
+                int rank = (probe.IsSyntaxFallback ? 2 : 0) + (containing ? 0 : 1);
+                if (rank > best) continue;
+                if (rank < best) { families.Clear(); best = rank; }
+                if (probe.Family != null) families.Add(probe.Family);
+            }
+            return families;
+        }
         internal bool SupportsToken(ReferenceSymbolTarget target) => _tokens.TryGetValue((target.Location.FilePath, target.Location.SourceVersion), out var ranges)
             && ranges.Supports(target.Offset.Value);
         internal IEnumerable<ReferenceSymbol> Candidates(ReferenceSymbolTarget target)
@@ -103,21 +123,15 @@ namespace Alarmlist.Analysis
                 return low;
             }
             internal bool Supports(int offset)
-            { int upper = UpperBound(offset); return upper != 0 && _prefixEnd[upper - 1] >= offset; }
-            internal IEnumerable<string> FamiliesAt(int offset)
+                => At(offset).Any(probe => TokenTouches(probe, offset));
+            private IEnumerable<ReferenceTokenProbe> At(int offset)
             {
                 int low = UpperBound(offset);
-                var families = new HashSet<string>(StringComparer.Ordinal);
-                var touching = new HashSet<string>(StringComparer.Ordinal);
-                bool contained = false;
                 for (int index = low - 1; index >= 0 && _prefixEnd[index] >= offset; index--)
-                {
-                    int end = _uses[index].Start + _uses[index].Length;
-                    if (offset < end) { contained = true; if (_uses[index].Family != null) families.Add(_uses[index].Family); }
-                    else if (offset == end && _uses[index].Start < offset && _uses[index].Family != null) touching.Add(_uses[index].Family);
-                }
-                return contained ? families : touching;
+                    if (_uses[index].Start + _uses[index].Length >= offset) yield return _uses[index];
             }
+            internal IEnumerable<string> FamiliesAt(int offset)
+                => TokenFamilies(At(offset), offset);
         }
     }
 }

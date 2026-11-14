@@ -1588,7 +1588,7 @@ diagnostic probes, generated binaries, machine paths or unrelated edits are stag
 
 ## Follow-up iterations 15–22 — semantic editing and RESX commands
 
-Status: iterations 15 (aae945e), 16 (fa5e72f), 17 (5ac54d6), 18 (b37f56c) and 19 complete. Completed iterations 1–14 and their
+Status: iterations 15 (aae945e), 16 (fa5e72f), 17 (5ac54d6), 18 (b37f56c), 19 (43a172f) and 20 complete. Completed iterations 1–14 and their
 acceptance evidence above remain unchanged. No branch creation, merge or push is
 part of this follow-up. Work continues on dev/milestone-14.
 
@@ -1630,14 +1630,17 @@ escaped expression-like literals are not source expressions. Private drafts may
 be colored lexically but block semantic operations until commit/cancel.
 
 RESX XML key declarations already have a command route and need direct acceptance.
-Add Find All References/Rename on selected keys in the standard resource table.
-Require supported, unambiguous resource/key/context and pending-edit detection;
-never infer identities from displayed row text, implicitly save, use production UI
-automation/private reflection, or silently replace table support with XML-only
-support. A native feasibility gate on both IDEs must prove selection, command
-routing and synchronization of preview/unsaved Apply/linked Undo/Redo with the open
-table before that surface can be accepted. If unavailable, record an essential
-blocker and retain the user's requested scope for a concrete subsequent decision.
+The originally confirmed standard resource-table commands require supported,
+unambiguous resource/key/context and pending-edit detection; never infer identities
+from displayed row text, implicitly save or use production UI automation/private
+reflection. Both native feasibility probes fail the selection/pending-edit
+prerequisites through the tested public services. On 2026-11-14 the user explicitly
+chooses: "Defer standard-table commands and finish XML/designer support."
+Standard-table Find All References/Rename is therefore deferred, while direct RESX
+XML commands remain in scope. Keep actual failed-gate evidence and the vendor
+limitation visible. A future table implementation must still prove selection,
+pending edits and preview/unsaved Apply/linked Undo/Redo synchronization on both
+IDEs; completion of this revised follow-up makes no claim about that surface.
 
 Iterations 15–18 retain analysis contract 9. Iteration 19 activates contract 10 in
 compiler, SDK worker and extension together. Preserve analyzer 5, library format 3,
@@ -1658,7 +1661,7 @@ documentation, actual evidence and a focused commit before the next begins.
 | 17 — Themes | Dynamic VS styles for References/Rename/menus and all nested states. | Light/Dark/High Contrast injected palettes, selected/inactive/disabled/recycled rows, live theme swaps and both native IDEs. |
 | 18 — Expression syntax | Immutable typed tokens/nodes, exact mapping and missing/invalid syntax; migrate all compiler expression consumers. | Both-framework grammar/evaluation/diagnostic/reference/explanation regressions, malformed/incomplete/escaped/quoted/nested/placeholder/Unicode/entity/CDATA fidelity and generated definitions. |
 | 19 — Classification API/bridge | Opt-in ClassifyExpressionsSnapshots for versioned document/value snapshots and context, detached kinds/spans/diagnostics, cancellation; activate analysis 10. | Both runtimes and desktop packaged hosts, incompatible tools, isolation/cancellation, draft lexical classification without saved-input changes or request-owned index retention. |
-| 20 — XML and RESX | Shared classifications/Fonts and Colors; token commands and definition choices; resource-table commands through supported integration. | Exact/nested token targets, XML fallback/mapping, direct saved RESX keys, shared/culture/resource ambiguity; essential table feasibility/synchronization gate on both IDEs. |
+| 20 — XML and RESX | Shared classifications/Fonts and Colors; token commands and definition choices; direct RESX XML commands. Standard-table commands deferred by the user on 2026-11-14 after failed native feasibility. | Exact/nested token targets, XML fallback/mapping, direct saved RESX keys, shared/culture/resource ambiguity and native XML checks on both IDEs. Retain failed standard-table gate/vendor evidence separately. |
 | 21 — Designer expression editor | Embedded VS editor, dedicated content type and shared classifications/commands with existing binding/draft/completion contract. | Typing, caret/selection, raw/resolved transition, completion, multiline/Unicode/clipboard/accessibility/Undo, token versus value menus, draft/stale guards on both IDEs. |
 | 22 — Integrated acceptance | Solution/shared/culture/fallback/library/package/generated-definition coverage, tutorial and performance evidence. | Compiler/affected downstream both frameworks; packaged bridge both desktop hosts; native both IDEs; typing/large-document timings/allocations, cancellation and bounded caches, no solution searches per keystroke. |
 
@@ -2326,3 +2329,180 @@ existing CA1416 shared-test-helper warning remains. There is no new UI action in
 this iteration; actual classifications, XML/designer commands and the essential
 native RESX-table feasibility/synchronization gate remain in iterations 20–22.
 No iteration-19 required gate is deferred. Only this iteration's changes are included.
+
+### Iteration 20 — complete under the revised XML/designer scope
+
+Starting from clean dev/milestone-14 after 43a172f. First verify the essential
+standard RESX Resource Explorer integration gate on both installed IDEs through
+public shell/selection/document services. Metadata inspection of both installed
+Resource Explorer assemblies finds public model/undo helper types but no exported
+selection, editor view/model or pending-edit service. This inspection alone does
+not establish an integration blocker: native capability checks must inspect
+standard ISelectionContainer/IVsMonitorSelection, RDT persistence and text-buffer
+access while an actual resource row and a pending cell edit are active. Keep
+diagnostic automation outside the VSIX; no production UI automation or private
+reflection is authorized. XML-only support cannot substitute for this gate.
+The first VS2022 probe stops safely before input because its fixture omitted
+explicit foreground activation of the owned main window. No resource capability
+or transaction was tested in that run (TestResults/7ef81aeb5b0043dd915576a53c92a3e1).
+Add the same explicit SetForeground/readiness check used by existing native
+resource fixtures, then repeat; this setup failure is not an integration result.
+The second run also stops before input while another transient window owns
+foreground (TestResults/05e1dae313974027a52bb99f472fbde2). Adopt the existing
+bounded foreground-readiness loop, activate the owned DTE main window and hide
+only that fixture's persisted Rename/Summary tool windows before repeating.
+That bounded retry still cannot obtain foreground (TestResults/8837b8ef6c234907b3af6e0556899d48).
+After the user reconnects/unlocks the desktop, both native probes reach the actual
+selected row and pending cell. VS2022 fails the essential selection gate in
+32 seconds (TestResults/e936322027254a8a9beca75c99d67da2;
+ResourceTableContracts/2022/2c34028e210543d8ba0964a0da762c61). VS2026 fails the
+same gate in 47 seconds (TestResults/8919fdc30ba8425c9c0c97a2a873bf8d;
+ResourceTableContracts/2026/ecd75a4db3ce42ef8ba28d76c8cb9c40). Each captures
+resource-table-contracts.json/png for selected, pending-edit and canceled states.
+IVsMonitorSelection succeeds but returns no ISelectionContainer for the selected
+key. RDT/DTE expose the resource text document, but IsDocDataDirty remains false
+and Document.Saved remains true while the cell contains an uncommitted draft.
+Escape cancels the draft and disk bytes remain unchanged. Both owned IDEs exit
+normally. The tested public shell/document services therefore supply neither
+selected key identity nor pending-cell state; metadata inspection finds no
+published editor-selection/pending-edit service to bridge that gap. No claim is
+made that Apply/linked Undo synchronization passes: it cannot be accepted without
+those prerequisites. The standard-table integration is an essential unresolved
+blocker, not an XML-only implementation or a successful iteration. Preserve the
+requested table scope pending a concrete user decision; continue independent XML
+classification/token work meanwhile.
+
+Scope decision (2026-11-14): the user explicitly replies, "Defer standard-table
+commands and finish XML/designer support." The table prerequisite is now a
+separately deferred vendor gate and no longer blocks completion of the revised
+iteration 20. Preserve its actual failed results above. Keep its external fixture
+opt-in via ALARMLIST_RUN_RESOURCE_TABLE_GATE=1; ordinary native suites skip that
+deferred acceptance instead of claiming it passes. No standard-table commands ship
+under the revised scope. Direct RESX XML, XML token/classification work, the
+embedded designer editor and both-IDE integrated acceptance remain required.
+
+The XML classifier uses one per-view/snapshot cache, compiler-owned detached
+ranges, inherited editor theme colors and nine independent Fonts and Colors roles.
+GetTags performs only bounded range projection, with no parser or solution search.
+Initial host projection tests need the same Text.Logic/UI/UI.Wpf editor contract
+assets used by the VSIX; add them as test-only downloads/references without
+altering the CPS/MSBuild dependency family. Eleven focused tests pass
+(ClassificationProjectionFixed, 146 ms): target/version/contract freshness,
+malformed/overflowing/overlapping ranges, viewport queries and configurable
+native-color inheritance. Native coloring and lifecycle acceptance remain pending.
+
+Compiler token commands now observe each reference node's own punctuation/keyword
+and its existing chosen binding. Quoted argument text and escaped expressions
+receive no guessed identity; nested arguments keep independent ownership. Precise
+identifier spans and name-end carets win over enclosing syntax, while syntax-end
+positions do not capture following XML/literal text. The request-owned batch index
+and single-target path share this selection rule. No new occurrences/rename edits,
+ordinary-analysis index, semantic grammar or compatibility fingerprint are added.
+Seven new tests cover parameter/resource prefixes, nested arguments, lookup result
+versus path/member/metadata segments, unbound inheritance, entities/CDATA/comments
+and unchanged rename edits. Initial fixtures use the wrong resource-kind label
+and invalid lookup XML; corrected fixtures pass all 32 focused cases
+(ExpressionTokenTargetsFixed, net8.0, 179 ms). Full compiler suites pass 906 net472
+(1 second) and 908 net8.0 (349 ms), CompilerToken-net472 / CompilerToken-net8.0.
+
+Go to Definition reuses frozen solution capture and existing physical/package
+navigation. Compiler source-token identities deduplicate imported projections;
+one physical declaration opens directly, while multiple declarations receive a
+declaration-only choice with retained consumer/culture/coverage evidence. Generated
+or unavailable declarations remain explicit. Original captured inputs, source
+intent and private drafts are checked before navigation. Five new host cases plus
+affected projection/reference/routing tests pass 26
+(DefinitionNavigationInitial, 152 ms). Ordinary reference/rename presentation
+remains unchanged when definition-only mode is not requested.
+
+Native XmlExpressionNodes acceptance is in progress. The first VS2022 run stops
+before keyboard input on lost foreground (TestResults/9137c31782ed4ca589c552858ae38c0b).
+The next run proves prefix Go to Definition, nested-argument Find All References
+and culture-choice publication, then hits a fixture null access before the new
+choice tree is realized (TestResults/34529b7bace640a099e951c458397e48;
+XmlExpressionNodes/2022/1e208a70978e4d6ab2597abe0ed6318a). Wait explicitly for
+the realized source row. Its native UIA text attributes show normal/escaped text
+RGB 13158600 / weight 400, parameter RGB 14064726 / weight 700 and resource key
+RGB 8756694 / weight 700. These are actual inherited editor formats; GDI PNGs from
+the occluded/hardware-rendered editor are blank and are not visual-review evidence.
+The first menu probe accidentally includes the persistent menu bar; require an
+actual popup Menu before collecting its items. Classification accepts the editor's
+IClassificationTag interface as well as ClassificationTag and defers context/RDT
+creation until after provider/GetTags initialization. UI-thread checks stay behind
+the asynchronous switch; a VSTHRD109 build failure is corrected before repeating
+native acceptance. No complete native XML gate is claimed yet.
+
+Subsequent fixture corrections preserve explicit editor ownership and focus:
+the visible XML view can transiently reject UIA Focus during template switching,
+so retry that readiness check without issuing input; DTE OpenFile's second
+argument is a logical view, not an editor factory, so direct RESX checks use
+OpenDocumentViaProjectWithSpecific and verify the native XML editor and unchanged
+document-data identity. An intermittent Shift+F10 popup timeout is retained in
+TestResults/b9111dab2c3047cfa1ec3ffb86520413. The corrected pointer check obtains
+the exact token's UIA text rectangle, hit-tests the owned IDE, opens its native
+menu and invokes Go to Definition through that menu. Existing native XML menu
+items include Go to Definition, Find All References, Rename and editing commands;
+no replacement menu is introduced.
+
+XmlExpressionNodes passes on VS2022 in 46 seconds
+(TestResults/488890f9f80040cc8ff2ab17c87c226f). It proves actual parameter/resource
+colors with plain/escaped text unchanged, native pointer menu navigation, nested
+reference targeting, culture declaration choice/navigation, direct saved RESX XML
+key discovery and coordinated ALMX/en/de rename. All three buffers change
+unsaved, one Undo/Redo covers the set, a final Undo restores exact originals and
+all disk bytes remain unchanged. Unsupported literal Go to Definition preserves
+native fallback. VS2026 and broader regressions remain pending.
+
+The matching VS2026 XML/RESX scenario passes in 43 seconds
+(TestResults/1ff886eb9b8049d19c54c22c7584495c). Full host/WPF regression passes
+976 tests, zero failures/skips, in 2 minutes 15 seconds (Iteration20/HostFull).
+Final native repeats additionally require all three native token-menu actions
+enabled and exercise the Menu key on the nested dollar-prefix target, alongside
+the existing shared-consumer and lookup/procedure-group fixtures on both IDEs.
+
+The combined VS2022 repeat passes SharedReferencesRename and
+AuxiliaryReferencesRename but times out after UIA Invoke on the native Go to
+Definition menu item (TestResults/37a2de02351249c4b1a9b8b46c944977). The token
+and buffer remain unchanged; no Apply occurs. Repeat using a real click on the
+enabled native item rather than UIA Invoke. The earlier isolated XML passes do
+not replace this final keyboard/pointer repeat gate. A readable captured dark
+editor view also confirms the native UIA color results; earlier blank GDI images
+remain excluded from visual evidence.
+
+The real-click fixture initially cannot observe a stable popup
+(TestResults/b60abbc3de1e413baf5ffc8d54e8ccdd). Its final readiness helper
+hit-tests native items and retries only an absent menu-opening gesture after
+checking owned foreground, the intended document and unchanged source bytes;
+semantic commands still execute once. Per-item enabled states/bounds are retained
+in xml-expression-menu-state.json. With these guards the final VS2022
+XmlExpressionNodes passes in 1 minute 5 seconds
+(TestResults/b83c8d5ea45741dbbc45edddb877c83f), including all three enabled native
+actions, an actual pointer click, dollar-prefix navigation, Menu-key nested search
+and the full direct RESX XML rename/Undo/Redo/disk-preservation sequence. The
+VS2022 shared/auxiliary passes from the combined run remain valid: production
+code has not changed since that run; only fixture readiness has changed.
+
+Final VS2026 XmlExpressionNodes, SharedReferencesRename and
+AuxiliaryReferencesRename all pass, 3/3 in 1 minute 52 seconds
+(TestResults/a87ae6b929ac4ca3a69fce5c54cc102e). This completes the revised
+both-IDE native XML/RESX/shared/culture/lookup/procedure gate. The separate
+standard-table probe remains explicitly deferred and failed, not counted here.
+Packaged runtime/desktop regressions and final diff/documentation review follow.
+
+Packaged SDK bridge cases pass 3/3 on net472 and 3/3 on net8.0 (4 seconds each),
+Iteration20/SDK-net472 and SDK-net8.0. Package/compilation/lookup regressions pass
+17/17 under each desktop MSBuild: VS2022 in 42 seconds and VS2026 in 45 seconds,
+Iteration20/Desktop-VS2022 and Desktop-VS2026. All runs are sequential after native
+acceptance. No runtime/analysis contract, analyzer/library/export version or
+semantic definition fingerprint changes in this iteration. VSIX package checks
+and final reviewed commit remain pending.
+
+Final VSIX integration passes 14/14 on net472 and 14/14 on net8.0, 10 seconds
+each (Iteration20/VSIX-net472 and VSIX-net8.0). Reviewed the compiler binding/probe
+changes, per-view classification lifecycle, detached target validation, definition
+navigation, native command fallback and external-only fixtures. Diff whitespace
+and changed local documentation links pass. User guides describe implemented XML
+behavior and the explicitly deferred standard table; no table acceptance is
+claimed. Iteration 20's revised gates pass. Embedded designer editor acceptance
+remains iteration 21; integrated library/generated-definition/tutorial/performance
+reacceptance remains iteration 22. Record the focused commit before beginning 21.

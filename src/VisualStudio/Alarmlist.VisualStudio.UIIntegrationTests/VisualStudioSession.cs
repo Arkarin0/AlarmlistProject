@@ -145,8 +145,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         internal static void RequireForeground(int expectedProcess)
         {
             GetWindowThreadProcessId(GetForegroundWindow(), out uint processId);
-            if (processId != expectedProcess) throw new InvalidOperationException(
-                $"The test IDE (PID {expectedProcess}) lost foreground focus to PID {processId}; refusing input.");
+            if (processId != expectedProcess)
+            {
+                string name;
+                try { using var process = Process.GetProcessById((int)processId); name = process.ProcessName; }
+                catch (ArgumentException) { name = "exited process"; }
+                throw new InvalidOperationException($"The test IDE (PID {expectedProcess}) lost foreground focus to PID {processId} ({name}); refusing input.");
+            }
         }
 
         public void Dispose()

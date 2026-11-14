@@ -32,7 +32,7 @@ namespace Alarmlist.Analysis
         private readonly Dictionary<PropertyDefinition, Symbol> _parameters = new Dictionary<PropertyDefinition, Symbol>();
         private readonly List<Symbol> _symbols = new List<Symbol>();
         private readonly List<Use> _uses = new List<Use>();
-        private readonly List<(Symbol Symbol, SourceLocation Location, int Start, int Length)> _tokenProbes = new List<(Symbol, SourceLocation, int, int)>();
+        private readonly List<(Symbol Symbol, SourceLocation Location, int Start, int Length, bool IsSyntaxFallback)> _tokenProbes = new List<(Symbol, SourceLocation, int, int, bool)>();
         private readonly HashSet<string> _unavailableSources = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<AlarmSyntaxNode> _unboundAlarms = new HashSet<AlarmSyntaxNode>();
         private readonly List<string> _coverage = new List<string>();
@@ -241,20 +241,23 @@ namespace Alarmlist.Analysis
                 foreach (var argument in token.Arguments.Values) Probe(null, location, null, argument.NameStart, argument.NameLength);
                 if (!bindingAvailable)
                 {
+                    ProbeExpressionSyntax(null, token, location);
                     foreach (var argument in token.Arguments.Values) if (argument.Reference != null) ObserveToken(argument.Reference);
                     return;
                 }
+                Symbol selected = null;
                 if (token.Kind == ExpressionSyntaxKind.ParameterReference)
                 {
                     if (bindings.TryGetValue(token.Key, out var parameter) && !token.Key.StartsWith("Alarmlist", StringComparison.OrdinalIgnoreCase))
-                        AddUse(parameter, "Expression", location, alarm.FullyQualifiedName, null, token.KeyStart, token.KeyLength);
+                    { selected = parameter; AddUse(parameter, "Expression", location, alarm.FullyQualifiedName, null, token.KeyStart, token.KeyLength); }
                     else if (!token.Key.StartsWith("Alarmlist", StringComparison.OrdinalIgnoreCase))
                         _coverage.Add("Unbound parameter: " + token.Key + " at " + Address(location));
-                    else ObserveWellKnown(token, location, alarm);
+                    else selected = ObserveWellKnown(token, location, alarm);
                 }
-                else if (token.Kind == ExpressionSyntaxKind.LocalizationReference) ObserveLocalization(token, location, alarm, bindings, collectionName);
-                else if (token.Kind == ExpressionSyntaxKind.ItemReference) ObserveSibling(token, location, alarm, collectionName);
-                else ObserveLookupToken(token, location, alarm);
+                else if (token.Kind == ExpressionSyntaxKind.LocalizationReference) selected = ObserveLocalization(token, location, alarm, bindings, collectionName);
+                else if (token.Kind == ExpressionSyntaxKind.ItemReference) selected = ObserveSibling(token, location, alarm, collectionName);
+                else selected = ObserveLookupToken(token, location, alarm);
+                ProbeExpressionSyntax(selected, token, location);
                 foreach (var argument in token.Arguments.Values)
                     if (argument.Reference != null) ObserveToken(argument.Reference);
             }
@@ -365,8 +368,8 @@ namespace Alarmlist.Analysis
                 ambiguous.Contains(Root(use.Symbol)) ? "Ambiguous or invalid binding; no replacement was guessed." : use.Unavailable,
                 use.Spelling, Declaration(use.Symbol), use.SourceTokenId)), _coverage, _diagnostics,
                 _contextBindings.Select(binding => new ReferenceContextBinding(binding.Kind, binding.Location, binding.Name, Root(binding.Symbol).Id)),
-                _tokenProbes.Select(probe => new ReferenceTokenProbe(probe.Symbol == null ? null : Root(probe.Symbol).Id, probe.Location, probe.Start, probe.Length))
-                    .GroupBy(probe => (probe.Family, Address(probe.Location), probe.Start, probe.Length)).Select(group => group.First()), _unavailableSources);
+                _tokenProbes.Select(probe => new ReferenceTokenProbe(probe.Symbol == null ? null : Root(probe.Symbol).Id, probe.Location, probe.Start, probe.Length, probe.IsSyntaxFallback))
+                    .GroupBy(probe => (probe.Family, Address(probe.Location), probe.Start, probe.Length, probe.IsSyntaxFallback)).Select(group => group.First()), _unavailableSources);
         }
 
         private static string Address(SourceLocation location) => location == null ? "unavailable" :

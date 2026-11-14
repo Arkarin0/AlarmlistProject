@@ -79,9 +79,12 @@ namespace Alarmlist.VisualStudio.Editor
             || string.Equals(extension, ".resx", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".props", StringComparison.OrdinalIgnoreCase)
             || string.Equals(extension, ".targets", StringComparison.OrdinalIgnoreCase) || string.Equals(extension, ".projitems", StringComparison.OrdinalIgnoreCase);
         internal static bool Command(Guid group, uint id, out bool rename)
+            => Command(group, id, out rename, out _);
+        internal static bool Command(Guid group, uint id, out bool rename, out bool definition)
         {
             rename = false;
-            if (group == VSConstants.GUID_VSStandardCommandSet97) return id == (uint)VSConstants.VSStd97CmdID.FindReferences;
+            definition = group == VSConstants.GUID_VSStandardCommandSet97 && id == (uint)VSConstants.VSStd97CmdID.GotoDefn;
+            if (group == VSConstants.GUID_VSStandardCommandSet97) return definition || id == (uint)VSConstants.VSStd97CmdID.FindReferences;
             if (group != VSConstants.VSStd2K) return false;
             rename = id == (uint)VSConstants.VSStd2KCmdID.RENAME || id == (uint)VSConstants.VSStd2KCmdID.ECMD_RENAMESYMBOL;
             // Older editor chains still issue the deprecated 2K command.
@@ -131,22 +134,22 @@ namespace Alarmlist.VisualStudio.Editor
         public int Exec(ref Guid group, uint id, uint options, IntPtr input, IntPtr output)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            if (!Command(group, id, out bool rename) || !HasNoArguments(input) || output != IntPtr.Zero || !CanHandle(out var document))
+            if (!Command(group, id, out bool rename, out bool definition) || !HasNoArguments(input) || output != IntPtr.Zero || !CanHandle(out var document))
                 return _next.Exec(ref group, id, options, input, output);
             if (_active?.Resolved != true) _active?.Dispose();
             _hasWork = true;
             if (_analysis.Current?.Project == null || _analysis.Current.Status != ProjectAnalysisStatus.Available)
             {
                 string message = _analysis.SelectedProjectPath == null
-                    ? "Choose an explicit consumer in the XML project context selector before finding references or renaming this shared file."
+                    ? "Choose an explicit consumer in the XML project context selector before opening a definition, finding references or renaming this shared file."
                     : "Project analysis is updating or unavailable. Wait for the selected consumer and language, then try again.";
-                _ = _work.RunAsync(async () => await ShowUnavailableAsync(message, rename));
+                _ = _work.RunAsync(async () => await ShowUnavailableAsync(message, rename, definition));
                 return VSConstants.S_OK;
             }
             var request = new Request(this, _view.TextBuffer.CurrentSnapshot, document.FilePath, _analysis.Current);
             _active = request;
             Guid capturedGroup = group;
-            _ = _work.RunAsync(async () => await ExecuteAsync(request, capturedGroup, id, options, rename));
+            _ = _work.RunAsync(async () => await ExecuteAsync(request, capturedGroup, id, options, rename, definition));
             return VSConstants.S_OK;
         }
         internal static bool HasNoArguments(IntPtr input)
@@ -161,7 +164,7 @@ namespace Alarmlist.VisualStudio.Editor
             IntPtr value = Marshal.ReadIntPtr(input, 8);
             return value == IntPtr.Zero || Marshal.PtrToStringBSTR(value).Length == 0;
         }
-        private async Task ExecuteAsync(Request request, Guid group, uint id, uint options, bool rename)
+        private async Task ExecuteAsync(Request request, Guid group, uint id, uint options, bool rename, bool definition)
         {
             bool handedOff = false;
             try
@@ -171,11 +174,11 @@ namespace Alarmlist.VisualStudio.Editor
                 bool current = await _analysis.IsCurrentAsync(request.State, request.Token);
                 await _work.SwitchToMainThreadAsync(request.Token);
                 if (!current)
-                { if (request.IntentIsCurrent()) await ShowUnavailableAsync("Captured inputs changed. Wait for current project analysis, then invoke the XML command again.", rename); return; }
+                { if (request.IntentIsCurrent()) await ShowUnavailableAsync("Captured inputs changed. Wait for current project analysis, then invoke the XML command again.", rename, definition); return; }
                 if (!request.IsCurrent()) return;
                 bool handled = await _search.FindAsync(request.State.Project, new AnalysisReferenceTarget("Token", offset: request.Caret), request.IsCurrent, request.Token,
                     allowNativeFallback: true, intentIsCurrent: request.IntentIsCurrent, intentToken: request.IntentToken, openRename: rename,
-                    editorInput: request.Input, releaseIntent: request.Dispose);
+                    editorInput: request.Input, releaseIntent: request.Dispose, definitionsOnly: definition);
                 await _work.SwitchToMainThreadAsync(_token);
                 if (handled) { request.Resolved = true; handedOff = true; }
                 else if (request.IsCurrent()) _next.Exec(ref group, id, options, IntPtr.Zero, IntPtr.Zero);
@@ -184,15 +187,15 @@ namespace Alarmlist.VisualStudio.Editor
             {
                 await _work.SwitchToMainThreadAsync();
                 if (!request.Token.IsCancellationRequested && request.IntentIsCurrent())
-                    await ShowUnavailableAsync("Captured solution inputs changed during discovery. Wait for current analysis, then invoke the XML command again.", rename);
+                    await ShowUnavailableAsync("Captured solution inputs changed during discovery. Wait for current analysis, then invoke the XML command again.", rename, definition);
             }
             catch (Exception error) when (SdkAnalysisBridge.IsRecoverable(error))
-            { if (request.IntentIsCurrent()) await ShowUnavailableAsync(error.Message, rename); }
+            { if (request.IntentIsCurrent()) await ShowUnavailableAsync(error.Message, rename, definition); }
             finally { await _work.SwitchToMainThreadAsync(); if (!handedOff) request.Dispose(); }
         }
-        private async Task ShowUnavailableAsync(string message, bool rename)
+        private async Task ShowUnavailableAsync(string message, bool rename, bool definition = false)
         {
-            try { await _search.ShowUnavailableAsync(message, _token, rename); }
+            try { await _search.ShowUnavailableAsync(message, _token, rename, definition); }
             catch (OperationCanceledException) when (_token.IsCancellationRequested) { }
             catch (Exception error) when (SdkAnalysisBridge.IsRecoverable(error)) { Trace.TraceError("Alarmlist reference window unavailable: {0}", error); }
         }

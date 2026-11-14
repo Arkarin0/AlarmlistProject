@@ -52,7 +52,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             selection.MoveToAbsoluteOffset(start + 2); Assert.Equal(start + 2, selection.ActivePoint.AbsoluteCharOffset);
             ide.Automation.ExecuteCommand("Edit.FindAllReferences"); Expect(window, expectedDefinition);
         }
-        private static void Expect(Window window, string definition)
+        internal static void Expect(Window window, string definition)
         {
             VisualStudioSession.Wait(() =>
             {

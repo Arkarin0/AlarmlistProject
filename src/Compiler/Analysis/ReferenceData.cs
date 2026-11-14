@@ -67,12 +67,13 @@ namespace Alarmlist.Analysis
 
     internal sealed class ReferenceTokenProbe
     {
-        internal ReferenceTokenProbe(string family, SourceLocation location, int start, int length)
-        { Family = family; Location = location; Start = start; Length = length; }
+        internal ReferenceTokenProbe(string family, SourceLocation location, int start, int length, bool isSyntaxFallback = false)
+        { Family = family; Location = location; Start = start; Length = length; IsSyntaxFallback = isSyntaxFallback; }
         internal string Family { get; }
         internal SourceLocation Location { get; }
         internal int Start { get; }
         internal int Length { get; }
+        internal bool IsSyntaxFallback { get; }
     }
 
     internal sealed class ReferenceData

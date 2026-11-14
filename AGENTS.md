@@ -84,10 +84,16 @@ classification, XML/designer token commands and native RESX resource-table actio
 Follow its appended plan; iterations 15–18 keep analysis 9 and iteration 19 activates
 10 across compiler/SDK/host together. Preserve analyzer 5/library 3/export 1 and
 semantic fingerprints. Reuse the VS editor and the compiler's single expression
-parser; no host semantic parser or private-draft auto-commit. RESX table selection,
-pending edit detection and document/linked Undo synchronization on both IDEs are an
-essential gate; do not substitute XML-only support or depend on production UI
-automation/private reflection when that integration is unavailable.
+parser; no host semantic parser or private-draft auto-commit. On 2026-11-14 the
+user explicitly deferred standard RESX-table commands after both native probes
+found no selected-key container or pending-cell state through the tested public
+services. Finish XML/designer support, including direct RESX XML commands. Keep
+the failed table feasibility gate and vendor limitation visible in the plan; do
+not advertise table commands or use production UI automation/private reflection.
+The deferred probe is opt-in through ALARMLIST_RUN_RESOURCE_TABLE_GATE=1 and stays
+outside successful XML/designer acceptance. A future table implementation still
+requires supported selection, pending edits and linked Undo synchronization on
+both IDEs; XML support is not evidence for that deferred surface.
 Compiler expression syntax lives in Evaluation/ExpressionSyntax.cs and the single
 Evaluation/ExpressionParser.cs. Its immutable typed tokens/nodes retain authored
 UTF-16 spans, escapes and whitespace. Recovery may expose missing/invalid syntax
@@ -103,6 +109,14 @@ literal defaults/assignments and escaped text stay literal. Reuse the project-ow
 SDK worker under its analysis gate, skip analyzer loading, cancel obsolete calls
 and compare all captured inputs before and after publication. Retain results only
 for their requesting view; ordinary analysis/builds have no classification cache.
+XML classification accepts the editor's IClassificationTag request, projects only
+compiler ranges and defers context/RDT acquisition until view initialization.
+Compiler-issued expression punctuation targets supplement precise identifier
+targets; nested/quoted/escaped text keeps its own ownership and identifier-end
+carets win over containing-node fallbacks. Native XML Go to Definition shares
+frozen reference capture and existing physical/package navigation; multiple
+declarations require explicit source choices. Area=XmlExpressionNodes covers the
+native menu, lexical colors and direct RESX XML multi-culture rename/linked Undo.
 
 Milestone 14 introduced ExplainSnapshots with analysis contract 8; its reference/
 rename follow-up introduced contract 9; expression classification advances the

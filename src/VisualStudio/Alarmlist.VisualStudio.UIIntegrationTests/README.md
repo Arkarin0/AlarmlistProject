@@ -8,6 +8,16 @@ No test dependencies or test service are installed in the VSIX, whose host remai
 net472. Package-consumer tests remain in `Alarmlist.VisualStudio.IntegrationTests`;
 measurements remain in `Alarmlist.VisualStudio.PerformanceTests`.
 
+Standard RESX-table commands are explicitly deferred in Milestone 14 after both
+native capability probes fail the selected-key/pending-edit prerequisites through
+the tested public services. `Area=ResourceTableIntegration` retains that external
+vendor feasibility fixture and is skipped unless
+`ALARMLIST_RUN_RESOURCE_TABLE_GATE=1` is set. Its report distinguishes the actual
+selected row, pending cell and canceled state without production UI automation or
+private reflection. The recorded failures remain in the milestone; these skipped
+checks are not evidence of standard-table integration. Direct RESX XML commands
+and XML/designer expression acceptance remain required.
+
 ## Coverage
 
 Each scenario has separate VS2022 and VS2026 xUnit cases:
@@ -163,6 +173,15 @@ and build-output capture. `passed.txt` is written only after IDE cleanup; xUnit/
 is authoritative. The launcher puts TRX under `VisualStudioUI/TestResults/<run-id>/`.
 
 ## Architecture decision
+
+`Area=XmlExpressionNodes` validates compiler-provided XML colors with unchanged
+plain/escaped text, native pointer and Menu-key commands, prefix/nested targets,
+Go to Definition source choices and direct RESX XML key references/rename. It
+checks coordinated ALMX/en/de unsaved Apply, one-step Undo/Redo and disk-byte
+preservation on both IDEs. The fixture opens RESX through the shell's specific
+XML editor factory and verifies shared document-data identity; DTE OpenFile's
+logical-view argument cannot select that editor reliably. Run this area with
+`SharedReferencesRename` and `AuxiliaryReferencesRename` sequentially.
 
 The keyboard proof passed on both VS2022 and VS2026 with no production changes.
 The remaining automated functional smoke scenarios now run as individual xUnit

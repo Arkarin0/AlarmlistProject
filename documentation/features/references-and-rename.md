@@ -24,10 +24,22 @@ menu. Alarm and procedure-group identities have their own context menus. Existin
 text-editing and assignment actions remain available. Opening a menu preserves
 private drafts; commit or cancel drafts before invoking semantic actions.
 A value containing several referenced symbols presents a compiler-resolved choice.
-In XML, place the caret within or immediately after a supported token and use the
-standard Find All References or Rename command. Other tokens retain native XML
+In XML, place the caret within or immediately after a supported identifier, or
+inside its `$(...)` prefix/punctuation, and use the standard Go to Definition,
+Find All References or Rename command from the editor's context menu or keyboard.
+Nested references select their own symbol; quoted arguments and `$$(...)` escapes
+remain literal. Go to Definition opens a single declaration directly or presents
+choices when several declarations contribute, such as translations in different
+cultures. Other tokens retain native XML
 command behavior. Moving the caret during discovery cancels that request; after
 publication, the results retain the resolved symbol until inputs or context change.
+
+Localization keys also support Find All References and Rename from their `name`
+attribute in the **RESX XML editor**. Related translations participate together.
+Select **Open With > XML (Text) Editor** when the standard resource table opens.
+Commands in the standard RESX resource table are deferred: the tested public
+editor APIs do not expose a reliable selected-key identity or pending cell edit.
+Save intended resource edits before requesting semantic operations.
 
 References groups results by definition, physical source and consumer context.
 Source links open editable files or read-only package content. Coverage findings

@@ -39,15 +39,15 @@
                AutomationProperties.Name="{Binding Message}" AutomationProperties.AutomationId="ReferencesStatus" />
     <StackPanel Grid.Row="1">
       <StackPanel Visibility="{Binding HasSymbolChoices, Converter={StaticResource BooleanVisibility}}" Margin="0,0,0,6">
-        <TextBlock Text="Choose the symbol whose references you want to inspect:" Margin="0,0,0,4" />
+        <TextBlock Text="{Binding SymbolChoicePrompt}" Margin="0,0,0,4" />
         <ListView x:Name="SymbolChoices" ItemsSource="{Binding Symbols}" SelectedItem="{Binding SelectedSymbol}" IsSynchronizedWithCurrentItem="False" KeyDown="OnSymbolKeyDown"
                  IsEnabled="{Binding CanSelectSymbol}" MaxHeight="140" VirtualizingStackPanel.IsVirtualizing="True"
                  VirtualizingStackPanel.VirtualizationMode="Recycling" AutomationProperties.Name="Compiler-resolved symbols"
                  AutomationProperties.AutomationId="ReferenceSymbolChoices" DisplayMemberPath="Label"
                  Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
                  Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
-        <Button Content="Show references to selected _symbol" Command="{Binding ChooseSymbolCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
-                AutomationProperties.Name="Find references to the selected symbol" />
+        <Button Content="{Binding SymbolChoiceAction}" Command="{Binding ChooseSymbolCommand}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                AutomationProperties.Name="{Binding SymbolChoiceAccessibleName}" />
       </StackPanel>
     <Expander Header="Search coverage and unavailable findings" Margin="0,0,0,6">
       <TextBox Text="{Binding Coverage, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap"

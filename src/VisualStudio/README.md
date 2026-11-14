@@ -62,6 +62,20 @@ Saved resources/lookups are checked
 before display and insertion, while ALMX changes use current buffers. Changing
 the source, context or saved inputs rejects an old insertion.
 
+Milestone 14 adds compiler-owned expression classifications to ALMX and RESX XML
+views. The nine **Alarmlist expression** Fonts and Colors entries inherit native
+editor palettes. Each view retains only its current snapshot's detached spans;
+classification never proves a reference or starts a solution search. Native
+Go to Definition, Find All References and Rename commands resolve supported
+identifiers and their expression punctuation through compiler token targets,
+including nested arguments. One declaration navigates directly; contributing
+translations or other multiple declarations present explicit source choices.
+Unsupported positions retain native XML behavior. RESX key declarations support
+references/rename in the XML editor; standard resource-table commands are deferred
+after the failed public-API selection/pending-edit probes, as recorded in
+[Milestone 14](MILESTONE-14.md). Run native `Area=XmlExpressionNodes` on both IDEs,
+sequentially with the shared/auxiliary reference fixtures and other desktop tests.
+
 Localization template arguments keep quoted text literal. In an empty slot, invoke
 Ctrl+Space (or select its quotes first) to choose a supported expression. Typing a
 whole-slot draft such as `path="$(path:Service.)"` also offers completion; accepting

@@ -17,7 +17,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 {
     public sealed class UiFactAttribute : FactAttribute
     {
-        public UiFactAttribute(string version, bool collections = false)
+        public UiFactAttribute(string version, bool collections = false, bool resourceTable = false)
         {
             if (Environment.GetEnvironmentVariable("ALARMLIST_RUN_UI_VS_TESTS") != "1")
                 Skip = "Set ALARMLIST_RUN_UI_VS_TESTS=1 to run live IDE tests.";
@@ -25,6 +25,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 Skip = "Set ALARMLIST_VS" + version + "_PATH to select the test IDE.";
             else if (collections && Environment.GetEnvironmentVariable("ALARMLIST_TEST_COLLECTION_DEFINITION") != "1")
                 Skip = "Run the isolated collection-definition designer fixture.";
+            else if (resourceTable && Environment.GetEnvironmentVariable("ALARMLIST_RUN_RESOURCE_TABLE_GATE") != "1")
+                Skip = "Standard RESX-table commands are deferred. Set ALARMLIST_RUN_RESOURCE_TABLE_GATE=1 only to repeat the vendor feasibility gate.";
         }
     }
 

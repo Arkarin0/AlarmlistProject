@@ -86,7 +86,7 @@ namespace Alarmlist.VisualStudio.Editor
         }
     }
 
-    internal sealed class VsDesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings, IDesignerExplanation, IDesignerReferences
+    internal sealed class VsDesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings, IDesignerExplanation, IDesignerReferences, IDesignerClassification
     {
         private readonly DesignerAnalysisNotifications _notifications;
         private readonly ProjectAnalysisRegistry _registry;
@@ -175,6 +175,17 @@ namespace Alarmlist.VisualStudio.Editor
             var packageId = typeof(AlarmlistPackage).GUID;
             ErrorHandler.ThrowOnFailure(shell.LoadPackage(ref packageId, out IVsPackage package));
             (package as AlarmlistPackage)?.ShowExplanation(source);
+        }
+
+        public async Task<ClassificationResponse> ClassifyAsync(ProjectAnalysisState state, AnalysisClassificationTarget target, CancellationToken token)
+        {
+            if (_disposed || !ReferenceEquals(state, Current))
+                return new ClassificationResponse(AnalysisAvailability.InvalidInput, "The selected classification context changed.");
+            var service = Contexts.FirstOrDefault(item => ReferenceEquals(item.Current, state));
+            if (service == null) return new ClassificationResponse(AnalysisAvailability.InvalidInput, "The selected project is unavailable.");
+            var response = await service.ClassifyAsync(state, target, token);
+            return !_disposed && ReferenceEquals(state, Current) ? response
+                : new ClassificationResponse(AnalysisAvailability.InvalidInput, "The selected classification context changed.");
         }
 
         public async Task FindReferencesAsync(ProjectAnalysisState state, AnalysisReferenceTarget target, ReferenceInvocation invocation)

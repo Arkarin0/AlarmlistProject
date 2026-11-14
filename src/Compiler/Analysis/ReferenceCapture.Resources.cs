@@ -66,16 +66,17 @@ namespace Alarmlist.Analysis
             return null;
         }
 
-        private void ObserveLocalization(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm, Dictionary<string, Symbol> bindings, string collectionName)
+        private Symbol ObserveLocalization(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm, Dictionary<string, Symbol> bindings, string collectionName)
         {
             var symbol = ResourceSymbol(token.Key);
             if (symbol == null && !_resources.Entries.Any(entry => entry.Key == token.Key)) symbol = TemplateSymbol(token.Key);
-            if (symbol == null) return;
+            if (symbol == null) return null;
             AddUse(symbol, "Localization", location, alarm.FullyQualifiedName, null, token.KeyStart, token.KeyLength);
             ObserveArguments(token, location, alarm, symbol);
             if (_resources.TryResolve(token.Key, _context.Culture, out var translation))
                 ObserveExpression(translation.Entry.Value, translation.Entry.ValueLocation, alarm, bindings,
                     record: true, formatted: token.Arguments.Count != 0, translation: true, collectionName: collectionName);
+            return symbol;
         }
 
         private void ObserveGeneratedCaptions()

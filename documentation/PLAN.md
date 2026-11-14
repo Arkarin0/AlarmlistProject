@@ -201,3 +201,15 @@ Validation passes 899/901 compiler tests, 960 host tests, 14 packaged VSIX check
 per framework and 17 packaged SDK checks per desktop host, plus task/exporter/SDK
 and generated-definition suites. The milestone records exact results and the
 cancellation-only refinement made between the initial and final checks.
+
+Milestone 14 iteration 20 extends the editing and references guides with native
+XML token colors, configurable editor formats, Go to Definition/source choices
+and direct RESX XML key commands. The user explicitly deferred standard RESX
+table commands after failed native feasibility on both IDEs; the guides retain
+that limitation and the XML-editor alternative. XML/RESX rename acceptance and
+actual regression results are recorded in the milestone plan. Embedded designer
+editor and integrated tutorial acceptance remain iterations 21–22.
+Validation passes 906/908 compiler tests, 976 host tests, packaged SDK checks on
+both runtimes and desktop hosts, 14 VSIX checks per framework and native XML,
+shared/culture and lookup/procedure scenarios on both IDEs. Actual commands,
+failures and successful repeats remain in the milestone record.

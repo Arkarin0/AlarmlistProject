@@ -102,13 +102,8 @@ namespace Alarmlist.Analysis
             {
                 var probes = data.TokenProbes.Concat(data.Occurrences.Where(use => use.Start.HasValue && use.Length.HasValue)
                     .Select(use => new ReferenceTokenProbe(use.Family, use.Location, use.Start.Value, use.Length.Value)));
-                var uses = probes.Where(use => use.Location?.FilePath == target.Location.FilePath
-                    && use.Location.SourceVersion == target.Location.SourceVersion && use.Start <= target.Offset).ToArray();
-                var containing = uses.Where(use => target.Offset < use.Start + use.Length).ToArray();
-                var families = new HashSet<string>(containing.Where(use => use.Family != null).Select(use => use.Family), StringComparer.Ordinal);
-                // Editor carets at the end of a name still touch that compiler
-                // token. Prefer a containing token before considering left ends.
-                if (containing.Length == 0) families.UnionWith(uses.Where(use => use.Family != null && use.Start < target.Offset && target.Offset == use.Start + use.Length).Select(use => use.Family));
+                var families = ReferenceTargetIndex.TokenFamilies(probes.Where(use => use.Location?.FilePath == target.Location.FilePath
+                    && use.Location.SourceVersion == target.Location.SourceVersion), target.Offset.Value);
                 matches = data.Symbols.Where(symbol => families.Contains(symbol.Family));
             }
             else if (target.Kind == "Value")
@@ -136,7 +131,7 @@ namespace Alarmlist.Analysis
                 bool supportedToken = target.Kind == "Token" && (data.UnavailableSources.Contains(target.Location.FilePath, StringComparer.Ordinal)
                     || (index != null ? index.SupportsToken(target) : data.TokenProbes.Any(probe =>
                     probe.Location?.FilePath == target.Location.FilePath && probe.Location.SourceVersion == target.Location.SourceVersion
-                    && probe.Start <= target.Offset && target.Offset <= probe.Start + probe.Length)));
+                    && ReferenceTargetIndex.TokenTouches(probe, target.Offset.Value))));
                 return new ReferenceSearchResult(inputs, target, data, null,
                     supportedToken ? "The compiler could not bind this reference. Review the diagnostics and coverage." : "No supported symbol is bound at this target.",
                     targetAbsent: target.Kind == "Identity", isUnsupportedTarget: target.Kind == "Token" && !supportedToken);

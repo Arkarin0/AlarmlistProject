@@ -47,7 +47,11 @@ namespace Alarmlist.VisualStudio.UI
         public string Coverage { get; private set; }
         public string TargetLabel { get; private set; }
         public string ContextLabel { get; private set; }
-        public string PageLabel => _rows.Length == 0 ? "" : "Showing " + Math.Min(_shown, _rows.Length) + " of " + _rows.Length + " findings.";
+        public bool DefinitionsOnly { get; }
+        public string SymbolChoicePrompt => DefinitionsOnly ? "Choose the symbol whose definition you want to open:" : "Choose the symbol whose references you want to inspect:";
+        public string SymbolChoiceAction => DefinitionsOnly ? "Go to selected _symbol" : "Show references to selected _symbol";
+        public string SymbolChoiceAccessibleName => DefinitionsOnly ? "Go to the selected symbol's definition" : "Find references to the selected symbol";
+        public string PageLabel => _rows.Length == 0 ? "" : "Showing " + Math.Min(_shown, _rows.Length) + " of " + _rows.Length + (DefinitionsOnly ? " declarations." : " findings.");
         public IReadOnlyList<ReferenceResultNode> Definitions { get; private set; } = BindingCollection.Create<ReferenceResultNode>(null);
         public DelegateCommand ShowMoreCommand { get; }
         public Task Pending { get; private set; } = Task.CompletedTask;
@@ -69,13 +73,14 @@ namespace Alarmlist.VisualStudio.UI
 
         internal ReferenceResultsViewModel(Func<int, AnalysisLocation, CancellationToken, Task> navigate, Func<bool> isCurrent, Action release = null,
             Func<AnalysisReferenceSymbol, CancellationToken, Task> choose = null,
-            Func<int, AnalysisReferenceSymbol, CancellationToken, Task> rename = null)
+            Func<int, AnalysisReferenceSymbol, CancellationToken, Task> rename = null, bool definitionsOnly = false)
         {
             _navigate = navigate ?? throw new ArgumentNullException(nameof(navigate));
             _isCurrent = isCurrent ?? throw new ArgumentNullException(nameof(isCurrent));
             _release = release;
             _choose = choose;
             _rename = rename;
+            DefinitionsOnly = definitionsOnly;
             ShowMoreCommand = new DelegateCommand(() => { _shown += PageSize; Build(); }, () => Current && _shown < _rows.Length);
             ChooseSymbolCommand = new DelegateCommand(() => Pending = ChooseSymbolAsync(), () => CanSelectSymbol && _choose != null && SelectedSymbol != null);
         }
@@ -100,7 +105,7 @@ namespace Alarmlist.VisualStudio.UI
             Reset();
             if (!preserveRename) ReleaseRename();
             Coverage = string.Join(Environment.NewLine, result.Coverage);
-            TargetLabel = result.Origin?.Symbol == null ? "Choose a symbol to rename" : result.Origin.Symbol.Kind + ": " + result.Origin.Symbol.Name;
+            TargetLabel = result.Origin?.Symbol == null ? (DefinitionsOnly ? "Choose a symbol to navigate" : "Choose a symbol to rename") : result.Origin.Symbol.Kind + ": " + result.Origin.Symbol.Name;
             ContextLabel = result.Origin == null ? null : result.Origin.ProjectPath + " [" + result.Origin.Configuration + "|"
                 + result.Origin.Platform + ", " + result.Origin.Culture + "]";
             if (!result.IsAvailable)
@@ -114,7 +119,7 @@ namespace Alarmlist.VisualStudio.UI
             var findings = families.SelectMany(item =>
             {
                 var symbols = _rename == null ? null : item.Family.Symbols.ToDictionary(symbol => symbol.DeclarationId, StringComparer.Ordinal);
-                return item.Family.Occurrences.Select(use => new Row(item.Consumer, item.Family, use,
+                return item.Family.Occurrences.Where(use => !DefinitionsOnly || use.Role == "Declaration").Select(use => new Row(item.Consumer, item.Family, use,
                     symbols != null && use.DeclarationId != null && symbols.TryGetValue(use.DeclarationId, out var symbol) ? symbol : null));
             }).ToArray();
             var owners = findings.Where(row => row.Use.SourceTokenId != null && row.Use.Start.HasValue && row.Use.Unavailable == null)
@@ -127,7 +132,8 @@ namespace Alarmlist.VisualStudio.UI
                     row.Use.SourceTokenId, row.Use.Location?.FilePath, row.Use.Start, row.Use.Length))
                 .Select(group => group.First()).ToArray();
             _shown = PageSize;
-            Message = _rows.Length == 0 ? "No references were found in the available projects." : "References in this solution";
+            Message = DefinitionsOnly ? (_rows.Length == 0 ? "This symbol has no navigable source declaration in the captured inputs." : "Choose a definition to open")
+                : _rows.Length == 0 ? "No references were found in the available projects." : "References in this solution";
             Build();
         }
 
@@ -186,7 +192,7 @@ namespace Alarmlist.VisualStudio.UI
         {
             if (!ChooseSymbolCommand.CanExecute(null)) return;
             var selected = SelectedSymbol.Symbol; int generation = _generation; var token = _lifetime.Token;
-            _choosing = true; Message = "Finding references to " + selected.Name + "…"; Changed();
+            _choosing = true; Message = (DefinitionsOnly ? "Finding definitions for " : "Finding references to ") + selected.Name + "…"; Changed();
             try { await _choose(selected, token); }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (Exception error) when (SdkAnalysisBridge.IsRecoverable(error))

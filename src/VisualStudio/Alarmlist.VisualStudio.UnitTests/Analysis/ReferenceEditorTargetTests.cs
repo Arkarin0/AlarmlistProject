@@ -60,6 +60,8 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             Assert.True(XmlReferenceCommands.SupportsExtension(".projitems"));
             Assert.True(XmlReferenceCommands.Command(VSConstants.GUID_VSStandardCommandSet97, (uint)VSConstants.VSStd97CmdID.FindReferences, out bool rename)); Assert.False(rename);
             Assert.True(XmlReferenceCommands.Command(VSConstants.VSStd2K, (uint)VSConstants.VSStd2KCmdID.RENAME, out rename)); Assert.True(rename);
+            Assert.True(XmlReferenceCommands.Command(VSConstants.GUID_VSStandardCommandSet97, (uint)VSConstants.VSStd97CmdID.GotoDefn, out rename, out bool definition));
+            Assert.True(definition); Assert.False(rename);
             Assert.False(XmlReferenceCommands.Command(VSConstants.GUID_VSStandardCommandSet97, (uint)VSConstants.VSStd97CmdID.Rename, out _));
         }
     }

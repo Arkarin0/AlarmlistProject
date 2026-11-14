@@ -30,7 +30,7 @@ namespace Alarmlist.Analysis
                     {
                         _uses.Add(new Use(symbol, "ClearControl", clear.Location, alarm.FullyQualifiedName, null, null));
                         if (clear.Location != null && _sources.TryGetValue(clear.Location.FilePath, out var source) && clear.Location.SourceVersion == source.Input.Version)
-                            _tokenProbes.Add((symbol, clear.Location, source.Offset(clear.Location), clear.Location.EndColumnNumber - clear.Location.ColumnNumber));
+                            _tokenProbes.Add((symbol, clear.Location, source.Offset(clear.Location), clear.Location.EndColumnNumber - clear.Location.ColumnNumber, false));
                     }
                 }
             }
@@ -57,13 +57,13 @@ namespace Alarmlist.Analysis
             }
         }
 
-        private void ObserveWellKnown(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm)
+        private Symbol ObserveWellKnown(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm)
         {
             var target = BuiltInTarget(token.Key);
             string field = target.Kind == "DefinitionField" ? target.Name : null;
             var wellKnown = WellKnownProperties.Capture(_context, alarm);
             bool known = field != null || wellKnown.ContainsKey(token.Key);
-            if (!known) { _coverage.Add("Unknown built-in name: " + token.Key); return; }
+            if (!known) { _coverage.Add("Unknown built-in name: " + token.Key); return null; }
             string canonical = field ?? wellKnown.Keys.First(name => string.Equals(name, token.Key, StringComparison.OrdinalIgnoreCase));
             var symbol = BuiltIn(field == null ? "WellKnown" : "DefinitionField", canonical);
             AddUse(symbol, "BuiltIn", location, alarm.FullyQualifiedName, null, token.KeyStart, token.KeyLength);
@@ -71,6 +71,7 @@ namespace Alarmlist.Analysis
                 _uses.Add(new Use(_alarms[alarm], "Binding", location, alarm.FullyQualifiedName, null, null));
             if (alarm.Reference != null && string.Equals(token.Key, "AlarmlistAlarmReferenceName", StringComparison.OrdinalIgnoreCase))
                 _uses.Add(new Use(_alarms[alarm.Reference], "Binding", location, alarm.FullyQualifiedName, null, null));
+            return symbol;
         }
 
         private Symbol BuiltIn(string kind, string name)
@@ -97,16 +98,18 @@ namespace Alarmlist.Analysis
             _uses.Add(new Use(symbol, "DefinitionUse", location, alarm.FullyQualifiedName, span, "Generated definition names are immutable."));
         }
 
-        private void ObserveSibling(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm, string collectionName)
+        private Symbol ObserveSibling(ExpressionReferenceSyntax token, SourceLocation location, AlarmSyntaxNode alarm, string collectionName)
         {
             var collection = Definition.AlarmDefinition.Collections.FirstOrDefault(candidate => candidate.Name == collectionName);
             if (collection == null || !collection.Fields.Any(field => field.Name == token.Key))
             {
                 _coverage.Add("Unavailable record sibling: " + token.Key + " at " + Address(location));
-                return;
+                return null;
             }
-            AddUse(BuiltIn("DefinitionField", "Collection:" + collectionName + "." + token.Key), "BuiltIn", location,
+            var symbol = BuiltIn("DefinitionField", "Collection:" + collectionName + "." + token.Key);
+            AddUse(symbol, "BuiltIn", location,
                 alarm.FullyQualifiedName, null, token.KeyStart, token.KeyLength);
+            return symbol;
         }
     }
 }

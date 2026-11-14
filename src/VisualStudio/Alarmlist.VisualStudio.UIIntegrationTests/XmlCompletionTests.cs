@@ -388,7 +388,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 window.SetForeground();
                 var editor = window.FindAllDescendants(cf => cf.ByAutomationId("WpfTextView")).FirstOrDefault(item => !item.IsOffscreen);
                 if (editor == null) return false;
-                editor.Focus();
+                try { editor.Focus(); }
+                catch (InvalidOperationException) { return false; } // The owned XML view can still be switching templates.
                 return editor.Properties.HasKeyboardFocus.ValueOrDefault;
             }, "visible XML editor and keyboard focus for " + Path.GetFileName(path));
             RequireXmlInput(ide, window, path);

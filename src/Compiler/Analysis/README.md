@@ -227,7 +227,12 @@ for ambiguous identities. Imported definitions remain read-only; partial rename
 requires explicit acknowledgement before any eventual host application.
 
 Token targets accept UTF-16 caret offsets inside or immediately after a semantic
-token. A containing token takes precedence over a token ending at that offset.
+identifier. Precise identifiers (including name-end carets) take precedence over
+their expression node's punctuation/keyword fallback; among identifiers a
+containing token takes precedence over one ending at that offset. A reference's
+own prefix/punctuation resolves its chosen bound symbol. Nested arguments retain
+independent ownership; quoted argument text and escaped expressions remain literal.
+Syntax fallbacks do not claim the following XML/text at their ending boundary.
 Opt-in parser/binder probes distinguish unsupported literal/markup positions
 (`IsUnsupportedTarget`) from recognized but unbound tokens and unavailable parsing
 or inheritance. Hosts may delegate unsupported positions to native tooling; they

@@ -22,6 +22,10 @@ namespace Alarmlist.VisualStudio.UI
     {
         Task FindReferencesAsync(ProjectAnalysisState state, AnalysisReferenceTarget target, ReferenceInvocation invocation);
     }
+    internal interface IDesignerClassification
+    {
+        Task<ClassificationResponse> ClassifyAsync(ProjectAnalysisState state, AnalysisClassificationTarget target, CancellationToken token);
+    }
     internal sealed class ReferenceInvocation
     {
         internal ReferenceInvocation(Func<bool> isCurrent, Func<bool> intentIsCurrent, CancellationToken token, CancellationToken intentToken, bool rename = false)

@@ -21,6 +21,14 @@ their origins; equal text alone does not make a local value inherited. Use
 reference selection and source navigation to inspect a reference chain.
 Expression fields retain raw source while allowing effective-value display.
 
+In ALMX XML, authored expressions have distinct parameter, localization, lookup,
+keyword and punctuation formats. Configure the **Alarmlist expression** entries
+in Visual Studio's **Fonts and Colors** settings; they inherit native editor
+theme colors. Plain text and `$$(...)` escapes remain literal. Coloring is lexical:
+an incomplete expression can be colored while its semantic commands remain
+unavailable. Matching project analysis and an explicit consumer are required for
+shared files. Supported RESX XML expression values use the same formats.
+
 Enter or moving to another designer field commits; Escape cancels a draft.
 Moving to a toolbar, switching view/context, and collapse actions preserve private
 drafts. Undo reverses committed edits. Focus or analysis refresh does not write
