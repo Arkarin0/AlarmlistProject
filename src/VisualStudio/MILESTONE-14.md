@@ -7,7 +7,9 @@ Original evidence and performance limits remain below.
 
 Follow-up iterations 15–22 are authorized on dev/milestone-14. Iteration 15 is
 complete with its required gates passed on 2026-10-31. Iteration 16 is complete
-with its required gates passed on 2026-11-14; iterations 17–22 remain planned.
+with its required gates passed on 2026-11-14. Iteration 17 is complete with its
+required gates passed on 2026-11-14;
+iterations 18–22 remain planned.
 Implementation and evidence are recorded in the appended follow-up.
 
 ## Outcome and confirmed scope
@@ -1584,7 +1586,7 @@ diagnostic probes, generated binaries, machine paths or unrelated edits are stag
 
 ## Follow-up iterations 15–22 — semantic editing and RESX commands
 
-Status: iteration 15 complete (aae945e); iteration 16 in progress. Completed iterations 1–14 and their
+Status: iterations 15 (aae945e), 16 (fa5e72f) and 17 complete. Completed iterations 1–14 and their
 acceptance evidence above remain unchanged. No branch creation, merge or push is
 part of this follow-up. Work continues on dev/milestone-14.
 
@@ -1952,3 +1954,153 @@ pixel wheel/Page Up/Page Down scrolling and recycling. Analysis contract 9,
 analyzer 5, library 3, export 1 and semantic fingerprints remain unchanged.
 No scoped gate is deferred. Theme states remain iteration 17; integrated
 library/generated-definition/performance reacceptance remains iteration 22.
+
+### Iteration 17 — in progress
+
+Starting from clean dev/milestone-14 after fa5e72f. References/Rename will reuse
+Visual Studio's public themed-control style keys, preserving their selection,
+hover, focus and disabled templates. Shared fallback styles support isolated WPF
+rendering with injected Light/Dark/High Contrast palettes. Overlay styles retain
+bindings, commands, automation and virtualization while native styles resolve or
+change through dynamic resources; no brush snapshots or global theme subscriptions
+are retained. Reference tree items, rename rows, labels, inputs and popup menus
+must all receive the theme, including recycled and inactive selected rows.
+Required native theme checks remain on both IDE hosts, run sequentially.
+
+References: the pinned VSSDK public VsResourceKeys documentation describes themed
+control styles and its default-style dictionary; WPF dependency-property
+precedence explains why a themed parent cannot fix child default-style colors.
+See [VsResourceKeys](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.shell.vsresourcekeys?view=visualstudiosdk-2022)
+and [WPF property precedence](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/properties/dependency-property-value-precedence).
+No iteration-17 acceptance is claimed yet.
+
+- Added shared styles and a dynamic native-style overlay using the public VSSDK
+  keys. It preserves the IDE's actual templates and triggers, keeps only layout/
+  behavior setters above them and drops isolated fallback state rules once native
+  resources resolve. It aborts queued work on unload and has no global event
+  subscriptions. Lists use the ListView variants of the public native row styles,
+  retaining ListBox selection/automation contracts, recycling and pixel scrolling.
+- The first build catches SelectionTextBrush being unavailable in the net472
+  reference surface. Isolated textbox selection now uses the matching system
+  highlight pair; production retains native TextBox styling. RenderingInitial
+  passes the three existing reference/review/scrolling checks (2 seconds).
+- New palette tests initially referenced Shell.15.0 compile-time types, while this
+  test project deliberately copies that assembly only for BAML/runtime keys. They
+  now use the neighboring tests' public-resource-property lookup without adding a
+  compiler reference. Palettes passes 7 tests, zero failures/skips (4 seconds):
+  Light/Dark/High Contrast nested text, active/inactive/disabled rows, open menus,
+  live brush swaps, expansion/inclusion/acknowledgement through recycling, late
+  native-style replacement/removal and unload/reload behavior. The native fixture
+  build passes with zero warnings/errors; actual Light/Dark IDE changes, restored
+  settings and visual evidence on both hosts remain required.
+- The first native VS2022 case successfully changes to Light and restores the
+  original theme, then fails in its screenshot helper because the DTE tool-window
+  HWND is unavailable after the theme transition. Capture now targets the stable
+  named WPF surface. Its restored-Dark screenshot already shows readable nested
+  reference labels and selected text, but this is not the full native gate.
+  Retained result: TestResults/80669da5c8854c308df034e44612efeb.
+- Explicit virtualizing panels protect layout from native theme defaults.
+  PaletteVirtualization passes 10 palette/render/review tests, zero failures/skips
+  (5 seconds), including a native-style substitute that attempts to install a
+  non-virtualized panel. Native theme acceptance is being repeated.
+- Stable-frame capture avoids recording WPF/DWM window fade transitions as theme
+  defects. VS2022 theme and Rename regression pass two cases in
+  TestResults/961184777c7a473aab1e735564975e36 (1 minute 24 seconds). Visual review
+  still identifies light disabled/inactive state backgrounds, so this is not the
+  final theme gate. The adapter now also reads the public default-style dictionary
+  directly by control type without replacing our implicit layout overlays.
+  NativeDefaults passes 11 focused theme/render tests (5 seconds); the repeated
+  native pair passes in TestResults/15bc43dd3d544f1989c95830b1fb6d12
+  (1 minute 18 seconds). Further review retains the live-theme state check.
+- Added initial-disabled and implicit-style invalidation coverage. The first
+  initial-disabled test incorrectly searches a not-yet-created visual tree;
+  it now obtains the original implicit style from the control's public resources.
+  DisabledInitialFixed passes all eight palette/native-adapter tests (4 seconds).
+  The adapter also observes its own Style property through a WPF binding so a
+  theme's implicit-style invalidation cannot silently discard the composed native
+  style while retaining the same native resource identity. There are no global
+  event subscriptions. StyleInvalidation passes all 11 focused theme/render tests
+  (5 seconds). Both native hosts and final regressions remain required.
+- The style-invalidation correction removes the light disabled Apply button in
+  the actual Dark capture. VS2022 passes both final theme/interaction cases in
+  TestResults/b3882aa40786408a96474aca8502c6ae (1 minute 45 seconds). Selection
+  fallback colors now use the public TreeViewColors active/inactive pairs rather
+  than window-caption colors. TreePalette passes the same 11 focused tests
+  (5 seconds); native verification of this final palette adjustment follows.
+  Public [TreeViewColors](https://learn.microsoft.com/en-us/dotnet/api/microsoft.visualstudio.platformui.treeviewcolors?view=visualstudiosdk-2022)
+  keys are verified against the pinned assembly's exported properties as well.
+- The first VS2026 batch passes ReferencesRename but its theme case stops before
+  input because an external console covers the IDE. The foreground guard remains
+  intact (TestResults/49f98aa6f62d4eee9125bc553d26c1df). A theme-only repeat reaches
+  Rename, then times out looking for a modal Options dialog; retained automation
+  shows this installation uses the newer nonmodal SettingsWindowControl
+  (TestResults/e6c6c88a47b04b199db7e82e4b40454a). The fixture now supports both
+  public UI surfaces, hides its floating panes while changing settings and captures
+  the original theme before any mutation. Modern Options switches to Light, Dark
+  and back to the original theme in the next attempt; that attempt then exposes a
+  missing presenter-readiness wait after showing Rename, now added
+  (TestResults/7015dcfb48be4a45adbc211489ddf5ed).
+- Paired system selection aliases are needed for stock WPF templates that color
+  their internal border directly. A first Style.Resources color-based alias has
+  no owning element context in isolated rendering (TemplatePalette: eight pass,
+  three fail). Aliases now resolve live VS brushes in each row's own scope,
+  without snapshots or global events. ScopedTemplatePalette and LiveTemplatePalette
+  each pass all 11 focused tests (5 seconds), including live alias replacement.
+  Native acceptance on both hosts and the final full suites remain pending.
+- VS2026 ReferencesRename again passes, but the theme case still loses accessible
+  child discovery on the second transition (TestResults/d003a9f3d04c4ac2bdcf30201b4212bb).
+  A stable pre-query capture proves the expanded preview itself remains visible
+  and readable; ordinary virtualization Realize/ScrollIntoView does not restore
+  discovery (TestResults/71e54b118a934ebca6deacb56ceb210a). Native acceptance is
+  still incomplete. The adapter now invalidates existing WPF peers and their
+  EventsSource after loading/composing styles, without creating automation peers
+  or querying UI Automation clients. AutomationRefresh passes the 11 focused
+  tests (5 seconds); native verification remains required. See the public
+  [InvalidatePeer](https://learn.microsoft.com/en-us/dotnet/api/system.windows.automation.peers.automationpeer.invalidatepeer)
+  and [EventsSource](https://learn.microsoft.com/en-us/dotnet/api/system.windows.automation.peers.automationpeer.eventssource)
+  contracts. No private reflection or automation-based production behavior is used.
+- The public peer refresh resolves the native accessibility regression. VS2026
+  ReferenceThemes passes, zero failures/skips, in
+  TestResults/daccae18fea049519aeeeb659a292073 (39 seconds). Final VS2022 theme
+  and ReferencesRename both pass, zero failures/skips, in
+  TestResults/29369d05082f4661ad7b0513bcccf411 (1 minute 39 seconds). Reviewed
+  stable Light/Dark captures for nested/active/inactive text, disabled controls,
+  expanded before/after text and popup menus: colors remain readable and the
+  inactive selection uses the VS palette. Both fixtures restore the original
+  theme and leave saved source bytes and the proposed name intact. The final
+  VS2026 interaction repeat, full host suite and packaged checks follow.
+
+### Iteration 17 — complete
+
+References and Rename use shared dynamic VS styles, including nested labels,
+inputs, buttons, checkboxes, selected/inactive/disabled rows and popup menus.
+The adapter composes layout above the public native control templates, handles
+late resources and implicit-style invalidation, resolves paired selection brushes
+in each row's scope and refreshes existing accessibility peers after presentation
+changes. Explicit virtualizing panels, pixel scrolling, commands and review intent
+survive theme changes. No global theme handlers or brush snapshots are retained.
+The native fixture supports classic and modern Options, captures settled frames
+and restores the original IDE theme even if subsequent acceptance fails.
+
+| Final gate | Actual result |
+| --- | --- |
+| Full host suite | 953 passed, zero failures/skips; HostFinal (2 minutes 18 seconds). |
+| Focused palette/render/review checks | 11 passed; AutomationRefresh (5 seconds), overlapping the full suite. Light/Dark/High Contrast injection, nested active/inactive/disabled text, live resource and template aliases, initial-disabled native styles, implicit-style invalidation, unload/reload, recycling and review intent. |
+| Packaged VSIX net472 / net8.0 | 14 / 14 passed, zero failures/skips; Integration472Final / Integration8Final (11 seconds each). |
+| Native VS2022 theme and Rename | 2 passed, zero failures/skips; TestResults/29369d05082f4661ad7b0513bcccf411 (1 minute 39 seconds). |
+| Native VS2026 theme | 1 passed, zero failures/skips; TestResults/daccae18fea049519aeeeb659a292073 (39 seconds). |
+| Native VS2026 final Rename repeat | 1 passed, zero failures/skips; TestResults/634ded8e89204cd687d9c144387994d0 (53 seconds). |
+| Review | Whitespace diff passes; 127 local documentation/guidance links resolve. No generated outputs or unrelated changes are included. |
+
+Host/package results are under artifacts/log/Debug/Milestone14/Iteration17.
+Commands use dotnet test on the corresponding test project with --no-restore
+-v quiet -m:1 -nr:false --logger trx; package runs select net472/net8.0.
+Native commands use eng/test-visualstudio.ps1 with the selected installation,
+RootSuffix Alarmlist13Exp and Area=ReferenceThemes/ReferencesRename, sequentially.
+Stable native Light/Dark captures on both hosts were visually reviewed, including
+readable expanded previews, disabled buttons, selected/inactive text and menus.
+High Contrast is covered through injected palettes; no operating-system theme
+change is claimed. Earlier failures, their actual causes and successful repeats
+remain above. No iteration-17 gate is deferred. Analysis 9/analyzer 5/library 3/
+export 1 and semantic fingerprints remain unchanged. Iteration 18 starts the
+compiler's formal expression syntax; the broader integrated gates remain 22.

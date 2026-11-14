@@ -1,0 +1,130 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
+                    xmlns:shell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
+                    xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0">
+  <!-- These fallbacks also make isolated rendering use the same live palette.
+       Inside Visual Studio, ThemeStyle retains the IDE's native templates/states. -->
+  <Style x:Key="SemanticFocus" TargetType="Control">
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Control">
+      <Border Margin="1" BorderThickness="1" BorderBrush="{DynamicResource {x:Static vs:EnvironmentColors.SystemHighlightBrushKey}}" />
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="SemanticControlFallback" TargetType="Control">
+    <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource SemanticFocus}" />
+    <Style.Triggers><Trigger Property="IsEnabled" Value="False">
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.SystemGrayTextBrushKey}}" />
+    </Trigger></Style.Triggers>
+  </Style>
+  <Style x:Key="SemanticButtonFallback" TargetType="Button" BasedOn="{StaticResource SemanticControlFallback}">
+    <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+    <Style.Triggers><MultiTrigger><MultiTrigger.Conditions><Condition Property="IsMouseOver" Value="True" /><Condition Property="IsEnabled" Value="True" /></MultiTrigger.Conditions>
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.SystemHighlightBrushKey}}" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.SystemHighlightTextBrushKey}}" />
+    </MultiTrigger></Style.Triggers>
+  </Style>
+  <Style x:Key="SemanticButton" TargetType="Button" BasedOn="{StaticResource SemanticButtonFallback}">
+    <Setter Property="ui:ThemeStyle.Key" Value="{x:Static shell:VsResourceKeys.ThemedDialogButtonStyleKey}" />
+    <Setter Property="ui:ThemeStyle.Fallback" Value="{StaticResource SemanticButtonFallback}" />
+    <Setter Property="Padding" Value="8,3" />
+  </Style>
+  <Style TargetType="Button" BasedOn="{StaticResource SemanticButton}" />
+  <Style x:Key="SemanticCheckBoxFallback" TargetType="CheckBox" BasedOn="{StaticResource SemanticControlFallback}" />
+  <Style x:Key="SemanticCheckBox" TargetType="CheckBox" BasedOn="{StaticResource SemanticCheckBoxFallback}">
+    <Setter Property="ui:ThemeStyle.Key" Value="{x:Static shell:VsResourceKeys.ThemedDialogCheckBoxStyleKey}" />
+    <Setter Property="ui:ThemeStyle.Fallback" Value="{StaticResource SemanticCheckBoxFallback}" />
+  </Style>
+  <Style TargetType="CheckBox" BasedOn="{StaticResource SemanticCheckBox}" />
+  <Style x:Key="SemanticLabelFallback" TargetType="Label" BasedOn="{StaticResource SemanticControlFallback}" />
+  <Style TargetType="Label" BasedOn="{StaticResource SemanticLabelFallback}">
+    <Setter Property="ui:ThemeStyle.Key" Value="{x:Static shell:VsResourceKeys.ThemedDialogLabelStyleKey}" />
+    <Setter Property="ui:ThemeStyle.Fallback" Value="{StaticResource SemanticLabelFallback}" />
+  </Style>
+  <Style x:Key="SemanticTextBoxFallback" TargetType="TextBox" BasedOn="{StaticResource SemanticControlFallback}">
+    <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+    <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
+    <!-- net472 pairs selected text with the system highlight foreground. -->
+    <Setter Property="SelectionBrush" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
+  </Style>
+  <Style x:Key="SemanticTextBox" TargetType="TextBox" BasedOn="{StaticResource SemanticTextBoxFallback}">
+    <Setter Property="ui:ThemeStyle.Key" Value="{x:Static shell:VsResourceKeys.ThemedDialogTextBoxStyleKey}" />
+    <Setter Property="ui:ThemeStyle.Fallback" Value="{StaticResource SemanticTextBoxFallback}" />
+    <Setter Property="Padding" Value="5,3" />
+  </Style>
+  <Style TargetType="TextBox" BasedOn="{StaticResource SemanticTextBox}" />
+  <Style x:Key="SemanticTreeFallback" TargetType="TreeView" BasedOn="{StaticResource SemanticControlFallback}" />
+  <Style TargetType="TreeView" BasedOn="{StaticResource SemanticTreeFallback}">
+    <Setter Property="ui:ThemeStyle.Key" Value="{x:Static shell:VsResourceKeys.ThemedDialogTreeViewStyleKey}" />
+    <Setter Property="ui:ThemeStyle.Fallback" Value="{StaticResource SemanticTreeFallback}" />
+  </Style>
+  <Style x:Key="SemanticTreeItemFallback" TargetType="TreeViewItem" BasedOn="{StaticResource SemanticControlFallback}">
+    <Style.Triggers>
+      <Trigger Property="IsSelected" Value="True">
+        <Setter Property="Background" Value="{DynamicResource {x:Static vs:TreeViewColors.SelectedItemActiveBrushKey}}" />
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:TreeViewColors.SelectedItemActiveTextBrushKey}}" />
+      </Trigger>
+      <MultiTrigger><MultiTrigger.Conditions><Condition Property="IsSelected" Value="True" /><Condition Property="Selector.IsSelectionActive" Value="False" /></MultiTrigger.Conditions>
+        <Setter Property="Background" Value="{DynamicResource {x:Static vs:TreeViewColors.SelectedItemInactiveBrushKey}}" />
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:TreeViewColors.SelectedItemInactiveTextBrushKey}}" />
+      </MultiTrigger>
+      <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.SystemGrayTextBrushKey}}" /></Trigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="SemanticTreeItem" TargetType="TreeViewItem" BasedOn="{StaticResource SemanticTreeItemFallback}">
+    <Setter Property="ui:ThemeStyle.SelectionPalette" Value="True" />
+    <Setter Property="ui:ThemeStyle.Key" Value="{x:Static shell:VsResourceKeys.ThemedDialogTreeViewItemStyleKey}" />
+    <Setter Property="ui:ThemeStyle.Fallback" Value="{StaticResource SemanticTreeItemFallback}" />
+    <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="TreeViewItem" BasedOn="{StaticResource SemanticTreeItem}" />
+  <Style x:Key="SemanticListFallback" TargetType="ListView" BasedOn="{StaticResource SemanticControlFallback}" />
+  <Style x:Key="SemanticList" TargetType="ListView" BasedOn="{StaticResource SemanticListFallback}">
+    <Setter Property="ui:ThemeStyle.Key" Value="{x:Static shell:VsResourceKeys.ThemedDialogListViewStyleKey}" />
+    <Setter Property="ui:ThemeStyle.Fallback" Value="{StaticResource SemanticListFallback}" />
+    <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></Setter.Value></Setter>
+  </Style>
+  <Style TargetType="ListView" BasedOn="{StaticResource SemanticList}" />
+  <Style x:Key="SemanticListItemFallback" TargetType="ListViewItem" BasedOn="{StaticResource SemanticControlFallback}">
+    <Style.Triggers>
+      <Trigger Property="IsSelected" Value="True">
+        <Setter Property="Background" Value="{DynamicResource {x:Static vs:TreeViewColors.SelectedItemActiveBrushKey}}" />
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:TreeViewColors.SelectedItemActiveTextBrushKey}}" />
+      </Trigger>
+      <MultiTrigger><MultiTrigger.Conditions><Condition Property="IsSelected" Value="True" /><Condition Property="Selector.IsSelectionActive" Value="False" /></MultiTrigger.Conditions>
+        <Setter Property="Background" Value="{DynamicResource {x:Static vs:TreeViewColors.SelectedItemInactiveBrushKey}}" />
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:TreeViewColors.SelectedItemInactiveTextBrushKey}}" />
+      </MultiTrigger>
+      <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.SystemGrayTextBrushKey}}" /></Trigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="SemanticListItem" TargetType="ListViewItem" BasedOn="{StaticResource SemanticListItemFallback}">
+    <Setter Property="ui:ThemeStyle.SelectionPalette" Value="True" />
+    <Setter Property="ui:ThemeStyle.Key" Value="{x:Static shell:VsResourceKeys.ThemedDialogListViewItemStyleKey}" />
+    <Setter Property="ui:ThemeStyle.Fallback" Value="{StaticResource SemanticListItemFallback}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style TargetType="ListViewItem" BasedOn="{StaticResource SemanticListItem}" />
+  <Style TargetType="Expander" BasedOn="{StaticResource SemanticControlFallback}">
+    <Setter Property="Foreground" Value="{Binding (TextElement.Foreground), RelativeSource={RelativeSource AncestorType=FrameworkElement}}" />
+  </Style>
+  <Style x:Key="SemanticMenuItemFallback" TargetType="MenuItem" BasedOn="{StaticResource SemanticControlFallback}">
+    <Style.Triggers>
+      <Trigger Property="IsHighlighted" Value="True">
+        <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.SystemHighlightBrushKey}}" />
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.SystemHighlightTextBrushKey}}" />
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.SystemGrayTextBrushKey}}" /></Trigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="SemanticMenuFallback" TargetType="ContextMenu" BasedOn="{StaticResource SemanticControlFallback}">
+    <Style.Resources><Style TargetType="MenuItem" BasedOn="{StaticResource SemanticMenuItemFallback}" /></Style.Resources>
+    <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+  </Style>
+  <Style x:Key="SemanticContextMenu" TargetType="ContextMenu" BasedOn="{StaticResource SemanticMenuFallback}">
+    <Setter Property="ui:ThemeStyle.Key" Value="{x:Static shell:VsResourceKeys.ContextMenuStyleKey}" />
+    <Setter Property="ui:ThemeStyle.Fallback" Value="{StaticResource SemanticMenuFallback}" />
+  </Style>
+</ResourceDictionary>

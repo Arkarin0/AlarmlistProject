@@ -38,8 +38,11 @@ syntax, open questions and statements about future work in that history.
 
 Milestone 14 follow-up iterations 15–22 are authorized: context-menu value actions,
 a dockable Rename window with corrected scrolling/themes, formal expression syntax,
-compiler-provided classification and XML/designer/RESX semantic commands. These are
-planned follow-up work; completed reference/rename behavior remains recorded in the
+compiler-provided classification and XML/designer/RESX semantic commands.
+Iterations 15–17 are complete with both-IDE acceptance (status updated 2026-11-14):
+context menus, independent dockable Rename, reliable preview scrolling and live
+themes. Formal syntax and semantic editor/RESX work remain planned in 18–22;
+completed reference/rename behavior and actual evidence remain recorded in the
 [milestone plan](src/VisualStudio/MILESTONE-14.md).
 
 ## Priorities and scope

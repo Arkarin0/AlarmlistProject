@@ -171,3 +171,12 @@ The native tutorial consumes the article's XML with consistent line endings.
 Validation passes 945 host tests, 14 packaged checks per framework and native
 window/tutorial/resource/lookup workflows on both IDEs. The milestone records
 exact results, cross-project context routing, setup failures and successful repeats.
+
+Milestone 14 iteration 17 documents live Visual Studio themes for References and
+Rename, preserving searches and review intent. Shared native control styles and
+paired selection colors cover nested and disabled states; existing accessibility
+peers refresh after template changes. Validation passes 953 host tests, 14 packaged
+checks per framework and sequential native theme/Rename cases on both IDE hosts.
+Light/Dark captures were visually reviewed; High Contrast uses injected palettes.
+The native fixture supports classic and modern Options and restores the original
+theme. Exact evidence and resolved failures remain in the milestone plan.

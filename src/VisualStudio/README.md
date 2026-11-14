@@ -349,6 +349,12 @@ Native and integrated acceptance results, measurements and limitations are
 recorded in the milestone plan. Run Area=ReferencesRename,
 Area=SharedReferencesRename and Area=AuxiliaryReferencesRename sequentially on
 both IDE hosts; do not overlap desktop MSBuild checks with those runs.
+Area=ReferenceThemes changes the owned IDE between Light and Dark through its
+native Options surface and restores the original theme. It retains the current
+Rename review and captures nested text, selection, disabled controls and menus.
+Run it sequentially with the other native and WPF checks. Shared dynamic styles
+preserve native templates and refresh existing accessibility peers after template
+changes; isolated host tests inject Light/Dark/High Contrast palettes.
 
 The bridge accepts analysis contract 9 and loads the resolved SDK's net472 compiler
 in an isolated domain. Explain this value uses the same captured project inputs

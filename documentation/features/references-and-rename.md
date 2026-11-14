@@ -42,6 +42,10 @@ floating it preserves the current review. New reference searches do not replace
 that review. A new Rename replaces it; source or context changes invalidate it.
 An Apply operation must finish or roll back before another Rename can start.
 
+References and Rename follow the current Visual Studio theme, including selected,
+inactive and disabled controls. Changing the theme preserves the current search,
+new name, selected changes and expanded preview entries.
+
 Enter the new name and choose **Preview changes**. The preview
 shows before/after text, skipped findings, conflicts and diagnostic differences.
 You can exclude editable changes and revalidate the resulting selection. Partial

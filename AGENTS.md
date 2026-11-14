@@ -186,6 +186,12 @@ but must never share mutable search/preview state or cancel Rename on a new Find
 Hide/reopen preserves review; Cancel clears approval; replacement waits for Apply
 or rollback. Keep expanded change state in the change view model and use a bounded
 pixel-scrolling virtualized list with no competing before/after vertical scroll.
+References/Rename share dynamic Visual Studio styles and paired selection colors.
+Preserve native templates/state rules when adding layout overlays, including
+implicit-style invalidation during a live theme change. Keep explicit virtualizing
+panels and review state through theme swaps. Isolated rendering tests inject
+Light/Dark/High Contrast palettes; Area=ReferenceThemes verifies actual Light/Dark
+changes and restores the original setting on each owned experimental IDE.
 Marked text headings must own their entire pointer hit area, including space past
 their glyphs. Verify actual hit testing and native pointer menus as well as routed
 commands. Native shared-result checks may recapture the same explicit token after

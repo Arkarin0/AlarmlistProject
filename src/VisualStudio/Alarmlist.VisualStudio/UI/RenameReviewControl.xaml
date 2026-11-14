@@ -2,16 +2,20 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="clr-namespace:Alarmlist.VisualStudio.UI"
+             xmlns:shell="clr-namespace:Microsoft.VisualStudio.Shell;assembly=Microsoft.VisualStudio.Shell.15.0"
              xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+             ui:ThemeStyle.Defaults="{DynamicResource {x:Static shell:VsResourceKeys.ThemedDialogDefaultStylesKey}}"
+             Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+             Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
              AutomationProperties.Name="Rename review">
   <UserControl.Resources>
-    <BooleanToVisibilityConverter x:Key="BooleanVisibility" />
-    <Style TargetType="TextBox">
-      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
-      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
-      <Setter Property="Padding" Value="5,3" />
-    </Style>
-    <Style TargetType="Button"><Setter Property="Padding" Value="8,3" /><Setter Property="Margin" Value="0,0,6,0" /></Style>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Alarmlist.VisualStudio;component/UI/ReferenceThemeResources.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+      <BooleanToVisibilityConverter x:Key="BooleanVisibility" />
+      <Style TargetType="Button" BasedOn="{StaticResource SemanticButton}"><Setter Property="Padding" Value="8,3" /><Setter Property="Margin" Value="0,0,6,0" /></Style>
+    </ResourceDictionary>
   </UserControl.Resources>
   <Grid Margin="4">
     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
@@ -45,14 +49,15 @@
         <TextBlock Text="I understand the skipped findings, remaining references and expected diagnostic changes." TextWrapping="Wrap" />
       </CheckBox>
     </StackPanel>
-      <ListBox Grid.Row="1" x:Name="ChangesList" ItemsSource="{Binding Changes}" ScrollViewer.CanContentScroll="True" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+      <ListView Grid.Row="1" x:Name="ChangesList" ItemsSource="{Binding Changes}" ScrollViewer.CanContentScroll="True" VirtualizingPanel.ScrollUnit="Pixel" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling"
                AutomationProperties.Name="Editable rename change groups" AutomationProperties.AutomationId="RenameChanges"
                Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
                Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
-        <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListBox.ItemContainerStyle>
-        <ListBox.ItemTemplate><DataTemplate>
-          <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}" Margin="0,3" Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}">
+        <ListView.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListView.ItemsPanel>
+        <ListView.ItemContainerStyle><Style TargetType="ListViewItem" BasedOn="{StaticResource SemanticListItem}"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style></ListView.ItemContainerStyle>
+        <ListView.ItemTemplate><DataTemplate>
+          <Expander IsExpanded="{Binding IsExpanded, Mode=TwoWay}" AutomationProperties.Name="{Binding Label}" Margin="0,3">
             <Expander.Header><TextBlock Text="{Binding Label}" TextWrapping="Wrap" /></Expander.Header>
             <StackPanel Margin="8,3">
               <CheckBox Content="Include this change" IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanSelect}"
@@ -63,7 +68,7 @@
               <TextBox Text="{Binding After, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="OnPreviewTextMouseWheel" PreviewKeyDown="OnPreviewTextKeyDown" AutomationProperties.Name="After rename" />
             </StackPanel>
           </Expander>
-        </DataTemplate></ListBox.ItemTemplate>
-      </ListBox>
+        </DataTemplate></ListView.ItemTemplate>
+      </ListView>
   </Grid>
 </UserControl>
