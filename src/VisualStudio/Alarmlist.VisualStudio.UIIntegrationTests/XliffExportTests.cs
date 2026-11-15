@@ -39,7 +39,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             };
             foreach (string argument in new[] { "msbuild", "Plant.almproj", "/nologo", "/nr:false", "/v:minimal", "/t:ExportAlarmlistXliff", "/p:AlarmlistXliffTargetCultures=de" })
                 start.ArgumentList.Add(argument);
-            using (Process process = Process.Start(start))
+            using (var process = OwnedTestProcess.Start(start))
             {
                 Task<string> stdout = process.StandardOutput.ReadToEndAsync(), stderr = process.StandardError.ReadToEndAsync();
                 if (!process.WaitForExit(60000))

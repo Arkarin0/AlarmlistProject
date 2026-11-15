@@ -19,6 +19,7 @@
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioAutomation.cs" Link="VisualStudioAutomation.cs" />
     <Compile Include="../Alarmlist.VisualStudio/Editing/SourceEdit.cs;../Alarmlist.VisualStudio/Editing/LinkedDocumentEdit.cs;../Alarmlist.VisualStudio/Editor/DteLinkedEditWorkspace.cs" Link="RenameTransaction/%(Filename)%(Extension)" />
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioTestDeployment.cs" Link="VisualStudioTestDeployment.cs" />
+    <Compile Include="../../shared/VisualStudioTesting/OwnedTestProcess*.cs" Link="ProcessCleanup/%(Filename)%(Extension)" />
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" ReferenceOutputAssembly="false"
                       SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" />
     <ProjectReference Include="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false"
@@ -31,6 +32,7 @@
     <AssemblyMetadata Include="BuildConfiguration" Value="$(Configuration)" />
   </ItemGroup>
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+  <Import Project="../../shared/VisualStudioTesting/ProcessCleanupAssets.targets" />
   <Target Name="PrepareUiTestAssets" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
     <MSBuild Projects="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" Targets="GetTargetPath"
              Properties="Configuration=$(Configuration)" RemoveProperties="TargetFramework">

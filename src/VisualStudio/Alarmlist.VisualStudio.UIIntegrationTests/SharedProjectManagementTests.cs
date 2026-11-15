@@ -224,7 +224,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
                 start.Environment.Remove("NUGET_PACKAGES");
                 foreach (string argument in new[] { "msbuild", consumer, "/restore", "/t:Rebuild", "/nr:false", "/v:minimal" }) start.ArgumentList.Add(argument);
-                using var process = Process.Start(start);
+                using var process = OwnedTestProcess.Start(start);
                 var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
                 Assert.True(process.WaitForExit(120000), "IDE-authored shared consumer build timed out.");
                 string output = stdout.GetAwaiter().GetResult() + stderr.GetAwaiter().GetResult();

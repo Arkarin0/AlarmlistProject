@@ -66,6 +66,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         private static void CheckSavedLibraryAnalysis(VisualStudioSession ide, UiTestWorkspace workspace)
         {
+            // The preceding Rename scenario can leave a persisted floating
+            // review frame over this case's Summary value. Start explicitly.
+            ReferenceAcceptanceUi.Hide(ide);
             workspace.CreateProject(ide, build: false);
             ide.Automation.Solution.Close(false);
             string consumerPath = Path.Combine(workspace.ProjectDirectory, "Plant.almproj");
@@ -97,6 +100,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             SelectPreviewTab(window, "Alarm table summary");
             VisualStudioSession.Wait(() => PreviewRows(window).Any(row => row.Name == "Consumer — Saved library"),
                 "saved out-of-solution library analysis without Build");
+            var summaryFrame = ide.Automation.Windows.Item("Alarm Summary");
+            summaryFrame.IsFloating = true; summaryFrame.Width = 1000; summaryFrame.Height = 650;
+            summaryFrame.Left = window.BoundingRectangle.Left + 40; summaryFrame.Top = window.BoundingRectangle.Top + 80;
+            summaryFrame.Activate();
             SelectPreviewTab(window, "Selected alarm summary");
             VisualStudioSession.Wait(() => PreviewValue(window, "Resolved Name")?.Text == "Saved library", "inherited library preview");
             ValueExplanationUi.Explain(ide, window, "Explain this value for resolved Name", "Saved library", "Inheritance:");

@@ -53,6 +53,7 @@ independently after preparing its tools.
 11. [Export resolved alarms](tutorials/export-resolved-alarms.md).
 12. [Trace an inherited value to its sources](tutorials/explain-a-value.md).
 13. [Find and rename an inherited alarm](tutorials/find-and-rename-an-alarm.md).
+14. [Edit and navigate expression tokens](tutorials/edit-expression-tokens.md).
 
 ## Create an article
 

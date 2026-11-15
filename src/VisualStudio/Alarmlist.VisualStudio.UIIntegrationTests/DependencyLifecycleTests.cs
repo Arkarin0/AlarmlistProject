@@ -223,7 +223,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
             start.Environment.Remove("NUGET_PACKAGES");
             foreach (string argument in arguments) start.ArgumentList.Add(argument);
-            using var process = Process.Start(start);
+            using var process = OwnedTestProcess.Start(start);
             var stdout = process.StandardOutput.ReadToEndAsync();
             var stderr = process.StandardError.ReadToEndAsync();
             Assert.True(process.WaitForExit(120000), "Playground preparation timed out.");

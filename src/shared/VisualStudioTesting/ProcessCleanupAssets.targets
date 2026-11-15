@@ -1,0 +1,23 @@
+<Project>
+  <PropertyGroup>
+    <ProcessCleanupProbeFramework Condition="'$(TargetFramework)' == 'net472'">net472</ProcessCleanupProbeFramework>
+    <ProcessCleanupProbeFramework Condition="'$(TargetFramework)' != 'net472'">net8.0</ProcessCleanupProbeFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(RepoRoot)eng/testassets/ProcessCleanup/ProcessCleanup.Probe.csproj" ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" GlobalPropertiesToRemove="TargetFramework" />
+  </ItemGroup>
+  <Target Name="PrepareProcessCleanupProbe" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="ResolveProjectReferences">
+    <MSBuild Projects="$(RepoRoot)eng/testassets/ProcessCleanup/ProcessCleanup.Probe.csproj" Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration);TargetFramework=$(ProcessCleanupProbeFramework)">
+      <Output TaskParameter="TargetOutputs" ItemName="_ProcessCleanupProbe" />
+    </MSBuild>
+    <PropertyGroup>
+      <_ProcessCleanupProbeDirectory>@(_ProcessCleanupProbe->'%(RootDir)%(Directory)')</_ProcessCleanupProbeDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <_ProcessCleanupAsset Include="$(_ProcessCleanupProbeDirectory)ProcessCleanup.Probe.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ProcessCleanupAsset)" DestinationFolder="$(TargetDir)testassets/ProcessCleanup" />
+  </Target>
+</Project>

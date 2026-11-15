@@ -15,13 +15,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 {
     internal sealed class VisualStudioSession : IDisposable
     {
-        private readonly Process _process;
+        private readonly OwnedTestProcess _process;
         private readonly string _directory;
         private DTE _dte;
         private bool _disposed;
         private bool _filterRegistered;
         private readonly Timer _watchdog;
         private int _timedOut;
+        private int _cleanupTimedOut;
 
         public VisualStudioSession(string version, string solution, string directory)
         {
@@ -33,8 +34,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 throw new InvalidOperationException("The configured Visual Studio installation does not match " + version);
             string suffix = Environment.GetEnvironmentVariable("ALARMLIST_VS_ROOT_SUFFIX") ?? "AlarmlistExp";
             if (!Regex.IsMatch(suffix, "^[A-Za-z][A-Za-z0-9_]*$")) throw new InvalidOperationException("Invalid experimental root suffix.");
-            // Suppress an inherited console host; the IDE's GUI is explicitly
-            // shown below. A terminal can otherwise cover the test's work area.
+            // The IDE is shown explicitly below. The private process job also
+            // contains its descendants through failed startup and teardown.
             var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true };
             start.Environment["NUGET_PACKAGES"] = Path.Combine(directory, ".packages");
             // Each fixture owns its IDE and private SDK/feed. Do not reuse
@@ -45,7 +46,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 throw new InvalidOperationException("ALARMLIST_VS_TIMEOUT_SECONDS must be between 30 and 7200.");
             foreach (string argument in new[] { solution, "/RootSuffix", suffix, "/Log", Path.Combine(directory, "ActivityLog.xml") })
                 start.ArgumentList.Add(argument);
-            _process = Process.Start(start);
+            _process = OwnedTestProcess.Start(start);
             try
             {
                 // Retain the handle of this exact process; cleanup never looks up a recycled PID.
@@ -142,6 +143,22 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         public void RequireForeground()
             => RequireForeground(_process.Id);
 
+        internal static bool IsKeyPressed(int virtualKey) => (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+
+        internal static bool TryForeground(FlaUI.Core.AutomationElements.Window window, int process)
+        {
+            // Preserve an already-active owned floating frame. UI Automation
+            // focus can activate the shell when SetForeground alone is refused
+            // by Windows' foreground lock; this does not inject editor input.
+            try { RequireForeground(process); return true; }
+            catch (InvalidOperationException) { }
+            try { window.Focus(); }
+            catch (InvalidOperationException) { }
+            window.SetForeground();
+            try { RequireForeground(process); return true; }
+            catch (InvalidOperationException) { return false; }
+        }
+
         internal static void RequireForeground(int expectedProcess)
         {
             GetWindowThreadProcessId(GetForegroundWindow(), out uint processId);
@@ -158,6 +175,22 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         {
             if (_disposed) return;
             _disposed = true;
+            // DTE shutdown can itself block in a synchronous COM call, before
+            // WaitForExit is reached. Bound that phase independently of the
+            // scenario timeout, retaining ownership of the exact process handle.
+            using var cleanupWatchdog = new Timer(state =>
+            {
+                try
+                {
+                    if (_process.HasExited) return;
+                    System.Threading.Interlocked.Exchange(ref _cleanupTimedOut, 1);
+                    _process.Kill();
+                    File.WriteAllText(Path.Combine(_directory, "cleanup-timeout.txt"),
+                        "Owned IDE shutdown exceeded 30 seconds; stopped its retained process.");
+                }
+                catch (Exception exception) when (exception is InvalidOperationException || exception is System.ComponentModel.Win32Exception
+                    || exception is IOException || exception is UnauthorizedAccessException) { }
+            }, null, TimeSpan.FromSeconds(30), System.Threading.Timeout.InfiniteTimeSpan);
             try
             {
                 if (!_process.HasExited && _dte != null)
@@ -181,6 +214,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             }
             finally
             {
+                cleanupWatchdog.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 if (_watchdog != null) _watchdog.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 if (_dte != null) Marshal.ReleaseComObject(_dte);
                 _dte = null;
@@ -188,6 +222,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 if (_filterRegistered) VisualStudioAutomation.RestoreMessageFilter();
             }
             if (System.Threading.Volatile.Read(ref _timedOut) != 0) throw new TimeoutException("The UI case exceeded its configured timeout.");
+            if (System.Threading.Volatile.Read(ref _cleanupTimedOut) != 0) throw new TimeoutException("The owned IDE exceeded its cleanup timeout.");
         }
 
         public static void Wait(Func<bool> condition, string description, int timeoutSeconds = 60)
@@ -196,10 +231,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             do
             {
                 try { if (condition()) return; }
-                // The UIA provider can time out while the first designer tree is
-                // being created. Retry within the same bounded readiness wait.
+                // Readiness probes must be safe to retry. UIA can time out or
+                // replace elements while creating/refreshing the designer tree.
                 catch (COMException exception) when (exception.HResult == unchecked((int)0x80010001)
-                    || exception.HResult == unchecked((int)0x8001010A) || exception.HResult == unchecked((int)0x80131505)) { }
+                    || exception.HResult == unchecked((int)0x8001010A) || exception.HResult == unchecked((int)0x80131505)
+                    || exception.HResult == unchecked((int)0x80040201)) { }
                 Thread.Sleep(100);
             } while (timer.Elapsed < TimeSpan.FromSeconds(timeoutSeconds));
             throw new TimeoutException("Timed out: " + description);
@@ -207,6 +243,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         [DllImport("user32.dll")]
         private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int virtualKey);
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
     }

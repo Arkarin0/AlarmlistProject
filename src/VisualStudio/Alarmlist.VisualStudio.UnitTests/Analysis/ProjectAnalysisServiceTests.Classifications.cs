@@ -96,5 +96,34 @@ namespace Alarmlist.VisualStudio.UnitTests.Analysis
             }
             finally { await service.StopAsync(); }
         }
+
+        [Fact]
+        public async Task SuccessiveDraftVersionsReuseOnlyClassificationAndTheOriginalInputsAsync()
+        {
+            var files = new Inputs(); files.Set("A", "saved", 1);
+            var factory = new Factory { OnClassify = (request, token) =>
+            {
+                Assert.Equal("saved", Assert.Single(request.Inputs.Sources).Text);
+                Assert.True(request.Target.IsDraft);
+                return new ClassificationResponse(AnalysisAvailability.Available, "classified");
+            } };
+            var service = Create(files, factory);
+            try
+            {
+                service.UpdateProject(Project("Debug", "A")); await AvailableAsync(service);
+                var state = service.Current; const string typed = "draft $(AlarmlistAlarmCode)";
+                for (int version = 1; version <= typed.Length; version++)
+                {
+                    var target = new AnalysisClassificationTarget("typing", "Value",
+                        new AnalysisInput(typed.Substring(0, version), "value", version), ExplanationTarget(), isDraft: true);
+                    Assert.Equal(AnalysisAvailability.Available, (await service.ClassifyAsync(state, target, CancellationToken.None)).Availability);
+                }
+                var bridge = Assert.Single(factory.Bridges);
+                Assert.Equal(1, bridge.Calls); Assert.Equal(0, bridge.ExplanationCalls); Assert.Equal(typed.Length, bridge.ClassificationCalls);
+                Assert.False((object)bridge is ISdkReferenceBridge, "Typing must work without any reference-search/rename bridge.");
+                Assert.Same(state, service.Current);
+            }
+            finally { await service.StopAsync(); }
+        }
     }
 }

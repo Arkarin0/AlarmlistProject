@@ -120,7 +120,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 var start = new ProcessStartInfo("dotnet") { WorkingDirectory = workspace.DirectoryPath, UseShellExecute = false,
                     CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
                 foreach (string argument in new[] { "msbuild", project, "/nologo", "/nr:false", "/v:minimal" }.Concat(arguments)) start.ArgumentList.Add(argument);
-                using var process = Process.Start(start);
+                using var process = OwnedTestProcess.Start(start);
                 Task<string> stdout = process.StandardOutput.ReadToEndAsync(), stderr = process.StandardError.ReadToEndAsync();
                 if (!process.WaitForExit(60000)) { process.Kill(true); throw new TimeoutException("The owned package fixture process did not finish."); }
                 string log = stdout.GetAwaiter().GetResult() + stderr.GetAwaiter().GetResult();

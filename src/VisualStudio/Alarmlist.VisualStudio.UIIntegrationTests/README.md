@@ -29,6 +29,8 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Shared editor | Custom factory/native XML view, New Window/New Tab, shared document data, edit/undo/redo/Save All, XML-first opening and XML survival after designer closure | `SharedEditor` |
 | Coordinated rename transaction | Shared production coordinator/adapter edits ALMX, RESX, lookup and standalone project XML buffers, preserves disk bytes, performs one-step Undo/Redo, rolls back failure after all four edits and cancellation after two, and preserves prior Undo | `RenameTransaction` |
 | References and Rename themes | Actual IDE Light/Dark changes through classic or modern Options, nested/active/inactive text, disabled controls, expanded preview and popup captures, retained name and source bytes, accessible recycled presenters, and restoration of the original theme | `ReferenceThemes` |
+| Expression tutorial | Checked-in alarm/resource/project examples, native token navigation, draft cancellation, coordinated unsaved Rename/Undo/Redo and final three-culture Save/Build | `ExpressionTutorial` |
+| Large-project expression typing | Actual typing and lexical color observations with 1,001 alarms, unchanged committed source and no automatically opened References/Rename window | `ExpressionTyping` |
 | Designer Save As | Local and linked destinations and back, two views sharing RDT/buffer identity, subsequent saves and preservation of previous files | `SaveAs` |
 | XML Save As | The same Save As contract starting with the XML editor | `SaveAs` |
 | Live diagnostics | Publication before Build, exact navigation position, unload/reload, XML-only unsaved correction, disk/output preservation, discard and deletion | `LiveDiagnostics` |
@@ -159,11 +161,36 @@ feed containing only the exact SDK pinned by the built VSIX and a fresh package
 cache. Neutral Directory.Build files prevent inheriting repository build settings.
 Tests run serially on STA and share `Local\Alarmlist.LiveVisualStudioTests` with
 performance runs. Concurrent live suites are rejected. The fixture binds to its
-own PID, closes without saving and terminates only its own process if exit stalls.
+own PID and closes without saving. IDE, deployment and helper processes run in
+private kill-on-close jobs assigned atomically at creation. Cleanup terminates
+their surviving descendants after failure, timeout or root exit, using retained
+handles; no process-name sweep or existing Terminal termination is performed.
 `ALARMLIST_VS_TIMEOUT_SECONDS` defaults to 1,800 (range 30-7,200); the watchdog stops
 the owned IDE on timeout to break blocked automation and records the failure.
+Shutdown has a separate 30-second watchdog because synchronous DTE close calls
+can block before WaitForExit. A cleanup timeout fails the case and records
+cleanup-timeout.txt; forced termination uses only the fixture's owned job.
 An unresponsive native UIA call can still require runner intervention; use an
 interactive test session rather than a Windows service.
+
+`Area=ProcessCleanup` runs headless launcher regressions without the UI opt-in:
+normal/nonzero exit, timeout, exception, abrupt owner exit, descendant cleanup,
+separate-process isolation, redirected output and argument/environment fidelity.
+The same tests run on net472 in PerformanceTests. The test-only
+`eng/testassets/ProcessCleanup` probe is copied beside these runners, never into
+the VSIX. `Area=ProcessCleanupPreparation` runs actual example preparation twice
+on edited isolated copies using dotnet and installed desktop MSBuild hosts.
+It checks source preservation and that Windows PowerShell remains console-free;
+native tools are launched through `eng/Invoke-HeadlessTool.ps1`. These checks open
+no IDE and do not replace native failure/cleanup acceptance. Investigate ownership
+before attributing an unexpected Terminal foreground window to concurrent input.
+The functional PowerShell entry point uses that same direct launcher for dotnet;
+avoid native CLI observations from other windowless PowerShell sessions during
+desktop input, since those calls can allocate an unrelated foreground console.
+`Area=ProcessCleanupNative` supplies that separate two-host acceptance: inject a
+scenario failure through the real fixture, then verify the retained IDE, helper
+and descendant process handles are exited. Its expected failure artifacts remain;
+`expected-failure-cleanup.txt` is written only after all three exit checks pass.
 
 Artifacts are retained under
 `artifacts/log/<Configuration>/VisualStudioUI/<scenario>/<VSVersion>/<run-id>/`:
@@ -182,6 +209,11 @@ restores the clipboard and navigation preference. Run it on both IDEs, together
 with existing localization/lookup/list completion, explanation and reference
 checks, sequentially with other desktop suites. Composite control fixtures send
 input to their actual input child instead of assuming the wrapper is a TextBox.
+Caret commands wait for the native UIA selection range to reach the requested
+token prefix. Value-menu setup preserves an already-active owned floating frame
+instead of repeatedly activating the main IDE HWND. The tutorial/large typing
+mode confirms each native keyboard character; its measured totals include that
+UIA/polling work and are separate from compiler API timings or burst throughput.
 
 `Area=XmlExpressionNodes` validates compiler-provided XML colors with unchanged
 plain/escaped text, native pointer and Menu-key commands, prefix/nested targets,

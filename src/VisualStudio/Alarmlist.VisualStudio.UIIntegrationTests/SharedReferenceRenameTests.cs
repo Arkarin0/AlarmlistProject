@@ -115,6 +115,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     ReferenceAcceptanceUi.Hide(ide);
                     Position(token);
                     VisualStudioSession.Wait(() => (ById("Alarmlist.XmlAnalysisStatus")?.Name ?? "").Length == 0, "current shared XML analysis");
+                    VisualStudioSession.Wait(() => ide.Automation.Commands.Item("Refactor.Rename", 0).IsAvailable, "current shared XML Rename command");
+                    XmlCompletionTests.RequireXmlInput(ide, window, path);
                     ide.Automation.ExecuteCommand("Refactor.Rename");
                     EnvDTE.Window current = null;
                     VisualStudioSession.Wait(() =>

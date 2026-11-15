@@ -221,4 +221,31 @@ compiler tests, 981 host tests, three SDK package checks per runtime, 15 focused
 checks per desktop MSBuild host and 14 VSIX checks per framework. All six native
 editor/completion/explanation/reference scenarios have passing results on both
 IDEs. Actual failures, corrected readiness checks and successful repeats remain
-in MILESTONE-14.md. Integrated tutorial/performance acceptance remains iteration 22.
+in MILESTONE-14.md. Integrated tutorial/performance acceptance is completed in iteration 22 below.
+
+Milestone 14 iteration 22 is complete (2026-11-15). The expression-token tutorial is
+linked from the editing guide and tutorial index; its native fixture reads the
+article's four XML examples. Compiler suites pass 915/917 tests, project-analysis
+tests pass 57, and all 24 selected performance/cancellation cases pass. Generated
+collection runtimes also pass both frameworks with procedures enabled/disabled.
+Further WPF investigation reproduces and corrects menu preparation for text
+children added after their marked parent loads. Both regression cases and the
+full 984-test host suite pass. Packaged VSIX checks pass 14 per framework, SDK
+package checks pass three per framework, and focused SDK checks pass 15 per
+desktop MSBuild host. Both IDEs have passing native tutorial, designer, typing,
+shared Rename, project/package-library, XML/RESX, theme and prepared-example
+evidence. All four procedure-enabled/disabled generated-definition cases pass;
+both experimental profiles are restored to the standard extension and their
+final designer checks pass. Actual failures, corrected readiness/viewport
+handling and successful repeats remain in the milestone record.
+The user's leftover-console report exposed root-only cleanup and a preparation
+timeout path without helper termination. Test processes now use private owned
+jobs, and example preparation invokes native tools directly without allocating
+a console. Headless cleanup checks pass on net8.0 and net472; real preparation
+passes twice with dotnet and both desktop MSBuild hosts while preserving edited
+sources. Native injected-failure cleanup passes on both IDEs; both prepared-
+example repeats pass. The outer functional entry point also uses direct
+windowless dotnet execution. Unknown Terminal ownership is never attributed to
+user input or used to stop an existing window. No accepted-scope native gate
+remains open. The separately deferred standard RESX-table capability and measured
+large-document costs remain explicit limitations in the milestone plan.

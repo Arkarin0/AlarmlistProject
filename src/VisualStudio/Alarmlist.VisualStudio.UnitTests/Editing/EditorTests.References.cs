@@ -15,6 +15,41 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
 {
     public partial class EditorTests
     {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ValueMenusPrepareTextChildrenCreatedAfterTheirAnchorLoads(bool keyboard)
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var session = new SemanticSession())
+                using (var host = ExpressionHost())
+                {
+                    var anchor = new System.Windows.Controls.StackPanel();
+                    ValueContextMenu.SetTarget(anchor, session.Field("Name"));
+                    var owner = new System.Windows.Controls.Border { DataContext = session.View, Child = anchor };
+                    host.RootVisual = owner;
+                    InheritanceAdornerTests.Pump();
+                    var editor = new System.Windows.Controls.TextBox { IsReadOnly = true, Text = "resolved value" };
+                    anchor.Children.Add(editor);
+                    InheritanceAdornerTests.Pump();
+                    Assert.Null(editor.ContextMenu);
+                    if (keyboard)
+                        editor.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, host, 0, Key.Apps)
+                            { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+                    else
+                        editor.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Right)
+                            { RoutedEvent = Mouse.PreviewMouseDownEvent });
+                    Assert.NotNull(editor.ContextMenu);
+                    Assert.False(editor.ContextMenu.IsOpen);
+                    var menu = OpenValueMenu(editor);
+                    Assert.Same(editor.ContextMenu, menu);
+                    Assert.Contains(menu.Items.OfType<System.Windows.Controls.MenuItem>(), IsValueAction);
+                    menu.IsOpen = false;
+                    Assert.Equal(0, session.Buffer.Edits);
+                }
+            });
+        }
         [Fact]
         public void ValueMenusRequeryWhenOpenedAndCloseWhenTheirContextChanges()
         {

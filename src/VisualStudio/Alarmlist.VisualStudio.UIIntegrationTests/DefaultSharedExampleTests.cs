@@ -56,7 +56,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             string msbuild = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(ide.Automation.FullName), "..", "..", "MSBuild", "Current", "Bin", "MSBuild.exe"));
             for (int run = 0; run < 2; run++)
             {
-                RunExampleTool("powershell.exe", new[] { "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", Path.Combine(repository, "eng", "prepare-example.ps1"),
+                RunExampleTool("powershell.exe", new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", Path.Combine(repository, "eng", "prepare-example.ps1"),
                     "-Configuration", configuration, "-ExampleRoot", workspace.DirectoryPath, "-MSBuildPath", msbuild }, workspace.DirectoryPath, "prepare-" + run + ".log");
                 Assert.All(preserved, input => Assert.Equal(input.Value, File.ReadAllBytes(input.Key)));
             }
@@ -215,7 +215,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             var start = new ProcessStartInfo(executable) { WorkingDirectory = root, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
             start.Environment.Remove("NUGET_PACKAGES");
             foreach (string argument in arguments) start.ArgumentList.Add(argument);
-            using var process = Process.Start(start);
+            using var process = OwnedTestProcess.Start(start);
             var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
             Assert.True(process.WaitForExit(180000), "Ordinary example preparation/evaluation timed out.");
             string output = stdout.GetAwaiter().GetResult(), errors = stderr.GetAwaiter().GetResult();

@@ -154,21 +154,19 @@ namespace Alarmlist.VisualStudio.Testing
                 RedirectStandardOutput = true, RedirectStandardError = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8
             };
             start.EnvironmentVariables.Remove("PSModulePath");
-            var stdout = new StringBuilder();
-            var stderr = new StringBuilder();
-            using (var process = new Process { StartInfo = start })
+            using (var process = OwnedTestProcess.Start(start))
             {
-                process.OutputDataReceived += (_, item) => { if (item.Data != null) stdout.AppendLine(item.Data); };
-                process.ErrorDataReceived += (_, item) => { if (item.Data != null) stderr.AppendLine(item.Data); };
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+                var stdout = process.StandardOutput.ReadToEndAsync();
+                var stderr = process.StandardError.ReadToEndAsync();
                 bool finished = process.WaitForExit(timeoutSeconds * 1000);
                 if (!finished) process.Kill();
-                process.WaitForExit();
-                File.WriteAllText(Path.Combine(logs, name + ".log"), stdout + Environment.NewLine + stderr);
+                Require(process.WaitForExit(10000), "The owned deployment process did not exit after termination.");
+#pragma warning disable VSTHRD002 // Synchronous pre-IDE preparation; StreamReader pipe tasks do not capture this thread's context.
+                string output = stdout.GetAwaiter().GetResult(), errors = stderr.GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002
+                File.WriteAllText(Path.Combine(logs, name + ".log"), output + Environment.NewLine + errors);
                 Require(finished && process.ExitCode == 0, "Test deployment preparation failed: " + name + ". Inspect " + logs);
-                return stdout.ToString();
+                return output;
             }
         }
 

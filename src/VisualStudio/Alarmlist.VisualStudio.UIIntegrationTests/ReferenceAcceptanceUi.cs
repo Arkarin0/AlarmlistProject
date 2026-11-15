@@ -24,9 +24,15 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.True(definition.Properties.HasKeyboardFocus.Value);
             Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
             AutomationElement action = null;
-            VisualStudioSession.Wait(() => (action = window.Automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
-                .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName("Rename referenced symbol").And(cf.ByControlType(ControlType.MenuItem))))
-                .FirstOrDefault(item => !item.IsOffscreen))?.IsEnabled == true, "reference definition Rename context menu");
+            VisualStudioSession.Wait(() =>
+            {
+                if ((ById(window, "ReferencesStatus")?.Name ?? "").Contains("The solution catalogue changed.", StringComparison.Ordinal))
+                    throw new InvalidOperationException("The reference catalogue changed before the definition menu opened.");
+                action = window.Automation.GetDesktop().FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
+                    .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByName("Rename referenced symbol").And(cf.ByControlType(ControlType.MenuItem))))
+                    .FirstOrDefault(item => !item.IsOffscreen);
+                return action?.IsEnabled == true;
+            }, "reference definition Rename context menu");
             action.AsMenuItem().Invoke();
             VisualStudioSession.Wait(() => ById(window, "RenameNewName")?.IsEnabled == true, "independent Rename tool window");
             var pane = ide.Automation.Windows.Item(RenameWindow);

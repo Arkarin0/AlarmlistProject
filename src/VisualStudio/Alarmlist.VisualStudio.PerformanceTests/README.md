@@ -8,6 +8,39 @@ contents. Ordinary solution tests skip all measurements and live IDE launches.
 
 ## Isolated benchmarks
 
+`Area=Classifications` compares ordinary analysis, an ALMX document, an authored
+value and an incomplete private draft on the existing 1,000/10,000-alarm fixtures,
+including parameter/localization variants. Additional literal and expression-rich
+10,000-alarm single-file cases separate large-document presentation from a large
+multi-file capture.
+Targets retain their original saved inputs and independent displayed versions.
+
+```powershell
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Area=Classifications'
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Area=ClassificationAllocations'
+./eng/measure-visualstudio-analysis.ps1 -Job Short -Filter 'Area=ClassificationCorrectness'
+```
+
+The allocation probe records two warmups and five samples per operation beside
+the compiler in the SDK domain. `classification-worker-*.csv` includes compiler,
+captured-request and detached-reader totals; outer BenchmarkDotNet allocations
+are reported separately. These are warm API observations, excluding live solution
+capture, native typing/painting and outer remoting, and do not prove retained
+memory or collectibility. Correctness checks classify a private value containing
+10,000 expressions, inspect only an 80-UTF-16-unit viewport, reject results for a
+changed display version, schedule cancellation after start and verify recovery.
+The cancellation trigger is a request, never a latency threshold. Classification
+uses the lexical compiler API without evaluator, analyzer or reference indexes.
+
+Native `Area=ExpressionTyping` in the UI suite exercises actual editor typing and
+commands with 1,001 alarms on each IDE. Its `native-expression-typing.json` reports
+the typed draft confirmation and later color observation separately; both include
+UIA, focus checks, polling and diagnostic I/O. It checks source preservation and absence of an
+automatically opened References/Rename window. These measurements are separate
+from isolated API timings and have no latency threshold. `Area=ExpressionTutorial`
+loads the checked-in tutorial examples and verifies final Save/Build in three
+cultures. Run all native, isolated WPF and desktop MSBuild suites sequentially.
+
 `Area=References` compares ordinary analysis, compiler-owned reference discovery
 and coordinated rename preview over the existing 1,000/10,000-alarm, parameter
 and localization fixtures. The declaration and inheritance use must remain in the
@@ -218,10 +251,19 @@ runs. Performance tests also disable within-assembly parallelism. Do not run oth
 benchmarks or builds alongside measurements. A watchdog defaults to 30 minutes;
 `ALARMLIST_VS_TIMEOUT_SECONDS` accepts 30-7,200 seconds. This detects stuck runs,
 not performance regressions. On timeout the wrapper requests cancellation, then
-stops only the IDE identified by the driver's ownership receipt and matching PID
-and start time, and stops its driver. Cleanup failures are reported in test output.
+requests shutdown of the IDE identified by the driver's ownership receipt and
+matching PID/start time, then terminates the driver's private process job.
+Atomic job assignment and kill-on-close containment cover surviving descendants,
+failed launches and abrupt owner exit. Cleanup never sweeps process names or
+terminates an unidentified Terminal. Cleanup failures are reported in test output.
 The driver always uses x64 Windows PowerShell with its own module search paths,
 even when the test runner is x86 or launched from PowerShell 7.
+
+`dotnet test` with `--filter 'Area=ProcessCleanup'` runs headless net472 cleanup
+regressions without the live opt-in or an IDE. The same tests run in the net8.0
+functional runner. Their test-only probe covers descendant lifetime, owner death,
+timeout, unrelated-process isolation, arguments and large redirected output;
+these results are independent of performance and native acceptance measurements.
 
 Wrapper logs, the IDE ownership receipt and `result.xml` are under
 `artifacts/log/<Configuration>/LiveVisualStudioTests/<run-id>/`. The report links

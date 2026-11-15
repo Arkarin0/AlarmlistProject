@@ -92,27 +92,29 @@ namespace Alarmlist.VisualStudio.Testing
             // A dotnet test caller may be PowerShell 7 (or x86); let Windows
             // PowerShell construct its own built-in module paths for this child.
             start.EnvironmentVariables.Remove("PSModulePath");
-            using (var process = new Process { StartInfo = start })
+            using (var process = OwnedTestProcess.Start(start))
             using (var stdout = new StreamWriter(Path.Combine(directory, "stdout.log")))
             using (var stderr = new StreamWriter(Path.Combine(directory, "stderr.log")))
             {
                 stdout.AutoFlush = true;
                 stderr.AutoFlush = true;
-                process.OutputDataReceived += (_, args) => { if (args.Data != null) stdout.WriteLine(args.Data); };
-                process.ErrorDataReceived += (_, args) => { if (args.Data != null) stderr.WriteLine(args.Data); };
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
+                Task outputPump = PumpAsync(process.StandardOutput, stdout);
+                Task errorPump = PumpAsync(process.StandardError, stderr);
                 if (!process.WaitForExit(timeout * 1000))
                 {
                     File.WriteAllText(cancelPath, "Cancel requested by xUnit timeout.");
                     process.WaitForExit(10000);
                     StopOwnedIde(ownershipPath, process.Id, executable, fixtureRoot, output);
                     if (!process.WaitForExit(10000)) process.Kill();
-                    process.WaitForExit();
+                    Require(process.WaitForExit(10000), "The owned live-test driver did not exit after termination.");
+#pragma warning disable VSTHRD002 // ExecuteCore owns a thread-affine mutex on Task.Run; both pumps use ConfigureAwait(false).
+                    Task.WhenAll(outputPump, errorPump).GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002
                     throw new InvalidOperationException("Live IDE test timed out. The owned driver was stopped; inspect cleanup details in " + directory);
                 }
-                process.WaitForExit(); // Drain asynchronous output before disposing the writers.
+#pragma warning disable VSTHRD002 // Same worker-thread mutex lifetime; drain the context-free pumps before closing log writers.
+                Task.WhenAll(outputPump, errorPump).GetAwaiter().GetResult();
+#pragma warning restore VSTHRD002
                 Require(process.ExitCode == 0, "Live IDE script failed with exit code " + process.ExitCode + ". Inspect " + directory);
             }
             Require(File.Exists(reportPath), "The live IDE script did not produce a completion report. Inspect " + directory);
@@ -127,6 +129,13 @@ namespace Alarmlist.VisualStudio.Testing
             foreach (string file in new[] { "analysis-latency.csv", libraries ? "project-unload-memory.csv" : "designer-close-memory.csv", "measurement-environment.json", "measurement-commit.txt" })
                 Require(File.Exists(Path.Combine(runDirectory, file)), "Missing measurement artifact: " + file);
             output.WriteLine("Validated measurement artifacts: " + runDirectory);
+        }
+
+        private static async Task PumpAsync(StreamReader source, StreamWriter target)
+        {
+            string line;
+            while ((line = await source.ReadLineAsync().ConfigureAwait(false)) != null)
+                await target.WriteLineAsync(line).ConfigureAwait(false);
         }
 
         private static void StopOwnedIde(string path, int driverId, string executable, string fixtureRoot, ITestOutputHelper output)

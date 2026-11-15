@@ -18,6 +18,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Invoke-HeadlessTool.ps1')
 # Preserve the old measurement command while keeping the functional suite in C#.
 if ($MeasureAnalysis) {
   if ($Filter) { throw '-Filter applies only to functional xUnit tests.' }
@@ -49,8 +50,8 @@ try {
   foreach ($name in $settings.Keys) { [Environment]::SetEnvironmentVariable($name, $settings[$name]) }
   $selection = "Host=VisualStudio&VSVersion=$version"
   if ($Filter) { $selection = "($selection)&($Filter)" }
-  & dotnet test $project --configuration $Configuration --filter $selection --logger trx --results-directory $results
-  if ($LASTEXITCODE -ne 0) { throw "UI integration tests failed with exit code $LASTEXITCODE. Results: $results" }
+  $exitCode = Invoke-HeadlessTool -FilePath dotnet -Arguments @('test', $project, '--configuration', $Configuration, '--filter', $selection, '--logger', 'trx', '--results-directory', $results)
+  if ($exitCode -ne 0) { throw "UI integration tests failed with exit code $exitCode. Results: $results" }
   $reports = @(Get-ChildItem -LiteralPath $results -Filter '*.trx')
   if ($reports.Count -ne 1) { throw "Expected one xUnit TRX report in $results." }
   [xml]$report = Get-Content -LiteralPath $reports[0].FullName -Raw

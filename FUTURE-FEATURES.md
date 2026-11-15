@@ -49,8 +49,11 @@ Iteration 20 adds native XML expression colors/token commands, definition choice
 and direct RESX XML key references/rename, with both-IDE acceptance. Iteration 21
 adds embedded Visual Studio designer expression editors, shared colors, token
 commands and preserved draft/completion/source Undo behavior, with both-IDE and
-compiler/host/package acceptance (updated 2026-11-15). Integrated tutorial and
-performance acceptance remains iteration 22. On 2026-11-14 the user explicitly deferred
+compiler/host/package acceptance (updated 2026-11-15). Iteration 22 completes the
+guided tutorial, integrated both-IDE acceptance, generated-definition variants,
+performance/allocation/cancellation measurements and failed-test process cleanup
+(2026-11-15). Iterations 15–22 are complete for the accepted XML/designer scope.
+On 2026-11-14 the user explicitly deferred
 standard RESX table commands after both native public-API feasibility probes
 failed selected-key and pending-cell detection. Direct RESX XML commands and
 XML/designer expression editing remain in scope;

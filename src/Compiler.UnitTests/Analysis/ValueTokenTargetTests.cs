@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using Alarmlist.Analysis;
 using Alarmlist.Compiler;
+using Alarmlist.Libraries;
 using Alarmlist.Text;
 using Xunit;
 
@@ -88,6 +89,31 @@ namespace Alarmlist.Core.UnitTests.Analysis
             var request = new ReferenceCompilationSnapshot(new[] { source }, CompilationContext.Empty);
             var found = Find(request, location, 0);
             Assert.False(found.IsAvailable); Assert.True(found.IsUnsupportedTarget);
+        }
+
+        [Fact]
+        public void ImportedExpressionTokensRetainTheConsumerBindingAndReadOnlyLibraryContribution()
+        {
+            var definition = new AlmxTextSnapshot("<Alarmlist><Alarm abstract='true'><FullyQualifiedName>Base</FullyQualifiedName>"
+                + "<Properties><Property Name='P'/></Properties><Name>$(P)</Name></Alarm></Alarmlist>", "original.almx", 7);
+            var identity = new LibraryIdentity("Token.Library", "1.0.0");
+            var artifact = new LibraryArtifact(identity, null, null,
+                new[] { LibrarySource.Capture("sources/base.almx", definition.Parse()) }, null, null);
+            var context = CompilationContext.Empty.WithLibraries(new LibraryReferenceSet(new[] { identity },
+                new[] { new LibraryTextSnapshot(LibraryArtifactXml.Write(artifact), "library.almlib", 1) }));
+            var source = Input("<Alarm><FullyQualifiedName>A</FullyQualifiedName><ReferenceName>Base</ReferenceName>"
+                + "<Properties><Property Name='P' Value='one'/></Properties></Alarm>");
+            var compiler = new AlarmCompiler();
+            var alarm = compiler.AnalyzeSnapshots(new[] { source }, context).Alarms.Single(item => item.Origin.FullyQualifiedName == "A");
+            var location = alarm.Fields.Single(field => field.Name == "Name").ValueLocation;
+            var request = new ReferenceCompilationSnapshot(new[] { source }, context);
+            var found = Find(request, location, 0);
+            Assert.True(found.IsAvailable, found.Message); Assert.Equal("P", found.Symbol.Name);
+            Assert.Contains(found.Occurrences, use => use.Location.FilePath.StartsWith("library://", StringComparison.Ordinal));
+            var preview = compiler.PreviewRenameSnapshots(request, request.TargetAtValueToken(location, 0, "A"), "Next");
+            Assert.True(preview.IsApplicable, preview.Failure); Assert.True(preview.RequiresAcknowledgement);
+            Assert.Single(preview.Edits); Assert.Equal(source.FilePath, preview.Edits[0].Path);
+            Assert.Contains(preview.Skipped, message => message.Contains("read-only") || message.Contains("library"));
         }
     }
 }

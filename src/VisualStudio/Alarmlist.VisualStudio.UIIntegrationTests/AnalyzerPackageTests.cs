@@ -202,7 +202,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Assert.True(File.Exists(csc), "The supported desktop runtime must provide its C# compiler for the explicit-DLL fixture.");
             var start = new ProcessStartInfo(csc) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (string argument in new[] { "/nologo", "/target:library", "/out:" + Path.Combine(workspace.ProjectDirectory, "Explicit.dll"), "/reference:" + compiler, source }) start.ArgumentList.Add(argument);
-            using var process = Process.Start(start);
+            using var process = OwnedTestProcess.Start(start);
             string log = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, log);

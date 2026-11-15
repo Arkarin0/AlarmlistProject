@@ -8,10 +8,13 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
+  <Import Project="../../shared/VisualStudioTesting/ProcessCleanupAssets.targets" />
   <ItemGroup>
     <Compile Remove="$(RepoRoot)src/shared/Unittesting/TestHelper.cs" />
     <Compile Include="../../shared/VisualStudioTesting/LiveVisualStudioRun.cs" Link="LiveVisualStudio/LiveVisualStudioRun.cs" />
     <Compile Include="../../shared/VisualStudioTesting/VisualStudioTestDeployment.cs" Link="LiveVisualStudio/VisualStudioTestDeployment.cs" />
+    <Compile Include="../../shared/VisualStudioTesting/OwnedTestProcess*.cs" Link="ProcessCleanup/%(Filename)%(Extension)" />
+    <Compile Include="../Alarmlist.VisualStudio.UIIntegrationTests/ProcessCleanupTests.cs" Link="ProcessCleanup/ProcessCleanupTests.cs" />
     <ProjectReference Include="../Alarmlist.VisualStudio/Alarmlist.VisualStudio.csproj" />
     <ProjectReference Include="../../Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" PrivateAssets="all" />

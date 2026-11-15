@@ -32,15 +32,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             var existing = MenuAction();
             if (existing != null) return existing.IsEnabled ? existing.AsButton() : null;
             string status = "Value actions for " + description + ". Press Shift+F10 or the Menu key.";
-            var target = window.FindAllDescendants().Where(item => item.Properties.ItemStatus.ValueOrDefault == status)
+            AutomationElement LocateTarget() => window.FindAllDescendants().Where(item => item.Properties.ItemStatus.ValueOrDefault == status)
                 .OrderBy(item => item.IsOffscreen ? 1 : 0).ThenBy(item => item.ControlType == ControlType.Edit ? 0 : 1).FirstOrDefault();
+            var target = LocateTarget();
             if (target == null) return null;
-            VisualStudioSession.Wait(() =>
-            {
-                window.SetForeground();
-                try { VisualStudioSession.RequireForeground(process); return true; }
-                catch (InvalidOperationException) { return false; }
-            }, "owned IDE foreground before value input", 10);
+            VisualStudioSession.Wait(() => VisualStudioSession.TryForeground(window, process), "owned IDE foreground before value input", 10);
             // Pointer invocation preserves a pending draft in another control.
             if (target.Patterns.ScrollItem.IsSupported) target.Patterns.ScrollItem.Pattern.ScrollIntoView();
             if (keyboard)
@@ -54,23 +50,54 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             else
             {
                 System.Drawing.Point point = default;
+                int revealAttempts = 0;
                 VisualStudioSession.Wait(() =>
                 {
+                    // Initial analysis can replace the resolved-value template.
+                    // Reacquire its current UIA element before any pointer input.
+                    target = LocateTarget();
+                    if (target == null) return false;
                     if (TargetPoint(window, target, process, out point)) return true;
                     // WPF can report IsOffscreen=false for clipped fields. Scroll
                     // their actual viewport without focusing/committing a draft.
+                    AutomationElement scroller = null;
+                    System.Drawing.Rectangle visibleViewport = default;
                     for (var parent = target.Parent; parent != null; parent = parent.Parent)
                     {
                         if (!parent.Patterns.Scroll.IsSupported || !parent.Patterns.Scroll.Pattern.VerticallyScrollable.Value) continue;
                         var viewport = parent.BoundingRectangle;
-                        bool above = target.BoundingRectangle.Top < viewport.Top;
-                        parent.Patterns.Scroll.Pattern.Scroll(ScrollAmount.NoAmount, above ? ScrollAmount.SmallDecrement : ScrollAmount.SmallIncrement);
-                        break;
+                        // Embedded native editors expose their own scroll
+                        // providers even when the entire editor is off screen.
+                        // Reveal the owning designer viewport first.
+                        viewport = System.Drawing.Rectangle.Intersect(viewport, window.BoundingRectangle);
+                        for (var clip = parent.Parent; clip != null && !viewport.IsEmpty; clip = clip.Parent)
+                            if (clip.Patterns.Scroll.IsSupported && !clip.BoundingRectangle.IsEmpty)
+                                viewport = System.Drawing.Rectangle.Intersect(viewport, clip.BoundingRectangle);
+                        if (viewport.IsEmpty) continue;
+                        // Prefer the outer visible content viewport over an
+                        // embedded text editor's internal scroll provider.
+                        scroller = parent; visibleViewport = viewport;
+                    }
+                    if (scroller != null)
+                    {
+                        var bounds = target.BoundingRectangle;
+                        int distance = bounds.Top + bounds.Height / 2 - (visibleViewport.Top + visibleViewport.Height / 2);
+                        bool above = distance < 0;
+                        bool page = Math.Abs(distance) > visibleViewport.Height / 2;
+                        if (revealAttempts++ % 20 == 0)
+                            VisualStudioAutomation.Log("Revealing " + description + " bounds=" + bounds + " via " + scroller.ControlType + "/" + scroller.Properties.AutomationId.ValueOrDefault
+                                + " viewport=" + visibleViewport + " direction=" + (above ? "up" : "down"));
+                        scroller.Patterns.Scroll.Pattern.Scroll(ScrollAmount.NoAmount,
+                            page ? (above ? ScrollAmount.LargeDecrement : ScrollAmount.LargeIncrement)
+                                : (above ? ScrollAmount.SmallDecrement : ScrollAmount.SmallIncrement));
                     }
                     return false;
                 }, "hit-tested visible value: " + description);
                 VisualStudioSession.RequireForeground(process);
+                VisualStudioAutomation.Log("Value pointer " + description + " target=" + target.ControlType + "/" + target.Name + " bounds=" + target.BoundingRectangle + " point=" + point);
                 Mouse.RightClick(point);
+                var clicked = window.Automation.FromPoint(Mouse.Position);
+                VisualStudioAutomation.Log("Value pointer after click=" + Mouse.Position + " hit=" + clicked?.ControlType + "/" + clicked?.Name);
             }
             AutomationElement selected = null;
             var opening = Stopwatch.StartNew();
@@ -82,16 +109,21 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 // never repeat the semantic action it will eventually contain.
                 if (opening.ElapsedMilliseconds >= 750)
                 {
-                    window.SetForeground();
-                    try { VisualStudioSession.RequireForeground(process); }
-                    catch (InvalidOperationException) { return false; }
+                    VisualStudioAutomation.Log("Waiting for " + action + "; visible menu items: " + string.Join(", ",
+                        desktop.FindAllChildren(cf => cf.ByProcessId(process)).SelectMany(owned => owned.FindAllDescendants(cf => cf.ByControlType(ControlType.MenuItem)))
+                            .Where(item => !item.IsOffscreen).Select(item => item.Name)));
+                    if (!VisualStudioSession.TryForeground(window, process)) return false;
                     if (keyboard)
                     {
                         target.Focus();
                         if (useMenuKey) Keyboard.Type(VirtualKeyShort.APPS);
                         else Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
                     }
-                    else if (TargetPoint(window, target, process, out var point)) Mouse.RightClick(point);
+                    else
+                    {
+                        target = LocateTarget();
+                        if (target != null && TargetPoint(window, target, process, out var point)) Mouse.RightClick(point);
+                    }
                     opening.Restart();
                 }
                 return false;

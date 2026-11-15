@@ -10,8 +10,10 @@ complete with its required gates passed on 2026-10-31. Iteration 16 is complete
 with its required gates passed on 2026-11-14. Iteration 17 is complete with its
 required gates passed on 2026-11-14. Iteration 18 is complete with required gates
 passed on 2026-11-14. Iteration 19 is complete with required gates passed on
-2026-11-14;
-iterations 20–22 remain planned.
+2026-11-14. Iterations 20–22 are complete with their required scoped gates passed
+on 2026-11-15. Standard RESX-table commands remain explicitly deferred by the
+user; direct RESX XML commands are accepted. No native acceptance gate for the
+accepted XML/designer scope remains open.
 Implementation and evidence are recorded in the appended follow-up.
 
 ## Outcome and confirmed scope
@@ -1588,7 +1590,9 @@ diagnostic probes, generated binaries, machine paths or unrelated edits are stag
 
 ## Follow-up iterations 15–22 — semantic editing and RESX commands
 
-Status: iterations 15 (aae945e), 16 (fa5e72f), 17 (5ac54d6), 18 (b37f56c), 19 (43a172f) and 20 complete. Completed iterations 1–14 and their
+Status: iterations 15 (aae945e), 16 (fa5e72f), 17 (5ac54d6), 18 (b37f56c),
+19 (43a172f), 20 (53f0464), 21 (6f72650) and 22 complete with scoped acceptance.
+Completed iterations 1–14 and their
 acceptance evidence above remain unchanged. No branch creation, merge or push is
 part of this follow-up. Work continues on dev/milestone-14.
 
@@ -2612,3 +2616,555 @@ commit before starting iteration 22. Integrated shared/library/package/generated
 coverage, tutorial and performance evidence remain iteration 22. Standard RESX
 Resource Explorer table commands remain separately deferred by the user's explicit
 decision; XML/designer successes do not imply that vendor gate passed.
+
+### Iteration 22 — complete (2026-11-15)
+
+Start from clean dev/milestone-14 at iteration-21 commit 6f72650. Complete the
+accepted XML/designer scope without revisiting the separately deferred standard
+RESX table. No merge, branch creation or push is authorized by this iteration.
+
+Deliverables and gates:
+
+1. Add a guided expression-editing/navigation tutorial using the native scenario's
+   exact parameter/localization/escaped-text sample. Exercise its unsaved Rename,
+   Undo and final Save/Build outcome through a native tutorial mode on both IDEs;
+   retain source/output preservation and explicit focus/context readiness.
+2. Reaccept shared consumers/all cultures, direct RESX XML, project and NuGet
+   libraries, the prepared shared example and procedure-enabled/disabled generated
+   definitions. Reuse their existing native/isolated fixtures on both hosts,
+   sequentially. Add focused compiler/packaged coverage for authored token targets
+   in imported library values where current tests do not prove that path.
+3. Extend the existing large-project measurement fixtures with ordinary analysis
+   versus document/value classification and private-draft classification, including
+   SDK-domain allocation totals, cancellation/recovery and bounded retained view
+   presentation. Reuse reference/rename/explanation measurements for comparison.
+   Record native typing observations separately from isolated API/UI timings and
+   do not claim outer counters measure compiler allocations or retained memory.
+   Verify typing/classification never launches solution reference searches.
+4. Run compiler and affected downstream regressions on both frameworks, packaged
+   bridge checks on both desktop MSBuild hosts and integrated native checks on both
+   IDEs. Keep failures and separately deferred/vendor limits visible. Review all
+   examples/links, update guidance/backlog/coverage, record actual measurements and
+   commit only after these remaining gates pass.
+
+Iteration 21 already supplies the complete per-control native editor, six passing
+native scenarios per IDE, 914/916 compiler, 981 host, both-runtime SDK and both-host
+desktop evidence. Do not rerun unrelated checks without a new change, failure or
+unresolved concern; the final regression selection must cover iteration-22 changes
+and the required integrated acceptance. No iteration-22 acceptance is claimed yet.
+
+Implementation/evidence in progress (2026-11-15): the imported-library authored
+token case passes with its read-only contribution and acknowledged partial
+consumer edit. Full compiler suites pass 915 net472 (1 second) and 917 net8.0
+(327 ms), Iteration22/Compiler-net472 and Compiler-net8.0. Project analysis passes
+57 tests (1 second), including successive draft versions reusing one worker and
+original inputs without any reference-search bridge; ProjectAnalysis. Native
+tutorial/typing code and the performance project build without warnings/errors.
+The tutorial fixture reads its four checked-in XML examples, validates unsaved
+Rename/Undo/Redo and final saved three-culture output. Native typing adds 1,000
+background alarms and separate input/color-observation metadata; those gates are
+still running, so no successful tutorial/native-typing result is claimed yet.
+
+Initial integrated VS2022 run 9743b2e5231d4e6e96a6224fb7cc1e5d passes the package
+definition and edited prepared-example cases, fails SharedReferencesRename,
+SavedLibraryAnalysis, XmlExpressionNodes and ReferenceThemes. The theme image
+explicitly reports catalogue invalidation; the fixture now checks unchanged
+source/disk, leaves stale Apply disabled and recaptures the same alarm only after
+that reported change. Shared XML adds native command/input readiness. XML pointer
+checks retain process hit testing and stop rather than send input through an
+overlaid foreign window; another run still fails the initial hit test, so that
+gate remains open. External menu diagnostics are added for the library failure;
+no production semantic freshness guard has been relaxed. Record successful
+repeats before accepting any of these four cases.
+
+Performance run 87d8da7a7ee448968dedcd9236e486f2 passes all 22 selected cases in
+7 minutes 35 seconds. Command: eng/measure-visualstudio-analysis.ps1 -Job Short
+with Classifications, ClassificationAllocations, ClassificationCorrectness,
+ReferenceAllocations, ExplanationAllocations and ReferenceCorrectness areas.
+Follow-up 726e46c78aee4963a5778c0a2f729d9f passes two expression-rich single-file
+cases in 3 minutes 29 seconds (FullyQualifiedName~LargeExpressionDocument).
+Both use Release/x64, .NET Framework 4.8.1, two warmups/five samples on an
+i7-11700K. Raw TRX/BenchmarkDotNet JSON/CSV/Markdown and environment/revision
+metadata are beneath artifacts/log/Release/AnalysisPerformance/<run-id>.
+
+BenchmarkDotNet warm end-to-end bridge means, milliseconds (outer remoting and
+detached transport included; ordinary baseline is the same fixture):
+
+| Scenario | Ordinary analysis | Document classification | Authored value | Private draft |
+| --- | ---: | ---: | ---: | ---: |
+| 1,000 alarms, 100/file, literal | 351.46 | 2.98 | 2.96 | 1.41 |
+| 10,000 alarms, 100/file, literal | 3920.50 | 15.71 | 15.85 | 6.10 |
+| 10,000 alarms, one literal file | 3935.55 | 337.66 | 394.76 | 50.45 |
+| 10,000 alarms, one expression-rich file | 6851.22 | 1934.04 | 427.06 | 61.73 |
+
+The literal document/value targets intentionally have zero lexical spans. The
+expression-rich document returns 160,000 spans, its selected value four, and the
+incomplete draft nine plus one recovery diagnostic. The large single-file costs
+are explicit limitations, not hidden by a latency threshold. Separate parameter
+and localization scenarios also pass; retain their full reports. Short single-call
+samples have broad confidence intervals and BenchmarkDotNet minimum-iteration
+warnings; they are descriptive observations, not a speed guarantee.
+
+SDK-domain allocation probes include compiler, captured-request and detached
+reader work, excluding outer remoting/UI. Means of five samples for the
+10,000-alarm/100-per-file fixture:
+
+| Operation | SDK-domain milliseconds | Cumulative allocated MiB |
+| --- | ---: | ---: |
+| Ordinary analysis (classification probe) | 2571.10 | 823.21 |
+| Document classification | 14.97 | 16.50 |
+| Authored-value classification | 12.07 | 16.29 |
+| Private draft classification | 8.15 | 14.12 |
+| Explanation | 1037.91 | 574.12 |
+| Find references | 1597.13 | 1100.59 |
+| Rename preview | 4447.16 | 2797.43 |
+
+The expression-rich single-file probe separately reports ordinary analysis
+4142.56 ms/1282.70 MiB, document 1276.92 ms/671.45 MiB, value
+518.21 ms/347.32 MiB and draft 53.18 ms/41.97 MiB. These monitoring-enabled
+domain-local timings are a separate measurement method from BenchmarkDotNet.
+Allocation totals are not retained heap size or collectibility evidence; empty
+outer Allocated cells are not allocation-free compiler work.
+
+Classification correctness covers a 220,000-UTF-16-unit private value with 40,000
+spans and only 15 intersecting its 80-unit viewport, stale display-version
+rejection, pre-cancelled calls and subsequent worker recovery. Both in-flight
+classification calls cancel (observed totals 302.30/54.77 ms after a scheduled
+25 ms trigger); reference and rename calls also cancel and recover. These are
+request outcomes, not latency limits. Ordinary analysis still succeeds afterward.
+Source review confirms the lexical classifier calls no evaluator, analyzer or
+reference index; host draft requests use only the classification bridge. No
+native typing performance or whole-IDE retained-memory claim is made by these
+isolated results. Remaining integrated/fork/native tutorial gates stay open.
+
+Second integrated VS2022 run c58bd11b331846488d4a0579dc536854 passes shared
+Rename (48 seconds) and native expression typing (32 seconds). The latter observes
+22 characters with 1,001 alarms: input/draft confirmation 952.33 ms and color
+observation 109.39 ms, including focus/UIA/polling and diagnostic I/O. No semantic
+results window opens automatically. These are actual input observations, separate
+from the isolated API measurements above.
+
+Four cases fail in that run. Tutorial reaches final Save All but exact source
+comparison finds the final newline required by .editorconfig; the starting sample
+now includes that newline, preserving exact assertions. XML pointer hit testing
+finds WindowsTerminal PID 10956 over the token and refuses input; its initial
+pointer action now waits for an unobstructed owned-IDE hit, as its retry already
+did. Theme capture still needs native command readiness and reported-invalidation
+recapture; the fixture retains unchanged-source checks and disabled stale Apply.
+SavedLibraryAnalysis still cannot open the resolved Name menu; external logs show
+no custom popup, so no speculative production semantic change is made. Its DTE
+shutdown then blocks until the 900-second case watchdog. Cleanup now has its own
+30-second watchdog over the retained owned process handle, including an explicit
+failure artifact; this bounds test teardown, not product operation latency.
+Corrected fixtures build with zero warnings/errors; successful repeats remain
+required. Desktop-clear/idle input is pending before another native run.
+
+The isolated heap diagnostic LibraryCleanupDiagnostic/heap-39242e5c2aee44d28c3e060451f088f5.json
+captures that owned IDE before watchdog termination. Main-thread native frames
+cannot be resolved; no managed Alarmlist frame identifies a classifier deadlock.
+Five NativeExpressionSurface objects are unreachable at capture. This does not
+prove collectibility or diagnose the synchronous shell/DTE shutdown stall.
+
+eng/test-alarm-collections.ps1 passes enabled, disabled and minimum-cardinality
+variants on net472/net8.0, including matching cross-framework JSON hashes;
+AlarmCollections/d3dc5ee572794c009c85686d9ff4dfe8. Native generated-definition
+acceptance is still separate and open. Iteration 22 remains uncommitted.
+
+Further menu investigation reproduces an independent lifecycle defect in WPF:
+a read-only text child added after its marked anchor loads has no explicit menu
+before the TextBox class handler. Both pointer and Menu-key cases fail before the
+correction (LateValueMenuBeforeFix, two failures). The anchor now repeats existing
+child-menu preparation during context-invocation preview input, without handling
+input, opening a popup early or changing drafts/source. Both cases plus existing
+read-only/freshness/requery checks pass (LateValueMenuAfterFix, five tests,
+6 seconds). This is not yet proof that the native SavedLibraryAnalysis failure
+is resolved. Full host and native repeats are required after this production fix.
+
+After that correction, the full host suite passes 984 tests, zero failures/skips,
+in 2 minutes 39 seconds (HostFullAfterMenuFix). Packaged VSIX checks pass 14 each
+on net472/net8.0 (10 seconds each); SDK PackageTests pass three each (4/3 seconds).
+Focused PackageTests/CompilationTests/LookupTests pass 15 each on desktop
+MSBuild 2022/2026 (29/31 seconds), sequentially. Evidence directories beneath
+Iteration22 are VSIX-net472, VSIX-net8.0, SDK-net472, SDK-net8.0, Desktop-2022 and
+Desktop-2026. The final UI acceptance project builds with zero warnings/errors.
+These results validate the corrected host/package combination but do not replace
+native library, tutorial, XML pointer, theme and generated-definition acceptance.
+
+Resume run e2eeabad5f824513bdce2013e0a84c7b (VS2022) passes
+SavedLibraryAnalysis, including the formerly failing resolved Name menu,
+explanation/source navigation, project-library Rename/linked Undo and unloaded
+library discovery. Three cases fail: tutorial foreground readiness, theme result
+invocation and XML keyboard-menu focus. Desktop inventory has no Terminal window;
+quser reports the console session active. A stale-window activation fails, while
+refreshing to the current IDE restores native editor focus; no source edits or
+security UI are used for that recovery.
+
+The XML failure screenshot shows the actual native keyboard context menu, but
+the fixture's pointer hit test rejects its References item and then waits for
+editor focus while the menu remains open. Keyboard invocation now uses the
+visible owned MenuItem's public Invoke pattern; the independent first pointer
+menu still requires actual owned-process hit testing and a real click. Retry
+dismisses the obsolete popup and explicitly focuses the XML editor before
+reopening. Theme action invocation likewise uses the native MenuItem Invoke
+pattern; unchanged-input/invalidation/stale-Apply assertions remain intact.
+The next native repeat must validate these fixture corrections.
+
+Run 91a71d78269d40b7b0dc56349fdb3440 passes VS2022 ReferenceThemes (60 seconds)
+and XmlExpressionNodes (80 seconds), including direct multi-culture RESX XML
+Rename/linked Undo and restored original theme. Dark Rename and Light selected
+References images are visually reviewed: nested text, input/preview backgrounds,
+disabled controls and selected text remain readable. Tutorial still fails initial
+F12 navigation. A focused run records the expected Global::F12 binding and actual
+native/value focus with SourceView=XML. Another input diagnostic records no
+Control/Shift/Alt key held. The guarded single idempotent F12 retry passes the
+base DesignerExpressionNodes scenario in a3fe29b28d1a4383bbceed101e68c93c,
+but tutorial navigation remains intermittent. No production command routing or
+semantic freshness requirement is changed on this evidence alone.
+
+Tutorial run fbf134ad998d4f9b9de04f8632b7e665 gets past navigation, reference search,
+Rename and linked Undo/Redo, then fails because an injected typing burst stops at
+"draft $(P) " instead of including the escaped suffix. Its new draft helper sends
+each character through the native keyboard and confirms insertion before the next;
+it never replaces text through UIA. Measurements identify this confirmed-input
+mode and include its focus/UIA/polling work. The next repeat
+153171d6ba844730b82e1da9e44dc5e4 stops at F12 before reaching that helper, so the
+typing adjustment and final tutorial Save/Build are not yet accepted. VS2026
+integrated acceptance proceeds independently; iteration 22 remains open.
+
+VS2026 integrated run 6e03128944b2484ca803129d14571bd4 passes seven of nine
+cases in 9 minutes 5 seconds: ExpressionTutorial (67 s), DesignerExpressionNodes
+(40 s), ExpressionTyping (44 s), XmlExpressionNodes (66 s), ReferenceThemes
+(44 s), PackageDefinition (45 s) and DefaultSharedExample (144 s). Tutorial
+verifies its final saved source and all three culture outputs. With 1,001 alarms,
+confirmed character input observes 2539.79 ms and color observation 73.61 ms;
+no semantic window opens. This input mode includes UIA/polling and differs from
+the earlier VS2022 burst observation, so do not compare those totals as editor
+throughput. SharedReferencesRename stops on WindowsTerminal PID 17552 taking
+foreground; SavedLibraryAnalysis times out opening the resolved Name menu.
+Both failed cases still require repeats.
+
+Further fixture review finds that value-menu retries unconditionally activate the
+main IDE HWND even when an owned floating tool window already has foreground.
+The helper now preserves any already-owned foreground frame, while retaining
+process ownership and pointer hit guards; it only activates the main window when
+another process has foreground. This avoids resetting a floating Summary's
+context on every popup retry. SelectCaret additionally waits for the UIA selection
+range to reach the authored prefix before sending commands, instead of treating
+focus alone as a caret-readiness proof. These final fixture corrections require
+native validation; an idle-desktop question is pending after the observed foreign
+foreground interruption.
+
+Build-only preparation completes both generated-definition forks:
+artifacts/col13/9a546456 (procedures enabled) and artifacts/col13/15176660
+(disabled). An ignored preparation copy uses the existing collection-fork source
+copy/definition/build steps while removing its native-only block and explicitly
+reporting that acceptance has not run. Both UI/SDK/extension variants build
+successfully. Their unmodified native block is prepared separately for four
+MetadataCollections checks (two variants by two IDEs), including temporary
+withdrawal/restoration of the private template sources. No native generated-
+definition result is claimed; desktop availability remains pending. The previously
+observed Terminal PID 17552 has exited, but that alone does not establish an idle
+interval or answer the outstanding availability question.
+
+A fresh guarded VS2022 repeat eab9060bb1d44d0d8e085044d8f56ebb stops both
+tutorial and typing at foreground readiness before reaching the new caret
+assertion. The external activation helper now attempts supported UIA focus when
+Windows refuses SetForeground alone, while preserving any already-owned floating
+frame and requiring the correct process again before input. The root fixture
+build passes with zero warnings/errors; this helper is not yet natively accepted.
+Automatic approval review rejects the next native run because idle-desktop
+readiness remains explicitly pending after repeated foreground interference.
+No indirect native run is attempted. Remaining native execution requires user
+confirmation; noninteractive prepared-fork builds may continue. Iteration 22
+remains uncommitted and the final acceptance gate is open.
+
+Noninteractive preparation after that rejection completes: both existing forks
+receive the final external fixture helpers and rebuild successfully
+(build-final-fixtures.log in each fork); no IDE is launched. Documentation review
+resolves all 74 local links across the changed guides and instructions, and
+git diff --check passes. The concrete remaining native set is VS2022 tutorial/
+typing, VS2026 shared/project-library repeats, four generated MetadataCollections
+cases and standard-extension restoration with DesignerExpressionNodes on both
+experimental hosts. This is ten cases, run sequentially after desktop readiness
+and execution confirmation. No iteration-22 commit or goal completion is claimed.
+
+### Iteration 22 correction — owned console/process cleanup
+
+The user identifies leftover console windows after failed UI tests. Treat the
+observed Terminal focus losses as ownership-unknown until investigated, rather
+than attributing them to user/RDP input. Read-only inventory finds many surviving
+console hosts created during the native runs. Investigation found root-only
+cleanup in several paths and a DefaultSharedExample preparation timeout without
+helper termination. Windowless PowerShell native-command invocation is also
+a console-allocation risk, so CreateNoWindow on its initial launch is insufficient.
+
+1. Add a shared test-only owned-process launcher using an unnamed kill-on-close
+   Windows job, assigned atomically at creation. Retain exact process handles,
+   restrict inherited handles, terminate descendants even after root exit, and
+   fail closed if containment cannot be established. Apply it to the functional
+   IDE/session, deployment and auxiliary helper lifetimes.
+2. Run example-preparation native tools directly through redirected windowless
+   processes instead of PowerShell native invocation. Preserve arguments, working
+   directories, inherited package environments, logs and exit-code behavior.
+3. Add headless regression coverage on both runtimes for normal/nonzero exit,
+   timeout, exception rollback, surviving descendants, abrupt owner exit, large
+   output, arguments/environment and unrelated-process isolation. Verify a
+   windowless preparation shell remains console-free. These tests open no IDE
+   and send no desktop input; native acceptance remains separately gated.
+4. Update guidance, record actual evidence and limitations, and retain the
+   outstanding native acceptance requirement. Never sweep processes by executable
+   name or stop an unidentified existing Terminal session.
+
+Implemented correction and headless evidence (2026-11-15):
+
+- Shared `OwnedTestProcess` assigns a private kill-on-close job atomically using
+  the process creation job-list attribute and inherits only explicit stdio
+  handles. Functional IDEs, deployment, live-driver and auxiliary commands use
+  it. Normal/nonzero root exit and disposal terminate remaining descendants;
+  failure to establish containment fails the launch. Job ownership stays in the
+  external test runner and adds no VSIX dependency.
+- Example preparation uses `eng/Invoke-HeadlessTool.ps1` instead of PowerShell
+  native invocation. It preserves argument quoting, working directory,
+  environment, both redirected streams and exit status, including LASTEXITCODE.
+  Preparation shells are noninteractive; all tools remain inside the fixture job.
+- `dotnet test` on UIIntegrationTests with
+  `--filter 'Area=ProcessCleanup|Area=ProcessCleanupPreparation' --no-restore
+  -v quiet -m:1 -nr:false` passes **10/10**. TRX:
+  `Iteration22/ConsoleCleanupFinal-net8/*13_20_59_net8.0.trx`. Nine launcher cases
+  cover normal/failing roots, timeout, exception, abrupt supervisor death,
+  surviving children, unaffected independent scopes, large output and exact
+  arguments/environment. Console handles stay zero before/after native tools.
+- The tenth case runs actual example preparation twice on edited isolated
+  North/South/Zenon/Shared copies per host: dotnet, VS2022 desktop MSBuild and
+  VS2026 desktop MSBuild. All three application restores exist, Shared has no
+  build pipeline, source/project/membership/solution bytes remain unchanged and
+  both preparation-console probes are zero. Host selection and logs:
+  `Iteration22/ConsolePreparation/b795b009aa8b4ff6bf7b2935bc3ae75f/`.
+- PerformanceTests with
+  `--filter 'Area=ProcessCleanup|FullyQualifiedName~VisualStudioTestDeploymentTests|FullyQualifiedName~LiveVisualStudio'`
+  and the same build options passes **62**, with **6** opt-in live cases skipped,
+  on net472 (one second). TRX:
+  `Iteration22/ConsoleCleanupFinal-net472/*13_26_04_net472.trx`.
+  The nine cleanup cases pass on this runtime too; existing deployment/report
+  coverage remains green. Both final builds emit no warnings.
+- Headless tests launch no IDE and send no desktop input. No unidentified existing
+  console/Terminal was terminated. Brokered historical console ownership is not
+  proven by timestamps. Native failed-scenario cleanup and both prepared-example
+  repeats are still required after execution approval; these results do not
+  complete iteration 22 or its native gates. Refresh the prepared definition-fork
+  fixture copies with this launcher/probe/helper before their native runs.
+
+Resumed preparation (2026-11-15): the new `Area=ProcessCleanupNative` cases
+inject a scenario exception through `UiTestRun` on each IDE, preserve the expected
+failure artifacts and require the retained IDE/helper/descendant handles to exit.
+Only then is `expected-failure-cleanup.txt` recorded. The root functional runner
+compiles with zero warnings/errors; no native cleanup result is claimed yet.
+Both existing definition forks receive the current iteration source changes,
+including the shared launcher, helper, probe project and native regression.
+Their build-only repeats both pass with zero warnings/errors: enabled 10.94
+seconds and disabled 16.23 seconds (`build-console-cleanup.log` in each fork).
+Both functional output directories contain the copied process-cleanup probe.
+An initial enabled-build logging argument was unquoted, causing PowerShell to
+interpret its semicolon suffix after the successful build; the quoted repeat
+above exits successfully. This was a command-line preparation error, not native
+acceptance evidence.
+
+The remaining native batch is now **14 cases**: the earlier ten plus two
+`ProcessCleanupNative` cases and two `DefaultSharedExample` repeats affected by
+the preparation change. Run them sequentially, using their existing isolated
+profiles/copies; the native cleanup cases intentionally fail an inner scenario
+and pass only after teardown is proven. The automatic approval rejection remains
+in force until explicit desktop readiness/execution confirmation. Resuming the
+goal alone does not establish that readiness. No native run has been attempted
+as part of this preparation.
+
+The user explicitly confirms the desktop connected/unlocked/idle and approves
+the 14-case native batch. The initial VS2022 batch
+`TestResults/8d5ba9e50bd7427995ec9f070b27ecb4` exposes a launcher regression:
+typing, tutorial and prepared-example cases time out before solution startup.
+Read-only native inspection shows devenv treating quoted `/RootSuffix` and `/Log`
+as file arguments, opening its ordinary profile with a missing-files dialog.
+The owned processes are stopped by fixture cleanup/cancellation; read-only CIM
+then confirms no devenv/testhost remains. No user IDE is terminated.
+`OwnedTestProcess.Quote` now matches ArgumentList's minimal quoting, preserving
+simple switches unquoted. The probe reports the raw Windows command line and a
+new both-runtime regression checks the exact switch/path representation. Repeat
+the affected native cases after those headless checks pass; the earlier batch
+does not supply acceptance. The user's execution approval persists for these
+corrected sequential runs.
+
+Corrected launcher evidence: `ConsoleCleanup-Switches-net8/*13_42_07*` passes
+10/10 cleanup cases; `ConsoleCleanup-Switches-net472/*13_42_42*` passes 63 checks
+with six opt-in live cases skipped. Both include the raw switch serialization
+regression. VS2022 native repeat `TestResults/021bd5dd1d15475e9a5c62176f8a056e`
+passes injected-failure cleanup (21.78 seconds) and prepared-example/reopening
+acceptance (226.78 seconds). Expected cleanup evidence:
+`ProcessCleanupNative/2022/d28fed2c1bc744ec95035fbeca8343f0/expected-failure-cleanup.txt`;
+prepared example `DefaultSharedExample/2022/154295904ec44342b83ee5a9d1c0e7d9`.
+Typing/tutorial stop before keyboard input at foreground readiness.
+
+The fixture now requests main-window activation through the owning DTE only
+after external activation fails, and reports the actual foreign foreground PID
+on timeout. Repeat `TestResults/5643f8db125044748255b071c1bd6039` identifies
+WindowsTerminal PID 21356. Read-only CIM identifies an existing embedding broker
+started 09:29:29; its tabs' ownership is not proven. The functional PowerShell
+entry point also now invokes dotnet through the direct windowless helper, and
+CLI observations during native runs avoid PowerShell native invocation.
+Repeat `TestResults/4168b670b75547aca7f758f2e28ed9eb` confirms the old broker
+still holds foreground; no keyboard input is sent there. Manual Terminal
+minimization is requested because the computer-use skill prohibits Terminal UI
+automation. No existing Terminal is stopped and keyboard scenarios stay pending.
+
+VS2026 native cleanup passes independently through the windowless entry point:
+`TestResults/88dc35eea5814b77ba9a5f8bbfb052ce` (20.89 seconds), expected-failure
+fixture `ProcessCleanupNative/2026/b296d6063d86467db2e6f0559a06a023`.
+Both IDEs now prove failed-scenario teardown of the exact owned IDE, helper and
+descendant. Post-run CIM finds no devenv/testhost. This acceptance is separate
+from keyboard behavior; no Terminal interaction is attempted.
+
+Both definition forks rebuild the final corrected launcher/fixtures through
+windowless native execution with zero warnings/errors: enabled 6.13 seconds and
+disabled 6.16 seconds (`build-final-windowless.log`). Their ignored native batch
+also uses the headless helper; it has not run. **Eleven native cases remain**:
+VS2022 tutorial/typing, VS2026 shared/project-library/prepared-example, four
+generated MetadataCollections and two standard-extension restoration checks.
+Those cases await the requested manual Terminal minimization. Iteration 22
+remains uncommitted; no final acceptance or completion is claimed.
+
+Final source/documentation review while native input is pending resolves all
+75 local links across eight changed guides/instructions. SHA-256 comparison
+confirms both prepared forks match the current launcher, native declarations,
+headless helper, functional entry point, probe and native/designer fixture
+sources. Review of the production late-child menu change, its two regressions,
+imported-library token coverage, successive-draft service coverage and the
+classification measurement harness finds no additional implementation change
+needed. Repository scope wording now consistently names direct RESX XML commands
+and the separately deferred standard-table proposal. No unchanged suite is
+repeated for this documentation-only clarification. The eleven native gates
+and iteration-22 commit still await Terminal minimization.
+
+The user minimizes Terminal and explicitly resumes the checks. Foreground
+readiness now succeeds. The initial resumed VS2022 repeat
+`TestResults/ed7130b8b2a64b1db2951388974830ad` exposes a fixture race during
+F12: its guarded retry tries to reposition the caret while the first navigation
+is replacing the designer with XML. The retry now only reads the original
+caret/selection and retries once at the unchanged token; it never repositions
+or retargets during navigation. The exact declaration-line assertion remains.
+Corrected repeat `TestResults/3aa26d5be7324a35bc83ca2c11ef5185` passes both
+VS2022 cases (typing 53.41 seconds; tutorial 67.87 seconds), including normal
+owned-IDE cleanup. Tutorial fixture
+`ExpressionTutorial/2022/b01b5f487d3e4381b5c493491cbe5bfe` completes the
+checked-in sample's navigation, unsaved Rename, Undo/Redo and three-culture
+Save/Build workflow. Typing fixture
+`ExpressionTyping/2022/4cebd819edd74aefac9af209d5a79d47` records 1,001 alarms,
+22 per-character-confirmed native keystrokes in 2492.14 ms and subsequent color
+observation in 75.94 ms; no semantic window opens. These native observations
+include focus/UIA/polling and remain separate from isolated API timings.
+Nine native cases remain; VS2026 standard-profile checks are running next.
+
+VS2026 repeat `TestResults/f914823764cf4c8bb84575421c06876f` passes shared
+consumer Rename (68.36 seconds) and prepared-example/reopening acceptance
+(177.15 seconds). Fixtures:
+`SharedReferencesRename/2026/3bbbde60e7c64f1db51c4b351e642c06` and
+`DefaultSharedExample/2026/115115ad835a4933986280c183291edf`.
+The project-library case stops at actual pointer hit testing: its screenshot
+shows a persisted floating empty Rename frame covering Summary. Its initial
+setup now explicitly hides old semantic tool windows, as does the generated-
+collection fixture; pointer guards and semantic assertions are unchanged.
+That library case is being repeated. Seven native cases remain.
+
+The first library setup correction alone still leaves a persisted floating
+Summary behind the main editor. The fixture now gives that Summary an explicit
+active 1000x650 viewport. Value-action readiness reacquires the current UIA
+value element when analysis replaces the template, keeping physical hit tests
+and final foreground checks. Subsequent attempts sometimes stop on new transient
+Terminal PIDs, including an isolated run with no concurrent shell observations;
+their origin is not established. Temporary WPF lifecycle logging is removed.
+An optional process-start CIM subscription is canceled by WMI and supplies no
+origin evidence; its cleanup also reports a null job ID. These optional trace
+errors are separate from the following actual native result.
+
+VS2026 project-library acceptance passes **1/1**, 76.94 seconds, in
+`TestResults/22f4eb69d71b46c1b8510bbfd32567e2` and fixture
+`SavedLibraryAnalysis/2026/32da69951e8948db921102bd5c799c90`. The supported
+test entry point and its TRX checks finish successfully; only the surrounding
+optional diagnostic cleanup errors afterward. Physical hit/click evidence names
+the actual Resolved Name edit at (529,441). Explanation and physical source
+navigation, coordinated library Rename/linked Undo, loaded-library saved-input
+behavior and unloaded-library discovery all pass with owned-IDE cleanup. No
+foreign Terminal is manipulated or stopped. Six generated/restoration native
+checks remain; the final fixture sources are being rebuilt for both variants.
+
+### Iteration 22 final generated-definition and restoration evidence
+
+The generated fixture initially stops while revealing off-screen Count and
+inherited Tags values. Its old whole-window UIA name crawl also encounters a
+replaced element; a later initial Tags probe races template replacement. Actual
+failed reports remain under the two isolated forks. Readiness now selects the
+intended enabled designer mode through its supported selection pattern, expands
+Checks explicitly and performs the existing absent-default focus/source check
+before explaining Count. It reacquires Tags once per probe, tolerates absent
+templates and retries UIA_E_ELEMENTNOTAVAILABLE only inside bounded readiness
+waits whose predicates must be safe to repeat. The error code's UIA meaning is
+documented by [Microsoft](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-error-codes).
+
+Pointer reveal uses the outer visible content viewport, clipped by enclosing
+scroll viewports, without assigning focus. Diagnostics establish that the old
+small-step scroll advances only 16 pixels per poll, leaving distant inherited
+values hidden under a sticky header before timeout. Page steps reveal distant
+values; fine steps center nearby ones. Physical hit testing, final foreground
+checks, private-draft/source preservation, exact explanations and reference
+assertions remain required. Temporary production menu logging is removed; the
+only production change in iteration 22 is the tested late-child menu preparation.
+
+All four generated cases pass with definition-relative preview sources withdrawn
+and restored by the fixture's finally block. Each report contains exactly one
+executed/passing test and its fixture records `passed.txt` after owned-IDE cleanup:
+
+| Definition / host | Report beneath its isolated fork | Duration |
+| --- | --- | ---: |
+| Procedures enabled / VS2022 | `9a546456/results-2022-7e79b8f1` | 146.50 s |
+| Procedures enabled / VS2026 | `9a546456/results-2026-3ee341f0` | 142.06 s |
+| Procedures disabled / VS2022 | `15176660/results-2022-edac34cd` | 152.93 s |
+| Procedures disabled / VS2026 | `15176660/results-2026-310c74b8` | 138.43 s |
+
+The first disabled/VS2026 attempt stops before value input at foreground
+readiness; its focused repeat above passes with the same guards. These cases
+cover generated metadata, defaults and sibling/inherited/Clear explanations,
+immutable definition references, draft/collapse/edit/ordering preservation,
+saved three-culture output, compiled collection templates without source XAML,
+localized enum captions and optional-procedure presence/absence.
+
+Standard extension restoration uses the root `eng/test-visualstudio.ps1` with
+`-RootSuffix AlarmlistDefinitionExp -Filter Area=DesignerExpressionNodes` on each
+host. VS2022 passes in `TestResults/aabe1a8749254c1f98bd59e457a8fd1d` (50.84 s).
+VS2026's first repeat encounters an invalidated UIA text range during the optional
+F12 retry. That read-only probe now declines the retry for a replaced range;
+the exact declaration-navigation assertion remains. VS2026 then passes in
+`TestResults/cc9caebb7cff4f2eb69ef5096447948b` (47.52 s). Both profiles contain
+the standard matching extension again; post-run CIM finds no devenv/testhost.
+
+### Iteration 22 completion audit
+
+All accepted-scope implementation and acceptance gates pass. Audited TRX counters:
+compiler **915 net472 / 917 net8.0**, project-analysis **57**, full host **984**,
+SDK package **3 per framework**, desktop package/compilation/lookup **15 per host**,
+and VSIX **14 per framework**. Generated collection runtimes pass both frameworks;
+all **24** selected performance/allocation/cancellation cases pass, with actual
+measurements and large single-document limitations above. Native tutorial,
+typing, shared/culture, direct RESX XML, project/NuGet library, themes, edited
+example preparation/reopening and generated-definition scenarios have passing
+both-IDE evidence. Failed-test cleanup passes headless on both runtimes and
+through injected native failures on both IDEs.
+
+The tutorial consumes the checked-in four XML examples and completes unsaved
+Rename/Undo/Redo/Save/Build. Source review confirms the production menu change
+matches the already accepted 984-test host run; no later tracing or semantic
+change remains. Analysis **10**, analyzer **5**, library **3**, export **1** and
+semantic definition fingerprints are preserved. No compiler, exporter contract
+or provider behavior changes are introduced in this iteration. No accepted-scope
+gate remains open. Standard RESX-table commands stay deferred by the user's
+2026-11-14 decision, with the failed public-API feasibility evidence retained;
+XML/designer success is not table acceptance. Final review verifies 139 local
+links across nine changed documents and passes `git diff --check`. The work
+remains on dev/milestone-14; no merge or push is included.

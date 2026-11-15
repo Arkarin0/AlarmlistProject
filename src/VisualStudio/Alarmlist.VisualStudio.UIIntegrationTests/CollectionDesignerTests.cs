@@ -27,6 +27,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
 
         private static void CheckCollections(VisualStudioSession ide, UiTestWorkspace workspace)
         {
+            ReferenceAcceptanceUi.Hide(ide);
             string repository = typeof(CollectionDesignerTests).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(item => item.Key == "RepositoryRoot").Value;
             var definition = XDocument.Load(Path.Combine(repository, "src/Compiler/Definition/AlarmDefinition.xml")).Root;
             bool procedures = definition.Element("TestProcedure") != null;
@@ -61,10 +62,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 return window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))) != null;
             }, "collection designer loaded");
             window.SetForeground();
-            var designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)));
-            designer.Focus(); ide.RequireForeground(); designer.Click();
+            AutomationElement designer = null;
+            VisualStudioSession.Wait(() => (designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))))?.IsEnabled == true,
+                "available collection designer mode");
+            designer.Patterns.SelectionItem.Pattern.Select();
+            VisualStudioSession.Wait(() => designer.Patterns.SelectionItem.Pattern.IsSelected.Value, "selected collection designer mode");
             AutomationElement Collection(string name) => window.FindFirstDescendant(cf => cf.ByName("Collection " + name));
-            TextBox[] Tags() => Collection("Tags").FindAllDescendants(cf => cf.ByName("Item").And(cf.ByControlType(ControlType.Edit))).Select(item => item.AsTextBox()).ToArray();
+            TextBox[] Tags() => Collection("Tags")?.FindAllDescendants(cf => cf.ByName("Item").And(cf.ByControlType(ControlType.Edit))).Select(item => item.AsTextBox()).ToArray()
+                ?? Array.Empty<TextBox>();
             XElement Source() => XDocument.Parse(ide.ReadText(workspace.AlarmPath)).Root.Elements("Alarm").First();
             void HideExplanation()
             {
@@ -78,9 +83,14 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A); Keyboard.Type(text);
                 if (commit) Keyboard.Type(VirtualKeyShort.RETURN);
             }
-            VisualStudioSession.Wait(() => Collection("Tags") != null && Tags().Length == 2 && Tags()[0].IsEnabled, "local scalar collection rows");
-            VisualStudioSession.Wait(() => Collection("Tags").FindAllDescendants().Any(item => item.Name.Contains("Inherited from UI.Base")), "read-only inherited collection entry");
-            Assert.Equal(procedures, window.FindAllDescendants().Any(item => item.Name == "Add procedure group"));
+            VisualStudioSession.Wait(() => { var tags = Tags(); return tags.Length == 2 && tags[0].IsEnabled; }, "local scalar collection rows");
+            VisualStudioSession.Wait(() => Collection("Tags")?.FindAllDescendants().Any(item => item.Name.Contains("Inherited from UI.Base")) == true, "read-only inherited collection entry");
+            Assert.Equal(procedures, window.FindFirstDescendant(cf => cf.ByName("Add procedure group").And(cf.ByControlType(ControlType.Button))) != null);
+            Collection("Checks").Patterns.ExpandCollapse.Pattern.Expand();
+            var count = Collection("Checks").FindFirstDescendant(cf => cf.ByName("Count").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
+            count.Focus();
+            VisualStudioSession.Wait(() => count.Properties.HasKeyboardFocus.Value && count.Text == "", "absent default stays absent on focus");
+            Assert.Equal(original, ide.ReadText(workspace.AlarmPath));
             ValueExplanationUi.Explain(ide, window, "Explain this value for Count", "Canonical: 7", "Default: Count", beforeFreshRequest: () =>
             {
                 Assert.Equal(original, ide.ReadText(workspace.AlarmPath));
@@ -93,10 +103,6 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ReferenceAcceptanceUi.Hide(ide); ide.ActivateDocument(workspace.AlarmPath); designer.Patterns.SelectionItem.Pattern.Select();
             ValueExplanationUi.Explain(ide, window, "Explain this value for inherited Tags", "inherited", "Membership:");
             HideExplanation();
-            Assert.Equal(original, ide.ReadText(workspace.AlarmPath));
-            var count = Collection("Checks").FindFirstDescendant(cf => cf.ByName("Count").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
-            count.Focus();
-            VisualStudioSession.Wait(() => count.Properties.HasKeyboardFocus.Value && count.Text == "", "absent default stays absent on focus");
             Assert.Equal(original, ide.ReadText(workspace.AlarmPath));
             var recordText = Collection("Checks").FindFirstDescendant(cf => cf.ByName("Text").And(cf.ByControlType(ControlType.Edit))).AsTextBox();
             Input(recordText, "private collection draft", false);

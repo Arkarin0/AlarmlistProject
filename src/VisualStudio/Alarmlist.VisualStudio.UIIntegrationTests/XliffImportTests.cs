@@ -103,7 +103,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 RedirectStandardOutput = true, RedirectStandardError = true };
             if (!desktop) start.ArgumentList.Add("msbuild");
             foreach (string argument in new[] { "Plant.almproj", "/nologo", "/nr:false", "/v:minimal" }.Concat(arguments)) start.ArgumentList.Add(argument);
-            using (Process process = Process.Start(start))
+            using (var process = OwnedTestProcess.Start(start))
             {
                 Task<string> stdout = process.StandardOutput.ReadToEndAsync(), stderr = process.StandardError.ReadToEndAsync();
                 if (!process.WaitForExit(60000)) { process.Kill(true); throw new TimeoutException("The owned XLIFF process did not finish."); }

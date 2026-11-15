@@ -28,18 +28,46 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
         {
             workspace.CreateProject(ide); ReferenceAcceptanceUi.Hide(ide);
             byte[] saved = File.ReadAllBytes(workspace.AlarmPath);
+            string originalSource = File.ReadAllText(workspace.AlarmPath);
             using var automation = new UIA3Automation();
             var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             ide.OpenDesigner(workspace.AlarmPath);
             window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))).Patterns.SelectionItem.Pattern.Select();
-            Button find = null;
-            VisualStudioSession.Wait(() => (find = ValueActionUi.Find(window, "Find references to this alarm", keyboard: true)) != null, "current themed reference action");
-            find.Invoke();
-            VisualStudioSession.Wait(() => ById("ReferencesStatus")?.Name == "References in this solution", "themed reference results");
+            void FindCurrentAlarm()
+            {
+                for (int attempt = 0; attempt < 3; attempt++)
+                {
+                    ReferenceAcceptanceUi.Hide(ide); ide.OpenDesigner(workspace.AlarmPath);
+                    Button find = null;
+                    VisualStudioSession.Wait(() => (find = ValueActionUi.Find(window, "Find references to this alarm", keyboard: true)) != null, "current themed reference action");
+                    ide.RequireForeground(); find.AsMenuItem().Invoke();
+                    VisualStudioSession.Wait(() => ById("ReferencesStatus")?.Name == "References in this solution"
+                        || (ById("ReferencesStatus")?.Name ?? "").Contains("The solution catalogue changed.", StringComparison.Ordinal), "themed reference results");
+                    if (ById("ReferencesStatus")?.Name == "References in this solution") return;
+                    Assert.Equal(saved, File.ReadAllBytes(workspace.AlarmPath)); Assert.Equal(originalSource, ide.ReadText(workspace.AlarmPath));
+                    Assert.False(ById("RenameApply")?.IsEnabled == true);
+                    VisualStudioAutomation.Log("Theme search invalidated before first observation; recapturing the unchanged alarm.");
+                }
+                throw new InvalidOperationException("The theme fixture catalogue did not settle for reference discovery.");
+            }
+            FindCurrentAlarm();
             var references = ide.Automation.Windows.Item("{a840dc04-70c0-47c2-8618-8d3955e39ccc}");
             references.IsFloating = true; references.Width = 1050; references.Height = 700;
             references.Left = window.BoundingRectangle.Left + 20; references.Top = window.BoundingRectangle.Top + 40;
-            var rename = ReferenceAcceptanceUi.RenameFromReferences(ide, window);
+            EnvDTE.Window rename = null;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                try { rename = ReferenceAcceptanceUi.RenameFromReferences(ide, window); break; }
+                catch (InvalidOperationException) when ((ById("ReferencesStatus")?.Name ?? "").Contains("The solution catalogue changed.", StringComparison.Ordinal))
+                {
+                    Assert.Equal(saved, File.ReadAllBytes(workspace.AlarmPath)); Assert.Equal(originalSource, ide.ReadText(workspace.AlarmPath));
+                    Assert.False(ById("RenameApply")?.IsEnabled == true);
+                    Keyboard.Type(FlaUI.Core.WindowsAPI.VirtualKeyShort.ESCAPE);
+                    VisualStudioAutomation.Log("Unchanged theme fixture recaptures its explicit alarm after catalogue invalidation.");
+                    FindCurrentAlarm();
+                }
+            }
+            Assert.NotNull(rename);
             ById("RenameNewName").AsTextBox().Text = "ThemeReview";
             ValueActionUi.Find(window, "Preview rename changes").Invoke();
             VisualStudioSession.Wait(() => (ById("RenameStatus")?.Name ?? "").StartsWith("Review ", StringComparison.Ordinal), "themed rename preview");

@@ -79,6 +79,10 @@ Use [Explain this value](value-explanations.md) to inspect a designer value's
 compiler contributors in Alarm Summary. Commit or cancel private drafts first;
 the action never commits a draft.
 
+Follow [Edit and navigate expression tokens](../tutorials/edit-expression-tokens.md)
+for a complete token-navigation, private-draft, Rename, Undo and three-culture build
+exercise.
+
 Use [Find references and rename](references-and-rename.md) beside a supported value
 or identity to inspect its consumers or preview coordinated unsaved changes.
 

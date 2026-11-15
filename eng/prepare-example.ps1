@@ -8,6 +8,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'Invoke-HeadlessTool.ps1')
 Set-StrictMode -Version Latest
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 function Get-PackageContentHash([string]$Path) {
@@ -43,10 +44,10 @@ if (!(Test-Path -LiteralPath $packagePath)) { throw "Build the matching SDK pack
 # isolated NuGet environment. Keep generated DLLs out of persistent source files.
 Push-Location $repoRoot
 try {
-  & dotnet build 'src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj' --configuration $Configuration --nologo --verbosity minimal -m:1 -nr:false
-  if ($LASTEXITCODE -ne 0) { throw 'Example analyzer preparation failed.' }
-  & dotnet build 'src/Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj' --configuration $Configuration --nologo --verbosity minimal -m:1 -nr:false
-  if ($LASTEXITCODE -ne 0) { throw 'Example zenon exporter preparation failed.' }
+  $exitCode = Invoke-HeadlessTool -FilePath dotnet -Arguments @('build', 'src/Analyzers/Alarmlist.SampleAnalyzer/Alarmlist.SampleAnalyzer.csproj', '--configuration', $Configuration, '--nologo', '--verbosity', 'minimal', '-m:1', '-nr:false')
+  if ($exitCode -ne 0) { throw 'Example analyzer preparation failed.' }
+  $exitCode = Invoke-HeadlessTool -FilePath dotnet -Arguments @('build', 'src/Exporters/Alarmlist.Exporters.Zenon/Alarmlist.Exporters.Zenon.csproj', '--configuration', $Configuration, '--nologo', '--verbosity', 'minimal', '-m:1', '-nr:false')
+  if ($exitCode -ne 0) { throw 'Example zenon exporter preparation failed.' }
 } finally { Pop-Location }
 $exporterPackagePath = Join-Path $repoRoot "artifacts/packages/$Configuration/NonShipping/Alarmlist.Exporters.Zenon.$sdkVersion.nupkg"
 if (!(Test-Path -LiteralPath $exporterPackagePath)) { throw "The matching zenon exporter package is missing: $exporterPackagePath" }
@@ -98,11 +99,11 @@ try {
     # Restore evaluates the SDK without compiling or overwriting playground output.
     $buildArguments = @("$name/$name.almproj", '/t:Restore', '/nr:false', '/v:minimal')
     if ($MSBuildPath) {
-      & $MSBuildPath @buildArguments
+      $exitCode = Invoke-HeadlessTool -FilePath $MSBuildPath -Arguments $buildArguments
     } else {
-      & dotnet msbuild @buildArguments
+      $exitCode = Invoke-HeadlessTool -FilePath dotnet -Arguments (@('msbuild') + $buildArguments)
     }
-    if ($LASTEXITCODE -ne 0) { throw "Example SDK preparation failed for $name." }
+    if ($exitCode -ne 0) { throw "Example SDK preparation failed for $name." }
   }
 } finally {
   $env:NUGET_PACKAGES = $previousPackages

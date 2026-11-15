@@ -46,8 +46,12 @@ namespace Alarmlist.VisualStudio.UI
             if (!(sender is FrameworkElement element)) return;
             element.ContextMenuOpening -= OnOpening;
             element.Loaded -= OnLoaded;
+            element.PreviewMouseDown -= OnPreviewMouseDown;
+            element.PreviewKeyDown -= OnPreviewKeyDown;
             if (args.NewValue == null) return;
             element.ContextMenuOpening += OnOpening;
+            element.PreviewMouseDown += OnPreviewMouseDown;
+            element.PreviewKeyDown += OnPreviewKeyDown;
             // A non-null menu makes keyboard context-menu invocation available on
             // labels as well as editors. Existing menus keep their own bindings.
             if (element.IsLoaded) EnsureMenu(element);
@@ -55,6 +59,15 @@ namespace Alarmlist.VisualStudio.UI
         }
 
         private static void OnLoaded(object sender, RoutedEventArgs args) => EnsureMenu((FrameworkElement)sender);
+        private static void OnPreviewMouseDown(object sender, MouseButtonEventArgs args)
+        {
+            if (args.ChangedButton == MouseButton.Right) EnsureMenu((FrameworkElement)sender);
+        }
+        private static void OnPreviewKeyDown(object sender, KeyEventArgs args)
+        {
+            if (args.Key == Key.Apps || (args.Key == Key.F10 && Keyboard.Modifiers == ModifierKeys.Shift))
+                EnsureMenu((FrameworkElement)sender);
+        }
         private static void EnsureMenu(FrameworkElement element)
         {
             // A stretched heading otherwise hit-tests only its text glyphs.
@@ -73,7 +86,8 @@ namespace Alarmlist.VisualStudio.UI
             {
                 // TextBox's class handler consumes the opening event when it
                 // creates its built-in menu. Supply a real editing menu before
-                // that event, so the marked parent can append value actions.
+                // that event, including children added after the anchor loaded,
+                // so the marked parent can append value actions.
                 if ((value is TextBoxBase || value is ExpressionTextBox) && value.ContextMenu == null && FindOwner(anchor) != null)
                 {
                     value.ContextMenu = NewMenu();

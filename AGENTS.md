@@ -77,10 +77,13 @@ Existing plans and iteration records:
 | [Milestone 12](src/VisualStudio/MILESTONE-12.md) | Authorized XML IntelliSense for ALMX, .almlookup and .almproj files, and native Visual Studio Shared Projects; follow its accepted defaults and 15% remaining-allowance stop. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+Milestone 14 iterations 15–22 completed scoped acceptance on 2026-11-15; the
+explicit standard RESX-table deferral below remains a separate vendor limitation.
 Milestone 14 follow-up iterations 15–22 authorize context-menu value actions,
 a separate dockable Rename window with pixel scrolling and change-owned expansion,
 consistent VS themes, formal expression tokens/nodes, detached contract-10
-classification, XML/designer token commands and native RESX resource-table actions.
+classification and XML/designer/direct RESX XML token commands. The original
+standard RESX-table proposal is separately deferred below.
 Follow its appended plan; iterations 15–18 keep analysis 9 and iteration 19 activates
 10 across compiler/SDK/host together. Preserve analyzer 5/library 3/export 1 and
 semantic fingerprints. Reuse the VS editor and the compiler's single expression
@@ -135,6 +138,14 @@ and its explicit consumer; lexical colors never establish reference identity.
 Area=DesignerExpressionNodes verifies native colors, pointer/caret commands,
 draft guards, token Rename, Unicode/multiline clipboard and source Undo on both
 IDEs. Fixtures address the actual input child of composite editors.
+Iteration-22 acceptance uses Area=ExpressionTutorial for the checked-in token
+workflow and Area=ExpressionTyping for actual typing with 1,001 alarms. Native
+typing/color observations include focus/UIA/polling; report them separately from
+isolated API measurements. Area=Classifications, ClassificationAllocations and
+ClassificationCorrectness extend the existing large fixtures, including a single
+10,000-alarm document and SDK-domain counters. Classification uses no evaluator,
+analyzer or reference index; successive draft requests must work without a
+reference-search bridge, preserve original inputs and reuse the owned worker.
 
 Milestone 14 introduced ExplainSnapshots with analysis contract 8; its reference/
 rename follow-up introduced contract 9; expression classification advances the
@@ -195,6 +206,9 @@ close obsolete menus on input/context/selection changes or unload. Menu invocati
 must preserve private drafts, including right-button focus and another parameter
 row's ordinary commit-on-selection setter. Prepare explicit editing menus on child
 text boxes whose native class handler would otherwise consume the opening event.
+Repeat that preparation during the context-invocation preview input so text
+children created after their marked parent loaded also receive an editing menu;
+preparation must neither open the menu early nor change drafts or source.
 Reference acceptance uses Area=ReferenceTutorial for the documented two-file
 navigation/rename/Undo/Save/Build workflow. Integrated library, package, shared
 example and generated-collection checks extend their existing native fixtures.
@@ -1138,7 +1152,7 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   same explicit host paths/profile. Their net8.0-windows runner uses FlaUI 5 outside
   the IDE; keep its dependencies out of the VSIX. Preserve normal-run skipping,
   the shared live-test mutex, target-field/foreground checks before keyboard input,
-  retained failure artifacts and cleanup of only the owned process. Each case owns
+  retained failure artifacts and cleanup of only the owned process tree. Each case owns
   a fresh IDE and isolated fixture/feed/cache. These tests
   disable desktop MSBuild node reuse in their owned IDE environment so build
   workers are not reused across isolated SDK/feed lifetimes. This is a fixture
@@ -1157,9 +1171,22 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Its Toggle provider alone can change the visible state without publishing the
   reference edit. Keep the saved-membership assertion after native input.
   Native editor scenarios must select their intended alarm explicitly when source
-  replacement or navigation can change selection. Hide or dock a persisted floating
-  preview before mouse input it could obstruct, except when the scenario explicitly
-  tests that window's placement or restoration. Preserve the functional assertions.
+  replacement or navigation can change selection. Hide or dock persisted floating
+  Summary/References/Rename frames before mouse input they could obstruct, except
+  when the scenario explicitly tests that window's placement or restoration.
+  Preserve the functional assertions.
+  Semantic Summary fixtures set a usable active viewport explicitly; stored
+  floating-frame placement can leave accessible values occluded. Reacquire the
+  current UIA value element during readiness when analysis replaces templates,
+  retaining exact pointer hit tests. A guarded F12 retry only reads the unchanged
+  caret/selection; never reposition it once navigation may already be replacing
+  the source view.
+  Readiness predicates must be safe to retry and reacquire replaced UIA elements;
+  UIA_E_ELEMENTNOTAVAILABLE (0x80040201) does not excuse failed behavior assertions.
+  Reveal off-screen values through the outer visible content viewport, clipping
+  it to enclosing scroll viewports and clearing sticky headers. Use page steps
+  for distant values and fine steps nearby; never focus a control merely to
+  reveal it when that could commit a private draft.
   Fresh-profile metadata tests must activate their owned document when the welcome
   page takes focus and provide a usable preview viewport before counting virtualized
   rows. Wait for completion dismissal before cancelling its draft; do not rely on
@@ -1174,7 +1201,26 @@ dotnet test src/VisualStudio/Alarmlist.VisualStudio.UIIntegrationTests/Alarmlist
   Avoid launching extra shell windows during native input checks; poll the
   existing runner instead. A bounded foreground-readiness wait may restore the
   owned IDE, but retain the final process/focus check before sending input.
-  Suppress a console host for owned IDE launches while explicitly showing the GUI.
+  A Terminal taking focus does not establish user/RDP interference: inspect
+  ownership first, including helpers left by failed tests. Functional IDE,
+  deployment and helper launches use the shared test-only OwnedTestProcess:
+  atomically attach a private kill-on-close job, inherit only stdio handles,
+  retain exact process handles and terminate surviving descendants after exit,
+  timeout, failure or disposal. Fail closed if containment cannot be established;
+  never sweep process names or stop an unidentified existing Terminal.
+  Suppress consoles for helper launches while explicitly showing the IDE GUI.
+  Windowless Windows PowerShell can allocate a console for native invocation;
+  example preparation and the functional test entry point use
+  eng/Invoke-HeadlessTool.ps1 for redirected direct execution instead. During
+  native checks, use that helper for CLI observations too: a native git/rg/dotnet
+  invocation from another windowless PowerShell can allocate a new Terminal
+  console and steal the test's foreground. Area=ProcessCleanup covers the launcher on net8.0 and
+  net472 without IDE/input; Area=ProcessCleanupPreparation runs the real example
+  preparation twice on edited copies with dotnet and installed desktop hosts.
+  Keep its test-only eng/testassets/ProcessCleanup probe out of the VSIX.
+  Area=ProcessCleanupNative separately verifies injected scenario failure through
+  the real functional fixture and exit of its owned IDE/helper/descendant on
+  both IDEs; headless containment tests do not replace that native acceptance.
   Hit-test pointer input inside the owned window against the intended element;
   WPF can report IsOffscreen=false for clipped fields. Reveal values by scrolling
   their actual ancestor viewport without focusing and committing a private draft.

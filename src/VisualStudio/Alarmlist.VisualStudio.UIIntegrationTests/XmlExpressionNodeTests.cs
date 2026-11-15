@@ -57,6 +57,13 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 var tokenBounds = textView.Patterns.Text.Pattern.DocumentRange.FindText("$(P)", false, false).GetBoundingRectangles().First();
                 var tokenPoint = new System.Drawing.Point((int)(tokenBounds.Left + tokenBounds.Width / 2), (int)(tokenBounds.Top + tokenBounds.Height / 2));
                 Assert.True(window.BoundingRectangle.Contains(tokenPoint));
+                VisualStudioSession.Wait(() =>
+                {
+                    window.SetForeground();
+                    try { ide.RequireForeground(); }
+                    catch (InvalidOperationException) { return false; }
+                    return automation.FromPoint(tokenPoint).Properties.ProcessId.Value == ide.ProcessId;
+                }, "unobstructed XML token in the owned IDE");
                 Assert.Equal(ide.ProcessId, automation.FromPoint(tokenPoint).Properties.ProcessId.Value);
                 ide.RequireForeground(); Mouse.RightClick(tokenPoint);
                 var desktop = automation.GetDesktop();
@@ -76,7 +83,10 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     {
                         Assert.Equal(workspace.AlarmPath, ide.Automation.ActiveDocument.FullName, ignoreCase: true);
                         Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
-                        Assert.Equal(ide.ProcessId, automation.FromPoint(tokenPoint).Properties.ProcessId.Value);
+                        window.SetForeground();
+                        try { ide.RequireForeground(); }
+                        catch (InvalidOperationException) { return false; }
+                        if (automation.FromPoint(tokenPoint).Properties.ProcessId.Value != ide.ProcessId) return false;
                         ide.RequireForeground(); Mouse.RightClick(tokenPoint); menuInput.Restart();
                     }
                     return definitionAction?.IsEnabled == true
@@ -99,16 +109,17 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 {
                     referencesAction = desktop.FindAllChildren(cf => cf.ByProcessId(ide.ProcessId))
                         .SelectMany(owned => owned.FindAllDescendants(cf => cf.ByControlType(ControlType.MenuItem)))
-                        .FirstOrDefault(item => !item.IsOffscreen && (item.Name == "Alle Verweise suchen" || item.Name == "Find All References") && HitMenuItem(item));
+                        .FirstOrDefault(item => !item.IsOffscreen && (item.Name == "Alle Verweise suchen" || item.Name == "Find All References"));
                     if (referencesAction == null && menuInput.ElapsedMilliseconds >= 1000)
                     {
-                        XmlCompletionTests.RequireXmlInput(ide, window, workspace.AlarmPath);
+                        ide.RequireForeground(); Keyboard.Type(VirtualKeyShort.ESCAPE);
+                        XmlCompletionTests.FocusXmlInput(ide, window, workspace.AlarmPath);
                         Assert.Equal(source, ide.ReadText(workspace.AlarmPath));
                         ide.RequireForeground(); Keyboard.Type(VirtualKeyShort.APPS); menuInput.Restart();
                     }
                     return referencesAction?.IsEnabled == true;
                 }, "native keyboard context menu on nested dollar-prefix token");
-                ide.RequireForeground(); referencesAction.Click();
+                ide.RequireForeground(); referencesAction.AsMenuItem().Invoke();
                 ReferenceAcceptanceUi.Expect(window, "Parameter: Q"); ReferenceAcceptanceUi.Hide(ide);
 
                 Position(workspace.AlarmPath, "$(loc:Message", 2); ide.Automation.ExecuteCommand("Edit.GoToDefinition");

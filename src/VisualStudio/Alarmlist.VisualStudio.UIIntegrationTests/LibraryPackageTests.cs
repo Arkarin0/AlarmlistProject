@@ -1,6 +1,7 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using Alarmlist.VisualStudio.Testing;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -201,7 +202,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                     UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
                 foreach (string argument in new[] { "msbuild", projectPath, "/t:Restore;Pack", "/nologo", "/nr:false", "/v:minimal",
                     "/p:PackageOutputPath=" + Path.Combine(workspace.DirectoryPath, "feed") }) start.ArgumentList.Add(argument);
-                using var process = Process.Start(start);
+                using var process = OwnedTestProcess.Start(start);
                 Task<string> stdout = process.StandardOutput.ReadToEndAsync(), stderr = process.StandardError.ReadToEndAsync();
                 bool exited = process.WaitForExit(120000);
                 if (!exited) { process.Kill(entireProcessTree: true); process.WaitForExit(); }
