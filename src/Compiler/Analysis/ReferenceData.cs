@@ -67,23 +67,26 @@ namespace Alarmlist.Analysis
 
     internal sealed class ReferenceTokenProbe
     {
-        internal ReferenceTokenProbe(string family, SourceLocation location, int start, int length, bool isSyntaxFallback = false)
-        { Family = family; Location = location; Start = start; Length = length; IsSyntaxFallback = isSyntaxFallback; }
+        internal ReferenceTokenProbe(string family, SourceLocation location, int start, int length, bool isSyntaxFallback = false, string consumer = null)
+        { Family = family; Location = location; Start = start; Length = length; IsSyntaxFallback = isSyntaxFallback; Consumer = consumer; }
         internal string Family { get; }
         internal SourceLocation Location { get; }
         internal int Start { get; }
         internal int Length { get; }
         internal bool IsSyntaxFallback { get; }
+        internal string Consumer { get; }
     }
 
     internal sealed class ReferenceData
     {
         internal ReferenceData(IEnumerable<ReferenceSymbol> symbols, IEnumerable<ReferenceOccurrence> occurrences,
             IEnumerable<string> coverage, IEnumerable<AnalysisDiagnostic> diagnostics, IEnumerable<ReferenceContextBinding> contextBindings = null,
-            IEnumerable<ReferenceTokenProbe> tokenProbes = null, IEnumerable<string> unavailableSources = null)
+            IEnumerable<ReferenceTokenProbe> tokenProbes = null, IEnumerable<string> unavailableSources = null,
+            IEnumerable<ReferenceTokenProbe> valueTokenProbes = null)
         {
             Symbols = Array.AsReadOnly(symbols.ToArray());
             TokenProbes = Array.AsReadOnly((tokenProbes ?? Array.Empty<ReferenceTokenProbe>()).ToArray());
+            ValueTokenProbes = Array.AsReadOnly((valueTokenProbes ?? Array.Empty<ReferenceTokenProbe>()).ToArray());
             UnavailableSources = Array.AsReadOnly((unavailableSources ?? Array.Empty<string>()).ToArray());
             Occurrences = Array.AsReadOnly(occurrences.ToArray());
             Coverage = Array.AsReadOnly(coverage.Distinct(StringComparer.Ordinal).ToArray());
@@ -92,6 +95,7 @@ namespace Alarmlist.Analysis
         }
         internal IReadOnlyList<ReferenceSymbol> Symbols { get; }
         internal IReadOnlyList<ReferenceTokenProbe> TokenProbes { get; }
+        internal IReadOnlyList<ReferenceTokenProbe> ValueTokenProbes { get; }
         internal IReadOnlyList<string> UnavailableSources { get; }
         internal IReadOnlyList<ReferenceOccurrence> Occurrences { get; }
         internal IReadOnlyList<string> Coverage { get; }

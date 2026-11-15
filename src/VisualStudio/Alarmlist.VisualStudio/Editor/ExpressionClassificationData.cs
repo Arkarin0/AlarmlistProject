@@ -42,6 +42,19 @@ namespace Alarmlist.VisualStudio.Editor
             }
             for (int index = low; index < _spans.Length && _spans[index].Start < start + length; index++) yield return _spans[index];
         }
+        internal AnalysisClassificationSpan AtCaret(int caret)
+        {
+            if (caret < 0) return null;
+            AnalysisClassificationSpan containing = null, endingIdentifier = null;
+            foreach (var span in Intersecting(Math.Max(0, caret - 1), 2))
+            {
+                if (span.Start <= caret && caret < span.Start + span.Length) containing = span;
+                if (span.Start < caret && caret == span.Start + span.Length && span.SyntaxKind == "IdentifierToken") endingIdentifier = span;
+            }
+            if (containing?.SyntaxKind == "IdentifierToken") return containing;
+            if (endingIdentifier != null) return endingIdentifier;
+            return containing?.Kind == "StringLiteral" ? null : containing;
+        }
         private static bool SameTarget(AnalysisClassificationTarget left, AnalysisClassificationTarget right)
             => left != null && right != null && left.Id == right.Id && left.Kind == right.Kind
             && left.IsDraft == right.IsDraft && left.IsResolved == right.IsResolved

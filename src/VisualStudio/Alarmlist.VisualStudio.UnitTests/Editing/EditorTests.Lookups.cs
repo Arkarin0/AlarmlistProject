@@ -98,7 +98,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Equal("$(loc:Set, path=$(path:Service.Vakuum), property=\"\", value=\"\")", box.Text);
                     Assert.True(session.View.HasPending);
                     Assert.Equal(0, session.Buffer.Edits);
-                    Assert.Same(box, Keyboard.FocusedElement);
+                    Assert.Same(box.Surface.InputElement, Keyboard.FocusedElement);
                     RaiseExpressionKey(box, host, Key.Enter);
                     Assert.Equal(1, session.Buffer.Edits);
                     session.Buffer.Undo();

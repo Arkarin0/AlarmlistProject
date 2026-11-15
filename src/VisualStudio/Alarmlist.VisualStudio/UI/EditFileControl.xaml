@@ -84,7 +84,12 @@
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
       <Setter Property="Padding" Value="5,3" />
     </Style>
-    <Style TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type TextBox}}" />
+    <Style TargetType="ui:ExpressionTextBox">
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxBackgroundBrushKey}}" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ComboBoxTextBrushKey}}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBorderBrushKey}}" />
+      <Setter Property="BorderThickness" Value="1" /><Setter Property="Padding" Value="5,3" />
+    </Style>
     <Style x:Key="ProcedureHeading" TargetType="ui:ExpressionTextBox" BasedOn="{StaticResource {x:Type ui:ExpressionTextBox}}">
       <Setter Property="Padding" Value="26,3,5,3" />
       <Setter Property="Background" Value="Transparent" />

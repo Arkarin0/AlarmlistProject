@@ -30,13 +30,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     ProcedureSectionViewModel section = view.ProcedureSections[0];
                     Button add = VisualChildren(control).OfType<Button>().Single(item => ReferenceEquals(item.Command, section.AddCommand));
                     InvokeProcedureButton(add);
-                    ExpressionTextBox editor = Assert.IsType<ExpressionTextBox>(Keyboard.FocusedElement);
+                    ExpressionTextBox editor = FocusedExpressionBox();
                     Assert.Same(section.Items[2], editor.DataContext);
                     editor.Text = "Third entry";
                     editor.Select(3, 2);
                     Button up = VisualChildren(control).OfType<Button>().Single(item => ReferenceEquals(item.Command, section.Items[2].MoveUpCommand));
                     InvokeProcedureButton(up);
-                    editor = Assert.IsType<ExpressionTextBox>(Keyboard.FocusedElement);
+                    editor = FocusedExpressionBox();
                     Assert.Same(section.Items[1], editor.DataContext);
                     Assert.Equal("Third entry", editor.Text);
                     Assert.Equal(3, editor.SelectionStart);
@@ -44,7 +44,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Equal(new[] { "First", "Third entry", "Second" }, section.Items.Select(item => item.Text));
                     Button remove = VisualChildren(control).OfType<Button>().Single(item => ReferenceEquals(item.Command, section.Items[1].DeleteCommand));
                     InvokeProcedureButton(remove);
-                    Assert.Equal("Second", Assert.IsType<ExpressionTextBox>(Keyboard.FocusedElement).Text);
+                    Assert.Equal("Second", FocusedExpressionBox().Text);
                     Assert.Equal(4, buffer.Edits); // Add, draft commit, move, remove.
                     while (section.Items.Count != 0)
                         InvokeProcedureButton(VisualChildren(control).OfType<Button>().Single(item => ReferenceEquals(item.Command, section.Items[0].DeleteCommand)));
@@ -74,13 +74,13 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     ProcedureSectionViewModel section = session.View.ProcedureSections[0];
                     section.ShowCleared = false;
                     InvokeProcedureButton(VisualChildren(control).OfType<Button>().Single(item => ReferenceEquals(item.Command, section.Items[1].MoveUpCommand)));
-                    ExpressionTextBox editor = Assert.IsType<ExpressionTextBox>(Keyboard.FocusedElement);
+                    ExpressionTextBox editor = FocusedExpressionBox();
                     session.Analyze(ProcedureBase);
                     InheritanceAdornerTests.Pump();
                     Assert.True(section.Items[0].IsExcluded);
                     Assert.False(section.Items[0].IsVisible);
                     Assert.True(editor.IsVisible);
-                    Assert.Same(editor, Keyboard.FocusedElement);
+                    Assert.Same(editor.Surface.InputElement, Keyboard.FocusedElement);
                     var toggle = VisualChildren(control).OfType<System.Windows.Controls.Primitives.ToggleButton>().Single(item =>
                         AutomationProperties.GetName(item) == "Show cleared Instructions entries");
                     Assert.True(toggle.Focus());
@@ -107,7 +107,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     editor.BringIntoView();
                     Assert.True(editor.Focus());
                     foreach (char character in "Added procedure")
-                        TextCompositionManager.StartComposition(new TextComposition(InputManager.Current, editor, character.ToString()));
+                        TextCompositionManager.StartComposition(new TextComposition(InputManager.Current, editor.Surface.InputElement, character.ToString()));
                     Assert.Equal("Added procedure", editor.Text);
                     Assert.Equal(editor.Text.Length, editor.CaretIndex);
                     Assert.Equal(0, session.Buffer.Edits);
@@ -130,13 +130,14 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     InheritanceAdornerTests.Pump();
                     control.AddHandler(Keyboard.GotKeyboardFocusEvent, new KeyboardFocusChangedEventHandler((sender, args) =>
                     {
-                        if (!(args.NewFocus is ExpressionTextBox text) || !(text.DataContext is ProcedureItemViewModel)) return;
+                        var text = UI.ValueContextMenu.Ancestors(args.NewFocus as DependencyObject).OfType<ExpressionTextBox>().FirstOrDefault();
+                        if (text == null || !ReferenceEquals(args.NewFocus, text.Surface.InputElement) || !(text.DataContext is ProcedureItemViewModel)) return;
                         text.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, host, 0, Key.A) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
                         text.Text = "A";
                         text.CaretIndex = 1;
                     }));
                     InvokeProcedureButton(VisualChildren(control).OfType<Button>().Single(item => ReferenceEquals(item.Command, view.ProcedureSections[0].AddCommand)));
-                    ExpressionTextBox editor = Assert.IsType<ExpressionTextBox>(Keyboard.FocusedElement);
+                    ExpressionTextBox editor = FocusedExpressionBox();
                     Assert.Equal("A", editor.Text);
                     Assert.Equal(1, editor.CaretIndex);
                     Assert.True(view.HasPending);

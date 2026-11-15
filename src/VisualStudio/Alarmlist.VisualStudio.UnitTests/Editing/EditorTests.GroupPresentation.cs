@@ -47,7 +47,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     heading.Select(2, 3);
                     session.Analyze(ancestor); InheritanceAdornerTests.Pump();
                     Assert.Same(heading, GroupHeading(group));
-                    Assert.Same(heading, Keyboard.FocusedElement);
+                    Assert.Same(heading.Surface.InputElement, Keyboard.FocusedElement);
                     Assert.Equal("Draft $(AlarmlistAlarmCode)", heading.Text);
                     Assert.Equal(2, heading.SelectionStart); Assert.Equal(3, heading.SelectionLength);
                     Assert.Equal(source, session.Buffer.Current.Text);

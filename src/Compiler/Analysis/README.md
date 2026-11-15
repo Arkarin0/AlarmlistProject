@@ -113,7 +113,12 @@ tooling. Use `TargetAtToken(path, version, offset)`, `TargetAtLocation(kind, loc
 name)` or a compiler-issued `TargetIdentity(declarationId)` to obtain a target bound
 to that request. `TargetAtValue(location, consumer)` resolves the symbols bound in
 the value at an exact compiler-reported location, optionally restricted to its
-consumer alarm. `TargetParameter(location, name, sourceScope)` uses the actual
+consumer alarm. `TargetAtValueToken(location, offset, consumer)` selects one token
+at a decoded authored UTF-16 caret within that value. Its request-owned probes
+come from the same parser/binding paths as physical XML token targets. They retain
+consumer-specific inherited bindings and require no host XML/entity arithmetic;
+literals, defaults and parameter assignments acquire no expression identity.
+`TargetParameter(location, name, sourceScope)` uses the actual
 parameter resolver for an alarm or source context, including inherited and project
 declarations. The source context location is `(path, 1, 1, version)`.
 `TargetBuiltIn(name)` selects an immutable well-known name or generated field alias.

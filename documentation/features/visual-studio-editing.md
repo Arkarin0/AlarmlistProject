@@ -29,6 +29,20 @@ an incomplete expression can be colored while its semantic commands remain
 unavailable. Matching project analysis and an explicit consumer are required for
 shared files. Supported RESX XML expression values use the same formats.
 
+Designer expression values use an embedded Visual Studio text editor with the
+same expression formats. An unfocused field can show its resolved value; focus
+shows the authored text. Resolved output remains literal. Ctrl+Space opens the
+existing expression suggestions; Enter or Tab inserts a selected suggestion into
+the draft, and a subsequent Enter commits it. Shift+Enter adds a line break in a
+multiline field. Clipboard operations preserve Unicode and line breaks.
+
+Right-click an authored expression token, or use Shift+F10/the Menu key at its
+caret, for **Go to Definition**, **Find All References** and **Rename…**.
+Nested references have their own targets. **Explain this value** always inspects
+the containing value. Private drafts can receive lexical coloring, but semantic
+actions require commit or cancellation. Opening a menu never commits a draft.
+Undo first cancels a private draft; later Undo/Redo operates on committed XML.
+
 Enter or moving to another designer field commits; Escape cancels a draft.
 Moving to a toolbar, switching view/context, and collapse actions preserve private
 drafts. Undo reverses committed edits. Focus or analysis refresh does not write

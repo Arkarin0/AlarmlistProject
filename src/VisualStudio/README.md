@@ -52,6 +52,19 @@ requires a choice. An explicit choice stays with the open physical document
 across designer/XML windows and analysis refreshes. Membership removal or unload
 clears that choice; unavailable evaluation retains the consumer while blocking
 semantic actions. Restoring a removed consumer does not silently select it again.
+
+Designer expression values embed Visual Studio text buffers/views under a
+dedicated content type, with the shared XML expression formats and Text Editor
+Fonts and Colors. The surrounding control keeps raw/resolved binding, drafts,
+completion, accessibility and source transaction behavior. Enter commits;
+Shift+Enter inserts a line break where supported. Undo cancels a private draft
+before changing committed source. Compiler-owned value-token targets select the
+authored token and consumer; Go to Definition, Find All References and Rename
+share existing captured-input validation and navigation. Explain remains a
+containing-value action. Menus never commit drafts, and source/caret changes
+cancel obsolete discovery. Native acceptance uses `Area=DesignerExpressionNodes`
+alongside the existing completion, explanation and reference fixtures.
+
 Alarm Summary retains its own explicit project selection. Changing context or
 Designer/Split/XML mode preserves private designer drafts. Unsaved shared ALMX
 text reaches each consumer independently; resources and lookups remain saved-only.

@@ -257,6 +257,24 @@ public sealed class VerifyPackagedAnalysis : Task
         MethodInfo rename = compilerType.GetMethod("PreviewRenameSnapshots", new[] { requestType,
             assembly.GetType("Alarmlist.Analysis.ReferenceSymbolTarget", true), typeof(string), typeof(System.Threading.CancellationToken), typeof(IReadOnlyCollection<string>), requestType });
         Require(find != null && rename != null, "The packaged reference/rename APIs are missing.");
+        MethodInfo valueToken = requestType.GetMethod("TargetAtValueToken");
+        Require(valueToken != null, "The packaged compiler has no authored value-token target API.");
+        string valuePath = Path.Combine(Path.GetDirectoryName(sourcePath), "ValueTokens.almx");
+        Type valueSnapshotType = assembly.GetType("Alarmlist.Text.AlmxTextSnapshot", true);
+        Array valueSources = Array.CreateInstance(valueSnapshotType, 1);
+        valueSources.SetValue(Activator.CreateInstance(valueSnapshotType,
+            "<Alarmlist><Alarm><FullyQualifiedName>ValueConsumer</FullyQualifiedName><Properties><Property Name='P' Value='one'/></Properties><Name>&#36;(P)</Name></Alarm></Alarmlist>", valuePath, 41), 0);
+        object valueAnalysis = compilerType.GetMethod("AnalyzeSnapshots", new[] { typeof(IEnumerable<>).MakeGenericType(valueSnapshotType) }).Invoke(compiler, new object[] { valueSources });
+        object valueLocation = Value(Items(Items(valueAnalysis, "Alarms").Single(), "Fields").Single(field => (string)Value(field, "Name") == "Name"), "ValueLocation");
+        object valueRequest = Activator.CreateInstance(requestType, valueSources, context, null, null, System.Threading.CancellationToken.None);
+        object authoredTarget = valueToken.Invoke(valueRequest, new object[] { valueLocation, 0, "ValueConsumer" });
+        object authoredFound = find.Invoke(compiler, new object[] { valueRequest, authoredTarget, System.Threading.CancellationToken.None });
+        Require((bool)Value(authoredFound, "IsAvailable") && (string)Value(Value(authoredFound, "Symbol"), "Name") == "P",
+            "The packaged authored caret lost its compiler-owned XML projection or consumer binding.");
+        object authoredPreview = rename.Invoke(compiler, new object[] { valueRequest, authoredTarget, "Next", System.Threading.CancellationToken.None, null, null });
+        Require((bool)Value(authoredPreview, "IsApplicable") && Items(authoredPreview, "Edits").Length == 2,
+            "The packaged value-token preview lost its definition/reference edit set.");
+        Require(!File.Exists(valuePath), "The value-token API accessed uncaptured disk source.");
         object request = Activator.CreateInstance(requestType, snapshots, context, null, null, System.Threading.CancellationToken.None);
         object target = requestType.GetMethod("TargetAtToken").Invoke(request, new object[] { sourcePath, 17, sourceText.IndexOf("Base", StringComparison.Ordinal) });
         object found = find.Invoke(compiler, new object[] { request, target, System.Threading.CancellationToken.None });

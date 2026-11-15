@@ -60,7 +60,16 @@ namespace Alarmlist.VisualStudio.UI
         { if (!_disposed && _state != null && value != null && target != null) _targets[value] = target; }
         public void Find(object value) => Invoke(value, false);
         public void Rename(object value) => Invoke(value, true);
+        internal bool CanFindToken(object value) => CanFind(value) && _targets[value].Kind == "Value";
+        internal void FindToken(object value, int offset, Func<bool> caretIsCurrent, CancellationToken cancellation, bool rename = false, bool definitionsOnly = false)
+        {
+            if (!CanFindToken(value) || offset < 0) return;
+            var basis = _targets[value];
+            Invoke(value, rename, new AnalysisReferenceTarget("ValueToken", basis.Location, basis.Name, offset: offset), caretIsCurrent, cancellation, definitionsOnly);
+        }
         private void Invoke(object value, bool rename)
+            => Invoke(value, rename, null, null, default, false);
+        private void Invoke(object value, bool rename, AnalysisReferenceTarget requested, Func<bool> caretIsCurrent, CancellationToken cancellation, bool definitionsOnly)
         {
             if (!CanFind(value)) return;
             // A new query cancels discovery in its own channel. Established
@@ -68,22 +77,25 @@ namespace Alarmlist.VisualStudio.UI
             // changes invalidate it; Find must not cancel a Rename review.
             var previous = rename ? _renameRequest : _findRequest;
             previous?.Cancel(); previous?.Dispose();
-            var request = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+            var request = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, cancellation);
             if (rename) _renameRequest = request; else _findRequest = request;
-            Pending = FindAsync(value, _state, _targets[value], request.Token, _intent.Token, rename);
+            var basis = _targets[value];
+            Pending = FindAsync(value, _state, requested ?? basis, basis, request.Token, _intent.Token, rename, definitionsOnly, caretIsCurrent);
         }
 
-        private async Task FindAsync(object value, ProjectAnalysisState state, AnalysisReferenceTarget target, CancellationToken token, CancellationToken intentToken, bool rename)
+        private async Task FindAsync(object value, ProjectAnalysisState state, AnalysisReferenceTarget target, AnalysisReferenceTarget basis,
+            CancellationToken token, CancellationToken intentToken, bool rename, bool definitionsOnly, Func<bool> caretIsCurrent)
         {
             bool Current() => !token.IsCancellationRequested && CanFind(value) && ReferenceEquals(_state, state)
-                && _targets.TryGetValue(value, out var actual) && actual.Kind == target.Kind && actual.Name == target.Name
-                && (actual.Location == null ? target.Location == null : ReferenceValueTargets.SameLocation(actual.Location, target.Location));
+                && (caretIsCurrent?.Invoke() ?? true)
+                && _targets.TryGetValue(value, out var actual) && actual.Kind == basis.Kind && actual.Name == basis.Name
+                && (actual.Location == null ? basis.Location == null : ReferenceValueTargets.SameLocation(actual.Location, basis.Location));
             try
             {
                 if (!await _analysis.IsCurrentAsync(state, token) || !Current()) return;
                 bool IntentCurrent() => !_disposed && !intentToken.IsCancellationRequested
                     && state.Project.HasSameCompilerContext(_analysis.Current?.Project);
-                await ((IDesignerReferences)_analysis).FindReferencesAsync(state, target, new ReferenceInvocation(Current, IntentCurrent, token, intentToken, rename));
+                await ((IDesignerReferences)_analysis).FindReferencesAsync(state, target, new ReferenceInvocation(Current, IntentCurrent, token, intentToken, rename, definitionsOnly));
             }
             catch (OperationCanceledException)
             {

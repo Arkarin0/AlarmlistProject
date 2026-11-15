@@ -194,7 +194,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     object projects = session.View.Projects;
                     AnalyzeLocalization(session, "keyword");
                     Assert.Same(projects, session.View.Projects);
-                    Assert.Same(box, Keyboard.FocusedElement);
+                    Assert.Same(box.Surface.InputElement, Keyboard.FocusedElement);
                     Assert.Equal("private draft", box.Text);
                     Assert.Equal(2, box.SelectionStart);
                     Assert.Equal(3, box.SelectionLength);
@@ -271,7 +271,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     validation.SetResult(true);
                     InheritanceAdornerTests.Pump();
                     Assert.Equal("new draft", box.Text);
-                    Assert.Same(box, Keyboard.FocusedElement);
+                    Assert.Same(box.Surface.InputElement, Keyboard.FocusedElement);
                     Assert.Equal(0, session.Buffer.Edits);
                 }
             });
@@ -307,7 +307,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     box.HandleCompletionKey(Key.Space, ModifierKeys.Control);
                     RaiseExpressionKey(box, host, Key.Enter);
                     Assert.Equal("Before $(loc:Alarm.Inspect-now)", box.Text);
-                    Assert.Same(box, Keyboard.FocusedElement);
+                    Assert.Same(box.Surface.InputElement, Keyboard.FocusedElement);
                     RaiseExpressionKey(box, host, Key.Enter);
                     Assert.Equal(1, session.Buffer.Edits);
                     session.Buffer.Undo();

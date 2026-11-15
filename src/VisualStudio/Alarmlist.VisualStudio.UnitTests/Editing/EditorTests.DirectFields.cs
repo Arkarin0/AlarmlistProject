@@ -41,7 +41,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Equal(0, session.Buffer.Edits);
                     Assert.True(code.Focus());
                     code.CaretIndex = code.Text.Length;
-                    TextCompositionManager.StartComposition(new TextComposition(InputManager.Current, code, "!"));
+                    TextCompositionManager.StartComposition(new TextComposition(InputManager.Current, code.Surface.InputElement, "!"));
                     Assert.Equal("$(par1)!", code.Text);
                     Assert.Equal(code.Text.Length, code.CaretIndex);
                     Assert.True(session.Field("Code").IsPresent);
@@ -52,7 +52,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     Assert.Equal("$(par1)!", code.Text);
                     Assert.Equal(2, code.SelectionStart);
                     Assert.Equal(3, code.SelectionLength);
-                    Assert.Same(code, Keyboard.FocusedElement);
+                    Assert.Same(code.Surface.InputElement, Keyboard.FocusedElement);
                     Assert.Equal(0, session.Buffer.Edits);
                     Assert.True(session.View.CommitPending());
                     Assert.Contains("<Code>$(par1)!</Code>", session.Buffer.Current.Text);

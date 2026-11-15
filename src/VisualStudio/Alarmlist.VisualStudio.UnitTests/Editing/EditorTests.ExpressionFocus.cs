@@ -102,7 +102,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     RaiseExpressionKey(box, host, Key.Enter);
                     Assert.Equal("$(par1)", box.RawText);
                     Assert.Equal("$(par1)", session.Field("Code").Value);
-                    Assert.Same(box, Keyboard.FocusedElement);
+                    Assert.Same(box.Surface.InputElement, Keyboard.FocusedElement);
                     Assert.True(session.View.HasPending);
                     Assert.Equal(0, session.Buffer.Edits);
                     RaiseExpressionKey(box, host, Key.Enter);
@@ -207,6 +207,12 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
         { Width = 950, Height = 900, WindowStyle = unchecked((int)0x90000000) });
         private static ExpressionTextBox ExpressionBox(EditFileControl control, string name) => VisualChildren(control).OfType<ExpressionTextBox>()
             .Single(box => AutomationProperties.GetName(box) == name);
+        private static ExpressionTextBox FocusedExpressionBox()
+        {
+            var editor = Assert.IsType<ExpressionTextBox>(ExpressionTextBox.Focused);
+            Assert.True(editor.Surface.InputElement.IsKeyboardFocusWithin);
+            return editor;
+        }
         private static void RaiseExpressionKey(ExpressionTextBox box, HwndSource host, Key key)
             => box.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, host, 0, key) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
     }

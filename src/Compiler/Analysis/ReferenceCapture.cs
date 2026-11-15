@@ -212,6 +212,15 @@ namespace Alarmlist.Analysis
         private void ObserveExpression(string raw, SourceLocation location, AlarmSyntaxNode alarm, Dictionary<string, Symbol> bindings,
             bool record = false, bool formatted = false, bool translation = false, string collectionName = null, bool bindingAvailable = true)
         {
+            var previous = _valueContext;
+            _valueContext = (location, alarm.FullyQualifiedName);
+            try { ObserveExpressionCore(raw, location, alarm, bindings, record, formatted, translation, collectionName, bindingAvailable); }
+            finally { _valueContext = previous; }
+        }
+
+        private void ObserveExpressionCore(string raw, SourceLocation location, AlarmSyntaxNode alarm, Dictionary<string, Symbol> bindings,
+            bool record, bool formatted, bool translation, string collectionName, bool bindingAvailable)
+        {
             if (raw == null) return;
             var expression = PropertyExpression.Parse(raw, placeholders: formatted, allowItemReferences: record);
             if (expression == null)
@@ -369,7 +378,10 @@ namespace Alarmlist.Analysis
                 use.Spelling, Declaration(use.Symbol), use.SourceTokenId)), _coverage, _diagnostics,
                 _contextBindings.Select(binding => new ReferenceContextBinding(binding.Kind, binding.Location, binding.Name, Root(binding.Symbol).Id)),
                 _tokenProbes.Select(probe => new ReferenceTokenProbe(probe.Symbol == null ? null : Root(probe.Symbol).Id, probe.Location, probe.Start, probe.Length, probe.IsSyntaxFallback))
-                    .GroupBy(probe => (probe.Family, Address(probe.Location), probe.Start, probe.Length, probe.IsSyntaxFallback)).Select(group => group.First()), _unavailableSources);
+                    .GroupBy(probe => (probe.Family, Address(probe.Location), probe.Start, probe.Length, probe.IsSyntaxFallback)).Select(group => group.First()), _unavailableSources,
+                _valueTokenProbes.Select(probe => new ReferenceTokenProbe(probe.Symbol == null ? null : Root(probe.Symbol).Id,
+                    probe.Location, probe.Start, probe.Length, probe.IsSyntaxFallback, probe.Consumer))
+                    .GroupBy(probe => (probe.Family, Address(probe.Location), probe.Start, probe.Length, probe.IsSyntaxFallback, probe.Consumer)).Select(group => group.First()));
         }
 
         private static string Address(SourceLocation location) => location == null ? "unavailable" :

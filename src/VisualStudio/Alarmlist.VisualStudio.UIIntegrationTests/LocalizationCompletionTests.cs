@@ -46,9 +46,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             workspace.Build(ide, 1);
             byte[] output = File.ReadAllBytes(workspace.OutputPath);
             using var automation = new UIA3Automation();
-            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
+            ReferenceAcceptanceUi.Hide(ide);
             ide.OpenDesigner(workspace.AlarmPath);
-            Window window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            Window window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             window.SetForeground();
             AutomationElement designer = null;
             VisualStudioSession.Wait(() => (designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)))) != null, "designer mode");
@@ -77,6 +77,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ide.OpenDesigner(workspace.AlarmPath);
             window.SetForeground();
             name = Box(window, "Name");
+            Box(window, "Filter alarms").Focus();
+            VisualStudioSession.Wait(() => name.Text == "Inspect 001", "saved translation with value unfocused");
             Assert.Equal("Inspect 001", name.Text);
             name.Focus();
             ResourceEditorTests.ReplaceDraft(ide, name, "Before $(loc:PEC");

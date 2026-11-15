@@ -213,3 +213,12 @@ Validation passes 906/908 compiler tests, 976 host tests, packaged SDK checks on
 both runtimes and desktop hosts, 14 VSIX checks per framework and native XML,
 shared/culture and lookup/procedure scenarios on both IDEs. Actual commands,
 failures and successful repeats remain in the milestone record.
+
+Milestone 14 iteration 21 documents the embedded VS expression editor, shared
+formats, token versus containing-value actions, private draft guards, completion,
+multiline/Unicode clipboard and document Undo behavior. Validation passes 914/916
+compiler tests, 981 host tests, three SDK package checks per runtime, 15 focused
+checks per desktop MSBuild host and 14 VSIX checks per framework. All six native
+editor/completion/explanation/reference scenarios have passing results on both
+IDEs. Actual failures, corrected readiness checks and successful repeats remain
+in MILESTONE-14.md. Integrated tutorial/performance acceptance remains iteration 22.

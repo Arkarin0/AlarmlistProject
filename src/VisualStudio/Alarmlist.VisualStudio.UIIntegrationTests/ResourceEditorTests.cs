@@ -148,13 +148,35 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A);
             RequireFieldFocus(ide, field);
             Keyboard.Type(after);
-            VisualStudioSession.Wait(() => field.Text == after, "typed resource draft");
+            try { VisualStudioSession.Wait(() => field.Text == after, "typed resource draft"); }
+            catch (TimeoutException error)
+            {
+                throw new TimeoutException(error.Message + "; expected " + after + "; actual " + field.Text
+                    + "; active window " + ide.Automation.ActiveWindow.Caption, error);
+            }
         }
 
         internal static void RequireFieldFocus(VisualStudioSession ide, TextBox field)
         {
             ide.RequireForeground();
             Assert.True(field.Properties.HasKeyboardFocus.ValueOrDefault, "Resource field lost focus; refusing keyboard input.");
+        }
+
+        internal static AutomationElement TextInput(TextBox field)
+            => field.FindFirstDescendant(cf => cf.ByAutomationId("WpfTextView")) ?? field;
+
+        internal static void PlaceExpressionCaretAfter(VisualStudioSession ide, TextBox field, string marker)
+        {
+            RequireFieldFocus(ide, field);
+            var range = TextInput(field).Patterns.Text.Pattern.DocumentRange.FindText(marker, false, false);
+            Assert.NotNull(range);
+            range.MoveEndpointByUnit(TextPatternRangeEndpoint.Start, TextUnit.Character, marker.Length - 1);
+            var bounds = range.GetBoundingRectangles().Last();
+            var point = new System.Drawing.Point(bounds.Right - 1, bounds.Top + bounds.Height / 2);
+            Assert.True(field.BoundingRectangle.Contains(point));
+            Assert.Equal(ide.ProcessId, field.Automation.FromPoint(point).Properties.ProcessId.Value);
+            Mouse.Click(point);
+            RequireFieldFocus(ide, field);
         }
     }
 }

@@ -18,8 +18,9 @@ namespace Alarmlist.VisualStudio
     {
         private int _inputVersion;
 
-        internal EditFileControl(EditFileControlViewModel viewModel)
+        internal EditFileControl(EditFileControlViewModel viewModel, IExpressionEditorFactory expressionEditors = null)
         {
+            if (expressionEditors != null) ExpressionEditorServices.SetFactory(this, expressionEditors);
             InitializeComponent();
             DataContext = viewModel;
             ValueExplanationCommands.Bind(this, () => ViewModel);
@@ -38,7 +39,9 @@ namespace Alarmlist.VisualStudio
                     (control.DataContext as ParameterListViewModel)?.Rows.Contains(parameter) == true);
                 return list?.NavigateTo(parameter) == true;
             }
-            FrameworkElement editor = Children(this).OfType<TextBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, target)
+            FrameworkElement editor = Children(this).OfType<ExpressionTextBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, target)
+                && item.IsEnabled && item.Visibility == Visibility.Visible)
+                ?? (FrameworkElement)Children(this).OfType<TextBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, target)
                 && item.IsEnabled && item.Visibility == Visibility.Visible)
                 ?? (FrameworkElement)Children(this).OfType<ComboBox>().FirstOrDefault(item => ReferenceEquals(item.DataContext, target));
             if (editor == null) return false;
@@ -47,11 +50,13 @@ namespace Alarmlist.VisualStudio
             UpdateLayout();
             editor.BringIntoView();
             if (editor is TextBox text) text.SelectAll();
+            else if (editor is ExpressionTextBox expression) expression.SelectAll();
             editor.Focus();
             return true;
         }
         private void OnFieldLostFocus(object sender, KeyboardFocusChangedEventArgs args)
         {
+            if (ValueContextMenu.Ancestors(args.NewFocus as DependencyObject).Any(parent => ReferenceEquals(parent, sender))) return;
             // A context-menu gesture can focus another editor before opening its
             // popup. It is a view action, never an implicit source transaction.
             if (Mouse.RightButton == MouseButtonState.Pressed) return;
@@ -163,7 +168,7 @@ namespace Alarmlist.VisualStudio
             EditFileControlViewModel view = ViewModel;
             ProcedureFocusRequest previous = view.ProcedureFocus;
             int version = _inputVersion;
-            TextBox source = Children(this).OfType<ExpressionTextBox>().FirstOrDefault(editor =>
+            ExpressionTextBox source = Children(this).OfType<ExpressionTextBox>().FirstOrDefault(editor =>
                 ReferenceEquals(editor.DataContext, button.DataContext));
             int start = source?.SelectionStart ?? 0, length = source?.SelectionLength ?? 0;
             // Click precedes ICommand execution. Let its source edit and bindings
@@ -209,6 +214,8 @@ namespace Alarmlist.VisualStudio
             // arrive reentrantly from Focus, so nothing may reset it afterwards.
             if (target is TextBox text)
                 text.Select(Math.Min(start, text.Text.Length), Math.Min(length, text.Text.Length - Math.Min(start, text.Text.Length)));
+            else if (target is ExpressionTextBox expression)
+                expression.Select(Math.Min(start, expression.Text.Length), Math.Min(length, expression.Text.Length - Math.Min(start, expression.Text.Length)));
             target.Focus();
         }
 
@@ -223,14 +230,16 @@ namespace Alarmlist.VisualStudio
             }
             if (args.OriginalSource is ReferenceComboBox reference && reference.HandleChoiceKey(args.Key, Keyboard.Modifiers))
             { args.Handled = true; return; }
-            if (args.OriginalSource is ExpressionTextBox expression && expression.HandleCompletionKey(args.Key, Keyboard.Modifiers))
+            if (ValueContextMenu.Ancestors(args.OriginalSource as DependencyObject).OfType<ExpressionTextBox>().FirstOrDefault() is ExpressionTextBox expression
+                && expression.HandleCompletionKey(args.Key, Keyboard.Modifiers))
             { args.Handled = true; return; }
             if (args.Key == Key.Escape) { ViewModel.CancelPending(); args.Handled = true; }
             else if (args.Key == Key.Enter) args.Handled = HandleReturnCommand(true, Keyboard.Modifiers);
         }
         internal bool HandleCompletionCommand(bool execute)
         {
-            if (!IsKeyboardFocusWithin || !(Keyboard.FocusedElement is ExpressionTextBox expression)
+            var expression = ExpressionTextBox.Focused;
+            if (!IsKeyboardFocusWithin || expression == null
                 || expression.IsReadOnly || !expression.IsExpressionEnabled) return false;
             if (execute) expression.HandleCompletionKey(Key.Space, ModifierKeys.Control);
             return true;
@@ -238,6 +247,16 @@ namespace Alarmlist.VisualStudio
 
         internal bool HandleReturnCommand(bool execute, ModifierKeys modifiers)
         {
+            var expression = ExpressionTextBox.Focused;
+            if (IsKeyboardFocusWithin && expression != null)
+            {
+                if (!execute || expression.IsReadOnly) return true;
+                _inputVersion++;
+                if (expression.HandleCompletionKey(Key.Enter, modifiers)) return true;
+                if (modifiers == ModifierKeys.Shift) { if (expression.AcceptsReturn) expression.ReplaceSelection(Environment.NewLine); }
+                else ViewModel.CommitPending();
+                return true;
+            }
             if (!IsKeyboardFocusWithin || !(Keyboard.FocusedElement is TextBox text)) return false;
             if (ReferenceEquals(text, ProcedureSearchEditor))
             {
@@ -247,7 +266,6 @@ namespace Alarmlist.VisualStudio
             if (!execute || text.IsReadOnly) return true;
             _inputVersion++;
             if (text is ReferenceComboBox reference && reference.HandleChoiceKey(Key.Enter, modifiers)) return true;
-            if (text is ExpressionTextBox expression && expression.HandleCompletionKey(Key.Enter, modifiers)) return true;
             if (modifiers == ModifierKeys.Shift)
             {
                 if (text.AcceptsReturn) EditingCommands.EnterLineBreak.Execute(null, text);

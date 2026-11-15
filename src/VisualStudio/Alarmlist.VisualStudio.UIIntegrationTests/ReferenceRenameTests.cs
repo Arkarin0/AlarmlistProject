@@ -38,6 +38,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             byte[] definingBytes = File.ReadAllBytes(workspace.AlarmPath), consumingBytes = File.ReadAllBytes(child);
             using var automation = new UIA3Automation();
             var window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
+            ReferenceAcceptanceUi.Hide(ide);
             ide.OpenDesigner(workspace.AlarmPath); window.SetForeground();
             VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton))) != null,
                 "designer mode selector");

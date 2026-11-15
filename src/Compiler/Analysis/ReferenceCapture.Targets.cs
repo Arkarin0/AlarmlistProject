@@ -106,6 +106,11 @@ namespace Alarmlist.Analysis
                     && use.Location.SourceVersion == target.Location.SourceVersion), target.Offset.Value);
                 matches = data.Symbols.Where(symbol => families.Contains(symbol.Family));
             }
+            else if (target.Kind == "ValueToken")
+            {
+                var families = ReferenceTargetIndex.TokenFamilies(ValueTokenProbes(data, target), target.Offset.Value);
+                matches = data.Symbols.Where(symbol => families.Contains(symbol.Family));
+            }
             else if (target.Kind == "Value")
             {
                 var families = new HashSet<string>(data.Occurrences.Where(use => IsValueReference(use) && SameTargetLocation(use.Location, target.Location)
@@ -128,13 +133,15 @@ namespace Alarmlist.Analysis
                     candidates: selected.GroupBy(symbol => symbol.Family, StringComparer.Ordinal).Select(group => group.First()));
             if (selected.Length == 0)
             {
-                bool supportedToken = target.Kind == "Token" && (data.UnavailableSources.Contains(target.Location.FilePath, StringComparer.Ordinal)
+                bool supportedToken = target.Kind == "ValueToken" && (data.UnavailableSources.Contains(target.Location.FilePath, StringComparer.Ordinal)
+                    || (index != null ? index.SupportsValueToken(target) : ValueTokenProbes(data, target).Any(probe => ReferenceTargetIndex.TokenTouches(probe, target.Offset.Value))))
+                    || target.Kind == "Token" && (data.UnavailableSources.Contains(target.Location.FilePath, StringComparer.Ordinal)
                     || (index != null ? index.SupportsToken(target) : data.TokenProbes.Any(probe =>
                     probe.Location?.FilePath == target.Location.FilePath && probe.Location.SourceVersion == target.Location.SourceVersion
                     && ReferenceTargetIndex.TokenTouches(probe, target.Offset.Value))));
                 return new ReferenceSearchResult(inputs, target, data, null,
                     supportedToken ? "The compiler could not bind this reference. Review the diagnostics and coverage." : "No supported symbol is bound at this target.",
-                    targetAbsent: target.Kind == "Identity", isUnsupportedTarget: target.Kind == "Token" && !supportedToken);
+                    targetAbsent: target.Kind == "Identity", isUnsupportedTarget: (target.Kind == "Token" || target.Kind == "ValueToken") && !supportedToken);
             }
             token.ThrowIfCancellationRequested();
             return new ReferenceSearchResult(inputs, target, data, selected[0], null, family: index?.Family(selected[0].Family));
@@ -162,6 +169,9 @@ namespace Alarmlist.Analysis
             return Preview(inputs.Sources.ToArray(), inputs.Context, selected[0], newName, token, inputs.ProjectDocuments,
                 inputs.DeclaringLibrary, includedGroups, validationInputs, selected, inputs.ReadOnlyPaths).WithReferences(found, newName);
         }
+
+        private static IEnumerable<ReferenceTokenProbe> ValueTokenProbes(ReferenceData data, ReferenceSymbolTarget target)
+            => data.ValueTokenProbes.Where(probe => SameTargetLocation(probe.Location, target.Location) && (target.Name == null || probe.Consumer == target.Name));
 
         private static bool SameTargetLocation(SourceLocation left, SourceLocation right)
             => left != null && right != null && left.FilePath == right.FilePath && left.SourceVersion == right.SourceVersion

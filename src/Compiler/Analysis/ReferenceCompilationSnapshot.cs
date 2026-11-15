@@ -59,6 +59,12 @@ namespace Alarmlist.Analysis
         /// <summary>Resolves authored references in a compiler-reported value location, optionally for one alarm consumer.</summary>
         public ReferenceSymbolTarget TargetAtValue(SourceLocation location, string consumer = null)
             => new ReferenceSymbolTarget(SnapshotId, "Value", location ?? throw new ArgumentNullException(nameof(location)), consumer, null, null);
+        /// <summary>Resolves a token at an authored UTF-16 caret within a compiler-reported expression value.</summary>
+        public ReferenceSymbolTarget TargetAtValueToken(SourceLocation location, int offset, string consumer = null)
+        {
+            if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
+            return new ReferenceSymbolTarget(SnapshotId, "ValueToken", location ?? throw new ArgumentNullException(nameof(location)), consumer, offset, null);
+        }
         public ReferenceSymbolTarget TargetParameter(SourceLocation context, string name, bool sourceScope = false)
         {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A parameter name is required.", nameof(name));

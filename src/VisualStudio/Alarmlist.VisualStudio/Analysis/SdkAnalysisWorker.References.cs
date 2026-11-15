@@ -34,6 +34,7 @@ namespace Alarmlist.VisualStudio.Analysis
                 || _referenceRequestType.GetMethod("TargetAtToken", new[] { typeof(string), typeof(int), typeof(int) })?.ReturnType != target
                 || _referenceRequestType.GetMethod("TargetAtLocation", new[] { typeof(string), _locationType, typeof(string) })?.ReturnType != target
                 || _referenceRequestType.GetMethod("TargetAtValue", new[] { _locationType, typeof(string) })?.ReturnType != target
+                || _referenceRequestType.GetMethod("TargetAtValueToken", new[] { _locationType, typeof(int), typeof(string) })?.ReturnType != target
                 || _referenceRequestType.GetMethod("TargetParameter", new[] { _locationType, typeof(string), typeof(bool) })?.ReturnType != target
                 || _referenceRequestType.GetMethod("TargetBuiltIn", new[] { typeof(string) })?.ReturnType != target
                 || _referenceRequestType.GetMethod("TargetIdentity", new[] { typeof(string) })?.ReturnType != target
@@ -128,6 +129,11 @@ namespace Alarmlist.VisualStudio.Analysis
             if (target.Location == null) throw new ArgumentException("A declaration target requires its defining source location.");
             object location = Activator.CreateInstance(_locationType, target.Location.FilePath, target.Location.LineNumber, target.Location.ColumnNumber,
                 target.Location.EndColumnNumber - target.Location.ColumnNumber, target.Location.SourceVersion);
+            if (target.Kind == "ValueToken")
+            {
+                if (target.Offset == null) throw new ArgumentException("An authored value caret offset is required.");
+                return _referenceRequestType.GetMethod("TargetAtValueToken").Invoke(request, new[] { location, (object)target.Offset.Value, target.Name });
+            }
             if (target.Kind == "AlarmParameter" || target.Kind == "SourceParameter") return _referenceRequestType.GetMethod("TargetParameter")
                 .Invoke(request, new[] { location, target.Name, (object)(target.Kind == "SourceParameter") });
             return target.Kind == "Value" ? _referenceRequestType.GetMethod("TargetAtValue").Invoke(request, new[] { location, target.Name })

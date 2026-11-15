@@ -15,6 +15,11 @@ using Microsoft.VisualStudio.Shell;
 
 namespace Alarmlist.VisualStudio.UI
 {
+    internal interface IValueTokenActions
+    {
+        bool CanInvoke { get; }
+        void Invoke(bool rename, bool definitionsOnly);
+    }
     /// <summary>Attaches value actions without changing a control's editing menu or popup DataContext.</summary>
     public static class ValueContextMenu
     {
@@ -64,12 +69,12 @@ namespace Alarmlist.VisualStudio.UI
         private static void DescribeValue(FrameworkElement anchor, DependencyObject element)
         {
             if (!ReferenceEquals(anchor, element) && GetTarget(element) != null) return;
-            if (element is FrameworkElement value && (value is TextBoxBase || value is TextBlock || value is Label))
+            if (element is FrameworkElement value && (value is TextBoxBase || value is ExpressionTextBox || value is TextBlock || value is Label))
             {
                 // TextBox's class handler consumes the opening event when it
                 // creates its built-in menu. Supply a real editing menu before
                 // that event, so the marked parent can append value actions.
-                if (value is TextBoxBase && value.ContextMenu == null && FindOwner(anchor) != null)
+                if ((value is TextBoxBase || value is ExpressionTextBox) && value.ContextMenu == null && FindOwner(anchor) != null)
                 {
                     value.ContextMenu = NewMenu();
                     ContextMenuService.SetShowOnDisabled(value, true);
@@ -110,12 +115,12 @@ namespace Alarmlist.VisualStudio.UI
             FrameworkElement owner = FindOwner(anchor);
             object target = GetTarget(anchor);
             if (owner == null || target == null) return null;
-            FrameworkElement source = path.FirstOrDefault(element => element is TextBoxBase) ?? path.FirstOrDefault() ?? anchor;
+            FrameworkElement source = path.FirstOrDefault(element => element is ExpressionTextBox) ?? path.FirstOrDefault(element => element is TextBoxBase) ?? path.FirstOrDefault() ?? anchor;
             FrameworkElement menuOwner = path.FirstOrDefault(element => element.ContextMenu != null) ?? anchor;
             ContextMenu menu = menuOwner.ContextMenu;
             if (menu.IsOpen && menu.GetValue(SessionProperty) is Session active && active.Matches(anchor, target)) return menu;
             (menu.GetValue(SessionProperty) as Session)?.End();
-            if (menu.Items.Count == 0 && source is TextBoxBase)
+            if (menu.Items.Count == 0 && (source is TextBoxBase || source is ExpressionTextBox))
             {
                 AddTextAction(menu, "Cut", ApplicationCommands.Cut, source);
                 AddTextAction(menu, "Copy", ApplicationCommands.Copy, source);
@@ -164,8 +169,20 @@ namespace Alarmlist.VisualStudio.UI
                 _referenceVersion = (_ownerView as IReferenceValueView)?.ReferenceActions?.ContextVersion;
                 if (menu.Items.Count != 0) Add(new Separator());
                 if (!GetReferenceOnly(anchor)) AddAction("Explain this value", ValueExplanationCommands.Explain);
-                AddAction("Find All References", ReferenceValueCommands.Find);
-                AddAction("Rename…", ReferenceValueCommands.Rename);
+                var token = (_source as ExpressionTextBox)?.TokenActions;
+                if (token == null)
+                {
+                    AddAction("Find All References", ReferenceValueCommands.Find);
+                    AddAction("Rename…", ReferenceValueCommands.Rename);
+                }
+                else
+                {
+                    Add(new Separator());
+                    Add(new MenuItem { Header = "Symbol at caret", IsEnabled = false });
+                    AddTokenAction("Go to Definition", "Go to definition of " + GetDescription(_anchor), token, false, true);
+                    AddTokenAction("Find All References", "Find references to " + GetDescription(_anchor), token, false, false);
+                    AddTokenAction("Rename…", "Rename symbol for " + GetDescription(_anchor), token, true, false);
+                }
                 _observed = new[] { _target as INotifyPropertyChanged, _ownerView as INotifyPropertyChanged,
                     (_ownerView as IReferenceValueView)?.ReferenceActions }.Where(value => value != null).Distinct().ToArray();
                 foreach (var value in _observed) value.PropertyChanged += OnChanged;
@@ -190,6 +207,12 @@ namespace Alarmlist.VisualStudio.UI
                     : command == ReferenceValueCommands.Find ? "Find references to " + GetDescription(_anchor)
                     : (GetReferenceOnly(_anchor) ? "Rename " : "Rename symbol for ") + GetDescription(_anchor));
                 Add(action);
+            }
+            private void AddTokenAction(string label, string accessibleName, IValueTokenActions token, bool rename, bool definitionsOnly)
+            {
+                var action = new MenuItem { Header = label, Tag = "PreserveDraft", Command = new DelegateCommand(
+                    () => { if (Current() && token.CanInvoke) token.Invoke(rename, definitionsOnly); }, () => Current() && token.CanInvoke) };
+                AutomationProperties.SetName(action, accessibleName); Add(action);
             }
             private bool Current() => !_invalid && _anchor.IsLoaded && _source.IsLoaded
                 && ReferenceEquals(GetTarget(_anchor), _target) && ReferenceEquals(_owner.DataContext, _ownerView)

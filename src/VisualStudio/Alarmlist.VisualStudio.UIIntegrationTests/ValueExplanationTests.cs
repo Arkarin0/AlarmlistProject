@@ -58,8 +58,8 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             var preview = ide.Automation.Windows.Item("{2c7f1b33-66f5-4831-96b1-c11cd1e28769}");
             preview.IsFloating = true; preview.Width = 1250; preview.Height = 550;
             preview.Left = window.BoundingRectangle.Left + 10; preview.Top = window.BoundingRectangle.Bottom - 590;
-            Assert.Contains(window.FindAllDescendants(), item => item.Name?.Contains("Resource: Inspection") == true);
-            Assert.Contains(window.FindAllDescendants(), item => item.Name?.Contains("Inheritance:") == true);
+            VisualStudioSession.Wait(() => window.FindAllDescendants().Any(item => item.Name?.Contains("Resource: Inspection") == true)
+                && window.FindAllDescendants().Any(item => item.Name?.Contains("Inheritance:") == true), "explanation contributors after floating window layout");
             window.CaptureToFile(Path.Combine(workspace.DirectoryPath, "value-explanation.png"));
 
             ide.OpenDesigner(workspace.AlarmPath); SelectDesigner(window);

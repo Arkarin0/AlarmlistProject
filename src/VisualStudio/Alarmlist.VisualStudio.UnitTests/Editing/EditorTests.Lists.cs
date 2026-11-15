@@ -86,7 +86,7 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     RaiseExpressionKey(box, host, Key.Enter);
                     Assert.Equal(ListTestData.Expression.Replace("W1)", "W2)"), box.Text);
                     Assert.Equal(0, session.Buffer.Edits);
-                    Assert.Same(box, Keyboard.FocusedElement);
+                    Assert.Same(box.Surface.InputElement, Keyboard.FocusedElement);
                     RaiseExpressionKey(box, host, Key.Enter);
                     Assert.Equal(1, session.Buffer.Edits);
                     session.Buffer.Undo();

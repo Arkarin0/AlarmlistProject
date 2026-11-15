@@ -174,6 +174,15 @@ is authoritative. The launcher puts TRX under `VisualStudioUI/TestResults/<run-i
 
 ## Architecture decision
 
+`Area=DesignerExpressionNodes` requires a real VS text-view child in each tested
+designer value. It checks shared native colors, raw/resolved focus, physical F12,
+Menu-key nested references, pointer token Rename/preview/unsaved Apply/Undo,
+private draft guards, Unicode/multiline Copy/Paste and source Undo/Redo. The fixture
+restores the clipboard and navigation preference. Run it on both IDEs, together
+with existing localization/lookup/list completion, explanation and reference
+checks, sequentially with other desktop suites. Composite control fixtures send
+input to their actual input child instead of assuming the wrapper is a TextBox.
+
 `Area=XmlExpressionNodes` validates compiler-provided XML colors with unchanged
 plain/escaped text, native pointer and Menu-key commands, prefix/nested targets,
 Go to Definition source choices and direct RESX XML key references/rename. It

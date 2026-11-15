@@ -11,8 +11,13 @@ namespace Alarmlist.Analysis
 {
     internal sealed partial class ReferenceCapture
     {
+        private (SourceLocation Location, string Consumer)? _valueContext;
+        private readonly List<(Symbol Symbol, SourceLocation Location, int Start, int Length, string Consumer, bool IsSyntaxFallback)> _valueTokenProbes
+            = new List<(Symbol, SourceLocation, int, int, string, bool)>();
         private void Probe(Symbol symbol, SourceLocation location, string attribute, int start, int length, bool syntaxFallback = false)
         {
+            if (attribute == null && location != null && _valueContext.HasValue && SameTargetLocation(_valueContext.Value.Location, location))
+                _valueTokenProbes.Add((symbol, location, start, length, _valueContext.Value.Consumer, syntaxFallback));
             if (location == null || !_sources.TryGetValue(location.FilePath, out var source) || location.SourceVersion != source.Input.Version) return;
             var node = source.Find(location);
             XObject value = attribute == null ? node : (node as XElement ?? (node as XAttribute)?.Parent)?.Attribute(attribute);

@@ -1,6 +1,7 @@
 // Created/modified by Arkarin0 under one ore more license(s).
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using Alarmlist.VisualStudio.Testing;
 using FlaUI.Core.AutomationElements;
@@ -72,7 +73,29 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 Mouse.RightClick(point);
             }
             AutomationElement selected = null;
-            VisualStudioSession.Wait(() => (selected = MenuAction()) != null, "value context menu: " + action);
+            var opening = Stopwatch.StartNew();
+            VisualStudioSession.Wait(() =>
+            {
+                if ((selected = MenuAction()) != null) return true;
+                // Initial catalogue publication can invalidate a menu opened
+                // against the preceding context. Retry only the absent menu;
+                // never repeat the semantic action it will eventually contain.
+                if (opening.ElapsedMilliseconds >= 750)
+                {
+                    window.SetForeground();
+                    try { VisualStudioSession.RequireForeground(process); }
+                    catch (InvalidOperationException) { return false; }
+                    if (keyboard)
+                    {
+                        target.Focus();
+                        if (useMenuKey) Keyboard.Type(VirtualKeyShort.APPS);
+                        else Keyboard.TypeSimultaneously(VirtualKeyShort.SHIFT, VirtualKeyShort.F10);
+                    }
+                    else if (TargetPoint(window, target, process, out var point)) Mouse.RightClick(point);
+                    opening.Restart();
+                }
+                return false;
+            }, "value context menu: " + action);
             if (selected.IsEnabled) return selected.AsButton();
             Keyboard.Type(VirtualKeyShort.ESCAPE);
             return null;

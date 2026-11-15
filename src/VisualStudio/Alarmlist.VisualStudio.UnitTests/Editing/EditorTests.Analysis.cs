@@ -377,8 +377,10 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             }
         }
 
-        private sealed class DesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings, IDesignerExplanation, IDesignerReferences
+        private sealed class DesignerAnalysis : IDesignerAnalysis, IDesignerPreviewSettings, IDesignerExplanation, IDesignerReferences, IDesignerClassification
         {
+            public Task<ClassificationResponse> ClassifyAsync(ProjectAnalysisState state, AnalysisClassificationTarget target, CancellationToken token)
+                => Task.FromResult(new ClassificationResponse(AnalysisAvailability.UnsupportedContract, "No classification handler"));
             public Func<ProjectUserSetting> PreviewLayout { get; set; }
             public Func<ProjectAnalysisState, AnalysisExplanationTarget, CancellationToken, Task<ExplanationResponse>> ExplainHandler { get; set; }
             public int ExplanationWindows { get; private set; }

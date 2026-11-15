@@ -242,6 +242,6 @@ namespace Alarmlist.VisualStudio.UI
             else { Notify(nameof(IsValid)); Notify(nameof(CanEdit)); Notify(nameof(Error)); AddCommand.Refresh(); DeleteCommand.Refresh(); RefreshAnalysis(); }
         }
         private void OnPreviewColumnsChanged(object sender, EventArgs args) => InvalidatePreviewActions();
-        public void Dispose() { _model.Changed -= OnModelChanged; PreviewColumns.Dispose(); DisposeAnalysis(); PendingChanged = null; }
+        public void Dispose() { _model.Changed -= OnModelChanged; PreviewColumns.Dispose(); DisposeExpressionValues(); DisposeAnalysis(); PendingChanged = null; }
     }
 }

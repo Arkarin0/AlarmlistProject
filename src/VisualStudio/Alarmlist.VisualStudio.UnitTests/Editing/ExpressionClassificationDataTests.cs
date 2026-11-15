@@ -104,5 +104,19 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
             Assert.True(typeof(ITagger<IClassificationTag>).IsAssignableFrom(typeof(XmlExpressionClassification)));
             Assert.False(XmlExpressionClassificationProvider.SupportsTagType(typeof(ErrorTag)));
         }
+
+        [Fact]
+        public void CaretPresentationUsesCompilerTokenBoundariesWithoutClaimingFollowingLiteralText()
+        {
+            var target = Target(new string('x', 12));
+            AnalysisClassificationSpan Token(string kind, string syntax, int start, int length)
+                => new AnalysisClassificationSpan(kind, syntax, start, length, 0, 12, null, Array.Empty<AnalysisClassificationRange>());
+            var data = ExpressionClassificationData.Create(target, Result(target, new[] {
+                Token("Punctuation", "DollarOpenToken", 0, 1), Token("Parameter", "IdentifierToken", 1, 1),
+                Token("Punctuation", "CloseParenToken", 2, 1), Token("StringLiteral", "StringLiteralToken", 8, 4) }));
+            Assert.Equal("Punctuation", data.AtCaret(0).Kind); Assert.Equal("Parameter", data.AtCaret(1).Kind);
+            Assert.Equal("Parameter", data.AtCaret(2).Kind); Assert.Null(data.AtCaret(3));
+            Assert.Null(data.AtCaret(8)); Assert.Null(data.AtCaret(10)); Assert.Null(data.AtCaret(12)); Assert.Null(data.AtCaret(-1));
+        }
     }
 }

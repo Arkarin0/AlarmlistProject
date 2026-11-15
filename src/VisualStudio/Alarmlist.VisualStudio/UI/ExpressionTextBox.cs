@@ -14,7 +14,7 @@ using Microsoft.VisualStudio.PlatformUI;
 namespace Alarmlist.VisualStudio.UI
 {
     /// <summary>Displays evaluated text without changing the raw edit binding.</summary>
-    public sealed class ExpressionTextBox : TextBox
+    public sealed partial class ExpressionTextBox : ContentControl
     {
         public static readonly DependencyProperty RawTextProperty = DependencyProperty.Register(nameof(RawText), typeof(string), typeof(ExpressionTextBox),
             new FrameworkPropertyMetadata("", FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnDisplayChanged));
@@ -38,6 +38,10 @@ namespace Alarmlist.VisualStudio.UI
         private string _completionIntentText;
         private int _completionIntentCaret;
         private int _completionIntentSelection;
+        internal bool IsDisplayingResolved { get; private set; }
+        internal bool IsChangingDisplay => _displayChange;
+        internal IValueTokenActions TokenActions { get; set; }
+        private bool _keepRawForMenu;
 
         public string RawText { get => (string)GetValue(RawTextProperty); set => SetValue(RawTextProperty, value); }
         public string ResolvedText { get => (string)GetValue(ResolvedTextProperty); set => SetValue(ResolvedTextProperty, value); }
@@ -55,6 +59,17 @@ namespace Alarmlist.VisualStudio.UI
 
         public ExpressionTextBox()
         {
+            Focusable = true; HorizontalContentAlignment = HorizontalAlignment.Stretch;
+            Loaded += InitializeSurface; Unloaded += ReleaseSurface;
+            IsVisibleChanged += (sender, args) => { if (IsLoaded && IsVisible) InitializeSurface(this, null); else ReleaseSurface(this, null); };
+            CommandBindings.Add(new CommandBinding(ApplicationCommands.Copy, (sender, args) => { Copy(); args.Handled = true; },
+                (sender, args) => { args.CanExecute = SelectionLength > 0; args.Handled = true; }));
+            CommandBindings.Add(new CommandBinding(ApplicationCommands.Cut, (sender, args) => { Cut(); args.Handled = true; },
+                (sender, args) => { args.CanExecute = !IsReadOnly && SelectionLength > 0; args.Handled = true; }));
+            CommandBindings.Add(new CommandBinding(ApplicationCommands.Paste, (sender, args) => { Paste(); args.Handled = true; },
+                (sender, args) => { args.CanExecute = !IsReadOnly; args.Handled = true; }));
+            CommandBindings.Add(new CommandBinding(ApplicationCommands.SelectAll, (sender, args) => { SelectAll(); args.Handled = true; },
+                (sender, args) => { args.CanExecute = true; args.Handled = true; }));
             _status = new LiveStatusTextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(6) };
             AutomationProperties.SetHelpText(_status, "Expression suggestions. Use arrows to choose and Enter to insert.");
             _list = new ListBox { Focusable = false, IsTabStop = false, DisplayMemberPath = nameof(PropertyCompletion.Label), MaxHeight = 220, MinWidth = 300 };
@@ -85,7 +100,8 @@ namespace Alarmlist.VisualStudio.UI
             // WPF finishes that insertion (notably the first character in an
             // empty resolved field). The current Text is already the new draft.
             if (_writingRaw) return;
-            string display = !IsKeyboardFocusWithin && HasResolvedValue ? ResolvedText ?? "" : RawText ?? "";
+            IsDisplayingResolved = !IsKeyboardFocusWithin && !_keepRawForMenu && HasResolvedValue;
+            string display = IsDisplayingResolved ? ResolvedText ?? "" : RawText ?? "";
             if (Text == display) return;
             int start = SelectionStart;
             int length = SelectionLength;
@@ -98,30 +114,16 @@ namespace Alarmlist.VisualStudio.UI
         {
             base.OnGotKeyboardFocus(args);
             RefreshDisplay();
+            if (ReferenceEquals(args.NewFocus, this)) _surface?.Focus();
         }
 
         protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs args)
         {
+            if (IsKeyboardFocusWithin) { base.OnLostKeyboardFocus(args); return; }
             _completionIntentText = null;
             CloseCompletion();
             base.OnLostKeyboardFocus(args);
             RefreshDisplay();
-        }
-
-        protected override void OnTextChanged(TextChangedEventArgs args)
-        {
-            base.OnTextChanged(args);
-            if (_displayChange) return;
-            _writingRaw = true;
-            try { SetCurrentValue(RawTextProperty, Text); }
-            finally { _writingRaw = false; }
-            RefreshCompletion();
-        }
-
-        protected override void OnSelectionChanged(RoutedEventArgs args)
-        {
-            base.OnSelectionChanged(args);
-            if (!_displayChange) RefreshCompletion();
         }
 
         internal bool HandleCompletionKey(Key key, ModifierKeys modifiers)

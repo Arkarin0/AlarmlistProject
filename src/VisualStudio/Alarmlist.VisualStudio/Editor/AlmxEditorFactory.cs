@@ -27,11 +27,12 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly IEditorLayoutSettings _settings;
         private readonly IContentTypeRegistryService _contentTypes;
         private readonly VsDesignerAnalysisFactory _analysis;
+        private readonly VsExpressionEditorFactory _expressions;
         private ServiceProvider _site;
         private OleServiceProvider _oleSite;
 
         [ImportingConstructor]
-        public AlmxEditorFactory(IVsEditorAdaptersFactoryService adapters, AlmxDocumentSessionFactory sessions, EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, VsDesignerAnalysisFactory analysis)
+        public AlmxEditorFactory(IVsEditorAdaptersFactoryService adapters, AlmxDocumentSessionFactory sessions, EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, VsDesignerAnalysisFactory analysis, VsExpressionEditorFactory expressions)
         {
             _adapters = adapters;
             _sessions = sessions;
@@ -39,6 +40,7 @@ namespace Alarmlist.VisualStudio.Editor
             _settings = settings;
             _contentTypes = contentTypes;
             _analysis = analysis;
+            _expressions = expressions;
         }
 
         public int SetSite(OleServiceProvider site)
@@ -98,7 +100,7 @@ namespace Alarmlist.VisualStudio.Editor
             string openingProject = null;
             if (hierarchy is IVsProject owner && ErrorHandler.Succeeded(owner.GetMkDocument(VSConstants.VSITEMID_ROOT, out string projectPath))
                 && string.Equals(Path.GetExtension(projectPath), ".almproj", StringComparison.OrdinalIgnoreCase)) openingProject = projectPath;
-            AlmxEditorPane pane = new AlmxEditorPane(_site, _oleSite, _adapters, lines, _sessions, _viewModels, _settings, _contentTypes, _analysis, physicalView == "XML", openingProject);
+            AlmxEditorPane pane = new AlmxEditorPane(_site, _oleSite, _adapters, lines, _sessions, _viewModels, _settings, _contentTypes, _analysis, physicalView == "XML", openingProject, _expressions);
             try
             {
                 docView = Marshal.GetIUnknownForObject(pane);

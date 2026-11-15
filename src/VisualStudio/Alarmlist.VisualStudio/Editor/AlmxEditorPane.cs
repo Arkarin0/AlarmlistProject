@@ -31,6 +31,7 @@ namespace Alarmlist.VisualStudio.Editor
         private readonly IContentTypeRegistryService _contentTypes;
         private readonly VsDesignerAnalysisFactory _analysis;
         private readonly string _openingProject;
+        private readonly VsExpressionEditorFactory _expressions;
         private AlmxDocumentSession _session;
         private EditFileControlViewModel _viewModel;
         private EditorLayoutViewModel _layout;
@@ -65,7 +66,7 @@ namespace Alarmlist.VisualStudio.Editor
         public AlmxEditorPane(System.IServiceProvider site, OleServiceProvider oleSite,
             IVsEditorAdaptersFactoryService adapters, IVsTextLines lines, AlmxDocumentSessionFactory sessions,
             EditFileViewModelFactory viewModels, IEditorLayoutSettings settings, IContentTypeRegistryService contentTypes, VsDesignerAnalysisFactory analysis, bool xmlOnly,
-            string openingProject = null) : base(site)
+            string openingProject = null, VsExpressionEditorFactory expressions = null) : base(site)
         {
             _oleSite = oleSite;
             _adapters = adapters;
@@ -77,6 +78,7 @@ namespace Alarmlist.VisualStudio.Editor
             _contentTypes = contentTypes;
             _analysis = analysis;
             _openingProject = openingProject;
+            _expressions = expressions;
         }
 
         protected override void Initialize()
@@ -112,7 +114,8 @@ namespace Alarmlist.VisualStudio.Editor
             _viewModel.PropertyChanged += OnPreviewLanguageChanged;
             _session.Attach(_viewModel);
             _layout = new EditorLayoutViewModel(_settings, _xmlOnly);
-            _control = new SplitEditorControl(_layout, new EditFileControl(_viewModel), sourceControl);
+            _control = new SplitEditorControl(_layout, new EditFileControl(_viewModel,
+                _expressions?.Bind(_oleSite, _viewModel, Undo, redo => redo ? _session.Undo.CanRedo : _viewModel.HasPending || _session.Undo.CanUndo)), sourceControl);
             _control.PreviewKeyDown += OnKeyDown;
             Content = _control;
             _textManager = (IVsTextManager)GetService(typeof(SVsTextManager));
@@ -225,7 +228,8 @@ namespace Alarmlist.VisualStudio.Editor
                     return VSConstants.S_OK;
                 }
             }
-            return (_codeWindow as IOleCommandTarget)?.QueryStatus(ref group, count, commands, text) ?? (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+            var fieldCommands = _control?.IsKeyboardFocusWithin == true ? ExpressionTextBox.Focused?.Surface?.Commands : null;
+            return (fieldCommands ?? _codeWindow as IOleCommandTarget)?.QueryStatus(ref group, count, commands, text) ?? (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
         }
         public int Exec(ref Guid group, uint id, uint options, IntPtr input, IntPtr output)
         {
@@ -264,7 +268,8 @@ namespace Alarmlist.VisualStudio.Editor
                 if (command == VSConstants.VSStd97CmdID.ViewForm) { _layout.SetMode(EditorMode.Designer); return VSConstants.S_OK; }
                 if (command == VSConstants.VSStd97CmdID.Find || command == VSConstants.VSStd97CmdID.Replace) _layout.SetMode(EditorMode.XML);
             }
-            return (_codeWindow as IOleCommandTarget)?.Exec(ref group, id, options, input, output) ?? (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
+            var fieldCommands = _control?.IsKeyboardFocusWithin == true ? ExpressionTextBox.Focused?.Surface?.Commands : null;
+            return (fieldCommands ?? _codeWindow as IOleCommandTarget)?.Exec(ref group, id, options, input, output) ?? (int)Microsoft.VisualStudio.OLE.Interop.Constants.OLECMDERR_E_NOTSUPPORTED;
         }
         private void Undo(bool redo)
         {

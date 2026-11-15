@@ -82,6 +82,7 @@ namespace Alarmlist.VisualStudio.UI
                     ReferenceActions.Include(reference, new AnalysisReferenceTarget("Alarm", alarm.ReferenceChain[0].Location));
             }
             ReferenceValueTargets.SummaryIdentities(ReferenceActions, _previewAlarm, ResolvedFields, ResolvedSections);
+            RememberExpressionValues(state, alarm);
             System.Windows.Input.CommandManager.InvalidateRequerySuggested();
         }
     }

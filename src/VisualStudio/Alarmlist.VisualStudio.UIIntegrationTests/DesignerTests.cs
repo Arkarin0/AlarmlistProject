@@ -70,7 +70,11 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.KEY_A);
             RequireInputFocus(ide, field);
             Keyboard.Type("After UI input");
-            VisualStudioSession.Wait(() => field.Text == "After UI input", "typed designer draft");
+            VisualStudioSession.Wait(() =>
+            {
+                File.WriteAllText(Path.Combine(workspace.DirectoryPath, "keyboard-draft.txt"), "Value: " + field.Text + "\r\nSource:\r\n" + ide.ReadText(path));
+                return field.Text == "After UI input";
+            }, "typed designer draft");
             Assert.Equal(original, ide.ReadText(path));
             RequireInputFocus(ide, field);
             Keyboard.Type(VirtualKeyShort.RETURN);

@@ -28,13 +28,14 @@ namespace Alarmlist.VisualStudio.UI
     }
     internal sealed class ReferenceInvocation
     {
-        internal ReferenceInvocation(Func<bool> isCurrent, Func<bool> intentIsCurrent, CancellationToken token, CancellationToken intentToken, bool rename = false)
-        { IsCurrent = isCurrent; IntentIsCurrent = intentIsCurrent; Token = token; IntentToken = intentToken; IsRename = rename; }
+        internal ReferenceInvocation(Func<bool> isCurrent, Func<bool> intentIsCurrent, CancellationToken token, CancellationToken intentToken, bool rename = false, bool definitionsOnly = false)
+        { IsCurrent = isCurrent; IntentIsCurrent = intentIsCurrent; Token = token; IntentToken = intentToken; IsRename = rename; DefinitionsOnly = definitionsOnly; }
         internal Func<bool> IsCurrent { get; }
         internal Func<bool> IntentIsCurrent { get; }
         internal CancellationToken Token { get; }
         internal CancellationToken IntentToken { get; }
         internal bool IsRename { get; }
+        internal bool DefinitionsOnly { get; }
     }
     // Each view chooses its own project context. Host adapters own dispatch,
     // buffer identity, current-input validation and document navigation.

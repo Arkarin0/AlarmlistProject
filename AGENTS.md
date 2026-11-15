@@ -117,6 +117,24 @@ carets win over containing-node fallbacks. Native XML Go to Definition shares
 frozen reference capture and existing physical/package navigation; multiple
 declarations require explicit source choices. Area=XmlExpressionNodes covers the
 native menu, lexical colors and direct RESX XML multi-culture rename/linked Undo.
+Designer ExpressionTextBox is a composite control with an explicitly injected VS
+buffer/view factory. Its standalone WPF surface supports design/test hosts only;
+a failed native factory must not silently select that fallback. Keep document
+Undo ownership: cancel private drafts first, then undo committed XML. Native
+buffer change callbacks read TextBuffer.CurrentSnapshot, not the potentially
+older view layout snapshot. Native insertion can publish its final caret during
+layout; notify completion of changed snapshot/caret/selection there as well as
+through caret events. Disable private mirror-buffer Undo recording so display
+synchronization cannot discard linked source Redo. Use Text Editor appearance
+category "text" and the
+shared classification formats. Open Menu-key and right-pointer menus on release,
+preserving focus on button-down; the release can dismiss a popup opened early.
+Token popup actions belong to the captured expression source editor even when a
+containing grid owns the value-action anchor. Use compiler TargetAtValueToken
+and its explicit consumer; lexical colors never establish reference identity.
+Area=DesignerExpressionNodes verifies native colors, pointer/caret commands,
+draft guards, token Rename, Unicode/multiline clipboard and source Undo on both
+IDEs. Fixtures address the actual input child of composite editors.
 
 Milestone 14 introduced ExplainSnapshots with analysis contract 8; its reference/
 rename follow-up introduced contract 9; expression classification advances the

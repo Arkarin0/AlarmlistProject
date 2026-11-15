@@ -197,7 +197,8 @@ namespace Alarmlist.VisualStudio.Editor
             if (components == null) throw new InvalidOperationException("Visual Studio's editor services are unavailable.");
             await components.GetService<VsReferenceSearch>().FindAsync(state.Project, target,
                 () => !_disposed && ReferenceEquals(state, Current) && invocation.IsCurrent(), token,
-                intentIsCurrent: () => !_disposed && invocation.IntentIsCurrent(), intentToken: invocation.IntentToken, openRename: invocation.IsRename);
+                intentIsCurrent: () => !_disposed && invocation.IntentIsCurrent(), intentToken: invocation.IntentToken,
+                openRename: invocation.IsRename, definitionsOnly: invocation.DefinitionsOnly);
         }
 
         public void Navigate(AnalysisLocation location, string expectedText)

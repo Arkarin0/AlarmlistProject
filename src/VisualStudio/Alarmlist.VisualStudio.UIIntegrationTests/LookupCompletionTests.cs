@@ -41,6 +41,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             workspace.Build(ide, 1);
             byte[] output = File.ReadAllBytes(workspace.OutputPath);
             using var automation = new UIA3Automation();
+            ReferenceAcceptanceUi.Hide(ide);
             ide.OpenDesigner(workspace.AlarmPath);
             Window window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             window.SetForeground();
@@ -86,8 +87,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             Keyboard.Type(VirtualKeyShort.ESCAPE);
             const string quotedDraft = "$(loc:Set, path=\"$(path:Service.)\", property=\"\", value=\"001\")";
             ResourceEditorTests.ReplaceDraft(ide, name, quotedDraft);
-            name.Patterns.Text.Pattern.DocumentRange.FindText("$(path:Service.", false, false).Select();
-            ResourceEditorTests.RequireFieldFocus(ide, name); Keyboard.Type(VirtualKeyShort.RIGHT);
+            ResourceEditorTests.PlaceExpressionCaretAfter(ide, name, "$(path:Service.");
             ResourceEditorTests.RequireFieldFocus(ide, name); Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.SPACE);
             VisualStudioSession.Wait(() => window.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem))
                 .Any(item => !item.IsOffscreen && item.Name.StartsWith("path:Service.Vakuum", StringComparison.Ordinal)), "lookup expression inside a quoted argument slot");

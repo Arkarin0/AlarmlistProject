@@ -44,10 +44,13 @@ context menus, independent dockable Rename, reliable preview scrolling and live
 themes. Iteration 18 adds internal immutable expression syntax with both-framework
 and generated-definition validation. Iteration 19 implements opt-in detached
 classification and the coordinated analysis-10 bridge, with compiler/downstream,
-generated-definition and both-desktop packaged acceptance passed. Semantic
+generated-definition and both-desktop packaged acceptance passed.
 Iteration 20 adds native XML expression colors/token commands, definition choices
-and direct RESX XML key references/rename, with both-IDE acceptance. Designer and
-integrated work continues in 21–22. On 2026-11-14 the user explicitly deferred
+and direct RESX XML key references/rename, with both-IDE acceptance. Iteration 21
+adds embedded Visual Studio designer expression editors, shared colors, token
+commands and preserved draft/completion/source Undo behavior, with both-IDE and
+compiler/host/package acceptance (updated 2026-11-15). Integrated tutorial and
+performance acceptance remains iteration 22. On 2026-11-14 the user explicitly deferred
 standard RESX table commands after both native public-API feasibility probes
 failed selected-key and pending-cell detection. Direct RESX XML commands and
 XML/designer expression editing remain in scope;

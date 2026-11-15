@@ -43,9 +43,9 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             workspace.Build(ide, 1);
             byte[] output = File.ReadAllBytes(workspace.OutputPath);
             using var automation = new UIA3Automation();
-            using var application = FlaUI.Core.Application.Attach(ide.ProcessId);
+            ReferenceAcceptanceUi.Hide(ide);
             ide.OpenDesigner(workspace.AlarmPath);
-            Window window = application.GetMainWindow(automation, TimeSpan.FromSeconds(60));
+            Window window = automation.FromHandle(ide.MainWindowHandle).AsWindow();
             window.SetForeground();
             AutomationElement designer = null;
             VisualStudioSession.Wait(() => (designer = window.FindFirstDescendant(cf => cf.ByName("Designer").And(cf.ByControlType(ControlType.RadioButton)))) != null, "designer mode");
@@ -75,7 +75,7 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             ResourceEditorTests.RequireFieldFocus(ide, name);
             Keyboard.Type(VirtualKeyShort.RETURN);
             VisualStudioSession.Wait(() => name.Text == "$(loc:Disconnect, wire=$(list:Wires#W1), connection=\"\")", "whole argument replacement without literal quotes");
-            name.Patterns.Text.Pattern.DocumentRange.FindText("\"\"", false, false).Select();
+            ResourceEditorTests.PlaceExpressionCaretAfter(ide, name, "connection=\"");
             ResourceEditorTests.RequireFieldFocus(ide, name);
             Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.SPACE);
             VisualStudioSession.Wait(() => ListChoices(window).Any(item => item.Name.StartsWith("list:Terminals#K1", StringComparison.Ordinal)), "connection-specific suggestions");

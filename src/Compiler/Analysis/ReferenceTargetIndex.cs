@@ -24,6 +24,7 @@ namespace Alarmlist.Analysis
         private readonly Dictionary<(string Kind, string Path, int? Version, int Line, int Column), ReferenceSymbol[]> _locations;
         private readonly Dictionary<(string Path, int? Version), TokenRanges> _tokens;
         private readonly Dictionary<(string Path, int? Version, int Line, int Column), ReferenceOccurrence[]> _values;
+        private readonly Dictionary<(string Path, int? Version, int Line, int Column), ReferenceTokenProbe[]> _valueTokens;
         private readonly Dictionary<(string Kind, string Path, int? Version, int Line, int Column, string Name), string[]> _contexts;
         private readonly Dictionary<(string Kind, string Name), ReferenceSymbol[]> _builtIns;
 
@@ -49,6 +50,8 @@ namespace Alarmlist.Analysis
             _values = data.Occurrences.Where(use => use.Location != null && ReferenceCapture.IsValueReference(use))
                 .GroupBy(use => (use.Location.FilePath, use.Location.SourceVersion, use.Location.LineNumber, use.Location.ColumnNumber))
                 .ToDictionary(group => group.Key, group => group.ToArray());
+            _valueTokens = data.ValueTokenProbes.GroupBy(probe => (probe.Location.FilePath, probe.Location.SourceVersion,
+                probe.Location.LineNumber, probe.Location.ColumnNumber)).ToDictionary(group => group.Key, group => group.ToArray());
             var tokenProbes = data.TokenProbes.Concat(data.Occurrences.Where(use => use.Start.HasValue && use.Length.HasValue)
                 .Select(use => new ReferenceTokenProbe(use.Family, use.Location, use.Start.Value, use.Length.Value)));
             foreach (var group in tokenProbes.GroupBy(probe => (probe.Location.FilePath, probe.Location.SourceVersion)))
@@ -82,8 +85,14 @@ namespace Alarmlist.Analysis
         }
         internal bool SupportsToken(ReferenceSymbolTarget target) => _tokens.TryGetValue((target.Location.FilePath, target.Location.SourceVersion), out var ranges)
             && ranges.Supports(target.Offset.Value);
+        private IEnumerable<ReferenceTokenProbe> ValueTokens(ReferenceSymbolTarget target)
+            => _valueTokens.TryGetValue((target.Location.FilePath, target.Location.SourceVersion, target.Location.LineNumber, target.Location.ColumnNumber), out var probes)
+                ? probes.Where(probe => target.Name == null || probe.Consumer == target.Name) : Array.Empty<ReferenceTokenProbe>();
+        internal bool SupportsValueToken(ReferenceSymbolTarget target) => ValueTokens(target).Any(probe => TokenTouches(probe, target.Offset.Value));
         internal IEnumerable<ReferenceSymbol> Candidates(ReferenceSymbolTarget target)
         {
+            if (target.Kind == "ValueToken") return TokenFamilies(ValueTokens(target), target.Offset.Value)
+                .SelectMany(family => _families[family].Symbols);
             if (target.Kind == "Identity") return _identities.TryGetValue(target.DeclarationId, out var found) ? found : Array.Empty<ReferenceSymbol>();
             if (target.Kind == "BuiltInName")
             {

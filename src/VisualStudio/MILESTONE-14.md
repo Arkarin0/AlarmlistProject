@@ -2506,3 +2506,109 @@ behavior and the explicitly deferred standard table; no table acceptance is
 claimed. Iteration 20's revised gates pass. Embedded designer editor acceptance
 remains iteration 21; integrated library/generated-definition/tutorial/performance
 reacceptance remains iteration 22. Record the focused commit before beginning 21.
+
+### Iteration 21 — completed 2026-11-15
+
+Started from clean dev/milestone-14 at iteration-20 commit 53f0464. The designer's
+ExpressionTextBox now composes an explicitly injected native VS buffer/view with
+a dedicated content type. Standalone WPF/design-test hosts use their own surface;
+a failed installed native factory never silently falls back. Existing raw/resolved
+binding, drafts, completion, validation, source navigation, multiline behavior and
+source transactions remain in the surrounding control. Views, subscriptions,
+classification requests and token requests are released on hide/unload; reopening
+recreates presentation without committing a draft.
+
+The compiler adds TargetAtValueToken using its existing parser/binder's decoded
+UTF-16 token probes and explicit alarm consumer. The request-owned index shares
+single/batch target precedence with XML, preserves independent inherited child
+bindings and refuses literal assignments, escapes, ambiguous and unbound targets.
+The SDK transports the detached target through the completed analysis-10 API;
+analyzer 5, library 3, export 1 and semantic fingerprints remain unchanged. No host
+semantic parser or ordinary retained reference index was added.
+
+Native values share compiler classifications and Text Editor formats with XML.
+Resolved output stays literal; lexical draft colors do not enable semantic
+commands. F12 and captured token menus use compiler-owned targets/navigation;
+Explain stays a containing-value action. A popup retains its actual source editor
+when a containing grid owns the value-action anchor. Opening menus on Menu-key
+or right-button release avoids release dismissing an early popup and preserves
+other private drafts. Captured context/caret/input changes cancel obsolete
+requests; published reference intent remains independent of later caret movement.
+
+Two native integration corrections matter for future work. Buffer change handlers
+read TextBuffer.CurrentSnapshot rather than an older view-layout snapshot. Native
+insertion can publish its final caret during layout without a separate usable
+caret notification, so snapshot/caret/selection changes notify completion from
+layout too, suppressing duplicates. Private mirror-buffer Undo recording is
+disabled: synchronization must not discard linked source Redo. Source Undo first
+cancels a private draft, then operates on committed XML. These rules are documented
+in repository guidance.
+
+Validation commands use dotnet test with --no-restore, the framework shown below,
+--logger trx and results under artifacts/log/Debug/Milestone14/Iteration21. Host
+and native/WPF checks ran sequentially. Native commands use
+eng/test-visualstudio.ps1, the respective installed IDE and idle Alarmlist13Exp
+profile; existing user IDEs were not closed.
+
+| Required check | Actual result |
+| --- | --- |
+| Compiler suite, net472/net8.0 | 914/916 passed; 1 second/395 ms; Compiler-net472 and Compiler-net8.0. Eight new authored-target cases cover decoded XML, nested/prefix ownership, literals/invalid/unbound targets, inherited consumer separation and exact coordinated preview edits. |
+| Full VS host suite, net472 | 981 passed, no failures/skips, 2 minutes 14 seconds; HostFull. The earlier affected-editor pass was 417 in 2 minutes 24 seconds. Composite focus/composition assertions address the actual input child while retaining every source/draft assertion. |
+| SDK PackageTests, net472/net8.0 | Three passed per runtime, 4/3 seconds; SDK-net472 and SDK-net8.0. The packaged consumer independently verifies an entity-encoded value prefix and its two-edit rename with captured inputs only. |
+| Desktop SDK PackageTests/CompilationTests/LookupTests | 15 passed per host, VS2022 29 seconds and VS2026 31 seconds; Desktop-2022 and Desktop-2026. ALARMLIST_TEST_MSBUILD_PATH selects each desktop MSBuild and is restored afterward. |
+| VSIX integration, net472/net8.0 | 14 passed per framework, 10/11 seconds; VSIX-net472 and VSIX-net8.0. |
+| Native DesignerExpressionNodes, VS2022/VS2026 | Passed in 30/38 seconds; exact native colors/text patterns, raw/resolved focus, F12, Menu-key nested references, right-pointer token Rename and unsaved three-edit Apply/one-step Undo, draft colors with disabled semantic actions, Escape, Unicode/multiline Copy/Paste, draft-first Undo and source Undo/Redo. Clipboard and navigation preference are restored. |
+| Native existing completion/explanation/reference regressions, both IDEs | LanguageAndSavedCompletion, LookupCompletion, ListCompletion, ValueExplanation and ReferencesRename all have passing results, including saved-only resources/lookups, scoped arguments, context menus, independent Rename review and two-file linked Undo/Redo. |
+
+Native TRX evidence is under artifacts/log/Debug/VisualStudioUI/TestResults.
+VS2022 DesignerExpressionNodes (30 seconds) and ReferencesRename (72 seconds)
+pass within eef923de5f3f429494cbb2c8d684a501; that mixed run's four other cases
+fail and are not counted as successes. Corrected ValueExplanation (77 seconds)
+and LanguageAndSavedCompletion (27 seconds) pass in
+6e8daa77ccd84a20b209279314916167, whose list case still fails. LookupCompletion
+then passes in 9ded70ae340842b1bf1fabf40db17a45 (33 seconds), and ListCompletion in
+5057a50e17454785bc97fc2727e0af61 (54 seconds). VS2026's corresponding five existing
+scenarios pass in c548f54e5f7742e9aae6f4bff6662b83: language 21 seconds, lookup 18,
+list 16, explanation 63 and references 66. Its initial new-editor F12 check fails;
+the focused repeat verifies native command readiness and the XML preference
+before physical F12 and passes in 0f208a2b6fd44301945f1b8944a73818 (38 seconds).
+No production behavior was changed between those two VS2026 runs.
+
+Resolved failures and limits remain explicit:
+
+- Initial Keyboard failures (72092fbfa2c4435ca9616bd2934f9355) expose the stale
+  view-snapshot read. Corrected ScalarCommitAndUndo passes on VS2022/2026 in
+  2bd5cb03a42a4808874256566c8b9aff and d76556a506c04582a43dc551ffe73739.
+  Initial host regression passes 415/fails 14 on former wrapper-focus/composition
+  assumptions; updating actual input targets yields the complete 981-test pass.
+- Early token popup/definition runs f5c8c60e1f1d44db9be8d09f9961319f,
+  16b5239f43cc4eca95247ddfb8060371 and 92b3c9bbd7914bf19ff2d70810d9324a stop
+  before complete acceptance. Source-editor ownership, native Text Editor
+  appearance, hit-tested glyph input and release-time opening correct the actual
+  issues. Expanded early passes 5488c511e49d429e9d6cd7d2e0ebe8b9 (VS2022) and
+  9542099be974485aa5a1f6773a2142d3 (VS2026) precede the final regression fixes.
+- Existing regressions initially fail culture selection, linked Redo and completion
+  (1c5ac0d6f7024e18a02f5e67d4222406, 49112733c4c94e51a9ed95314029fd62 and
+  9bee1d88fb514f39b62132aaed4c7566). Tracing b7041d98f8b34198983ac30f5d192c22
+  proves validation succeeds but captures caret 28 before final caret 29. A queued
+  callback alone fails in b929c8e726794ddbbeaf6b8b6b6e84f6; layout notification
+  resolves it. Private-buffer Undo suppression restores complete linked Redo.
+- Fixture readiness now hides obstructing persisted panes, uses the captured main
+  HWND, retries only absent menus, waits for visible/committed culture choices and
+  contributor layout, and explicitly unfocuses values before resolved-text
+  assertions. Native range.Select/synthetic positioning did not reliably place
+  argument carets; use actual hit-tested glyph input. Original source/draft/output
+  assertions remain. Readiness/caret/selection changes are never permission to
+  reuse a stale preview. WindowsTerminal/RDP focus losses stop before input.
+- An earlier diagnostic repeat (0c59ae92e68440599701911adacd9f6a) terminates the
+  owned IDE during a UIA menu query. Windows .NET/Application records identify
+  ItemAutomationPeer.GetNameCore and PresentationFramework. Later complete native
+  runs pass without that failure. All temporary production diagnostics are removed.
+
+Diff whitespace and changed local documentation links pass (133 checked after the
+final backlog update). Feature/contributor/native-runner documentation describes
+the implemented behavior. Iteration 21's required gates pass; record its focused
+commit before starting iteration 22. Integrated shared/library/package/generated
+coverage, tutorial and performance evidence remain iteration 22. Standard RESX
+Resource Explorer table commands remain separately deferred by the user's explicit
+decision; XML/designer successes do not imply that vendor gate passed.

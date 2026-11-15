@@ -173,27 +173,53 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
                 try { ide.RequireForeground(); return true; }
                 catch (InvalidOperationException) { return false; }
             }, "owned IDE foreground before summary language input", 10);
-            ide.RequireForeground(); selector.Click();
+            ide.RequireForeground(); selector.Focus(); selector.Click();
             AutomationElement choice = null;
             var refresh = Stopwatch.StartNew();
             VisualStudioSession.Wait(() =>
             {
                 choice = selector.FindFirstDescendant(cf => cf.ByName(culture).And(cf.ByControlType(ControlType.ListItem)));
-                if (choice != null) return true;
+                if (choice?.IsOffscreen == false) return true;
                 // The native shell list snapshots choices when opened. Resource
                 // capture can finish afterwards, so reopen during this bounded
                 // readiness wait to request the current catalogue.
                 if (refresh.ElapsedMilliseconds >= 500)
                 {
-                    selector.Collapse(); ide.RequireForeground(); selector.Click(); refresh.Restart();
+                    window.SetForeground();
+                    try { ide.RequireForeground(); }
+                    catch (InvalidOperationException) { return false; }
+                    selector.Collapse(); selector.Focus(); selector.Click(); refresh.Restart();
                 }
                 return false;
             }, "summary language choice " + culture);
             // UIA selection followed by Collapse can cancel the shell combo's
             // pending choice without invoking its command. Exercise the user's
             // actual commit gesture and await the displayed selection instead.
-            ide.RequireForeground(); choice.Click();
-            VisualStudioSession.Wait(() => selector.SelectedItem?.Text == culture, "committed summary language " + culture);
+            // Native shell list-item bounds can still describe the previous
+            // collapsed layout. Commit through the open combo's keyboard route.
+            void CommitVisibleChoice()
+            {
+                var items = selector.FindAllDescendants(cf => cf.ByControlType(ControlType.ListItem)).Where(item => !item.IsOffscreen).ToArray();
+                int index = Array.FindIndex(items, item => item.Name == culture);
+                if (index < 0) return;
+                ide.RequireForeground();
+                Keyboard.Type(VirtualKeyShort.HOME);
+                for (int item = 0; item < index; item++) Keyboard.Type(VirtualKeyShort.DOWN);
+                Keyboard.Type(VirtualKeyShort.RETURN);
+            }
+            CommitVisibleChoice(); refresh.Restart();
+            VisualStudioSession.Wait(() =>
+            {
+                if (selector.SelectedItem?.Text == culture) return true;
+                if (refresh.ElapsedMilliseconds >= 1000)
+                {
+                    window.SetForeground();
+                    try { ide.RequireForeground(); }
+                    catch (InvalidOperationException) { return false; }
+                    selector.Collapse(); selector.Focus(); selector.Click(); CommitVisibleChoice(); refresh.Restart();
+                }
+                return false;
+            }, "committed summary language " + culture);
         }
 
         private static void AssertSavedPreviewWhileDraftFocused(VisualStudioSession ide, TextBox draft, TextBox preview, string expected)
