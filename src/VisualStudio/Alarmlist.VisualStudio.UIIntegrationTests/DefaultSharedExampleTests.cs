@@ -12,6 +12,8 @@ using Alarmlist.VisualStudio.Testing;
 using EnvDTE;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
+using FlaUI.Core.Input;
+using FlaUI.Core.WindowsAPI;
 using FlaUI.UIA3;
 using Xunit;
 using Process = System.Diagnostics.Process;
@@ -93,12 +95,40 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             VisualStudioSession.Wait(() => ide.ReadText(source) == saved, "ordinary shared buffer Undo");
             Mode("Designer"); Expect("North pump pressure low");
             Assert.Equal(saved, File.ReadAllText(source));
+            CheckHmiCompletion();
             foreach (Project project in ide.Automation.Solution.Projects)
                 if (new[] { ".almproj", ".shproj" }.Contains(Path.GetExtension(project.FullName))) project.Save("");
             ide.Automation.Solution.SaveAs(workspace.SolutionPath);
             BuildDefaultSharedExample(ide, workspace.DirectoryPath);
             void Mode(string mode) => window.FindFirstDescendant(cf => cf.ByName(mode).And(cf.ByControlType(ControlType.RadioButton))).Patterns.SelectionItem.Pattern.Select();
             void Choose(string name) => ChooseDefaultContext(window, name);
+            void CheckHmiCompletion()
+            {
+                string path = Path.Combine(workspace.DirectoryPath, "Shared", "HmiInstructions.almx");
+                string original = File.ReadAllText(path);
+                owner.ProjectItems.Item("HmiInstructions.almx").Open(Constants.vsViewKindPrimary).Activate();
+                SelectDesigner(window);
+                foreach (string consumer in new[] { "North.almproj", "South.almproj" })
+                {
+                    Choose(consumer); Mode("XML");
+                    var selection = (TextSelection)ide.Automation.Documents.Item(path).Selection;
+                    int caret = original.IndexOf("$(loc:Hmi.AlarmName)", StringComparison.Ordinal) + "$(loc:Hmi".Length;
+                    Assert.True(caret >= "$(loc:Hmi".Length);
+                    int line = original.Take(caret).Count(character => character == '\n') + 1;
+                    int newline = original.LastIndexOf('\n', caret - 1);
+                    selection.MoveToLineAndOffset(line, caret - newline);
+                    XmlCompletionTests.FocusXmlInput(ide, window, path);
+                    XmlCompletionTests.RequireXmlInput(ide, window, path);
+                    Keyboard.TypeSimultaneously(VirtualKeyShort.CONTROL, VirtualKeyShort.SPACE);
+                    VisualStudioSession.Wait(() => window.FindFirstDescendant(cf => cf.ByAutomationId("$(loc:Hmi.AlarmName)")) != null,
+                        "HmiInstructions XML localization suggestions in " + consumer);
+                    XmlCompletionTests.RequireXmlInput(ide, window, path); Keyboard.Type(VirtualKeyShort.ESCAPE);
+                    Assert.Equal(original, ide.ReadText(path)); Assert.Equal(original, File.ReadAllText(path));
+                    Mode("Designer");
+                }
+                ide.Automation.Documents.Item(path).Close(vsSaveChanges.vsSaveChangesNo);
+                ide.ActivateDocument(source); Mode("Designer"); Choose("North.almproj");
+            }
             void Explain(string expected)
             {
                 ValueExplanationUi.Explain(ide, window, "Explain this value for Name", expected);

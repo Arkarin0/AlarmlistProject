@@ -3,6 +3,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Alarmlist.VisualStudio.UI;
@@ -117,6 +118,8 @@ namespace Alarmlist.VisualStudio.Editor
             _control = new SplitEditorControl(_layout, new EditFileControl(_viewModel,
                 _expressions?.Bind(_oleSite, _viewModel, Undo, redo => redo ? _session.Undo.CanRedo : _viewModel.HasPending || _session.Undo.CanUndo)), sourceControl);
             _control.PreviewKeyDown += OnKeyDown;
+            _control.AddHandler(Keyboard.GotKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(OnEditorFocusChanged), true);
+            _control.AddHandler(Keyboard.LostKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(OnEditorFocusChanged), true);
             Content = _control;
             _textManager = (IVsTextManager)GetService(typeof(SVsTextManager));
             ErrorHandler.ThrowOnFailure(_textManager.RegisterIndependentView(this, _lines));
@@ -136,10 +139,29 @@ namespace Alarmlist.VisualStudio.Editor
         private void OnSourceFocusChanged(object sender, EventArgs args)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            // The custom document frame otherwise has no text-editor bindings for
-            // Backspace/Return. Inherit them only while the XML view owns focus;
-            // designer fields keep their WPF editing and private draft semantics.
-            Guid bindings = _textHost.TextView.HasAggregateFocus ? VSConstants.GUID_TextEditorFactory : Guid.Empty;
+            UpdateEditorKeyBindings(Keyboard.FocusedElement as DependencyObject);
+        }
+
+        private void OnEditorFocusChanged(object sender, KeyboardFocusChangedEventArgs args)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            UpdateEditorKeyBindings(args.NewFocus as DependencyObject);
+        }
+
+        private void UpdateEditorKeyBindings(DependencyObject focus)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            if (_frame == null) return;
+            bool nativeField = false, owned = false;
+            foreach (DependencyObject ancestor in ValueContextMenu.Ancestors(focus))
+            {
+                if (ancestor is ExpressionTextBox field && field.Surface?.Commands != null) nativeField = true;
+                if (ReferenceEquals(ancestor, _control)) { owned = true; break; }
+            }
+            // Both XML and embedded native fields need Text Editor bindings for
+            // Backspace and other editing keys. Ordinary WPF inputs keep their
+            // own bindings. Commands still go to the focused view's native chain.
+            Guid bindings = _textHost.TextView.HasAggregateFocus || (nativeField && owned) ? VSConstants.GUID_TextEditorFactory : Guid.Empty;
             ErrorHandler.ThrowOnFailure(_frame.SetGuidProperty((int)__VSFPROPID.VSFPROPID_InheritKeyBindings, ref bindings));
         }
 
@@ -156,7 +178,13 @@ namespace Alarmlist.VisualStudio.Editor
                 _frame = null;
                 if (_rdtEvents != 0) { _rdt.UnadviseRunningDocTableEvents(_rdtEvents); _rdtEvents = 0; }
                 _textManager?.UnregisterIndependentView(this, _lines);
-                if (_control != null) { _control.PreviewKeyDown -= OnKeyDown; _control.Dispose(); }
+                if (_control != null)
+                {
+                    _control.PreviewKeyDown -= OnKeyDown;
+                    _control.RemoveHandler(Keyboard.GotKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(OnEditorFocusChanged));
+                    _control.RemoveHandler(Keyboard.LostKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(OnEditorFocusChanged));
+                    _control.Dispose();
+                }
                 if (_viewModel != null)
                 {
                     _textHost?.TextView.Properties.RemoveProperty(typeof(IDesignerAnalysis));

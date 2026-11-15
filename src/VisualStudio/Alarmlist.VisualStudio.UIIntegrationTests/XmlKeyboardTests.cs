@@ -41,8 +41,6 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             foreach (string mode in new[] { "XML", "Split" })
             {
                 window.FindFirstDescendant(cf => cf.ByName(mode).And(cf.ByControlType(ControlType.RadioButton))).Patterns.SelectionItem.Pattern.Select();
-                surface = window.FindFirstDescendant(cf => cf.ByAutomationId("WpfTextView"));
-                Assert.NotNull(surface);
                 FocusSource();
                 if (mode == "Split")
                 {
@@ -136,8 +134,18 @@ namespace Alarmlist.VisualStudio.UIIntegrationTests
             void FocusSource()
             {
                 window.SetForeground();
-                surface.Focus();
-                VisualStudioSession.Wait(() => surface.Properties.HasKeyboardFocus.ValueOrDefault, "XML surface focus");
+                VisualStudioSession.Wait(() =>
+                {
+                    // Split also contains embedded native designer text views.
+                    // Match the complete current document, never the first view.
+                    string text = ide.ReadText(path).Replace("\r", "").TrimEnd('\n');
+                    surface = window.FindAllDescendants(cf => cf.ByAutomationId("WpfTextView"))
+                        .FirstOrDefault(view => !view.IsOffscreen && view.Patterns.Text.IsSupported
+                            && view.Patterns.Text.Pattern.DocumentRange.GetText(-1).Replace("\r", "").TrimEnd('\n') == text);
+                    if (surface == null) return false;
+                    surface.Focus();
+                    return surface.Properties.HasKeyboardFocus.ValueOrDefault;
+                }, "actual XML document surface focus");
             }
             void RequireSource()
             {

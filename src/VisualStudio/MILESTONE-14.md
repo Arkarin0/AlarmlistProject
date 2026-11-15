@@ -16,6 +16,9 @@ user; direct RESX XML commands are accepted. No native acceptance gate for the
 accepted XML/designer scope remains open.
 Implementation and evidence are recorded in the appended follow-up.
 
+Iteration 23 is complete (2026-11-15): designer Backspace restored, with required
+native keyboard/focus regression checks passed on both supported IDEs.
+
 ## Outcome and confirmed scope
 
 Provide Explain this value actions in the designer and Alarm Summary, displaying
@@ -3168,3 +3171,162 @@ gate remains open. Standard RESX-table commands stay deferred by the user's
 XML/designer success is not table acceptance. Final review verifies 139 local
 links across nine changed documents and passes `git diff --check`. The work
 remains on dev/milestone-14; no merge or push is included.
+
+## Iteration 23 — Restore designer Backspace (complete, 2026-11-15)
+
+The user reports Backspace failing in designer value fields on VS2026. The XML
+completion report is resolved by selecting a project context in the shared
+HmiInstructions.almx input; no completion behavior change is authorized here.
+
+Deliverable: reproduce the native Backspace failure before changing production
+code, then give focused embedded expression editors the Text Editor keybindings
+already used by XML. Follow focus transitions between XML, native value editors
+and ordinary WPF controls, detach subscriptions on pane disposal, and route
+deletion through the native command chain. Preserve private drafts, read-only
+protection, completion, Unicode/multiline editing and document Undo/Redo. No
+compiler/public API/contract change, merge or push is included.
+
+Required validation: native beginning/middle/end and selection Backspace, Delete,
+typing, scalar/parameter/procedure values, Unicode/multiline deletion, draft
+cancellation and commit, source Undo/Redo, ordinary inputs, read-only values and
+XML/designer focus round trips. Run focused checks and the affected host suite;
+run native acceptance sequentially on VS2026 first and VS2022 afterward, including
+XML expression completion with an explicit shared consumer and HMI input.
+Record actual evidence separately below, then commit this iteration only after
+its required checks pass.
+
+### Iteration 23 actual evidence
+
+Area=DesignerKeyboard adds real keyboard deletion through the installed
+extension, with source/disk/output preservation and no direct command
+substitution for the reported Backspace. The initial sandboxed launch is canceled
+during preparation, without native results. The first unrestricted build finds a
+missing test namespace import, corrected before the native run.
+
+VS2026 red-before-fix: TestResults/63405276538847f3954cab6ecc2c498e fails 1/1 in
+1m42s at the first physical Backspace: `abc $(P) xyz` stays unchanged. Fixture
+DesignerKeyboard/2026/0a68226bb0844e8ea04d8966259bffa3 retains the failure and
+normal owned-IDE cleanup. Production code was unchanged for that run.
+
+The frame now inherits Text Editor bindings for a focused native expression
+surface owned by this pane as well as XML. Handled focus events update ownership
+between embedded editors, ordinary WPF inputs and external controls; disposal
+detaches both subscriptions. Existing focused-surface command forwarding and
+private-draft Undo remain unchanged. Required green checks are pending.
+
+The first fix repeat passes the initial deletion checks, then fails typing after
+UIA-only selection (31e8634cd2934c809bf97b7cdc90913d). The fixture now uses physical
+pointer placement, extended-arrow selection and exact UIA caret/selection checks;
+UIA Select alone is insufficient evidence of the native caret. Production is
+temporarily returned to HEAD and verified unchanged for a second red run.
+TestResults/2f543087dda244f48b36da4c252db64b fails the same first Backspace in
+1m41s, after the actual end caret is verified, fixture
+DesignerKeyboard/2026/b27d0e02140b463a8dba7a19c04d6d38. The focused ownership fix
+is reapplied with explicit UI-thread guards in its event handlers.
+
+Repeat 4426e4fb49aa48cbbfe01dc663f74e6d passes scalar deletion and fast typing,
+then stops at the focused-field guard after pointer selection in an ordinary WPF
+parameter cell. The fixture uses that cell's End key instead; native expression
+fields retain physical pointer/caret checks. No production change is needed for
+that fixture correction. TestResults/59b099435567494e9273a90a11f7daec then passes
+VS2026 DesignerKeyboard 1/1 in 33 seconds: scalar start/middle/end and selection
+deletion, forward Delete and typing, parameter/procedure deletion, protected
+inherited values, Unicode and multiline drafts, cancellation/commit, source
+Undo/Redo and WPF/XML/designer focus transitions. Source/disk/output assertions
+and owned-IDE cleanup pass. Full host and both-host remaining acceptance follow.
+
+The first full host run (Iteration23/Host) passes 983/984 with one timeout in the
+existing ClosingDesignerDrainsQueuedNotificationsWithoutJoiningItsOwnTask WPF
+fixture. Its isolated unchanged repeat passes 1/1 in 206 ms
+(Iteration23/HostShutdownRepeat). The complete suite is repeated without
+assertion/time-limit changes; no cause is attributed to user or RDP input.
+
+The full unchanged repeat passes **984/984**, zero skips, in 2m26s
+(Iteration23/HostRepeat). Packaged extension/consumer checks then pass **14/14**
+on each of net472 and net8.0, in 11/10 seconds
+(Iteration23/VSIX-net472 and VSIX-net8.0). Builds have no remaining threading
+warnings. Final native keyboard/editor/shared-example checks run sequentially,
+with the new HmiInstructions test selecting each consumer explicitly and checking
+Ctrl+Space without changing source text. Both-host final results are pending.
+
+VS2026 batch TestResults/898fb2ad0fea4c02a1971177d3230fe4 passes 3/4: native
+designer expression nodes (38.46s), scalar commit/Undo (7.50s), and the edited
+default example including HmiInstructions Ctrl+Space under both explicit consumers
+(216.27s). XmlKeyboard fails its Split baseline: expected Name Before, source
+still After XML. The fixture selected the first WpfTextView, which can now be an
+embedded designer editor. Its source-focus helper now identifies the actual XML
+surface by complete current document text, retaining exact edit/source assertions.
+The new DesignerKeyboard pointer helper also verifies that the intended field,
+not just its process, owns the pointer hit. Focused repeats of both fixtures on
+both hosts remain required; no production behavior change follows these findings.
+
+VS2026 focused repeat TestResults/cdacc7ca01e348b1a8a81e8aeee8d232 passes **2/2**
+in 47 seconds: DesignerKeyboard with intended-field pointer hit checks and
+XmlKeyboard with actual XML surface selection in XML/Split. All original source,
+draft, Save/reopen, Undo/Redo and keyboard assertions remain. Together with the
+three passing scenarios in the preceding batch, required VS2026 native acceptance
+passes. The matching five-case VS2022 batch is running next, sequentially.
+
+VS2022 batch TestResults/f9f4bcb86db14fcaa7318387df20dba6 passes 4/5: XML/Split
+keyboard (15.31s), scalar commit/Undo (8.77s), default example with both explicit
+HMI consumers (224.89s), and native expression nodes (70.55s). DesignerKeyboard
+passes initial Backspace cases, then safely stops on its focused-field guard
+while selecting a token. Diagnostic repeat 75742e8ca42e4ea7a5af4cbc8b52eba9 passes
+all scalar checks and stops when UIA cannot focus a clipped parameter cell.
+Captures show initial analysis pending and the alarm pane scrolled past that row.
+The fixture now waits for the resolved project value and reveals controls in the
+owning alarm viewport before focus, without editing or weakening input guards.
+
+Repeat 999a84888621472b98547929a60521d9 stops before deletion when WindowsTerminal
+PID 11280 takes foreground. Post-run CIM finds neither that Terminal nor an owned
+IDE/testhost; its origin is not established and no Terminal is manipulated or
+stopped. The fixture uses the existing bounded owned-IDE UIA/DTE activation check
+before field input, retaining the final foreground/caret checks. Final focused
+repeats on both IDEs remain open; production code is unchanged.
+
+The readiness/viewport fixture passes VS2022 1/1 in 40.44s
+(TestResults/e7fa23162a31468aa5940a7815f4c67c). Its VS2026 repeat
+94c9876b66ea435190a4127d4de837d9 passes the initial deletion cases, then fails a
+later repeated pointer-caret setup before forward Delete. The initial hit-tested
+pointer regression remains; subsequent positions/selections now use physical
+extended Ctrl+Home/Right/Shift keys and freshly acquired UIA ranges. No UIA Select
+or direct command/buffer replacement substitutes for native editing.
+
+Final focused cases pass with all assertions and owned-IDE cleanup:
+
+| Host | Final DesignerKeyboard report | Duration |
+| --- | --- | ---: |
+| VS2026 | TestResults/6f094609940d45ef8eaa978da8619701 | 57.74s |
+| VS2022 | TestResults/7979c5beba534ca1997ca58bdb158ad5 | 41.55s |
+
+The final audit verifies each of the ten required native cases' passing TRX
+entry and `passed.txt` cleanup marker: dedicated designer keyboard, XML/Split
+keyboard, scalar commit/Undo, native expression nodes and edited default-example
+preparation/reopening with HMI completion, on both hosts. The affected full host
+suite passes **984/984** and packaged extension checks pass **14/14 per framework**.
+Earlier failures and successful repeats remain above; no assertion or foreground
+guard is relaxed. No required iteration-23 gate remains open.
+
+The production change is limited to document-frame keybinding ownership and its
+focus subscriptions. Compiler, SDK, completion-provider behavior and public
+contracts are unchanged: analysis 10/analyzer 5/library 3/export 1 and semantic
+fingerprints are preserved. Compiler suites are not rerun for this host-only fix.
+Documentation covers deletion/draft behavior and explicit shared-file consumers;
+contributor guidance records native field keybindings and exact source-view
+selection in Split fixtures. Native foreground/UIA sensitivity and the separately
+deferred standard RESX-table capability remain existing limitations. No merge or
+push is included.
+
+Validation commands use `dotnet test` for the host UnitTests project (full run,
+then the isolated shutdown filter and unchanged `--no-build --no-restore` full
+repeat) and the IntegrationTests project with `--framework net472` and
+`--framework net8.0`, sequentially. Native entry point:
+`eng/test-visualstudio.ps1 -VisualStudioPath $installation -Filter <selection>`,
+with the discovered VS2026/VS2022 installations and selections
+`Area=DesignerKeyboard`, `Area=Keyboard|Area=DesignerExpressionNodes|Area=DefaultSharedExample`
+and the focused `Area=DesignerKeyboard|FullyQualifiedName~XmlKeyboardTests` repeat.
+Each command writes the TRX artifacts recorded above. Final review passes
+`git diff --check`, resolves 32 local links across five changed documents, verifies
+all selected passing-case cleanup markers and finds no remaining IDE/testhost in
+the final read-only process inventory. Only documentation changes follow these
+checks; unchanged suites are not repeated.

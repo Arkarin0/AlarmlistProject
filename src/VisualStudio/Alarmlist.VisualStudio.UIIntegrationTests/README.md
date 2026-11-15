@@ -39,6 +39,7 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Configured external analyzer | Live warning/navigation, saved severity and option refresh, promoted build failure preserves output, and source DLL remains unlocked | `Analyzers` |
 | Build failure/Clean/Rebuild | Error List, failure preserves output, updated live errors preserve Build errors, Clean removes output, Rebuild restores it | `Build` |
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
+| Designer native deletion | Physical Backspace/Delete and selections in scalar/parameter/procedure fields, Unicode and multiline drafts, read-only protection, cancellation/commit/Undo/Redo and WPF/XML focus transitions | `DesignerKeyboard` |
 | XML keyboard editing | Physical insertion, Backspace/Delete and selections, Enter, multiline replacement, Cut/Paste, Undo/Redo, XML/Split and shell/designer focus transitions, private drafts and save/reopen | `Keyboard` |
 | XML completion | Root/structural completion in XML/Split/standalone views, Tab/Enter/Escape, Undo/Redo, automatic typing, stale insertion rejection and preserved disk source; native lookup/MSBuild coexistence | `XmlCompletion` |
 | Alternate-definition XML completion | Generated ordinary/collection fields and enum/boolean literals, removed standard fields, procedure-enabled/disabled forks and no default materialization | `XmlDefinitionCompletion` |
@@ -65,6 +66,12 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 Project and document lifecycle checks retain the former smoke script's shell/API
 operations. They do not simulate clicks through New Project or Save As dialogs.
 The keyboard case does not replace physical input with buffer/property assignment.
+`DesignerKeyboard` waits for current analysis and reveals clipped fields before
+focus. Its initial regression positions the native caret with hit-tested pointer
+input; later cases use physical keyboard navigation. All positions/selections are
+verified before editing; UIA range selection alone is not a caret guarantee.
+`DefaultSharedExample` also checks HmiInstructions XML localization suggestions
+with North and South explicitly selected, preserving source bytes.
 Dialogs, visual appearance and remaining host interactions still have
 [interactive acceptance checks](../ACCEPTANCE.md).
 

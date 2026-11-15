@@ -35,6 +35,9 @@ shows the authored text. Resolved output remains literal. Ctrl+Space opens the
 existing expression suggestions; Enter or Tab inserts a selected suggestion into
 the draft, and a subsequent Enter commits it. Shift+Enter adds a line break in a
 multiline field. Clipboard operations preserve Unicode and line breaks.
+Backspace and Delete edit the focused field's draft, including selected text;
+they do not edit the XML until the draft is committed. Read-only values stay
+protected.
 
 Right-click an authored expression token, or use Shift+F10/the Menu key at its
 caret, for **Go to Definition**, **Find All References** and **Rename…**.
@@ -71,6 +74,7 @@ Save. Undo restores the prior value. Compiled files change only after Build.
 | --- | --- | --- |
 | Field cannot be edited | Inherited projection or incompatible analysis | Use explicit local override where available; resolve SDK compatibility. |
 | Text not in XML yet | Still a private draft | Commit with Enter, or Escape to cancel. |
+| No expression suggestions in a shared file | No consumer project selected | Select the intended consumer in the designer's project context, then return to XML. |
 | Disk output unchanged | Live analysis does not write build output | Save intended edits and Build. |
 
 ## Related features and tutorials

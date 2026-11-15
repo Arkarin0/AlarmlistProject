@@ -135,6 +135,19 @@ preserving focus on button-down; the release can dismiss a popup opened early.
 Token popup actions belong to the captured expression source editor even when a
 containing grid owns the value-action anchor. Use compiler TargetAtValueToken
 and its explicit consumer; lexical colors never establish reference identity.
+The document frame must inherit Text Editor keybindings while either XML or an
+owned native expression field has focus. Reevaluate ownership on handled keyboard
+focus transitions as well as XML aggregate focus; ordinary WPF inputs retain
+their own bindings. Forward deletion to the focused native command chain, never
+to the underlying XML view, and detach focus subscriptions on disposal.
+Area=DesignerKeyboard verifies physical Backspace/Delete, selections, Unicode,
+multiline values, draft/Undo ownership and WPF/XML focus round trips on both IDEs.
+Wait for the current resolved project value and reveal clipped controls before
+focus. Keep the initial pointer/caret regression, then use physical keyboard
+navigation with exact UIA selection checks for subsequent editing cases.
+Split-mode fixtures must identify the actual XML view among embedded native
+designer views; the first WpfTextView is not necessarily the document source.
+Verify the complete current document text when selecting that source surface.
 Area=DesignerExpressionNodes verifies native colors, pointer/caret commands,
 draft guards, token Rename, Unicode/multiline clipboard and source Undo on both
 IDEs. Fixtures address the actual input child of composite editors.

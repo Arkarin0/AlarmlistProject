@@ -249,3 +249,15 @@ windowless dotnet execution. Unknown Terminal ownership is never attributed to
 user input or used to stop an existing window. No accepted-scope native gate
 remains open. The separately deferred standard RESX-table capability and measured
 large-document costs remain explicit limitations in the milestone plan.
+
+Milestone 14 iteration 23 restores Backspace in embedded designer editors by
+giving the focused native field Text Editor keybindings. Ordinary WPF inputs,
+read-only values, private drafts and source Undo retain their behavior. Native
+regression fails against the original host with a verified end caret, then passes
+on VS2022 and VS2026. Coverage includes scalar/parameter/procedure deletion,
+Unicode/multiline text, selections, Delete/typing, cancellation/commit/Undo/Redo
+and XML/Split focus transitions. The full host repeat passes 984 tests and
+packaged checks pass 14 per framework. HmiInstructions XML completion passes
+with both explicit consumers on both IDEs; its reported failure required choosing
+a context, so completion behavior is unchanged. Actual setup failures, the host
+timeout/repeats and successful native reports remain in MILESTONE-14.md.
