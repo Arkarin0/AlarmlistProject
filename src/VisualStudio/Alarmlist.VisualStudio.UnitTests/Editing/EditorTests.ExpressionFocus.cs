@@ -2,6 +2,7 @@
 
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -178,6 +179,33 @@ namespace Alarmlist.VisualStudio.UnitTests.Editing
                     box.CaretIndex = box.Text.Length;
                     InheritanceAdornerTests.Pump();
                     Assert.False(box.IsCompletionOpen);
+                }
+            });
+        }
+
+        [Fact]
+        public void CompletionDismissalDoesNotSuppressANewEditingSessionWithTheSamePrefix()
+        {
+            InheritanceAdornerTests.RunOnSta(() =>
+            {
+                using (var host = ExpressionHost())
+                {
+                    var box = new ExpressionTextBox
+                    {
+                        Suggestions = BindingCollection.Create(new[] { new PropertyCompletion("$(ChoiceAlpha)", "one", "test") }),
+                        ValidateSuggestions = () => Task.FromResult(true)
+                    };
+                    host.RootVisual = box; InheritanceAdornerTests.Pump(); Assert.True(box.Focus());
+                    box.Text = "$(Choice"; box.CaretIndex = box.Text.Length; InheritanceAdornerTests.Pump();
+                    Assert.True(box.IsCompletionOpen);
+                    Assert.True(box.HandleCompletionKey(Key.Escape, ModifierKeys.None));
+                    Assert.False(box.IsCompletionOpen);
+                    // Cancellation restores the bound raw value through the
+                    // display guard, rather than another authored text edit.
+                    box.RawText = "original";
+                    box.Text = "$(Choice"; box.CaretIndex = box.Text.Length; InheritanceAdornerTests.Pump();
+                    Assert.True(box.IsCompletionOpen);
+                    Assert.Equal("$(Choice", box.RawText);
                 }
             });
         }

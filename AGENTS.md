@@ -140,6 +140,17 @@ owned native expression field has focus. Reevaluate ownership on handled keyboar
 focus transitions as well as XML aggregate focus; ordinary WPF inputs retain
 their own bindings. Forward deletion to the focused native command chain, never
 to the underlying XML view, and detach focus subscriptions on disposal.
+While designer suggestions are visible, route native UP/DOWN commands to the
+owning suggestion list; command-status queries must not change its selection.
+Without a list, preserve native caret navigation. Dismissal belongs to unchanged
+raw text: a bound draft cancellation must clear it when restoring another value,
+even when display synchronization suppresses text/caret notifications.
+Area=DesignerCompletionKeyboard verifies physical arrows and Tab, private drafts,
+reopening after cancellation and ordinary traversal on both IDEs.
+Area=DesignerClassificationLifecycle checks shared HMI-style input through
+Designer/XML/Split, including unfocused return, unsaved XML edits and Undo.
+These color checks characterize supported cases; they do not establish that an
+unreproduced user report is fixed. Keep that gate explicit in the milestone plan.
 Area=DesignerKeyboard verifies physical Backspace/Delete, selections, Unicode,
 multiline values, draft/Undo ownership and WPF/XML focus round trips on both IDEs.
 Wait for the current resolved project value and reveal clipped controls before

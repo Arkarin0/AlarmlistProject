@@ -32,8 +32,10 @@ shared files. Supported RESX XML expression values use the same formats.
 Designer expression values use an embedded Visual Studio text editor with the
 same expression formats. An unfocused field can show its resolved value; focus
 shows the authored text. Resolved output remains literal. Ctrl+Space opens the
-existing expression suggestions; Enter or Tab inserts a selected suggestion into
-the draft, and a subsequent Enter commits it. Shift+Enter adds a line break in a
+existing expression suggestions; Up/Down selects a suggestion without moving the
+text caret. Enter or Tab inserts it into the draft, and a subsequent Enter commits
+it. Escape dismisses the list; editing again can reopen it. When completion is
+inactive, Tab moves to the next control. Shift+Enter adds a line break in a
 multiline field. Clipboard operations preserve Unicode and line breaks.
 Backspace and Delete edit the focused field's draft, including selected text;
 they do not edit the XML until the draft is committed. Read-only values stay

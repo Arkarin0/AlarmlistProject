@@ -90,7 +90,14 @@ namespace Alarmlist.VisualStudio.UI
             Unloaded += (sender, args) => { _completionIntentText = null; CloseCompletion(); };
         }
 
-        private static void OnDisplayChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) => ((ExpressionTextBox)sender).RefreshDisplay();
+        private static void OnDisplayChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+        {
+            var box = (ExpressionTextBox)sender;
+            // Cancellation/source refresh can restore RawText under the display
+            // guard without another completion refresh or caret notification.
+            if (args.Property == RawTextProperty && box._dismissedText != (string)args.NewValue) box._dismissedText = null;
+            box.RefreshDisplay();
+        }
         private static void OnSuggestionsChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) => ((ExpressionTextBox)sender).RefreshCompletion();
 
         private void RefreshDisplay()

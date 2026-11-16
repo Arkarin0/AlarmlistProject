@@ -183,6 +183,13 @@ namespace Alarmlist.VisualStudio.Editor
             { enabled = _owner.ContextMenu != null; if (execute && enabled) OpenContextMenu(null); return true; }
             if (id == (uint)VSConstants.VSStd2KCmdID.SHOWMEMBERLIST || id == (uint)VSConstants.VSStd2KCmdID.COMPLETEWORD || id == (uint)VSConstants.VSStd2KCmdID.AUTOCOMPLETE)
             { enabled = !_owner.IsReadOnly && _owner.IsExpressionEnabled; if (execute && enabled) _owner.HandleCompletionKey(Key.Space, ModifierKeys.Control); return true; }
+            if ((id == (uint)VSConstants.VSStd2KCmdID.UP || id == (uint)VSConstants.VSStd2KCmdID.DOWN) && _owner.IsCompletionOpen)
+            {
+                // The native editor receives these commands before WPF's key
+                // preview. A status query must never advance the selection.
+                if (execute) _owner.HandleCompletionKey(id == (uint)VSConstants.VSStd2KCmdID.UP ? Key.Up : Key.Down, Keyboard.Modifiers);
+                return true;
+            }
             if (id == (uint)VSConstants.VSStd2KCmdID.RETURN)
             {
                 if (execute && !_owner.IsReadOnly && !_owner.HandleCompletionKey(Key.Enter, Keyboard.Modifiers))

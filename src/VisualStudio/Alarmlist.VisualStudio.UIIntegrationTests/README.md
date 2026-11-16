@@ -40,6 +40,8 @@ Each scenario has separate VS2022 and VS2026 xUnit cases:
 | Build failure/Clean/Rebuild | Error List, failure preserves output, updated live errors preserve Build errors, Clean removes output, Rebuild restores it | `Build` |
 | Designer keyboard commit/undo | Real typing creates a draft, Enter commits exact shared XML without saving, focus survives, Ctrl+Z restores XML and field | `Keyboard` |
 | Designer native deletion | Physical Backspace/Delete and selections in scalar/parameter/procedure fields, Unicode and multiline drafts, read-only protection, cancellation/commit/Undo/Redo and WPF/XML focus transitions | `DesignerKeyboard` |
+| Designer suggestion keys | Physical Up/Down selection and wrapping without moving the caret, Tab acceptance into drafts, dismissal/reopening, commit/Undo and ordinary Tab traversal | `DesignerCompletionKeyboard` |
+| Designer classification lifecycle | Shared HMI-style multiline expressions under two explicit consumers, Designer/XML/Split round trips before focus, draft colors, unsaved invalid siblings and Undo | `DesignerClassificationLifecycle` |
 | XML keyboard editing | Physical insertion, Backspace/Delete and selections, Enter, multiline replacement, Cut/Paste, Undo/Redo, XML/Split and shell/designer focus transitions, private drafts and save/reopen | `Keyboard` |
 | XML completion | Root/structural completion in XML/Split/standalone views, Tab/Enter/Escape, Undo/Redo, automatic typing, stale insertion rejection and preserved disk source; native lookup/MSBuild coexistence | `XmlCompletion` |
 | Alternate-definition XML completion | Generated ordinary/collection fields and enum/boolean literals, removed standard fields, procedure-enabled/disabled forks and no default materialization | `XmlDefinitionCompletion` |

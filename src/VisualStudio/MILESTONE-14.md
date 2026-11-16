@@ -19,6 +19,10 @@ Implementation and evidence are recorded in the appended follow-up.
 Iteration 23 is complete (2026-11-15): designer Backspace restored, with required
 native keyboard/focus regression checks passed on both supported IDEs.
 
+Iteration 24 is complete (2026-11-16): designer IntelliSense keyboard ownership
+and view-switch color regression coverage. The user can no longer reproduce the
+color-loss report; its cause was not established and no classification fix is claimed.
+
 ## Outcome and confirmed scope
 
 Provide Explain this value actions in the designer and Alarm Summary, displaying
@@ -3330,3 +3334,128 @@ Each command writes the TRX artifacts recorded above. Final review passes
 all selected passing-case cleanup markers and finds no remaining IDE/testhost in
 the final read-only process inventory. Only documentation changes follow these
 checks; unchanged suites are not repeated.
+
+## Iteration 24 — Designer suggestions and classification lifecycle (completed)
+
+The user reports that Tab/Up/Down do not act on visible designer suggestions and
+that expression colors disappear after Designer → XML → Designer, including
+shared HmiInstructions input with an explicit consumer selected. Preserve the
+user's uncommitted example edits; reproduce using isolated inputs.
+
+Deliverables: route native completion navigation/acceptance through the existing
+suggestion handler while retaining editor focus and private drafts; preserve
+ordinary navigation when no suggestion owns a key. Investigate classification
+through view visibility/lifetime and cover returning to the designer with native
+regressions. The final scope requires no classification change: the tests retain
+colors and the user confirms the report is no longer reproducible. Preserve
+freshness, literal resolved output, current consumer/culture, and per-view cache ownership. No host
+semantic parser, compiler/SDK contract change, branch change, merge or push.
+
+Validation: native VS2026 regressions before production changes, followed by both
+IDE hosts. Check Up/Down selection and unchanged caret, Tab acceptance into a
+draft, Enter/Escape/Undo and ordinary Tab fallback; repeat view switches without
+source edits, with private drafts and shared HMI-style formatted/multiline input
+under both consumers. Cover stale/pending completion and classification rejection
+in focused tests, run the affected full host suite and packaged checks on both
+frameworks, and retain the Backspace regression. Record actual results and commit
+this iteration only after required checks pass.
+
+### Iteration 24 actual evidence
+
+Initial working tree contains only the user's edit to
+example/Shared/HmiInstructions.almx; preserve it outside this iteration.
+
+The VS2026 baseline reproduced physical Down failing to select ChoiceBravo.
+Tab accepted the initial suggestion, but the same prefix did not reopen after
+Escape/cancellation. The original unit regression also failed before the fix.
+Evidence: native TestResults/5e1a0cb8a2b34062a9b04194ebecd8fe and
+Iteration24/DismissalBeforeFixRepeat beneath the existing ignored log roots.
+
+The native command filter now routes UP/DOWN to an open owning suggestion list;
+status queries do not execute navigation. Native navigation remains the fallback
+without a list. Completion dismissal resets on an actual RawText change,
+including bound cancellation/source restoration under display synchronization.
+Resetting only during completion refresh was insufficient: a VS2022 repeat
+reached the later reopening assertion before failing. The final callback change
+passes both native keyboard cases on VS2022 in
+TestResults/66b727d317674e20952874027e4a0c5c and on VS2026 in
+TestResults/e052277fa695468491e823953ecff9c6. These exercise selection/wrapping,
+unchanged caret/source, Tab insertion, repeated dismissal/cancellation, commit,
+document Undo and ordinary Tab traversal. The host suite passes **985/985** in
+Iteration24/Host; the earlier focused expression run passed **73/73**.
+
+Fixture corrections retain their failures: the initial multiline draft setup
+used unsuitable physical multiline typing; another color check unnecessarily
+refocused an existing private draft. The keyboard fixture now reveals its
+previously clipped Name field before typing, following the existing native-input
+guidance. No foreground guard or behavior assertion was removed. Restricted
+test-process access also stalled one focused run; its exact owned processes were
+stopped and the successful repeat used desktop process access. Two retained
+agent shells were subsequently removed through verified process ownership.
+
+**No production classification change or color-loss fix is claimed.** The color
+loss could not be reproduced during validation. The new characterization fixture uses isolated
+Shared/HmiInstructions.almx with two explicitly selected consumers, mixed plain,
+parameter/localization/nested expressions, escaped text and encoded multiline
+input. It checks Designer/XML/Split round trips both before and after field focus,
+private draft colors/cancellation, unsaved invalid formatted siblings and XML
+Undo. The complete expanded fixture passes on VS2022 in
+TestResults/b01aeb2f4272485fbac83f0ea1741212. Basic VS2026 round trips pass in
+TestResults/e0722fbf33104d248ba07387096ede85. The expanded VS2026 run in
+TestResults/e052277fa695468491e823953ecff9c6 retained colors through both
+consumers' round trips, but refused further input after Windows Terminal took
+foreground focus; owned-IDE cleanup subsequently hit its bounded timeout.
+That interrupted case is not a passing gate. The sequential repeat passes; see
+the final evidence below.
+
+The reported color loss was not reproduced in these cases. At the validation
+checkpoint, clarification was pending about the affected surface and whether
+clicking/editing restored colors. On 2026-11-16 the user confirmed that the issues
+had disappeared and could no longer be reproduced, closing that remaining gate.
+The cause was not established; retain the regression coverage. Resolved unfocused
+output remains intentionally literal. Compiler/SDK contracts and fingerprints are
+unchanged. Final validation and review are recorded below.
+
+### Iteration 24 final validation checkpoint — 2026-11-16
+
+The exact current example/Shared/HmiInstructions.almx text is additionally read
+into the isolated fixture's ALMX buffer. Its XML localization/punctuation colors
+survive both consumers' Designer/XML round trips. The repository file is never
+edited. This checks lexical recovery with unavailable bindings in the isolated
+context; it does not reproduce the user's full example project/resource graph.
+The controlled HMI-style fixture separately checks designer colors, including
+before refocusing, nested/localization/escaped text, drafts, invalid siblings and
+Undo. Both complete final runs pass with normal owned-IDE cleanup:
+
+| Native case | Host | Final TestResults directory | Duration |
+| --- | --- | --- | ---: |
+| CompletionArrows | VS2022 | 66b727d317674e20952874027e4a0c5c | 34.04s |
+| CompletionTab | VS2022 | 66b727d317674e20952874027e4a0c5c | 19.76s |
+| CompletionArrows | VS2026 | e052277fa695468491e823953ecff9c6 | 19.41s |
+| CompletionTab | VS2026 | e052277fa695468491e823953ecff9c6 | 16.67s |
+| DesignerKeyboard | VS2022 | 7dbdbae1fc2e40f28c886dcd70e9f478 | 31.06s |
+| DesignerKeyboard | VS2026 | 68791da72e404531bb5b8bba2b3bbaa7 | 27.41s |
+| DesignerClassificationLifecycle | VS2022 | 3e058f758b534587af30ded52d43b8e5 | 62.48s |
+| DesignerClassificationLifecycle | VS2026 | 007e5479c5a0454cbadd1f9a645f604e | 55.66s |
+
+All eight individual TRX entries and their `passed.txt` cleanup markers were
+audited. Package-net472 and Package-net8.0 each pass **14/14**; Host passes
+**985/985**, beneath artifacts/log/Debug/Milestone14/Iteration24. Desktop MSBuild,
+WPF and native suites ran sequentially. No remaining IDE/testhost was found in
+the final process inventory. `git diff --check` passes. The user HMI file's SHA256
+matched the pre-edit capture at that checkpoint; the branch remained
+dev/milestone-14 with nothing staged, committed, merged or pushed.
+Source/SDK contracts are unchanged.
+
+Commands: `dotnet test` on the UnitTests and IntegrationTests projects, with the
+latter selected separately using `--framework net472` and `--framework net8.0`;
+all write TRX reports. Native checks use eng/test-visualstudio.ps1 separately for
+each installed supported IDE and the filters Area=DesignerCompletionKeyboard,
+Area=DesignerClassificationLifecycle and Area=DesignerKeyboard. Earlier failed
+and interrupted runs remain above; the successful checkpoint does not establish
+a color-loss fix. Following the user's confirmation that the report is no longer
+reproducible, iteration 24 is complete with its required checks passed. Final
+review covers the keyboard fix, regressions, documentation and contributor
+guidance. Only documentation changes follow validation; unchanged suites are not
+rerun for this status update. Commit this iteration separately on dev/milestone-14;
+no merge or push is included.
