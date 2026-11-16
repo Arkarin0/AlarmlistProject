@@ -66,6 +66,7 @@ Existing plans and iteration records:
 
 | Plan | Scope |
 | --- | --- |
+| [Milestone 15](src/VisualStudio/MILESTONE-15.md) | Authorized compiler-owned semantic comparison/merge, independent Windows comparison/Git-tool application, Visual Studio/VS Code integration and dedicated comparison playground; analysis 11 activates together in iteration 8. |
 | [Milestone 14](src/VisualStudio/MILESTONE-14.md) | Explain this value, Find All References/Rename and expression editor follow-up: compiler-owned provenance/identities/syntax, detached analysis-10 SDK transport, read-only explanations and previewed unsaved edits. |
 | [Milestone 2](src/VisualStudio/MILESTONE-2.md) | Shared ALMX document, designer/XML editing, and editor lifecycle. |
 | [Milestone 3](src/VisualStudio/MILESTONE-3.md) | Reference-aware editing, analysis, diagnostics, previews, and lifecycle/performance follow-ups. |
@@ -77,6 +78,24 @@ Existing plans and iteration records:
 | [Milestone 12](src/VisualStudio/MILESTONE-12.md) | Authorized XML IntelliSense for ALMX, .almlookup and .almproj files, and native Visual Studio Shared Projects; follow its accepted defaults and 15% remaining-allowance stop. |
 
 Read the selected plan's current status and remaining gates before resuming it.
+Milestone 15 has 13 authorized iterations on dev/milestone-15. Follow its plan and
+early native/standalone/VS Code feasibility gates before advancing. Shared
+comparison contracts/orchestration must have no Visual Studio/editor/compiler
+object dependencies; hosts invoke the same compiler-owned semantics. Keep normal
+analysis free of retained comparison graphs. Preserve analysis 10 until iteration
+8 activates 11 across compiler, SDK and VS together; analyzer 5/library 3/export 1
+and semantic fingerprints stay unchanged. The standalone host alone adds
+net10.0-windows; existing framework targets remain intact. Current matching tools
+interpret both sides; missing dependencies are reported, never auto-restored.
+Editor overlays belong only to comparison sessions. VS Apply leaves linked-Undo
+buffers unsaved; a Git-tool acceptance writes only MERGED before success, and
+calling Git may stage it. Source-only manual resolution requires explicit scope
+acknowledgement and does not prove project validation. Configuration setup is
+opt-in and preserves other tools/settings. VS Code support is local Windows
+Git/tool commands, not full language authoring. example/Comparison is independent
+of the default playground; preparation must preserve edits and may create fixture
+Git history/config only in ignored private repositories. Initial main/feature/dev
+setup pushes are authorized; later iteration commits are local until requested.
 Milestone 14 iterations 15–22 completed scoped acceptance on 2026-11-15; the
 explicit standard RESX-table deferral below remains a separate vendor limitation.
 Milestone 14 follow-up iterations 15–22 authorize context-menu value actions,

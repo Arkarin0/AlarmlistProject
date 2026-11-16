@@ -1,6 +1,6 @@
 # Future feature notes
 
-Status reviewed on 2026-10-29 against milestone records and current source.
+Status reflects current milestone records and checked-in source.
 This file tracks implemented features and future ideas; it does not authorize
 implementation or define a delivery schedule.
 
@@ -15,7 +15,7 @@ syntax, open questions and statements about future work in that history.
 | Well-known and custom properties | Implemented | [Milestone 4](src/VisualStudio/MILESTONE-4.md) |
 | Localization, RESX and XLIFF exchange | Implemented; vendor/manual/release gates remain | [Milestone 5](src/VisualStudio/MILESTONE-5.md) |
 | NuGet alarm libraries and project references | Implemented | [Milestone 9](src/VisualStudio/MILESTONE-9.md) |
-| Visual Studio Code | Proposed; unassigned | Proposal below |
+| Visual Studio Code | Milestone 15 Git/tool integration authorized; full authoring remains proposed | [Milestone 15](src/VisualStudio/MILESTONE-15.md) |
 | TwinCAT XAE Shell64 | Proposed; runtime compatibility unverified | Proposal below |
 | Separate preview and alarm-list table | Implemented as Alarm Summary | [Milestone 5](src/VisualStudio/MILESTONE-5.md), [7](src/VisualStudio/MILESTONE-7.md), [11](src/VisualStudio/MILESTONE-11.md) |
 | Procedure GroupBoxes, editable headings and splitter grip | Implemented, including collapse/search | [Milestone 10](src/VisualStudio/MILESTONE-10.md) |
@@ -28,7 +28,7 @@ syntax, open questions and statements about future work in that history.
 | External alarm-definition generation | Implemented for supported scalars and collections | [Milestone 11](src/VisualStudio/MILESTONE-11.md) |
 | Explain this value | Implemented; both-framework and both-host acceptance passed | [Milestone 14](src/VisualStudio/MILESTONE-14.md) |
 | Find All References and safe Rename | Milestone 14 iterations 8–14 complete: contract-9 APIs, solution coordination, designer/Summary/XML actions, previewed unsaved edits, guided tutorial and integrated/performance acceptance | [Milestone 14](src/VisualStudio/MILESTONE-14.md) |
-| Semantic comparison and Git integration | Proposed; high priority; unassigned | Proposal below |
+| Semantic comparison and Git integration | Milestone 15 authorized: compiler APIs, standalone Windows tool, VS/VS Code entry points and dedicated playground; not yet implemented | [Milestone 15](src/VisualStudio/MILESTONE-15.md) |
 | Export-provider interface | Milestone 13 complete: XML/JSON/zenon, external providers and transactional artifacts | [Milestone 13](src/VisualStudio/MILESTONE-13.md) |
 | Change-impact analysis | Proposed; unassigned | Proposal below |
 | Analyzer quick fixes | Proposed; unassigned | Proposal below |
@@ -65,8 +65,10 @@ completed reference/rename behavior and actual evidence remain recorded in the
 Priority decision (2026-10-27): Explain this value, Find All References and safe
 Rename, semantic comparison with Git integration, and the export-provider
 interface have equal high priority. Export providers were selected for Milestone 13
-and Explain this value for Milestone 14; the remaining order is undecided.
-The other new proposals below have no assigned priority or milestone.
+and Explain this value for Milestone 14.
+Semantic comparison and Git integration are now assigned to Milestone 15,
+including an independent executable and a dedicated comparison example. Other new
+proposals below have no assigned priority or milestone.
 
 Printable alarm documentation belongs to another project and is outside this
 backlog. The export-provider proposal does not include printable documentation.
@@ -99,7 +101,11 @@ search boundary, identity rules and conflict handling during milestone planning.
 
 ## Semantic comparison and Git integration
 
-Proposed on 2026-10-27; high priority; no milestone assigned.
+Proposed on 2026-10-27; high priority; now authorized as
+[Milestone 15](src/VisualStudio/MILESTONE-15.md). Its confirmed scope, 13 iterations,
+analysis-11 transition, standalone Windows/Git tool, thin VS Code integration and
+independent comparison playground supersede the open planning questions below.
+Implementation and acceptance remain pending; do not advertise the plan as shipped.
 
 Compare alarm identities and resolved fields, translations and procedures across
 builds or revisions without XML-formatting noise. Make changes caused by shared
@@ -406,7 +412,12 @@ Open questions:
 
 ## Visual Studio Code support
 
-Proposed on 2026-10-21; no milestone assigned.
+Proposed on 2026-10-21. [Milestone 15](src/VisualStudio/MILESTONE-15.md) authorizes
+local Windows Git/tool commands and standalone project-comparison launch using
+the computer's selected Git and effective diff/merge configuration. That scoped
+extension is not full ALMX authoring or embedded comparison. The broader language,
+designer, preview, remote-workspace and other-platform proposals below remain
+unassigned. Acceptance is tracked by the milestone; the extension is not yet shipped.
 
 Add Visual Studio Code support for authoring `.almx` files and working with
 `.almproj` projects. Reuse the Alarmlist compiler and SDK semantics for consistent
